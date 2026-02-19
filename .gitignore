@@ -30,6 +30,12 @@ Thumbs.db
 # Test coverage
 coverage/
 
+# Playwright (update if you change stack.testing)
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth.json
+
 # Debug logs
 *.log
 
