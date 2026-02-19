@@ -7,14 +7,14 @@ A template repository for running parallel MVP experiments. Fill in your idea, r
 ## How It Works
 
 ```
-1. Fill in idea.yaml  →  /bootstrap  →  Review & merge PR  →  Deploy
+1. Fill in idea.yaml  →  /bootstrap  →  Review & merge PR  →  Deploy (first time)
                                                                   ↓
                                                            Share with users
                                                                   ↓
 4. Act on recommendations  ←  3. /iterate  ←  2. Check analytics dashboards
    (/change ...)               (analysis only — no PR)
            ↓
-   Review & merge PR  →  Deploy  →  Repeat
+   Review & merge PR  →  Auto-deployed  →  Repeat
 ```
 
 Every skill except `/iterate` and `/retro` creates a branch, does the work, and opens a PR for you to review and merge. `/iterate` and `/retro` are analysis-only — they don't create branches or PRs. AI skills are invoked directly in Claude Code (not through `make`).
@@ -33,6 +33,7 @@ Install these before starting:
 - [Supabase](https://supabase.com/) project — create one at supabase.com (free tier works) *(default stack — see idea.yaml `stack` section)*
 - [PostHog](https://posthog.com/) project — one shared project for all experiments *(default stack)*
 - [Vercel](https://vercel.com/) account — for deployment *(default stack)*
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required when using `stack.testing` with `stack.database: supabase` (E2E tests run against a local Supabase instance)
 
 > **Note:** The prerequisites above assume the default stack (Supabase, PostHog, Vercel). If you change `stack` values in idea.yaml, substitute the corresponding services.
 
@@ -57,11 +58,11 @@ The key fields:
 - **features**: up to ~5 capabilities
 - **primary_metric**: the one number that tells you if this worked
 
-### 3. Commit your idea, then validate and bootstrap
+### 3. Validate your idea, commit, and bootstrap
 
 ```bash
-git add idea/idea.yaml && git commit -m "Fill in idea.yaml"
 make validate    # Check for any unfilled TODOs
+git add idea/idea.yaml && git commit -m "Fill in idea.yaml"
 ```
 
 Then open Claude Code and run `/bootstrap` to generate the full MVP. Claude will:
@@ -97,7 +98,31 @@ Add the same env vars in your Vercel project settings for production.
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your app.
+Open [http://localhost:3000](http://localhost:3000) to verify your app works.
+
+### 6. Verify with E2E tests
+
+If your project uses `stack.testing` with the full-auth path (Supabase + auth), start local Supabase first:
+
+```bash
+make supabase-start
+```
+
+Then open Claude Code and run `/verify`. This runs E2E tests against the local dev server and auto-fixes any failures.
+
+After verification, stop local Supabase:
+
+```bash
+make supabase-stop
+```
+
+> **Note:** `/verify` will auto-start local Supabase if it's not running, and stop it when done. The manual `make supabase-start`/`make supabase-stop` commands are optional convenience shortcuts.
+
+### 7. Deploy to production
+
+**Recommended:** Import your repo at [vercel.com/new](https://vercel.com/new) to connect the Vercel GitHub integration. Once connected, Vercel auto-deploys to production every time you merge a PR to `main` — no manual deploy step needed.
+
+> **Tip:** You can also deploy manually with `make deploy`. The first CLI deploy will prompt you to link the repo to a Vercel project. `make deploy` automatically checks the health endpoint (`/api/health`) after deploy.
 
 ## Commands
 
@@ -106,8 +131,10 @@ Run `make` to see all available utility commands:
 | Command | What it does |
 |---------|-------------|
 | `make validate` | Check idea.yaml for valid YAML, TODOs, name format, and landing page |
+| `make supabase-start` | Start local Supabase for testing (requires Docker) |
+| `make supabase-stop` | Stop local Supabase |
 | `make test-e2e` | Run Playwright E2E tests |
-| `make deploy` | Deploy to Vercel |
+| `make deploy` | Deploy to Vercel (first-time setup or manual deploys) |
 | `make clean` | Remove generated files (lets you re-run bootstrap) |
 | `make clean-all` | Remove everything including migrations (full reset) |
 
@@ -126,13 +153,13 @@ After bootstrap, the typical workflow is:
 
 > **Note:** The commands below assume the default stack. If you've changed your stack, some steps (e.g., deploy target, database setup) will differ — check your stack files in `.claude/stacks/` for details.
 
-1. **Deploy and share** — `make deploy`, send to target users
+1. **Share with users** — your app is live after merging the bootstrap PR (auto-deployed by Vercel)
 2. **Collect data** — wait a few days, check your analytics dashboards
 3. **Review progress** — `/iterate` to analyze your funnel and get recommendations (this is analysis-only — it does not create a branch or PR)
 4. **Act on recommendations** — run the suggested skill:
    - `/change ...` to add a feature, fix a bug, polish UI, fix analytics, or add tests
-5. **Review and merge PRs** — each skill opens a PR for you to review
-6. **Repeat** — deploy, measure, iterate until you hit `target_value` or `measurement_window` ends
+5. **Review and merge PRs** — each skill opens a PR for you to review; merging auto-deploys to production
+6. **Repeat** — measure, iterate until you hit `target_value` or `measurement_window` ends
 7. **Retrospective** — when the experiment ends, run `/retro` to generate structured feedback and file it on the template repo
 
 ## Retrospectives
@@ -161,7 +188,7 @@ After your first PR is merged, protect the `main` branch:
 2. Click **Add branch ruleset** for `main`
 3. Enable:
    - **Require a pull request before merging**
-   - **Require status checks to pass** — select `validate`, `build`, `e2e`, and `secret-scan`
+   - **Require status checks to pass** — select `validate`, `build`, `e2e`, `preview-smoke`, and `secret-scan`
 4. Save
 
 ## Troubleshooting
@@ -207,6 +234,9 @@ After your first PR is merged, protect the `main` branch:
 **`make deploy` asks to link a project**
 → This is normal on first deploy. Follow the Vercel CLI prompts to link your repo to a Vercel project. After linking, future deploys will work automatically.
 
+**Health check fails after deploy**
+→ Verify all env vars from `.env.example` are set in Vercel dashboard (Project → Settings → Environment Variables). Run the SQL migrations in Supabase Dashboard if you haven't already.
+
 **Vercel deploy fails with missing env vars**
 → Add your environment variables in the Vercel dashboard: Project → Settings → Environment Variables. Add the same keys from `.env.example`.
 
@@ -220,6 +250,12 @@ After your first PR is merged, protect the `main` branch:
 → You have two options:
   1. **Resume:** switch to the branch (`git checkout <branch-name>`) and run `claude` to pick up where it left off.
   2. **Start fresh:** delete the branch (`git branch -D <branch-name>`) and re-run the skill.
+
+**E2E tests fail with "connection refused on port 54321"**
+→ Local Supabase is not running. Run `make supabase-start` to start it. Make sure Docker Desktop is running first.
+
+**`supabase start` fails with Docker daemon error**
+→ Docker Desktop is not running. Start Docker Desktop, wait for it to initialize, then retry `make supabase-start`.
 
 **Two experiments won't run locally at the same time**
 → Run the second one on a different port: `npm run dev -- -p 3001`
@@ -239,6 +275,7 @@ EVENTS.yaml              # Analytics event dictionary
 .gitleaks.toml           # Secret scanning configuration
 Makefile                 # Utility command shortcuts — run `make` to see all
 .nvmrc                   # Node.js version (20)
+supabase/config.toml     # Local Supabase configuration (generated by supabase init, committed)
 supabase/migrations/     # Database migrations (default database stack) (generated by bootstrap/change, run in Supabase Dashboard)
 src/                     # App code (generated by make bootstrap)
 ```
