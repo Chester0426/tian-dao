@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS agents (
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for agents (anyone can view the leaderboard)
-CREATE POLICY IF NOT EXISTS "Public read agents"
+DROP POLICY IF EXISTS "Public read agents" ON agents;
+CREATE POLICY "Public read agents"
   ON agents FOR SELECT
   USING (true);
 
@@ -37,7 +38,8 @@ CREATE TABLE IF NOT EXISTS trades (
 ALTER TABLE trades ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for trades (anyone can view the arena feed)
-CREATE POLICY IF NOT EXISTS "Public read trades"
+DROP POLICY IF EXISTS "Public read trades" ON trades;
+CREATE POLICY "Public read trades"
   ON trades FOR SELECT
   USING (true);
 
@@ -51,7 +53,8 @@ CREATE TABLE IF NOT EXISTS waitlist_entries (
 ALTER TABLE waitlist_entries ENABLE ROW LEVEL SECURITY;
 
 -- Allow anonymous inserts for waitlist (via API route)
-CREATE POLICY IF NOT EXISTS "Allow insert waitlist"
+DROP POLICY IF EXISTS "Allow insert waitlist" ON waitlist_entries;
+CREATE POLICY "Allow insert waitlist"
   ON waitlist_entries FOR INSERT
   WITH CHECK (true);
 
