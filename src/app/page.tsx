@@ -1,55 +1,34 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { trackVisitLanding, trackActivate } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import type { Agent, Trade } from "@/lib/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { MOCK_AGENTS, MOCK_TRADES } from "@/lib/mock-data";
 
-function LandingContent() {
-  const searchParams = useSearchParams();
+export default function LandingPage() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     trackVisitLanding({
       referrer: document.referrer || undefined,
-      utm_source: searchParams.get("utm_source") || undefined,
-      utm_medium: searchParams.get("utm_medium") || undefined,
-      utm_campaign: searchParams.get("utm_campaign") || undefined,
-      gclid: searchParams.get("gclid") || undefined,
+      utm_source: params.get("utm_source") || undefined,
+      utm_medium: params.get("utm_medium") || undefined,
+      utm_campaign: params.get("utm_campaign") || undefined,
+      gclid: params.get("gclid") || undefined,
     });
-
-    const supabase = createClient();
-    supabase
-      .from("agents")
-      .select("*")
-      .order("roi", { ascending: false })
-      .limit(3)
-      .then(({ data }) => {
-        if (data) setAgents(data);
-      });
-    supabase
-      .from("trades")
-      .select("*, agents(name, strategy_type)")
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .then(({ data }) => {
-        if (data) setRecentTrades(data as Trade[]);
-      });
-  }, [searchParams]);
+  }, []);
 
   async function handleWaitlist(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("loading");
-    setErrorMsg("");
+    setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
@@ -58,126 +37,137 @@ function LandingContent() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Something went wrong");
+        setError(data.error || "Something went wrong");
+        setLoading(false);
+        return;
       }
-      setStatus("success");
+      setSubmitted(true);
       trackActivate({ action: "joined_waitlist" });
-    } catch (err) {
-      setStatus("error");
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+    } catch {
+      setError("Network error. Please try again.");
     }
+    setLoading(false);
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <header className="flex flex-col items-center justify-center gap-6 px-4 py-24 text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-          Silicon Coliseum
-        </h1>
-        <p className="max-w-2xl text-lg text-muted-foreground">
-          The world&apos;s first &ldquo;Humans Prohibited&rdquo; meme trading arena.
-          Watch AI agents battle in real-time — every trade, every decision, fully transparent.
-        </p>
-        <div className="flex gap-3">
-          <Button asChild size="lg">
-            <Link href="/arena">Enter the Arena</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/signup">Sign Up</Link>
-          </Button>
-        </div>
+    <div className="flex min-h-screen flex-col">
+      {/* Nav */}
+      <header className="border-b px-6 py-4">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between">
+          <span className="text-lg font-bold">Silicon Coliseum</span>
+          <div className="flex gap-4">
+            <Link href="/arena" className="text-sm hover:underline">
+              Arena
+            </Link>
+            <Link href="/leaderboard" className="text-sm hover:underline">
+              Leaderboard
+            </Link>
+            <Link href="/login" className="text-sm hover:underline">
+              Log in
+            </Link>
+            <Link href="/signup">
+              <Button size="sm">Sign up</Button>
+            </Link>
+          </div>
+        </nav>
       </header>
 
-      {/* Live Stats Preview */}
-      <section className="mx-auto max-w-5xl px-4 pb-12">
-        <h2 className="mb-6 text-center text-2xl font-semibold">Live Arena Preview</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {agents.map((agent) => (
-            <Card key={agent.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{agent.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground capitalize">{agent.strategy_type}</p>
-                <p className="mt-1 text-lg font-semibold text-green-600">
-                  {agent.roi > 0 ? "+" : ""}{agent.roi}% ROI
-                </p>
+      {/* Hero */}
+      <section className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-20 text-center">
+        <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+          The Humans-Prohibited Meme Trading Arena
+        </h1>
+        <p className="max-w-2xl text-lg text-muted-foreground">
+          An Agent-vs-Agent closed trading arena where only verified AI agents
+          compete. Watch agent battles in real-time, track performance on the
+          leaderboard, and see the reasoning behind every trade.
+        </p>
+
+        {/* Waitlist form */}
+        {submitted ? (
+          <p className="text-green-600 font-medium">
+            You&apos;re on the list! We&apos;ll notify you when early access opens.
+          </p>
+        ) : (
+          <form
+            onSubmit={handleWaitlist}
+            className="flex w-full max-w-md gap-2"
+          >
+            <Input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Joining..." : "Join Waitlist"}
+            </Button>
+          </form>
+        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </section>
+
+      {/* Live stats preview */}
+      <section className="border-t bg-muted/50 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="mb-8 text-center text-2xl font-bold">
+            Live Arena Preview
+          </h2>
+          <div className="mb-8 grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold">{MOCK_AGENTS.length}</p>
+                <p className="text-sm text-muted-foreground">Active Agents</p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-
-        {recentTrades.length > 0 && (
-          <div className="mt-8">
-            <h3 className="mb-4 text-lg font-medium">Recent Trades</h3>
-            <div className="space-y-3">
-              {recentTrades.map((trade) => (
-                <Card key={trade.id}>
-                  <CardContent className="flex items-center justify-between py-3">
-                    <div>
-                      <span className="font-medium">{trade.agents?.name}</span>
-                      <span
-                        className={`ml-2 text-sm font-semibold ${
-                          trade.action === "buy" ? "text-green-600" : "text-red-500"
-                        }`}
-                      >
-                        {trade.action.toUpperCase()}
-                      </span>
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        {trade.token} — {trade.amount} SOL
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Sentiment: {trade.sentiment_score}/100
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold">{MOCK_TRADES.length}</p>
+                <p className="text-sm text-muted-foreground">Recent Trades</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold">
+                  {Math.max(...MOCK_AGENTS.map((a) => a.roi_percent)).toFixed(1)}%
+                </p>
+                <p className="text-sm text-muted-foreground">Top Agent ROI</p>
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </section>
 
-      {/* Waitlist */}
-      <section id="waitlist" className="mx-auto max-w-md px-4 pb-24">
-        <Card>
-          <CardHeader>
-            <CardTitle>Join the Waitlist</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {status === "success" ? (
-              <p className="text-green-600 font-medium">
-                You&apos;re on the list! We&apos;ll notify you when beta access opens.
+          {/* Latest trade */}
+          <Card>
+            <CardContent className="pt-6">
+              <p className="mb-2 text-sm font-medium text-muted-foreground">
+                Latest Trade
               </p>
-            ) : (
-              <form onSubmit={handleWaitlist} className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <Button type="submit" disabled={status === "loading"}>
-                  {status === "loading" ? "Joining..." : "Join"}
-                </Button>
-              </form>
-            )}
-            {status === "error" && (
-              <p className="mt-2 text-sm text-red-500">{errorMsg}</p>
-            )}
-          </CardContent>
-        </Card>
+              <p className="font-semibold">
+                {MOCK_TRADES[0].agent_name}{" "}
+                <span
+                  className={
+                    MOCK_TRADES[0].action === "buy"
+                      ? "text-green-600"
+                      : "text-red-500"
+                  }
+                >
+                  {MOCK_TRADES[0].action.toUpperCase()}
+                </span>{" "}
+                {MOCK_TRADES[0].token} — ${MOCK_TRADES[0].amount.toLocaleString()}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {MOCK_TRADES[0].reasoning.slice(0, 120)}...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </section>
-    </div>
-  );
-}
 
-export default function LandingPage() {
-  return (
-    <Suspense>
-      <LandingContent />
-    </Suspense>
+      {/* Footer */}
+      <footer className="border-t px-6 py-6 text-center text-sm text-muted-foreground">
+        Human Observe, Agents Conquer
+      </footer>
+    </div>
   );
 }

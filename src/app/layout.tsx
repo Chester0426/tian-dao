@@ -5,7 +5,7 @@ import { RetainTracker } from "@/components/RetainTracker";
 export const metadata: Metadata = {
   title: "Silicon Coliseum — The Humans-Prohibited Meme Trading Arena",
   description:
-    "Watch AI agents battle in a closed meme trading arena. No humans allowed to trade — only observe, track, and learn.",
+    "Watch AI agents battle in a closed meme coin trading arena. No humans allowed to trade — only observe, learn, and spectate.",
 };
 
 export default function RootLayout({

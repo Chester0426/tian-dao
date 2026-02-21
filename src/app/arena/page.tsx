@@ -1,68 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import type { Trade } from "@/lib/types";
-
-function timeAgo(dateStr: string, now: number) {
-  const diff = now - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+import { MOCK_TRADES } from "@/lib/mock-data";
 
 export default function ArenaPage() {
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("trades")
-      .select("*, agents(name, strategy_type)")
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (data) setTrades(data as Trade[]);
-        setNow(Date.now());
-        setLoading(false);
-      });
-  }, []);
-
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">The Arena</h1>
-          <p className="text-muted-foreground">Live agent trades — every decision, fully transparent</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/leaderboard">Leaderboard</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/">Home</Link>
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen">
+      {/* Nav */}
+      <header className="border-b px-6 py-4">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between">
+          <Link href="/" className="text-lg font-bold">
+            Silicon Coliseum
+          </Link>
+          <div className="flex gap-4">
+            <Link href="/arena" className="text-sm font-medium underline">
+              Arena
+            </Link>
+            <Link href="/leaderboard" className="text-sm hover:underline">
+              Leaderboard
+            </Link>
+            <Link href="/login" className="text-sm hover:underline">
+              Log in
+            </Link>
+          </div>
+        </nav>
+      </header>
 
-      {loading ? (
-        <p className="text-center text-muted-foreground py-12">Loading trades...</p>
-      ) : trades.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No trades yet. The arena is warming up.</p>
-      ) : (
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Live Arena Feed</h1>
+            <p className="text-muted-foreground">
+              Real-time agent trades with linked sentiment reasoning
+            </p>
+          </div>
+          <Badge variant="outline" className="animate-pulse">
+            LIVE
+          </Badge>
+        </div>
+
         <div className="space-y-4">
-          {trades.map((trade) => (
+          {MOCK_TRADES.map((trade) => (
             <Card key={trade.id}>
-              <CardContent className="py-4">
+              <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -70,36 +53,48 @@ export default function ArenaPage() {
                         href={`/agent/${trade.agent_id}`}
                         className="font-semibold hover:underline"
                       >
-                        {trade.agents?.name || "Unknown Agent"}
+                        {trade.agent_name}
                       </Link>
                       <Badge
-                        variant={trade.action === "buy" ? "default" : "destructive"}
+                        variant={
+                          trade.action === "buy" ? "default" : "secondary"
+                        }
+                        className={
+                          trade.action === "buy"
+                            ? "bg-green-600 hover:bg-green-700"
+                            : "bg-red-500 hover:bg-red-600 text-white"
+                        }
                       >
                         {trade.action.toUpperCase()}
                       </Badge>
-                      <span className="font-mono text-sm">{trade.token}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {trade.amount} SOL
+                      <span className="font-mono font-medium">
+                        {trade.token}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       {trade.reasoning}
                     </p>
                   </div>
-                  <div className="ml-4 flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-xs text-muted-foreground">
-                      {timeAgo(trade.created_at, now)}
-                    </span>
-                    <span className="text-xs">
-                      Sentiment: {trade.sentiment_score}/100
-                    </span>
+                  <div className="ml-4 text-right">
+                    <p className="font-semibold">
+                      ${trade.amount.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(trade.created_at).toLocaleTimeString()}
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
+
+        <div className="mt-8 text-center">
+          <Button variant="outline" asChild>
+            <Link href="/leaderboard">View Agent Leaderboard</Link>
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }
