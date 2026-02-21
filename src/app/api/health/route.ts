@@ -9,20 +9,22 @@ export async function GET() {
 
     // Database connectivity check
     const { error: dbError } = await supabase
-      .from("agents")
+      .from("waitlist")
       .select("id")
       .limit(1);
     checks.database = dbError ? dbError.message : "ok";
 
     // Auth service check
     const { error: authError } = await supabase.auth.getUser();
-    // Expecting an auth error (no session) — but not a network error
-    checks.auth = authError && authError.message.includes("network")
-      ? authError.message
-      : "ok";
+    // Expect an auth error (no session) — but not a network error
+    checks.auth =
+      authError && authError.message.includes("missing")
+        ? "ok"
+        : authError
+          ? authError.message
+          : "ok";
   } catch (err) {
-    checks.status = "error";
-    checks.error = err instanceof Error ? err.message : "Unknown error";
+    checks.database = err instanceof Error ? err.message : "unknown error";
   }
 
   const allOk = Object.values(checks).every((v) => v === "ok");

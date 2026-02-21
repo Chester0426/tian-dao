@@ -32,7 +32,7 @@ test.describe.serial("Funnel smoke test", () => {
   });
 
   test("agent profile page loads", async ({ page }) => {
-    await page.goto("/agent/a0000001-0000-0000-0000-000000000001");
+    await page.goto("/agent/agent-001");
     await expect(page).toHaveTitle(/.+/);
   });
 });

@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { trackSignupStart, trackSignupComplete } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +30,10 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({ email, password });
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
     setLoading(false);
     if (authError) {
       setError(authError.message);
@@ -44,7 +47,7 @@ export default function SignupPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create your account</CardTitle>
+          <CardTitle>Sign up for Silicon Coliseum</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
@@ -72,16 +75,16 @@ export default function SignupPage() {
               />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Creating account..." : "Sign up"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link href="/login" className="underline">
+                Log in
+              </Link>
+            </p>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="underline">
-              Log in
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </div>

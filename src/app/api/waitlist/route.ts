@@ -1,27 +1,28 @@
 // TODO: Add production rate limiting (e.g., Upstash Redis)
 import { NextResponse } from "next/server";
-import { z } from "zod/v4";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { z } from "zod";
 
 const WaitlistSchema = z.object({
-  email: z.email(),
+  email: z.string().email("Invalid email address"),
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const result = WaitlistSchema.safeParse(body);
-    if (!result.success) {
+    const parsed = WaitlistSchema.safeParse(body);
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Please provide a valid email address" },
+        { error: parsed.error.issues[0].message },
         { status: 400 }
       );
     }
 
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase
-      .from("waitlist_entries")
-      .insert({ email: result.data.email });
+      .from("waitlist")
+      .insert({ email: parsed.data.email });
 
     if (error) {
       if (error.code === "23505") {
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
         );
       }
       return NextResponse.json(
-        { error: "Failed to join waitlist. Please try again." },
+        { error: "Failed to join waitlist" },
         { status: 500 }
       );
     }
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "Invalid request" },
+      { error: "Invalid request body" },
       { status: 400 }
     );
   }

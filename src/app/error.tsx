@@ -10,11 +10,11 @@ export default function Error({
 }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-4xl font-bold">Something went wrong</h1>
+      <h1 className="text-2xl font-bold">Something went wrong</h1>
       <p className="text-muted-foreground">
-        An unexpected error occurred. Please try again.
+        The arena encountered an unexpected error.
       </p>
-      <Button onClick={() => reset()}>Try Again</Button>
+      <Button onClick={() => reset()}>Try again</Button>
     </div>
   );
 }

@@ -1,10 +1,14 @@
-import nextConfig from "eslint-config-next";
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
+import nextPlugin from "@next/eslint-plugin-next";
+import tsParser from "@typescript-eslint/parser";
 
 export default [
-  ...nextConfig,
-  ...nextCoreWebVitals,
-  ...nextTypescript,
-  { ignores: ["e2e/"] },
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: { "@next/next": nextPlugin },
+    languageOptions: { parser: tsParser },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
+    },
+  },
 ];
