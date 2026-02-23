@@ -4,7 +4,7 @@
 # These are not real secrets — they are intentional placeholders.
 
 [allowlist]
-  description = "Allow public placeholder values"
+  description = "Allow public placeholder values and shared client-side keys"
   regexTarget = "match"
   regexes = [
     '''placeholder''',
@@ -12,4 +12,5 @@
     '''phc_placeholder''',
     '''placeholder-anon-key''',
     '''your-\w+-key''',
+    '''phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY''',
   ]

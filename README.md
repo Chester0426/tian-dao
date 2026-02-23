@@ -85,14 +85,18 @@ If tests fail, debug interactively with `npx playwright test --ui` or run `/veri
 
 ### 4. Go live
 
-Set your **production** environment variables:
+After bootstrap, copy the generated env file and fill in your Supabase keys:
+
+```bash
+cp .env.example .env.local
+```
+
+PostHog values are pre-filled — you only need to add:
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase Dashboard → Project Home → Data API popup → Project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase Dashboard → Project Home → Data API popup → Publishable Key (starts with `sb_publishable_`)
-- `NEXT_PUBLIC_POSTHOG_KEY` — PostHog → Project Settings → Project API Key
-- `NEXT_PUBLIC_POSTHOG_HOST` — usually `https://us.i.posthog.com` (or `https://eu.i.posthog.com` for EU)
 - If you enabled `payment: stripe` in idea.yaml, also add: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` — Stripe Dashboard → Developers → API keys
 
-> These env vars are for the default stack. After bootstrap, check `.env.example` for your actual required variables.
+Add the same env vars in your Vercel project settings for production (Project → Settings → Environment Variables).
 
 Import your repo at [vercel.com/new](https://vercel.com/new) — Vercel auto-deploys on every merge to `main`. Add the env vars above in your Vercel project settings (Project → Settings → Environment Variables).
 
