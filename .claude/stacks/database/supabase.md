@@ -74,8 +74,10 @@ export async function createServerSupabaseClient() {
 ## Environment Variables
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-api-key
 ```
+
+> **Note:** `NEXT_PUBLIC_SUPABASE_ANON_KEY` keeps its name for SDK compatibility, but in the Supabase Dashboard this is called **Publishable Key** (Project Home → Data API popup). New keys start with `sb_publishable_`.
 
 ## Schema Management
 - SQL migrations go in `supabase/migrations/` as numbered files (`001_initial.sql`, `002_feature.sql`, etc.)
