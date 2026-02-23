@@ -6,15 +6,19 @@ A template repository for running parallel MVP experiments. Fill in your idea, r
 
 ## How It Works
 
+> **For non-technical team members:** You don't need to understand every term in this document. The key steps are: fill in idea.yaml (Step 1), approve the build plan in Claude Code (Step 2), and deploy (Step 4). Claude handles the code. For first-time setup, ask a technical teammate to help install the prerequisites.
+
 ```
 1. Fill in idea.yaml  →  /bootstrap  →  Review & merge PR  →  Deploy (first time)
                                                                   ↓
                                                            Share with users
                                                                   ↓
+                                                           /distribute (optional)
+                                                                  ↓
 4. Act on recommendations  ←  3. /iterate  ←  2. Check analytics dashboards
    (/change ...)               (analysis only — no PR)
            ↓
-   Review & merge PR  →  Auto-deployed  →  Repeat
+   /verify  →  Review & merge PR  →  Auto-deployed  →  Repeat
 ```
 
 Every skill except `/iterate` and `/retro` creates a branch, does the work, and opens a PR for you to review and merge. `/iterate` and `/retro` are analysis-only — they don't create branches or PRs. AI skills are invoked directly in Claude Code (not through `make`).
@@ -110,6 +114,7 @@ Run `make` to see all available utility commands:
 | `make supabase-start` | Start local Supabase for testing (requires Docker) |
 | `make supabase-stop` | Stop local Supabase |
 | `make test-e2e` | Run Playwright E2E tests |
+| `make distribute` | Validate idea/ads.yaml (valid YAML, schema, budget limits) |
 | `make migrate` | Push pending Supabase migrations to remote database |
 | `make deploy` | Deploy to Vercel (first-time setup or manual deploys) |
 | `make clean` | Remove generated files (lets you re-run bootstrap) |
@@ -121,8 +126,10 @@ AI skills are invoked directly in Claude Code:
 |-------|-------------|
 | `/bootstrap` | Generate the full MVP from `idea/idea.yaml` |
 | `/change ...` | Make any change: add feature, fix bug, polish UI, fix analytics, add tests |
+| `/verify` | Run E2E tests and fix failures (quality gate after `/change`) |
 | `/iterate` | Review metrics and get recommendations for next steps |
 | `/retro` | Run a retrospective and file feedback as GitHub issue |
+| `/distribute` | Generate Google Ads campaign config from idea.yaml |
 
 ## Workflow
 
@@ -131,13 +138,15 @@ After bootstrap, the typical workflow is:
 > **Note:** The commands below assume the default stack. If you've changed your stack, some steps (e.g., deploy target, database setup) will differ — check your stack files in `.claude/stacks/` for details.
 
 1. **Share with users** — your app is live after merging the bootstrap PR (auto-deployed by Vercel)
-2. **Collect data** — wait a few days, check your analytics dashboards
-3. **Review progress** — `/iterate` to analyze your funnel and get recommendations (this is analysis-only — it does not create a branch or PR)
-4. **Act on recommendations** — run the suggested skill:
+2. **Distribute (optional)** — run `/distribute` to generate a Google Ads campaign config, then set it up in Google Ads (see `docs/google-ads-setup.md`)
+3. **Collect data** — wait a few days, check your analytics dashboards
+4. **Review progress** — `/iterate` to analyze your funnel and get recommendations (this is analysis-only — it does not create a branch or PR)
+5. **Act on recommendations** — run the suggested skill:
    - `/change ...` to add a feature, fix a bug, polish UI, fix analytics, or add tests
-5. **Review and merge PRs** — each skill opens a PR for you to review; merging auto-deploys to production
-6. **Repeat** — measure, iterate until you hit `target_value` or `measurement_window` ends
-7. **Retrospective** — when the experiment ends, run `/retro` to generate structured feedback and file it on the template repo
+6. **Verify** — run `/verify` to run E2E tests and auto-fix failures before merging
+7. **Review and merge PRs** — each skill opens a PR for you to review; merging auto-deploys to production
+8. **Repeat** — measure, iterate until you hit `target_value` or `measurement_window` ends
+9. **Retrospective** — when the experiment ends, run `/retro` to generate structured feedback and file it on the template repo
 
 ## Retrospectives
 
@@ -272,7 +281,7 @@ idea/idea.example.yaml   # Worked example for reference
 idea/retro-template.md   # Retrospective template (used at end of experiment)
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
 EVENTS.yaml              # Analytics event dictionary
-.claude/commands/        # Claude Code skills (bootstrap, change, iterate, retro)
+.claude/commands/        # Claude Code skills (bootstrap, change, verify, iterate, retro, distribute)
 .claude/patterns/        # Shared patterns referenced by skills (verification procedure, etc.)
 .claude/stacks/          # Stack implementation files (one per technology — framework, database, auth, testing, etc.)
 .github/                 # PR template and CI workflow
@@ -281,7 +290,7 @@ Makefile                 # Utility command shortcuts — run `make` to see all
 .nvmrc                   # Node.js version (20)
 supabase/config.toml     # Local Supabase configuration (generated by supabase init, committed)
 supabase/migrations/     # Database migrations (default database stack) (generated by bootstrap/change, auto-applied by CI on merge)
-src/                     # App code (generated by make bootstrap)
+src/                     # App code (generated by /bootstrap)
 ```
 
 > **Tip:** `idea.example.yaml` shows a full 7-page app with payments. For a simpler starting point, you only need a `landing` page and one feature — everything else is optional.
@@ -309,4 +318,4 @@ Most code-writing changes should go through the unified `change` skill rather th
 2. Add YAML frontmatter at the top of the file with required keys: `type`, `reads`, `stack_categories`, `requires_approval`, `references`, `branch_prefix`, `modifies_specs`. See existing skill files for examples.
 3. For code-writing skills: add `.claude/patterns/branch.md` and `.claude/patterns/verify.md` to the `references` list, and add a Step 0 that invokes the branch setup procedure
 4. Update the skill tables in this README
-5. Update the skill list in CLAUDE.md Rule 0 (the `/bootstrap, /change, /iterate, /retro` enumeration)
+5. Update the skill list in CLAUDE.md Rule 0
