@@ -30,7 +30,7 @@ Install these before starting:
 - [Claude Code](https://claude.ai/code) — `claude --version` to check (requires a paid plan or API credits — see [pricing](https://claude.ai/pricing))
 - **npm** (bundled with Node.js) — this template uses npm exclusively; do not use yarn or pnpm
 - [GitHub CLI](https://cli.github.com/) — `gh --version` to check, then `gh auth login`
-- [Supabase](https://supabase.com/) project — create one at supabase.com (free tier works) *(default stack — see idea.yaml `stack` section)*
+- [Supabase](https://supabase.com/) account — the Supabase Vercel Integration creates a project for you during deployment *(default stack — see idea.yaml `stack` section)*
 - [PostHog](https://posthog.com/) project — one shared project for all experiments *(default stack)*
 - [Vercel](https://vercel.com/) account — for deployment *(default stack)*
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required when using `stack.testing` with `stack.database: supabase` (E2E tests run against a local Supabase instance)
@@ -85,24 +85,19 @@ If tests fail, debug interactively with `npx playwright test --ui` or run `/veri
 
 ### 4. Go live
 
-After bootstrap, copy the generated env file and fill in your Supabase keys:
+1. **Import your repo** at [vercel.com/new](https://vercel.com/new)
 
-```bash
-cp .env.example .env.local
-```
+2. **Add the Supabase integration** — during Vercel project setup (or after, at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)):
+   - Select your Vercel project
+   - The integration creates a Supabase project and auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel
 
-PostHog values are pre-filled — you only need to add:
-- `NEXT_PUBLIC_SUPABASE_URL` — Supabase Dashboard → Project Home → Data API popup → Project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase Dashboard → Project Home → Data API popup → Publishable Key (starts with `sb_publishable_`)
-- If you enabled `payment: stripe` in idea.yaml, also add: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` — Stripe Dashboard → Developers → API keys
+3. **Apply database migrations** — open your new Supabase project's Dashboard → SQL Editor, paste the contents of each file in `supabase/migrations/` (in order), and click **Run**
 
-Add the same env vars in your Vercel project settings for production (Project → Settings → Environment Variables).
+4. **Done** — Vercel auto-deploys on every merge to `main`. PostHog analytics are pre-configured.
 
-Import your repo at [vercel.com/new](https://vercel.com/new) — Vercel auto-deploys on every merge to `main`. Add the env vars above in your Vercel project settings (Project → Settings → Environment Variables).
+> **Stripe (if enabled):** If you have `payment: stripe` in idea.yaml, manually add `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in Vercel (Project → Settings → Environment Variables). Find these in Stripe Dashboard → Developers → API keys.
 
-> **Important (default database stack):** Run `make migrate` to push migrations to your remote Supabase database before the first deploy (see [Migration Setup](#migration-setup)). After CI secrets are configured, future migrations are applied automatically on merge.
-
-> **Tip:** You can also deploy manually with `make deploy`. The first CLI deploy will prompt you to link the repo to a Vercel project.
+> **Without the integration:** Copy keys from Supabase Dashboard → Project Home → Data API popup into Vercel Project → Settings → Environment Variables. For CLI migration, see [Migration Setup](#migration-setup).
 
 ## Commands
 
@@ -244,10 +239,10 @@ make migrate
 → This is normal on first deploy. Follow the Vercel CLI prompts to link your repo to a Vercel project. After linking, future deploys will work automatically.
 
 **Health check fails after deploy**
-→ Verify all env vars from `.env.example` are set in Vercel dashboard (Project → Settings → Environment Variables). If migrations haven't been applied, run `make migrate` or check the CI migrate job.
+→ Check that the Supabase Vercel Integration is connected (Vercel Project → Integrations). If you set env vars manually, verify all keys from `.env.example` are present in Vercel (Project → Settings → Environment Variables). If migrations haven't been applied, paste the SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
 
 **Vercel deploy fails with missing env vars**
-→ Add your environment variables in the Vercel dashboard: Project → Settings → Environment Variables. Add the same keys from `.env.example`.
+→ Add the Supabase Vercel Integration at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase) to auto-inject Supabase env vars. For other variables (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
 
 **Bootstrap partially failed (e.g., npm install worked but shadcn init didn't)**
 → Run `make clean` to remove generated files, then try `/bootstrap` again.
