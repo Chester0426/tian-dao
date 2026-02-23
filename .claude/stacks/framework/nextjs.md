@@ -30,7 +30,7 @@ npm install -D typescript @types/react @types/node eslint eslint-config-next
 
 ## Project Setup
 - `.nvmrc`: containing `20` (used by CI and local version managers)
-- `package.json`: `scripts` with `dev`, `build`, `start`, `lint` and `engines: { "node": ">=20" }`
+- `package.json`: `scripts` with `prebuild` (auto-migrate, see database stack file), `dev`, `build`, `start`, `lint` and `engines: { "node": ">=20" }`
 - `tsconfig.json`: enable `strict: true` and `@/` path alias mapping to `src/`
 - `next.config.ts`: minimal, no custom config
 

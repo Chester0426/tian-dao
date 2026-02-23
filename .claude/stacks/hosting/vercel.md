@@ -73,8 +73,13 @@ See the testing stack file's "Preview Smoke CI Job Template" section for the CI 
 ## Supabase Vercel Integration
 When `stack.database: supabase` is present, the recommended production setup is the [Supabase Vercel Integration](https://vercel.com/integrations/supabase):
 - Auto-creates or links a Supabase project to the Vercel project
-- Auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel environment variables
-- Eliminates manual env var copying for non-technical team members
+- Auto-injects environment variables into Vercel, including:
+  - `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING` (connection strings)
+  - `POSTGRES_PASSWORD`, `POSTGRES_USER`, `POSTGRES_HOST`, `POSTGRES_DATABASE`
+  - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`
+  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- Database migrations are auto-applied during build via the `prebuild` script (see database stack file "Auto-Migration on Vercel Build")
+- Eliminates manual env var copying and manual migration for non-technical team members
 
 Bootstrap PR instructions should reference this integration as the primary setup method, with manual env var entry as a fallback.
 

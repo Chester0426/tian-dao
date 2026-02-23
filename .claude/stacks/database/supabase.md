@@ -2,7 +2,7 @@
 assumes: [framework/nextjs]
 packages:
   runtime: ["@supabase/supabase-js", "@supabase/ssr"]
-  dev: []
+  dev: [pg]
 files:
   - src/lib/supabase.ts
   - src/lib/supabase-server.ts
@@ -90,7 +90,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-api-key
 - `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on every table
 - RLS policies: `auth.uid() = user_id`
 - Add SQL comments explaining each table's purpose
-- Migrations are applied automatically by CI on merge to `main` (via `supabase db push`). For manual use: `make migrate`. Fallback: copy SQL into Supabase Dashboard -> SQL Editor.
+- Migrations are applied automatically during Vercel builds via the `prebuild` script (when `POSTGRES_URL_NON_POOLING` is set by the Supabase Vercel Integration). They are also applied by CI on merge to `main` (via `supabase db push` if CI secrets are configured). For manual use: `make migrate`. Fallback: copy SQL into Supabase Dashboard → SQL Editor.
 
 ## Local Development (when `stack.testing` is present)
 
@@ -121,6 +121,23 @@ Add three GitHub repository secrets (repo → Settings → Secrets and variables
 | `SUPABASE_DB_PASSWORD` | Supabase Dashboard → Settings → Database → Database password |
 | `SUPABASE_ACCESS_TOKEN` | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) → Generate new token |
 
+## Auto-Migration on Vercel Build
+
+When deployed via the Supabase Vercel Integration, migrations are applied automatically during every Vercel build via a `prebuild` script (`scripts/auto-migrate.mjs`). No additional configuration needed.
+
+### How it works
+- `package.json` has `"prebuild": "node scripts/auto-migrate.mjs"`
+- npm runs `prebuild` before every `build` (including on Vercel)
+- The script connects using `POSTGRES_URL_NON_POOLING` (injected by the Integration)
+- Applies all SQL files from `supabase/migrations/` in order
+- Tracks applied migrations in `_auto_migrations` table to avoid re-running
+- If `POSTGRES_URL_NON_POOLING` is not set (local dev, CI), exits silently
+
+### Coexistence with CI migrate and supabase db push
+- Auto-migrate tracks in `_auto_migrations`; `supabase db push` tracks in `supabase_migrations.schema_migrations`
+- Independent tracking, no conflict — migrations are idempotent (`IF NOT EXISTS`)
+- Both can be active safely; CI migrate provides a fallback for non-Vercel deployments
+
 ### Deterministic local keys
 
 These keys are hardcoded in the local Supabase instance and are safe to commit in test configuration. They only work against the local instance — never against a remote project.
@@ -143,5 +160,5 @@ These keys are hardcoded in the local Supabase instance and are safe to commit i
 - When creating a new migration, use the next sequential number after existing migrations. Note: concurrent branches may create conflicting numbers (e.g., two branches both create `002_*.sql`) — resolve by renumbering the later-merged migration at merge time. This is acceptable for MVP workflows.
 
 ## PR Instructions
-- When creating migrations, add to the PR body: "After merging, CI will automatically apply `supabase/migrations/<filename>.sql` to the remote database. If CI migration secrets are not configured, apply the SQL manually: open Supabase Dashboard → SQL Editor, paste the contents of each migration file in order, and click Run. Alternatively, run `make migrate` from the CLI — see Migration Setup in README."
+- When creating migrations, add to the PR body: "After merging, migrations are applied automatically during the next Vercel build (via the `prebuild` script). If not using the Supabase Vercel Integration, CI applies them on merge to `main` (requires CI secrets), or run `make migrate` manually — see Migration Setup in README."
 - For the bootstrap PR, also add: "For production env var setup, add the Supabase Vercel Integration at vercel.com/integrations/supabase — it auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel."
