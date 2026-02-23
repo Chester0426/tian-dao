@@ -65,9 +65,18 @@ Vercel automatically creates preview deployments on PRs. CI runs page-load smoke
 See the testing stack file's "Preview Smoke CI Job Template" section for the CI job template.
 
 ## Environment Variables
-- Set via **Vercel dashboard -> Project -> Settings -> Environment Variables**
+- **Supabase env vars:** Use the [Supabase Vercel Integration](https://vercel.com/integrations/supabase) to auto-inject database env vars (see Supabase Vercel Integration section below)
+- **Other env vars (Stripe, etc.):** Set manually via Vercel dashboard → Project → Settings → Environment Variables
 - Client-side env vars must use `NEXT_PUBLIC_` prefix
 - Never commit secrets to code — always use environment variables
+
+## Supabase Vercel Integration
+When `stack.database: supabase` is present, the recommended production setup is the [Supabase Vercel Integration](https://vercel.com/integrations/supabase):
+- Auto-creates or links a Supabase project to the Vercel project
+- Auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel environment variables
+- Eliminates manual env var copying for non-technical team members
+
+Bootstrap PR instructions should reference this integration as the primary setup method, with manual env var entry as a fallback.
 
 ## Rate Limiting Limitation
 Simple in-memory counters do not persist across serverless invocations on Vercel, so they are not effective for rate limiting.
@@ -87,5 +96,5 @@ For auth and payment API routes:
 - Environment variables are configured per-environment (Production, Preview, Development) in the Vercel dashboard
 
 ## PR Instructions
-- After merging, ensure all environment variables from `.env.example` are set in Vercel: Project → Settings → Environment Variables
-- First deploy will prompt to link the repository to a Vercel project — follow the CLI prompts
+- After merging: import your repo at [vercel.com/new](https://vercel.com/new) and add the Supabase Vercel Integration ([vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)) to auto-inject Supabase env vars. For other env vars (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
+- Vercel auto-deploys on every merge to `main`
