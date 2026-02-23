@@ -6,15 +6,19 @@ A template repository for running parallel MVP experiments. Fill in your idea, r
 
 ## How It Works
 
+> **For non-technical team members:** You don't need to understand every term in this document. The key steps are: fill in idea.yaml (Step 1), approve the build plan in Claude Code (Step 2), and deploy (Step 4). Claude handles the code. For first-time setup, ask a technical teammate to help install the prerequisites.
+
 ```
 1. Fill in idea.yaml  →  /bootstrap  →  Review & merge PR  →  Deploy (first time)
                                                                   ↓
                                                            Share with users
                                                                   ↓
+                                                           /distribute (optional)
+                                                                  ↓
 4. Act on recommendations  ←  3. /iterate  ←  2. Check analytics dashboards
    (/change ...)               (analysis only — no PR)
            ↓
-   Review & merge PR  →  Auto-deployed  →  Repeat
+   /verify  →  Review & merge PR  →  Auto-deployed  →  Repeat
 ```
 
 Every skill except `/iterate` and `/retro` creates a branch, does the work, and opens a PR for you to review and merge. `/iterate` and `/retro` are analysis-only — they don't create branches or PRs. AI skills are invoked directly in Claude Code (not through `make`).
@@ -30,7 +34,7 @@ Install these before starting:
 - [Claude Code](https://claude.ai/code) — `claude --version` to check (requires a paid plan or API credits — see [pricing](https://claude.ai/pricing))
 - **npm** (bundled with Node.js) — this template uses npm exclusively; do not use yarn or pnpm
 - [GitHub CLI](https://cli.github.com/) — `gh --version` to check, then `gh auth login`
-- [Supabase](https://supabase.com/) project — create one at supabase.com (free tier works) *(default stack — see idea.yaml `stack` section)*
+- [Supabase](https://supabase.com/) account — the Supabase Vercel Integration creates a project for you during deployment *(default stack — see idea.yaml `stack` section)*
 - [PostHog](https://posthog.com/) project — one shared project for all experiments *(default stack)*
 - [Vercel](https://vercel.com/) account — for deployment *(default stack)*
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required when using `stack.testing` with `stack.database: supabase` (E2E tests run against a local Supabase instance)
@@ -85,20 +89,18 @@ If tests fail, debug interactively with `npx playwright test --ui` or run `/veri
 
 ### 4. Go live
 
-Set your **production** environment variables:
-- `NEXT_PUBLIC_SUPABASE_URL` — Supabase Dashboard → Project Home → Data API popup → Project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase Dashboard → Project Home → Data API popup → Publishable Key (starts with `sb_publishable_`)
-- `NEXT_PUBLIC_POSTHOG_KEY` — PostHog → Project Settings → Project API Key
-- `NEXT_PUBLIC_POSTHOG_HOST` — usually `https://us.i.posthog.com` (or `https://eu.i.posthog.com` for EU)
-- If you enabled `payment: stripe` in idea.yaml, also add: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` — Stripe Dashboard → Developers → API keys
+1. **Import your repo** at [vercel.com/new](https://vercel.com/new)
 
-> These env vars are for the default stack. After bootstrap, check `.env.example` for your actual required variables.
+2. **Add the Supabase integration** — during Vercel project setup (or after, at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)):
+   - Select your Vercel project
+   - The integration creates a Supabase project and auto-injects all required env vars
+   - **Database migrations are applied automatically** during the first build
 
-Import your repo at [vercel.com/new](https://vercel.com/new) — Vercel auto-deploys on every merge to `main`. Add the env vars above in your Vercel project settings (Project → Settings → Environment Variables).
+3. **Done** — Vercel auto-deploys on every merge to `main`. PostHog analytics are pre-configured.
 
-> **Important (default database stack):** Run `make migrate` to push migrations to your remote Supabase database before the first deploy (see [Migration Setup](#migration-setup)). After CI secrets are configured, future migrations are applied automatically on merge.
+> **Stripe (if enabled):** If you have `payment: stripe` in idea.yaml, manually add `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in Vercel (Project → Settings → Environment Variables). Find these in Stripe Dashboard → Developers → API keys.
 
-> **Tip:** You can also deploy manually with `make deploy`. The first CLI deploy will prompt you to link the repo to a Vercel project.
+> **Without the integration:** Copy keys from Supabase Dashboard → Project Home → Data API popup into Vercel Project → Settings → Environment Variables. Apply migrations manually: open Supabase Dashboard → SQL Editor, paste each file from `supabase/migrations/` in order. Or see [Migration Setup](#migration-setup).
 
 ## Commands
 
@@ -111,6 +113,7 @@ Run `make` to see all available utility commands:
 | `make supabase-start` | Start local Supabase for testing (requires Docker) |
 | `make supabase-stop` | Stop local Supabase |
 | `make test-e2e` | Run Playwright E2E tests |
+| `make distribute` | Validate idea/ads.yaml (valid YAML, schema, budget limits) |
 | `make migrate` | Push pending Supabase migrations to remote database |
 | `make deploy` | Deploy to Vercel (first-time setup or manual deploys) |
 | `make clean` | Remove generated files (lets you re-run bootstrap) |
@@ -122,8 +125,10 @@ AI skills are invoked directly in Claude Code:
 |-------|-------------|
 | `/bootstrap` | Generate the full MVP from `idea/idea.yaml` |
 | `/change ...` | Make any change: add feature, fix bug, polish UI, fix analytics, add tests |
+| `/verify` | Run E2E tests and fix failures (quality gate after `/change`) |
 | `/iterate` | Review metrics and get recommendations for next steps |
 | `/retro` | Run a retrospective and file feedback as GitHub issue |
+| `/distribute` | Generate Google Ads campaign config from idea.yaml |
 
 ## Workflow
 
@@ -132,13 +137,15 @@ After bootstrap, the typical workflow is:
 > **Note:** The commands below assume the default stack. If you've changed your stack, some steps (e.g., deploy target, database setup) will differ — check your stack files in `.claude/stacks/` for details.
 
 1. **Share with users** — your app is live after merging the bootstrap PR (auto-deployed by Vercel)
-2. **Collect data** — wait a few days, check your analytics dashboards
-3. **Review progress** — `/iterate` to analyze your funnel and get recommendations (this is analysis-only — it does not create a branch or PR)
-4. **Act on recommendations** — run the suggested skill:
+2. **Distribute (optional)** — run `/distribute` to generate a Google Ads campaign config, then set it up in Google Ads (see `docs/google-ads-setup.md`)
+3. **Collect data** — wait a few days, check your analytics dashboards
+4. **Review progress** — `/iterate` to analyze your funnel and get recommendations (this is analysis-only — it does not create a branch or PR)
+5. **Act on recommendations** — run the suggested skill:
    - `/change ...` to add a feature, fix a bug, polish UI, fix analytics, or add tests
-5. **Review and merge PRs** — each skill opens a PR for you to review; merging auto-deploys to production
-6. **Repeat** — measure, iterate until you hit `target_value` or `measurement_window` ends
-7. **Retrospective** — when the experiment ends, run `/retro` to generate structured feedback and file it on the template repo
+6. **Verify** — run `/verify` to run E2E tests and auto-fix failures before merging
+7. **Review and merge PRs** — each skill opens a PR for you to review; merging auto-deploys to production
+8. **Repeat** — measure, iterate until you hit `target_value` or `measurement_window` ends
+9. **Retrospective** — when the experiment ends, run `/retro` to generate structured feedback and file it on the template repo
 
 ## Retrospectives
 
@@ -171,21 +178,27 @@ After your first PR is merged, protect the `main` branch:
 
 ## Migration Setup
 
-If your project uses `stack.database: supabase`, set up automated migrations so database schema changes are applied when PRs merge to `main`.
+If your project uses `stack.database: supabase`, database migrations need to reach the remote database.
 
-### CI auto-migration (recommended)
+### Automatic (default with Supabase Vercel Integration)
 
-Add three GitHub repository secrets (Settings → Secrets and variables → Actions):
+If you deployed using the Supabase Vercel Integration (recommended in Go Live), **migrations are applied automatically** during every Vercel build. No additional setup needed.
+
+The `prebuild` script connects using `POSTGRES_URL_NON_POOLING` (injected by the integration), applies new SQL files from `supabase/migrations/`, and tracks progress in a `_auto_migrations` table.
+
+### CI auto-migration (alternative)
+
+If you're not using the Supabase Vercel Integration, or want a second layer of safety, add three GitHub repository secrets (Settings → Secrets and variables → Actions):
 
 1. **`SUPABASE_PROJECT_REF`** — Supabase Dashboard → Settings → General → Reference ID
 2. **`SUPABASE_DB_PASSWORD`** — Supabase Dashboard → Settings → Database → Database password
 3. **`SUPABASE_ACCESS_TOKEN`** — [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens)
 
-Once configured, the `migrate` CI job applies pending migrations automatically on every merge to `main`.
+Once configured, the `migrate` CI job applies pending migrations on every merge to `main`.
 
 ### Manual alternative
 
-If you prefer not to configure CI secrets:
+If you prefer not to use either automated method:
 
 ```bash
 npx supabase login              # One-time: authenticate CLI
@@ -231,7 +244,7 @@ make migrate
 → Check that `.env.local` has all variables from `.env.example`
 
 **App crashes with "relation does not exist"**
-→ Database tables haven't been created yet. Run `make migrate` to push migrations to the remote database. If CI secrets are configured, check the CI workflow run for errors. Fallback: copy SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
+→ Database tables haven't been created yet. If using the Supabase Vercel Integration, re-deploy to trigger auto-migration (push an empty commit: `git commit --allow-empty -m "trigger deploy" && git push`). Check Vercel build logs for `[auto-migrate]` messages. If not using the integration: run `make migrate` or copy SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
 
 **PostHog events aren't showing up**
 → Check that `NEXT_PUBLIC_POSTHOG_KEY` in `.env.local` matches your PostHog project API key. Check that `NEXT_PUBLIC_POSTHOG_HOST` is `https://us.i.posthog.com` (US) or `https://eu.i.posthog.com` (EU). Open browser DevTools → Network tab and look for requests to `posthog`.
@@ -240,10 +253,10 @@ make migrate
 → This is normal on first deploy. Follow the Vercel CLI prompts to link your repo to a Vercel project. After linking, future deploys will work automatically.
 
 **Health check fails after deploy**
-→ Verify all env vars from `.env.example` are set in Vercel dashboard (Project → Settings → Environment Variables). If migrations haven't been applied, run `make migrate` or check the CI migrate job.
+→ Check that the Supabase Vercel Integration is connected (Vercel Project → Integrations). If you set env vars manually, verify all keys from `.env.example` are present in Vercel (Project → Settings → Environment Variables). If migrations haven't been applied, paste the SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
 
 **Vercel deploy fails with missing env vars**
-→ Add your environment variables in the Vercel dashboard: Project → Settings → Environment Variables. Add the same keys from `.env.example`.
+→ Add the Supabase Vercel Integration at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase) to auto-inject Supabase env vars. For other variables (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
 
 **Bootstrap partially failed (e.g., npm install worked but shadcn init didn't)**
 → Run `make clean` to remove generated files, then try `/bootstrap` again.
@@ -273,7 +286,7 @@ idea/idea.example.yaml   # Worked example for reference
 idea/retro-template.md   # Retrospective template (used at end of experiment)
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
 EVENTS.yaml              # Analytics event dictionary
-.claude/commands/        # Claude Code skills (bootstrap, change, iterate, retro)
+.claude/commands/        # Claude Code skills (bootstrap, change, verify, iterate, retro, distribute)
 .claude/patterns/        # Shared patterns referenced by skills (verification procedure, etc.)
 .claude/stacks/          # Stack implementation files (one per technology — framework, database, auth, testing, etc.)
 .github/                 # PR template and CI workflow
@@ -282,7 +295,7 @@ Makefile                 # Utility command shortcuts — run `make` to see all
 .nvmrc                   # Node.js version (20)
 supabase/config.toml     # Local Supabase configuration (generated by supabase init, committed)
 supabase/migrations/     # Database migrations (default database stack) (generated by bootstrap/change, auto-applied by CI on merge)
-src/                     # App code (generated by make bootstrap)
+src/                     # App code (generated by /bootstrap)
 ```
 
 > **Tip:** `idea.example.yaml` shows a full 7-page app with payments. For a simpler starting point, you only need a `landing` page and one feature — everything else is optional.
@@ -310,4 +323,4 @@ Most code-writing changes should go through the unified `change` skill rather th
 2. Add YAML frontmatter at the top of the file with required keys: `type`, `reads`, `stack_categories`, `requires_approval`, `references`, `branch_prefix`, `modifies_specs`. See existing skill files for examples.
 3. For code-writing skills: add `.claude/patterns/branch.md` and `.claude/patterns/verify.md` to the `references` list, and add a Step 0 that invokes the branch setup procedure
 4. Update the skill tables in this README
-5. Update the skill list in CLAUDE.md Rule 0 (the `/bootstrap, /change, /iterate, /retro` enumeration)
+5. Update the skill list in CLAUDE.md Rule 0
