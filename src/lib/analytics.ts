@@ -2,13 +2,15 @@ import posthog from "posthog-js";
 
 const PROJECT_NAME = "silicon-coliseum";
 const PROJECT_OWNER = "quanpeng";
+const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
+const POSTHOG_HOST = "https://us.i.posthog.com";
 
 let initialized = false;
 
 function init() {
   if (initialized || typeof window === "undefined") return;
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  posthog.init(POSTHOG_KEY, {
+    api_host: POSTHOG_HOST,
     capture_pageview: false,
   });
   initialized = true;
