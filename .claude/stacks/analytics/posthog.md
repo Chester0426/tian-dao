@@ -9,10 +9,7 @@ files:
   - src/lib/events.ts
 env:
   server: []
-  client: [NEXT_PUBLIC_POSTHOG_KEY, NEXT_PUBLIC_POSTHOG_HOST]
-ci_placeholders:
-  NEXT_PUBLIC_POSTHOG_KEY: phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY
-  NEXT_PUBLIC_POSTHOG_HOST: "https://us.i.posthog.com"
+  client: []
 clean:
   files: []
   dirs: []
@@ -34,14 +31,17 @@ import posthog from "posthog-js";
 
 const PROJECT_NAME = "TODO"; // Replaced by bootstrap with idea.yaml `name`
 const PROJECT_OWNER = "TODO"; // Replaced by bootstrap with idea.yaml `owner`
+const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
+const POSTHOG_HOST = "https://us.i.posthog.com";
 
 let initialized = false;
 
 function init() {
   if (initialized || typeof window === "undefined") return;
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  posthog.init(POSTHOG_KEY, {
+    api_host: POSTHOG_HOST,
     capture_pageview: false,
+    capture_exceptions: true,
   });
   initialized = true;
 }
@@ -69,7 +69,9 @@ export function reset() {
 Notes:
 - `init()` is lazy — safe to import server-side, PostHog only initializes on first client-side call
 - `capture_pageview: false` because pages fire explicit events via `events.ts`
+- `capture_exceptions: true` sends unhandled JS errors and promise rejections to PostHog as `$exception` events — provides post-deploy error visibility without additional error tracking setup
 - Bootstrap replaces `PROJECT_NAME` and `PROJECT_OWNER` with actual idea.yaml values
+- `POSTHOG_KEY` and `POSTHOG_HOST` are hardcoded — the key is a publishable client-side key shared across all experiments (distinguished by `project_name`). This eliminates manual env var setup in Vercel.
 - Global properties are placed after the spread so they can't be overridden by callers
 
 ### `src/lib/analytics-server.ts` — Server-side tracking (for webhooks and API routes)
@@ -78,14 +80,16 @@ import { PostHog } from "posthog-node";
 
 const PROJECT_NAME = "TODO"; // Replaced by bootstrap with idea.yaml `name`
 const PROJECT_OWNER = "TODO"; // Replaced by bootstrap with idea.yaml `owner`
+const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
+const POSTHOG_HOST = "https://us.i.posthog.com";
 
 export async function trackServerEvent(
   event: string,
   distinctId: string,
   properties?: Record<string, unknown>
 ) {
-  const client = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  const client = new PostHog(POSTHOG_KEY, {
+    host: POSTHOG_HOST,
   });
 
   client.capture({
@@ -104,7 +108,7 @@ export async function trackServerEvent(
 
 Notes:
 - Creates a PostHog client per call and calls `shutdown()` to flush — required for serverless (Vercel)
-- Uses the same `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` env vars as client-side (available on server in Next.js)
+- `POSTHOG_KEY` and `POSTHOG_HOST` are hardcoded (same publishable key as client-side)
 - Auto-attaches `project_name` and `project_owner` like client-side `track()`
 - Bootstrap replaces `PROJECT_NAME` and `PROJECT_OWNER` with actual idea.yaml values
 - Use this in webhook handlers and API routes for server-side events (e.g., `pay_success`)
@@ -154,12 +158,13 @@ Notes:
 - Pages import from `@/lib/events` instead of calling `track()` directly — this provides compile-time validation of event names and property types.
 
 ## Environment Variables
+No PostHog environment variables are needed — the shared publishable key and host are hardcoded in the analytics libraries. All experiments share one PostHog project (filtered by `project_name`).
+
+Bootstrap still writes these values to `.env.example` for documentation and `verify-local.sh` compatibility:
 ```
 NEXT_PUBLIC_POSTHOG_KEY=phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
-
-> **Shared values:** These are the team's PostHog credentials — all experiments share one PostHog project (filtered by `project_name`). Bootstrap pre-fills these in `.env.example` so team members only need to add Supabase keys.
 
 ## Patterns
 - Client-side tracking goes through `src/lib/analytics.ts` — never import posthog-js directly in pages or components
@@ -183,7 +188,7 @@ When creating a new analytics stack file, document the equivalent endpoint patte
 - If any values are wrong, fix both analytics files before auditing pages/routes
 
 ## PR Instructions
-- After merging, ensure `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` are set in your hosting provider's environment variables
+- No PostHog env vars needed — credentials are hardcoded in the analytics libraries
 - Verify events are flowing: open the app, perform an action, then check PostHog → Activity → Live Events
 
 ## Dashboard Navigation (for /iterate skill)

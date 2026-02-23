@@ -76,6 +76,7 @@ DO NOT write any code, create any files, or run any install commands during this
    **Tests (if stack.testing present):**
    - Template path: Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list])
    - Smoke tests for: [list each page name]
+   - Funnel test: landing → [activate action] → login → [core value pages in order]
 
    **Questions:**
    - [any ambiguities — or "None"]
@@ -187,6 +188,13 @@ If `stack.testing` is present in idea.yaml:
   });
   ```
   These are page-load smoke tests only — not full funnel tests with selectors.
+- Generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
+  - Read the funnel test template from the testing stack file
+  - Read idea.yaml pages and EVENTS.yaml to determine funnel sequence
+  - Read actual page source files (created in Step 4) to extract real selectors
+  - Generate tests: landing content → activate action (if applicable) → login → core value pages
+  - Use timestamped emails for form submissions to avoid duplicates
+  - Skip retain_return (untestable in E2E)
 - Add `.gitignore` entries per testing stack file
 - Add `test:e2e` and `test:e2e:ui` scripts to `package.json`
 - If the existing CI e2e job in `.github/workflows/ci.yml` does not match the chosen
@@ -229,7 +237,7 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - Add pages not listed in idea.yaml `pages`
 - Add features not listed in idea.yaml `features`
 - Add libraries not in idea.yaml `stack` (small utilities like clsx are fine)
-- Add full funnel tests — bootstrap creates page-load smoke tests only when stack.testing is present; use /change for funnel tests with real selectors
+- Add tests beyond the funnel happy path — bootstrap generates smoke tests and one funnel test; use /change for edge cases
 - Violate the restrictions listed in the framework stack file
 - Add placeholder "lorem ipsum" text — use real copy derived from idea.yaml
 - Skip the build verification step

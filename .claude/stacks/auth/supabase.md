@@ -48,6 +48,7 @@ npm install @supabase/supabase-js @supabase/ssr
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { trackSignupStart, trackSignupComplete } from "@/lib/events";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => { trackSignupStart({ method: "email" }); }, []);
@@ -72,14 +73,26 @@ export default function SignupPage() {
     }
     setLoading(true);
     setError("");
-    const { error: authError } = await supabase.auth.signUp({ email, password });
+    const supabase = createClient();
+    const { data, error: authError } = await supabase.auth.signUp({ email, password });
     setLoading(false);
     if (authError) { setError(authError.message); return; }
+    if (!data.session) {
+      setSuccess("Check your email for a confirmation link to complete signup.");
+      return;
+    }
     trackSignupComplete({ method: "email" });
     router.push("/"); // Redirect to landing — bootstrap will update to the first non-auth page from idea.yaml
   }
 
-  return (
+  return success ? (
+    <div className="space-y-4 text-center">
+      <p className="text-green-600 font-medium">{success}</p>
+      <p className="text-sm text-muted-foreground">
+        Already confirmed? <Link href="/login" className="underline">Log in</Link>
+      </p>
+    </div>
+  ) : (
     <form onSubmit={handleSignup} className="space-y-4">
       <div>
         <Label htmlFor="email">Email</Label>
@@ -101,7 +114,7 @@ export default function SignupPage() {
 ```
 
 #### When `stack.database` is NOT supabase (standalone client):
-Replace the import on line 3 of the signup page:
+Replace the import on line 4 of the signup page:
 ```tsx
 // Instead of: import { createClient } from "@/lib/supabase";
 import { createAuthClient as createClient } from "@/lib/supabase-auth";
@@ -209,7 +222,7 @@ if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
 ## Analytics Integration
 - Fire `signup_start` on form render (include `method` property: `"email"`, `"google"`, `"github"`)
-- Fire `signup_complete` on successful account creation (include `method` property)
+- Fire `signup_complete` only when `data.session` exists after `signUp()` — when email confirmation is enabled (the default), `signUp()` returns `session: null` and the user must confirm their email before they're logged in. `signup_complete` should only fire for confirmed, logged-in users.
 
 ## Shared Client Note
 When `stack.auth` matches `stack.database` (both `supabase`), they share the same client files (`supabase.ts` and `supabase-server.ts`). When `stack.database` is absent or a different provider, auth needs its own library file — see "Standalone Client" below.
@@ -266,5 +279,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-api-key
 ```
 
 ## PR Instructions
-- After merging, enable email verification in Supabase Dashboard: Authentication → Settings → Email Auth → "Confirm email"
-- Test the signup flow end-to-end: create an account, verify email (if enabled), confirm user appears in Authentication → Users
+- Email confirmation is enabled by default in Supabase. The signup form handles this: when `signUp()` returns `session: null`, it shows a "check your email" message instead of redirecting. Users who confirm their email can then log in normally.
+- Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → log in → verify redirect to post-auth page
