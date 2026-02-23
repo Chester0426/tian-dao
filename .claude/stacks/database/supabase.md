@@ -143,4 +143,5 @@ These keys are hardcoded in the local Supabase instance and are safe to commit i
 - When creating a new migration, use the next sequential number after existing migrations. Note: concurrent branches may create conflicting numbers (e.g., two branches both create `002_*.sql`) — resolve by renumbering the later-merged migration at merge time. This is acceptable for MVP workflows.
 
 ## PR Instructions
-- When creating migrations, add to the PR body: "After merging, CI will automatically apply `supabase/migrations/<filename>.sql` to the remote database. If CI migration secrets are not configured, run `make migrate` or apply the SQL manually in Supabase Dashboard -> SQL Editor."
+- When creating migrations, add to the PR body: "After merging, CI will automatically apply `supabase/migrations/<filename>.sql` to the remote database. If CI migration secrets are not configured, apply the SQL manually: open Supabase Dashboard → SQL Editor, paste the contents of each migration file in order, and click Run. Alternatively, run `make migrate` from the CLI — see Migration Setup in README."
+- For the bootstrap PR, also add: "For production env var setup, add the Supabase Vercel Integration at vercel.com/integrations/supabase — it auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel."
