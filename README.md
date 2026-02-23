@@ -86,8 +86,8 @@ If tests fail, debug interactively with `npx playwright test --ui` or run `/veri
 ### 4. Go live
 
 Set your **production** environment variables:
-- `NEXT_PUBLIC_SUPABASE_URL` — Supabase Dashboard → Settings → API → Project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase Dashboard → Settings → API → `anon` `public` key
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase Dashboard → Project Home → Data API popup → Project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase Dashboard → Project Home → Data API popup → Publishable Key (starts with `sb_publishable_`)
 - `NEXT_PUBLIC_POSTHOG_KEY` — PostHog → Project Settings → Project API Key
 - `NEXT_PUBLIC_POSTHOG_HOST` — usually `https://us.i.posthog.com` (or `https://eu.i.posthog.com` for EU)
 - If you enabled `payment: stripe` in idea.yaml, also add: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` — Stripe Dashboard → Developers → API keys
