@@ -214,7 +214,7 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
 - Push and open PR using the `.github/PULL_REQUEST_TEMPLATE.md` format:
   - **Summary**: plain-English explanation — "Full MVP scaffold generated from idea.yaml" with key highlights
-  - **How to Test**: "After merging: 1) Import your repo at vercel.com/new, 2) Add the Supabase Vercel Integration (vercel.com/integrations/supabase) to auto-inject Supabase env vars, [If stack.payment is present: add Stripe env vars manually in Vercel Project → Settings → Environment Variables,] 3) Apply database migrations: open Supabase Dashboard → SQL Editor, paste the contents of each supabase/migrations/*.sql file in order, click Run, 4) Verify: visit your production URL and check each page, 5) For local dev: run `make verify-local`"
+  - **How to Test**: "After merging: 1) Import your repo at vercel.com/new, 2) Add the Supabase Vercel Integration (vercel.com/integrations/supabase) — database migrations are applied automatically during the first build, [If stack.payment is present: add Stripe env vars manually in Vercel Project → Settings → Environment Variables,] 3) Verify: visit your production URL and check each page, 4) For local dev: run `make verify-local`"
   - **What Changed**: list every file created and its purpose
   - **Why**: reference the idea.yaml problem/solution
   - **Checklist — Scope**: check all boxes (only built what's in idea.yaml)
