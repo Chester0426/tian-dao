@@ -11,7 +11,7 @@ env:
   server: []
   client: [NEXT_PUBLIC_POSTHOG_KEY, NEXT_PUBLIC_POSTHOG_HOST]
 ci_placeholders:
-  NEXT_PUBLIC_POSTHOG_KEY: phc_placeholder
+  NEXT_PUBLIC_POSTHOG_KEY: phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY
   NEXT_PUBLIC_POSTHOG_HOST: "https://us.i.posthog.com"
 clean:
   files: []
@@ -155,9 +155,11 @@ Notes:
 
 ## Environment Variables
 ```
-NEXT_PUBLIC_POSTHOG_KEY=phc_your-posthog-key
+NEXT_PUBLIC_POSTHOG_KEY=phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
+
+> **Shared values:** These are the team's PostHog credentials — all experiments share one PostHog project (filtered by `project_name`). Bootstrap pre-fills these in `.env.example` so team members only need to add Supabase keys.
 
 ## Patterns
 - Client-side tracking goes through `src/lib/analytics.ts` — never import posthog-js directly in pages or components
