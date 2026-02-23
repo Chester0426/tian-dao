@@ -93,15 +93,14 @@ If tests fail, debug interactively with `npx playwright test --ui` or run `/veri
 
 2. **Add the Supabase integration** — during Vercel project setup (or after, at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)):
    - Select your Vercel project
-   - The integration creates a Supabase project and auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel
+   - The integration creates a Supabase project and auto-injects all required env vars
+   - **Database migrations are applied automatically** during the first build
 
-3. **Apply database migrations** — open your new Supabase project's Dashboard → SQL Editor, paste the contents of each file in `supabase/migrations/` (in order), and click **Run**
-
-4. **Done** — Vercel auto-deploys on every merge to `main`. PostHog analytics are pre-configured.
+3. **Done** — Vercel auto-deploys on every merge to `main`. PostHog analytics are pre-configured.
 
 > **Stripe (if enabled):** If you have `payment: stripe` in idea.yaml, manually add `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in Vercel (Project → Settings → Environment Variables). Find these in Stripe Dashboard → Developers → API keys.
 
-> **Without the integration:** Copy keys from Supabase Dashboard → Project Home → Data API popup into Vercel Project → Settings → Environment Variables. For CLI migration, see [Migration Setup](#migration-setup).
+> **Without the integration:** Copy keys from Supabase Dashboard → Project Home → Data API popup into Vercel Project → Settings → Environment Variables. Apply migrations manually: open Supabase Dashboard → SQL Editor, paste each file from `supabase/migrations/` in order. Or see [Migration Setup](#migration-setup).
 
 ## Commands
 
@@ -179,21 +178,27 @@ After your first PR is merged, protect the `main` branch:
 
 ## Migration Setup
 
-If your project uses `stack.database: supabase`, set up automated migrations so database schema changes are applied when PRs merge to `main`.
+If your project uses `stack.database: supabase`, database migrations need to reach the remote database.
 
-### CI auto-migration (recommended)
+### Automatic (default with Supabase Vercel Integration)
 
-Add three GitHub repository secrets (Settings → Secrets and variables → Actions):
+If you deployed using the Supabase Vercel Integration (recommended in Go Live), **migrations are applied automatically** during every Vercel build. No additional setup needed.
+
+The `prebuild` script connects using `POSTGRES_URL_NON_POOLING` (injected by the integration), applies new SQL files from `supabase/migrations/`, and tracks progress in a `_auto_migrations` table.
+
+### CI auto-migration (alternative)
+
+If you're not using the Supabase Vercel Integration, or want a second layer of safety, add three GitHub repository secrets (Settings → Secrets and variables → Actions):
 
 1. **`SUPABASE_PROJECT_REF`** — Supabase Dashboard → Settings → General → Reference ID
 2. **`SUPABASE_DB_PASSWORD`** — Supabase Dashboard → Settings → Database → Database password
 3. **`SUPABASE_ACCESS_TOKEN`** — [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens)
 
-Once configured, the `migrate` CI job applies pending migrations automatically on every merge to `main`.
+Once configured, the `migrate` CI job applies pending migrations on every merge to `main`.
 
 ### Manual alternative
 
-If you prefer not to configure CI secrets:
+If you prefer not to use either automated method:
 
 ```bash
 npx supabase login              # One-time: authenticate CLI
@@ -239,7 +244,7 @@ make migrate
 → Check that `.env.local` has all variables from `.env.example`
 
 **App crashes with "relation does not exist"**
-→ Database tables haven't been created yet. Run `make migrate` to push migrations to the remote database. If CI secrets are configured, check the CI workflow run for errors. Fallback: copy SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
+→ Database tables haven't been created yet. If using the Supabase Vercel Integration, re-deploy to trigger auto-migration (push an empty commit: `git commit --allow-empty -m "trigger deploy" && git push`). Check Vercel build logs for `[auto-migrate]` messages. If not using the integration: run `make migrate` or copy SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
 
 **PostHog events aren't showing up**
 → Check that `NEXT_PUBLIC_POSTHOG_KEY` in `.env.local` matches your PostHog project API key. Check that `NEXT_PUBLIC_POSTHOG_HOST` is `https://us.i.posthog.com` (US) or `https://eu.i.posthog.com` (EU). Open browser DevTools → Network tab and look for requests to `posthog`.
