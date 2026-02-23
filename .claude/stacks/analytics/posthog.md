@@ -41,6 +41,7 @@ function init() {
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
     capture_pageview: false,
+    capture_exceptions: true,
   });
   initialized = true;
 }
@@ -68,6 +69,7 @@ export function reset() {
 Notes:
 - `init()` is lazy — safe to import server-side, PostHog only initializes on first client-side call
 - `capture_pageview: false` because pages fire explicit events via `events.ts`
+- `capture_exceptions: true` sends unhandled JS errors and promise rejections to PostHog as `$exception` events — provides post-deploy error visibility without additional error tracking setup
 - Bootstrap replaces `PROJECT_NAME` and `PROJECT_OWNER` with actual idea.yaml values
 - `POSTHOG_KEY` and `POSTHOG_HOST` are hardcoded — the key is a publishable client-side key shared across all experiments (distinguished by `project_name`). This eliminates manual env var setup in Vercel.
 - Global properties are placed after the spread so they can't be overridden by callers
