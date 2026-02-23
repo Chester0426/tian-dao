@@ -247,7 +247,7 @@ make migrate
 → Database tables haven't been created yet. If using the Supabase Vercel Integration, re-deploy to trigger auto-migration (push an empty commit: `git commit --allow-empty -m "trigger deploy" && git push`). Check Vercel build logs for `[auto-migrate]` messages. If not using the integration: run `make migrate` or copy SQL from `supabase/migrations/` into Supabase Dashboard → SQL Editor.
 
 **PostHog events aren't showing up**
-→ Check that `NEXT_PUBLIC_POSTHOG_KEY` in `.env.local` matches your PostHog project API key. Check that `NEXT_PUBLIC_POSTHOG_HOST` is `https://us.i.posthog.com` (US) or `https://eu.i.posthog.com` (EU). Open browser DevTools → Network tab and look for requests to `posthog`.
+→ PostHog credentials are hardcoded in the analytics libraries (shared publishable key). Open browser DevTools → Network tab and look for requests to `posthog`. If no requests appear, verify the analytics library is being imported and `track()` calls are firing on user actions.
 
 **`make deploy` asks to link a project**
 → This is normal on first deploy. Follow the Vercel CLI prompts to link your repo to a Vercel project. After linking, future deploys will work automatically.
