@@ -262,7 +262,7 @@ When `stack.database` is also `supabase`, auth shares the database environment v
 When `stack.database` is NOT supabase, add these env vars for auth:
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-api-key
 ```
 
 ## PR Instructions
