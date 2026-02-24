@@ -87,9 +87,13 @@ fi
 step 3 "Setting up environment..."
 
 if [ "$HAS_ENV_EXAMPLE" = true ] && [ ! -f .env.local ]; then
-  # Well-known local Supabase keys (deterministic, used by all local instances)
+  # Read local Supabase keys dynamically (supports CLI v2.76+ with sb_* keys)
   LOCAL_SUPABASE_URL="http://127.0.0.1:54321"
-  LOCAL_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+  LOCAL_SUPABASE_ANON_KEY=$(npx supabase status -o json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('ANON_KEY',''))" 2>/dev/null)
+  if [ -z "$LOCAL_SUPABASE_ANON_KEY" ]; then
+    # Fallback: legacy deterministic key (Supabase CLI <v2.76)
+    LOCAL_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+  fi
 
   # Read .env.example line by line and substitute known local values
   while IFS= read -r line || [ -n "$line" ]; do
