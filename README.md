@@ -83,19 +83,17 @@ Alternatively, run `make verify-local` from the terminal for a standalone pass/f
 
 ### 4. Go live
 
-1. **Import your repo** at [vercel.com/new](https://vercel.com/new)
+Open Claude Code and run `/deploy`. It will:
+1. Create a Vercel project and connect your GitHub repo (auto-deploys on merge)
+2. Create a Supabase project and set up all environment variables
+3. Apply database migrations and deploy to production
+4. Verify the deployment via health check
 
-2. **Connect Supabase** via the [Vercel integration](https://vercel.com/integrations/supabase) (during project setup or after):
-   - Select your Vercel project
-   - The integration walks you through creating a new Supabase project (or connecting an existing one) — no manual key copying needed
-   - Once connected, all required env vars are auto-injected into Vercel
-   - **Database migrations are applied automatically** during the first build
+> **Prerequisites:** `vercel login` and `npx supabase login` must be done first (one-time per machine).
 
-3. **Done** — Vercel auto-deploys on every merge to `main`. PostHog analytics are pre-configured.
+> **Manual alternative:** Import your repo at [vercel.com/new](https://vercel.com/new), connect Supabase via the [Vercel integration](https://vercel.com/integrations/supabase), then Vercel auto-deploys on merge.
 
-> **Stripe (if enabled):** If you have `payment: stripe` in idea.yaml, manually add `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in Vercel (Project → Settings → Environment Variables). Find these in Stripe Dashboard → Developers → API keys.
-
-> **Without the integration:** Copy keys from Supabase Dashboard → Project Home → Data API popup into Vercel Project → Settings → Environment Variables. Apply migrations manually: open Supabase Dashboard → SQL Editor, paste each file from `supabase/migrations/` in order. Or see [Migration Setup](#migration-setup).
+> **Stripe (if enabled):** If you have `payment: stripe` in idea.yaml, `/deploy` will ask for your Stripe keys. Find them in Stripe Dashboard → Developers → API keys.
 
 ### 5. Set up production debugging
 
@@ -136,6 +134,7 @@ AI skills are invoked directly in Claude Code:
 | `/verify` | Run E2E tests and fix failures (quality gate after `/change`) |
 | `/iterate` | Review metrics and get recommendations for next steps |
 | `/retro` | Run a retrospective and file feedback as GitHub issue |
+| `/deploy` | Deploy to Vercel + Supabase (first-time setup) |
 | `/distribute` | Generate Google Ads campaign config from idea.yaml |
 
 ## Workflow
@@ -294,7 +293,7 @@ idea/idea.example.yaml   # Worked example for reference
 idea/retro-template.md   # Retrospective template (used at end of experiment)
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
 EVENTS.yaml              # Analytics event dictionary
-.claude/commands/        # Claude Code skills (bootstrap, change, verify, iterate, retro, distribute)
+.claude/commands/        # Claude Code skills (bootstrap, change, verify, iterate, retro, distribute, deploy)
 .claude/patterns/        # Shared patterns referenced by skills (verification procedure, etc.)
 .claude/stacks/          # Stack implementation files (one per technology — framework, database, auth, testing, etc.)
 .github/                 # PR template and CI workflow
