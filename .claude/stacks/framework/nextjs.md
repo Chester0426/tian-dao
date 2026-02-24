@@ -106,8 +106,11 @@ export function RetainTracker() {
 In the root layout (a server component — do NOT add "use client" to layout.tsx):
 ```tsx
 import { RetainTracker } from "@/components/RetainTracker";
+// When stack.auth is present:
+import { NavBar } from "@/components/nav-bar";
 
 // Inside the <body> tag:
+<NavBar />    {/* Only when stack.auth is present */}
 <RetainTracker />
 ```
 

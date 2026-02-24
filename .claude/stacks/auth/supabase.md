@@ -6,6 +6,7 @@ packages:
 files:  # conditional: pages require idea.yaml entry; library files only when stack.database is not supabase
   - src/app/signup/page.tsx
   - src/app/login/page.tsx
+  - src/components/nav-bar.tsx
   - src/lib/supabase-auth.ts
   - src/lib/supabase-auth-server.ts
 env:
@@ -213,9 +214,95 @@ import { createAuthClient as createClient } from "@/lib/supabase-auth";
 ```
 The rest of the component code (Suspense wrapper, confirmed banner, `createClient()` inside handler) remains identical.
 
+### `src/components/nav-bar.tsx` — Auth-aware navigation (always created when `stack.auth: supabase`)
+
+#### When `stack.database` is also `supabase` (shared client):
+```tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import type { User } from "@supabase/supabase-js";
+
+export function NavBar() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <nav className="flex items-center justify-between px-6 py-4 border-b">
+      <Link href="/" className="text-xl font-bold">
+        APP_NAME
+      </Link>
+      <div className="flex items-center gap-2">
+        {/* Bootstrap adds page links here from idea.yaml pages */}
+        {loading ? (
+          <Button variant="outline" disabled className="min-w-[70px]">
+            &nbsp;
+          </Button>
+        ) : user ? (
+          <>
+            <span className="text-sm text-muted-foreground truncate max-w-[200px]">
+              {user.email}
+            </span>
+            <Button variant="outline" onClick={handleLogout}>
+              Log out
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" asChild>
+            <Link href="/login">Log in</Link>
+          </Button>
+        )}
+      </div>
+    </nav>
+  );
+}
+```
+
+#### When `stack.database` is NOT supabase (standalone client):
+Replace the import on line 6:
+```tsx
+import { createAuthClient as createClient } from "@/lib/supabase-auth";
+```
+
+Notes:
+- Bootstrap replaces `APP_NAME` with idea.yaml `name` and adds page-specific navigation links
+- `getSession()` on mount sets initial auth state; `onAuthStateChange()` reacts to login/logout
+- Loading state prevents flash of "Log in" button before auth state is known
+- `router.refresh()` after logout clears server-side cached session data
+
 ## Client-Side Auth State
-- Use `supabase.auth.onAuthStateChange()` in components to react to auth changes
+- The `NavBar` component (above) demonstrates the pattern: `getSession()` for initial state + `onAuthStateChange()` for reactive updates
 - On login/signup success, redirect to the appropriate page
+- Use the same pattern in any component that needs to react to auth changes
 
 ## Server-Side Auth Check
 In API route handlers, verify the user session before processing the request. The import depends on whether `stack.database` is also `supabase`.
