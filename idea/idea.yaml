@@ -69,3 +69,9 @@ stack:
   ui: shadcn                # UI component library — leave default
   # payment: stripe         # Uncomment if your experiment involves payments
   testing: playwright      # Page-load smoke tests — created by bootstrap
+
+# --- Deploy ---
+deploy:
+  vercel_team: "Magpiexyz Ltd"
+  supabase_org: "Magpiexyz Labs"
+  supabase_region: us-east-1
