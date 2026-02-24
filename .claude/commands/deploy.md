@@ -5,7 +5,7 @@ reads:
   - idea/idea.yaml
   - .env.example
   - CLAUDE.md
-stack_categories: [hosting, database, payment]
+stack_categories: [hosting, database, auth, analytics, payment]
 requires_approval: true
 references: []
 branch_prefix: ""
@@ -25,6 +25,7 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 6. Check CLI auth:
    - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
    - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `npx supabase login` first (one-time per machine)."
+   - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
 
 ## Step 1: Gather configuration
 
@@ -32,7 +33,7 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 2. **Supabase org** (if `stack.database: supabase`): Read `deploy.supabase_org` from idea.yaml. If not set, run `supabase orgs list -o json` and ask the user to pick one.
 3. **Supabase region**: Read `deploy.supabase_region` from idea.yaml, or default to `us-east-1`.
 4. **DB password**: Generate with `openssl rand -base64 24`.
-5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET`.
+5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
 
 ## Step 2: Present deployment plan — STOP for approval
 
@@ -110,20 +111,76 @@ Skip this step if `stack.database` is not `supabase`.
    Additional variables (when `stack.payment: stripe`):
    - `STRIPE_SECRET_KEY`
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-   - `STRIPE_WEBHOOK_SECRET`
+   - `STRIPE_WEBHOOK_SECRET` (skip if Stripe CLI is available — set after webhook creation in Step 5)
 
-## Step 5: Deploy and verify
+## Step 5: Deploy, configure services, and verify
 
+### 5a: Initial deploy
 1. Deploy to production:
    ```bash
    vercel --prod --yes
    ```
 2. Get the deployment URL from the output.
-3. Verify the health endpoint:
+
+### 5b: Post-deploy service configuration
+
+Configure services that require the deployment URL. Batch all env var changes before redeploying.
+
+1. **Supabase Auth redirect URLs** (if `stack.auth: supabase`):
+   Read the Supabase access token from `~/.supabase/access-token`. If the file does not exist, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here."
    ```bash
-   curl -sf <url>/api/health
+   curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
+     -H "Authorization: Bearer <token>" \
+     -H "Content-Type: application/json" \
+     -d '{"site_url": "https://<url>", "uri_allow_list": "https://<url>/**"}'
    ```
-4. Report the result — success or failure with diagnostics.
+   If the PATCH fails, warn but continue — the user can configure this manually in Supabase Dashboard → Authentication → URL Configuration.
+
+2. **Stripe webhook endpoint** (if `stack.payment: stripe` AND Stripe CLI is available):
+   Check for existing endpoint: `stripe webhook_endpoints list` — if an endpoint with URL `https://<url>/api/webhooks/stripe` already exists, skip creation.
+   Otherwise:
+   ```bash
+   stripe webhook_endpoints create \
+     --url "https://<url>/api/webhooks/stripe" \
+     --events checkout.session.completed
+   ```
+   Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel:
+   ```bash
+   echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force
+   echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET preview --force
+   ```
+
+3. **Redeploy** (only if env vars were added in 5b.2):
+   ```bash
+   vercel --prod --yes
+   ```
+   Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). Subsequent deploys via git push need only one.
+
+### 5c: Health check
+
+```bash
+curl -s <url>/api/health
+```
+Parse the JSON response. Each service returns `"ok"` or an error message.
+
+If all checks pass → proceed to Step 6.
+
+### 5d: Auto-fix (max 1 round)
+
+If any health check fails, diagnose and attempt to fix:
+
+| Check | Diagnosis | Auto-fix |
+|-------|-----------|----------|
+| `database` | Re-extract keys: `supabase projects api-keys --project-ref <ref> -o json`. Compare with `vercel env ls`. | If mismatch: `vercel env add <KEY> production --force` for each, then redeploy |
+| `auth` | Re-check Supabase auth config via Management API GET endpoint | Re-PATCH site_url and uri_allow_list |
+| `analytics` | Code integration issue — cannot fix via CLI | Report: "Analytics health check failed. This is likely a code issue — run `/change fix analytics integration` after merging." |
+| `payment` | Verify webhook: `stripe webhook_endpoints list`. Check env var: `vercel env ls \| grep STRIPE` | Re-set env vars if missing/wrong, redeploy |
+
+After all fixable issues are addressed:
+- If any env vars were changed → batch into a single redeploy: `vercel --prod --yes`
+- Re-run health check: `curl -s <url>/api/health`
+
+If still failing after 1 fix round → report precise per-service diagnosis with actionable next steps.
 
 ## Step 6: Summary
 
@@ -136,14 +193,17 @@ Print a deployment summary:
 **Supabase Dashboard:** https://supabase.com/dashboard/project/<ref>
 **Vercel Dashboard:** https://vercel.com/<team>/<name>
 
+**Health check:** [show per-service results — e.g., database: ok, auth: ok, analytics: ok, payment: ok]
+
 **Auto-deploy:** Active — merges to main auto-deploy to production.
 **Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
 
-[If payment] **Stripe setup:** Add the Stripe webhook URL in Stripe Dashboard → Developers → Webhooks:
+[If auth] **Auth redirect URLs:** Configured — site_url set to https://<deployment-url>
+[If payment AND Stripe CLI was available] **Stripe webhook:** Configured — endpoint https://<deployment-url>/api/webhooks/stripe, events: checkout.session.completed
+[If payment AND Stripe CLI was NOT available] **Stripe webhook (manual):** Add the webhook URL in Stripe Dashboard → Developers → Webhooks:
   Endpoint URL: https://<deployment-url>/api/webhooks/stripe
   Events: checkout.session.completed
-
-**Verify analytics:** Visit your live URL, perform an action (e.g., load the landing page), then check your analytics dashboard for incoming events. If no events appear, verify the analytics client env var is set in Vercel (see `.env.example` for the expected key name).
+[If any health check failed] **Action needed:** [list failing services with fix commands]
 
 **Next steps:**
 1. Run `/distribute` to generate Google Ads config and launch campaigns
@@ -158,6 +218,9 @@ This skill handles re-runs gracefully:
 - `--force` flag on `vercel env add` overwrites existing values
 - `supabase db push` skips already-applied migrations
 - Checks for existing Supabase projects before creating
+- Supabase auth config PATCH is idempotent — overwrites existing values
+- Stripe webhook creation checks for existing endpoint before creating
+- Stripe CLI is a soft dependency — falls back to manual setup if not installed
 
 ## Do NOT
 

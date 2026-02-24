@@ -278,6 +278,22 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-api-key
 ```
 
+## Production URL Configuration
+
+After deploying to production, the Supabase project's auth settings must include the deployment URL for redirects to work correctly (email confirmations, password resets, OAuth callbacks).
+
+The `/deploy` skill configures this automatically via the Supabase Management API:
+```bash
+curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
+  -H "Authorization: Bearer <supabase-access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"site_url": "https://<url>", "uri_allow_list": "https://<url>/**"}'
+```
+
+**Manual fallback:** Supabase Dashboard → Authentication → URL Configuration → set Site URL and add Redirect URLs.
+
+The access token is read from `~/.supabase/access-token` (created by `supabase login`). If unavailable, generate one at supabase.com/dashboard/account/tokens.
+
 ## PR Instructions
 - Email confirmation is enabled by default in Supabase. The signup form handles this: when `signUp()` returns `session: null`, it shows a "check your email" message instead of redirecting. Users who confirm their email can then log in normally.
 - Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → log in → verify redirect to post-auth page
