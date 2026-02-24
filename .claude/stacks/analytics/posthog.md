@@ -219,3 +219,65 @@ How to pull funnel numbers from PostHog:
 3. Add a filter: `project_name` equals your idea.yaml `name` value
 4. Set the date range to match your experiment's start date
 5. Read the count at each funnel stage
+
+## Auto Query (for /iterate skill)
+Automated funnel data retrieval via PostHog's HogQL Query API. This eliminates the need for users to manually navigate PostHog dashboards and paste numbers.
+
+### Constants
+```
+POSTHOG_PROJECT_ID = 321343
+POSTHOG_API_HOST = https://us.i.posthog.com
+```
+Hardcoded like `POSTHOG_KEY` — all experiments share one PostHog project.
+
+### Credential
+- Path: `~/.posthog/personal-api-key`
+- Follows the `~/.supabase/access-token` pattern from `deploy.md`
+- Machine-level, one-time setup, shared across all experiments
+- Setup instructions: PostHog → Settings → Personal API Keys → Create key (scope: Query Read) → save to file
+
+### Credential Check
+```bash
+test -f ~/.posthog/personal-api-key
+```
+Missing → fall back to manual input + show setup instructions.
+
+### Query Procedure
+1. Read API key from `~/.posthog/personal-api-key`
+2. Build event list from EVENTS.yaml (`standard_funnel` + `payment_funnel` if `stack.payment` present in idea.yaml + `custom_events`)
+3. Parse `measurement_window` from idea.yaml to days (e.g., "2 weeks" = 14)
+4. Single HogQL query via curl:
+
+```bash
+curl -s -X POST "https://us.i.posthog.com/api/projects/321343/query/" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $POSTHOG_API_KEY" \
+  -d '{
+    "query": {
+      "kind": "HogQLQuery",
+      "query": "SELECT event, count(DISTINCT distinct_id) AS unique_users FROM events WHERE event IN ('\''visit_landing'\'', '\''signup_start'\'', ...) AND properties.project_name = '\''<name>'\'' AND timestamp >= now() - INTERVAL <N> DAY GROUP BY event ORDER BY unique_users DESC"
+    }
+  }'
+```
+
+Key decisions:
+- `count(DISTINCT distinct_id)` — unique users, not raw event fires (matches funnel visualization)
+- Single HogQL query, not PostHog Funnel query type — simpler, documented API, iterate.md computes conversion rates itself
+- Event list built dynamically from EVENTS.yaml at skill runtime
+
+### Error Handling
+
+| Condition | Action |
+|-----------|--------|
+| Credential file missing | Fall back to manual. Show setup instructions. |
+| curl fails / network error | Fall back to manual. Report "PostHog API unreachable." |
+| Response has `"detail"` or `"error"` | Fall back to manual. Report error message. |
+| Empty results | Report "No events found." Fall back to manual. |
+
+### Response Format
+```json
+{
+  "results": [["visit_landing", 342], ["signup_start", 58]],
+  "columns": ["event", "unique_users"]
+}
+```
