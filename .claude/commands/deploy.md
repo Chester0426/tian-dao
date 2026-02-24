@@ -187,7 +187,7 @@ If any health check fails, diagnose and attempt to fix:
 |-------|-----------|----------|
 | `database` | Re-extract keys: `supabase projects api-keys --project-ref <ref> -o json`. Compare with `vercel env ls`. | If mismatch: `vercel env add <KEY> production --force` for each, then redeploy |
 | `auth` | Re-check Supabase auth config via Management API GET endpoint | Re-PATCH site_url and uri_allow_list |
-| `analytics` | Code integration issue — cannot fix via CLI | Report: "Analytics health check failed. This is likely a code issue — run `/change fix analytics integration` after merging." |
+| `analytics` | Code integration issue — cannot fix via CLI | Report: "Analytics health check failed. This is likely a code issue — merge the current PR to `main`, pull (`git checkout main && git pull`), then run `/change fix analytics integration`." |
 | `payment` | Verify webhook: `stripe webhook_endpoints list`. Check env var: `vercel env ls \| grep STRIPE` | Re-set env vars if missing/wrong, redeploy |
 
 After all fixable issues are addressed:
@@ -230,9 +230,9 @@ Print a deployment summary:
   Events: checkout.session.completed
 [If any health check failed] **Action needed:** [list failing services with fix commands]
 
-**Next steps:**
-1. Run `/distribute` to generate Google Ads config and launch campaigns
-2. Or share the live URL with target users and gather initial feedback
+**Next steps** (all optional — pick what fits your distribution plan):
+1. Share the live URL with target users and gather initial feedback
+2. Run `/distribute` to generate Google Ads config (only if using paid ads)
 3. After collecting data, run `/iterate` to analyze metrics and decide what to change
 ```
 

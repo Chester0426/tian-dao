@@ -34,7 +34,7 @@ For each attempt:
 > **Your options:**
 > 1. Tell me what to try and I'll fix it
 > 2. Save current progress first: `git add -A && git commit -m "WIP: build not passing yet"` — then decide next steps
-> 3. Save progress with option 2 first (if desired), then switch to main (`git checkout main`), run `make clean`, and `/bootstrap` to start fresh (**warning:** `make clean` deletes all generated code — anything not committed will be permanently lost)
+> 3. Start fresh: first save progress with option 2, then `git checkout main`, then `make clean`, then `/bootstrap` to rebuild (**warning:** `make clean` deletes all generated code — anything not committed will be permanently lost)
 > 4. Switch to this branch later (`git checkout <branch>`) and describe the remaining build errors directly — do not re-run `/bootstrap` or `/change`, as those create new branches. Instead, just tell Claude what errors remain and it will fix them on this branch.
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.

@@ -3,12 +3,12 @@ assumes: [framework/nextjs]
 packages:
   runtime: ["@supabase/supabase-js", "@supabase/ssr"]
   dev: []
-files:  # conditional: pages require idea.yaml entry; library files only when stack.database is not supabase
-  - src/app/signup/page.tsx
-  - src/app/login/page.tsx
+files:
+  - src/app/signup/page.tsx  # conditional: only if "signup" in idea.yaml pages
+  - src/app/login/page.tsx  # conditional: only if "login" in idea.yaml pages
   - src/components/nav-bar.tsx
-  - src/lib/supabase-auth.ts
-  - src/lib/supabase-auth-server.ts
+  - src/lib/supabase-auth.ts  # conditional: only when stack.database is NOT supabase
+  - src/lib/supabase-auth-server.ts  # conditional: only when stack.database is NOT supabase
 env:
   server: []
   client: [NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY]
