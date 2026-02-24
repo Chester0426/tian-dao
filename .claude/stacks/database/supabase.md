@@ -1,8 +1,8 @@
 ---
 assumes: [framework/nextjs]
 packages:
-  runtime: ["@supabase/supabase-js", "@supabase/ssr"]
-  dev: [pg]
+  runtime: ["@supabase/supabase-js", "@supabase/ssr", pg]
+  dev: []
 files:
   - src/lib/supabase.ts
   - src/lib/supabase-server.ts
