@@ -33,6 +33,12 @@ coverage/
 # Debug logs
 *.log
 
+# Playwright (update if you change stack.testing)
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth.json
+
 # Lock files from other package managers (this project uses npm)
 pnpm-lock.yaml
 yarn.lock
