@@ -10,6 +10,7 @@ files:
 env:
   server: []
   client: []
+ci_placeholders: {}
 clean:
   files: []
   dirs: []
