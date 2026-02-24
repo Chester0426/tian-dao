@@ -47,7 +47,7 @@ is `supabase`:
 
 ## Step 2: Report results
 
-- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. **Done.** No branch, no PR, no further steps.
+- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. Then tell the user: "All tests pass. Next steps: if you're on a feature branch, merge the PR to `main` first. Then run `/deploy` to deploy to production (requires `main` with clean working tree), or run `/change` to make more improvements before deploying." **Done.** No branch, no PR, no further steps.
 - If any tests fail: proceed to Step 3
 
 ## Step 3: Branch setup

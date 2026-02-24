@@ -18,6 +18,8 @@ Verify `idea/idea.yaml` exists. If not, stop and tell the user: "No experiment f
 
 Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
 
+If `package.json` does not exist, warn: "No app found — this retro will be based on your qualitative feedback only. If you want to include analytics data, run `/bootstrap` and `/deploy` first."
+
 Collect these data points and present a summary before asking questions:
 
 1. **Git activity**

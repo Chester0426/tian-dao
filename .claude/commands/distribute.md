@@ -203,6 +203,15 @@ Commit, push, and open a PR with:
 - **What Changed**: files modified (landing page UTM capture, EVENTS.yaml, ads.yaml, FeedbackWidget)
 - The full `ads.yaml` content in the PR body for easy review
 
+## Step 9: Post-merge handoff
+
+After the PR is merged, tell the user:
+
+> Your distribution tracking is live. Next steps:
+> 1. **Create the Google Ads campaign** manually in the Google Ads UI using the config in `idea/ads.yaml`. See `docs/google-ads-setup.md` for step-by-step instructions.
+> 2. **Verify conversion tracking** by clicking your own ad and completing the activation flow — confirm the event appears in your analytics dashboard.
+> 3. **Monitor performance** — after the campaign runs for a few days, run `/iterate` to analyze your metrics and decide what to change next.
+
 ## Do NOT
 
 - Launch any ads automatically — Phase 1 is manual campaign creation from the generated config

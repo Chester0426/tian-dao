@@ -70,6 +70,7 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // TODO: Add production rate limiting (e.g., Upstash Redis)
   try {
     const body = await request.json();
     const { plan, amount_cents } = checkoutSchema.parse(body);
@@ -122,6 +123,7 @@ import { stripe } from "@/lib/stripe";
 import { trackServerEvent } from "@/lib/analytics-server";
 
 export async function POST(request: Request) {
+  // TODO: Add production rate limiting (e.g., Upstash Redis)
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 

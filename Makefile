@@ -156,6 +156,10 @@ deploy: ## Deploy to Vercel (first run will prompt to link project)
 	fi
 
 setup-prod: ## Link Vercel + Supabase for production debugging
+	@if [ ! -f package.json ]; then \
+		echo "Error: No package.json found. Run /bootstrap first."; \
+		exit 1; \
+	fi
 	@echo "Linking Vercel project..."
 	@npx vercel link || { echo "Error: run 'npx vercel login' first, then retry."; exit 1; }
 	@echo ""
