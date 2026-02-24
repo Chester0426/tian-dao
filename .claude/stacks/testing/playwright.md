@@ -43,7 +43,34 @@ npx playwright install chromium
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
+import { execSync } from "child_process";
 import { defineConfig, devices } from "@playwright/test";
+
+function getSupabaseConfig() {
+  try {
+    const output = execSync("npx supabase status -o json", {
+      encoding: "utf-8",
+      timeout: 15000,
+    });
+    const status = JSON.parse(output);
+    return {
+      url: status.API_URL || "http://127.0.0.1:54321",
+      anonKey: status.ANON_KEY,
+      serviceRoleKey: status.SERVICE_ROLE_KEY,
+    };
+  } catch {
+    // Fallback: legacy deterministic keys (Supabase CLI <v2.76)
+    return {
+      url: "http://127.0.0.1:54321",
+      anonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+      serviceRoleKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+    };
+  }
+}
+
+const supabase = getSupabaseConfig();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -67,16 +94,17 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     env: {
-      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
-      NEXT_PUBLIC_SUPABASE_ANON_KEY:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+      NEXT_PUBLIC_SUPABASE_URL: supabase.url,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: supabase.anonKey,
+      SUPABASE_SERVICE_ROLE_KEY: supabase.serviceRoleKey,
     },
   },
 });
 ```
 - Two projects: Desktop Chrome and Mobile Chrome (Pixel 5) — cross-browser is out of scope per Rule 4, but mobile viewport testing catches layout overflow issues
 - `webServer` starts `npm run dev` automatically and waits for the app
-- `webServer.env` passes local Supabase env vars to the dev server — the user's `.env.local` (pointing to remote Supabase) is untouched
+- `getSupabaseConfig()` reads keys dynamically from `supabase status -o json` — works with both legacy JWT keys (CLI <v2.76) and new `sb_publishable_*`/`sb_secret_*` keys (CLI v2.76+)
+- `webServer.env` passes local Supabase env vars to the dev server — the user's `.env.local` (pointing to remote Supabase) is untouched. `SUPABASE_SERVICE_ROLE_KEY` is also passed so `global-setup.ts` and `global-teardown.ts` can read it from `process.env`.
 - Serial execution (`fullyParallel: false`, `workers: 1`) since funnel tests depend on order
 - 1 retry in CI to handle flakiness, 0 locally for fast feedback
 
@@ -86,9 +114,8 @@ import { createClient } from "@supabase/supabase-js";
 import { writeFileSync } from "fs";
 import path from "path";
 
-const SUPABASE_URL = "http://127.0.0.1:54321";
-const SERVICE_ROLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const AUTH_FILE = path.join(__dirname, ".auth.json");
 
@@ -105,7 +132,7 @@ export default async function globalSetup() {
   writeFileSync(AUTH_FILE, JSON.stringify({ email, password, userId: data.user.id }));
 }
 ```
-- Uses deterministic local Supabase keys — no env vars needed
+- Reads Supabase URL and service role key from `process.env` — set by `playwright.config.ts` via `webServer.env`
 - Uses `supabase.auth.admin.createUser` with `email_confirm: true` to bypass email verification
 - Writes credentials to `e2e/.auth.json` for tests to read
 - Email pattern `e2e-{timestamp}@test.example` avoids collisions
@@ -116,9 +143,8 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync, unlinkSync } from "fs";
 import path from "path";
 
-const SUPABASE_URL = "http://127.0.0.1:54321";
-const SERVICE_ROLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const AUTH_FILE = path.join(__dirname, ".auth.json");
 
@@ -133,7 +159,7 @@ export default async function globalTeardown() {
   }
 }
 ```
-- Uses deterministic local Supabase keys — same as global-setup.ts
+- Reads Supabase URL and service role key from `process.env` — set by `playwright.config.ts` via `webServer.env`
 - Reads user ID from `.auth.json`, deletes via admin API, removes the file
 - Swallows all errors so teardown never fails the test run
 
@@ -276,7 +302,7 @@ Notes:
 E2E_BASE_URL=http://localhost:3000  # Optional, defaults to localhost:3000
 ```
 
-Full-Auth path uses deterministic local Supabase keys hardcoded in test templates — no env vars needed for database or auth.
+Full-Auth path reads local Supabase keys dynamically from `supabase status -o json` in `playwright.config.ts` — no manual env vars needed for database or auth.
 
 **When using the No-Auth Fallback:** same as above — only the optional base URL applies.
 
@@ -516,7 +542,7 @@ Add this job to `.github/workflows/ci.yml` after the `e2e` job. It runs page-loa
 - **Mobile viewport smoke test**: every smoke test runs on both Desktop Chrome and Mobile Chrome (Pixel 5). The `checkNoHorizontalOverflow(page)` assertion catches the most common mobile layout issue (elements wider than viewport). Add this check after every `page.goto()` in smoke tests.
 
 ## Security
-- Local Supabase keys are deterministic and well-known — safe to commit in test config, only work against the local instance
+- Local Supabase keys are read dynamically from `supabase status` at test time — works with both legacy JWT keys and new `sb_*` format keys (CLI v2.76+). Fallback keys are well-known deterministic values safe to commit.
 - Production Supabase keys are never used in tests
 - `e2e/.auth.json` is gitignored — contains test credentials that should not be committed
 - Test users are created and deleted per run — no persistent test accounts
