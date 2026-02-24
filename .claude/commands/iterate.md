@@ -61,7 +61,7 @@ Tell the user how to get the numbers. See the analytics stack file's "Dashboard 
 > **How to get your funnel numbers:**
 > Follow the dashboard instructions in your analytics stack file (`.claude/stacks/analytics/<value>.md`). Create a funnel using the events from EVENTS.yaml `standard_funnel` in the order listed, then append `payment_funnel` events if `stack.payment` is present. Filter by `project_name` equals your idea.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
-> If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
+> If you haven't deployed yet, the app isn't collecting data — run `/deploy` first, then return to `/iterate` after a few days of live traffic. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
 Ask the user to provide funnel numbers — for each event in EVENTS.yaml `standard_funnel` (and `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
 
