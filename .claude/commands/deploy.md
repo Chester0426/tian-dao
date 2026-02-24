@@ -7,7 +7,8 @@ reads:
   - CLAUDE.md
 stack_categories: [hosting, database, auth, analytics, payment]
 requires_approval: true
-references: []
+references:
+  - .claude/patterns/observe.md
 branch_prefix: ""
 modifies_specs: false
 ---
@@ -181,6 +182,15 @@ After all fixable issues are addressed:
 - Re-run health check: `curl -s <url>/api/health`
 
 If still failing after 1 fix round → report precise per-service diagnosis with actionable next steps.
+
+### 5e: File template observations
+
+If any auto-fix in Step 5d revealed a problem whose root cause is in a template file
+(stack file, command file, or pattern file), follow `.claude/patterns/observe.md` to
+file an observation issue. This captures deployment-specific template gaps that
+verify.md's build loop would not encounter. Do NOT file observations for environmental
+issues (missing or mistyped env vars, temporary network outages, uninitialized CLIs,
+or authentication failures) — observe.md's trigger evaluation excludes these.
 
 ## Step 6: Summary
 

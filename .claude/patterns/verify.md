@@ -49,3 +49,10 @@ After a successful verification where you fixed build or lint errors:
    - **Project-specific** (unique to this codebase): save a brief entry to your auto memory
      with the error, cause, and fix
 2. Skip if: the error was a simple typo or something unlikely to recur
+
+## File Template Observations (if you fixed errors with a template root cause)
+
+After saving notable patterns, follow the observation procedure in
+`.claude/patterns/observe.md` for any fix you categorized as **universal** above.
+This files a GitHub issue on the template repo for visibility across all template
+users. Skip if no fixes were universal, or if you didn't fix any errors.
