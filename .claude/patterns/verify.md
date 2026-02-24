@@ -56,3 +56,16 @@ After saving notable patterns, follow the observation procedure in
 `.claude/patterns/observe.md` for any fix you categorized as **universal** above.
 This files a GitHub issue on the template repo for visibility across all template
 users. Skip if no fixes were universal, or if you didn't fix any errors.
+
+## Template Observation Review (always run)
+
+After every verification — regardless of whether build errors were encountered —
+evaluate whether any code change made during this skill execution has a root cause
+in a template file. Follow `.claude/patterns/observe.md` for the evaluation and
+filing procedure.
+
+This catches template-rooted issues that don't manifest as build errors (e.g.,
+runtime behavior bugs, missing UX patterns, incorrect template guidance that
+produces working but broken code).
+
+Skip if you already filed an observation in the previous step (max 1 per skill).

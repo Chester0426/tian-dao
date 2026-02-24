@@ -1,8 +1,9 @@
 # Template Observation Procedure
 
-Follow this procedure after verify.md's "Save Notable Patterns" step, or after
-deploy.md's auto-fix loop (Step 5d), when you fixed an error whose root cause
-is in a template file.
+Follow this procedure after verify.md's "Template Observation Review" step, or
+after deploy.md's auto-fix loop (Step 5d). This evaluates whether any code
+change or error fix made during the current skill execution has a root cause in
+a template file.
 
 **If you are running an analysis-only skill (`/review`, `/iterate`, or `/retro`),
 skip this entire procedure** — analysis-only skills do not make code changes that
@@ -20,9 +21,9 @@ input, never block on filing.
 
 ## Trigger Evaluation
 
-For each error you fixed during this skill execution, evaluate whether it
-qualifies as a template observation. A fix qualifies when **all three** conditions
-are true:
+For each code change or error fix made during this skill execution, evaluate
+whether it qualifies as a template observation. A change qualifies when **all
+three** conditions are true:
 
 **A. Template file is the root cause.** The fix required changing — or would ideally
 change — a file under:
@@ -105,7 +106,7 @@ Examples:
 
 **Template file:** `<full path>`
 **Skill running:** /<skill-name>
-**Trigger:** verify.md build fix | deploy.md auto-fix
+**Trigger:** verify.md build fix | verify.md observation review | deploy.md auto-fix
 
 ## Symptom
 
