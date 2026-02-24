@@ -68,3 +68,9 @@ stack:
   ui: shadcn
   payment: stripe
   testing: playwright     # Page-load smoke tests — created by bootstrap
+
+# --- Deploy (optional — /deploy will prompt if missing) ---
+# deploy:
+#   vercel_team: "Your Vercel Team"       # from: vercel teams list
+#   supabase_org: "Your Supabase Org"     # from: supabase orgs list
+#   supabase_region: us-east-1            # AWS region for Supabase
