@@ -174,7 +174,14 @@ for sf, content in stack_contents.items():
                 # Default import: import Foo from ...
                 imported.add(m.group(2))
 
-        missing = used_components - imported
+        # Find locally-defined components (function Name() or const Name)
+        locally_defined: set[str] = set()
+        for m in re.finditer(r"\bfunction\s+([A-Z][a-zA-Z]+)\s*\(", code):
+            locally_defined.add(m.group(1))
+        for m in re.finditer(r"\b(?:const|let)\s+([A-Z][a-zA-Z]+)\s*=", code):
+            locally_defined.add(m.group(1))
+
+        missing = used_components - imported - locally_defined
         for comp in sorted(missing):
             block_line = block["start_line"]
             error(
@@ -1579,15 +1586,18 @@ for sf, content in stack_contents.items():
     if not fm_files:
         continue
 
-    # Get the files line from frontmatter to check for # conditional comment
+    # Get the files block from frontmatter to check for # conditional comment
     fm_match = re.match(r"^---\n(.*?\n)---", content, re.DOTALL)
     if not fm_match:
         continue
     fm_text = fm_match.group(1)
-    files_line_match = re.search(r"^files:.*$", fm_text, re.MULTILINE)
-    if not files_line_match:
+    # Extract the full files block (files: line + all indented list entries)
+    files_block_match = re.search(
+        r"^files:.*(?:\n  - .*)*", fm_text, re.MULTILINE
+    )
+    if not files_block_match:
         continue
-    files_line = files_line_match.group(0)
+    files_block = files_block_match.group(0)
 
     # Find code block headers that only appear outside the fallback section
     fallback_start = re.search(r"(?i)## No-Auth Fallback|## .*Fallback", content)
@@ -1607,11 +1617,25 @@ for sf, content in stack_contents.items():
     # Check if any frontmatter files match full-only headers
     assumes_dependent_files = [f for f in fm_files if f in full_only_headers]
 
-    if assumes_dependent_files and "# conditional" not in files_line:
-        error(
-            f"[34] {sf}: files frontmatter lists assumes-dependent files "
-            f"{assumes_dependent_files} but lacks '# conditional' annotation"
-        )
+    # Check for # conditional annotation on the files: key line OR on
+    # individual file entries for each assumes-dependent file
+    if assumes_dependent_files:
+        unannotated = []
+        for dep_file in assumes_dependent_files:
+            # Check if this specific file's entry line has # conditional
+            entry_match = re.search(
+                rf"^\s*-\s+{re.escape(dep_file)}.*#\s*conditional",
+                files_block,
+                re.MULTILINE,
+            )
+            if not entry_match:
+                unannotated.append(dep_file)
+        # Also accept a blanket # conditional on the files: key line
+        if unannotated and "# conditional" not in files_block.split("\n")[0]:
+            error(
+                f"[34] {sf}: files frontmatter lists assumes-dependent files "
+                f"{unannotated} but lacks '# conditional' annotation"
+            )
 
 # ---------------------------------------------------------------------------
 # Check 35: No-Auth CI Template Includes Commented Database Placeholder Env Vars
