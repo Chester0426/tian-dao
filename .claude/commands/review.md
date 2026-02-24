@@ -166,11 +166,26 @@ For each finding in priority order:
 The validator scripts serve as this skill's quality gate, analogous to the
 build verification in `.claude/patterns/verify.md`.
 
-## Step 6: Check iteration limit
+## Step 6: Check iteration limit and compact state
 
 - Increment iteration counter
-- If iteration < 3 AND at least one fix succeeded → return to Step 2
-- Otherwise → proceed to Step 7
+- If iteration >= 3 OR no fixes succeeded → proceed to Step 7
+- Before returning to Step 2, emit a compact state summary and discard prior detail:
+
+  ```
+  ## Iteration N complete
+  - seen_findings: [list of all finding signatures across all iterations]
+  - error_count: [current validator error count]
+  - files_modified: [list of files changed so far]
+  - fixes_applied: N, reverted: M, skipped: K
+  - checks_added: [list of new validator checks, or "none"]
+  ```
+
+  This summary is the only carry-forward state needed. Prior subagent results,
+  file reads, and validator outputs from this iteration are no longer needed and
+  can be safely compressed.
+
+- Return to Step 2
 
 ## Step 7: Update check-inventory.md
 
