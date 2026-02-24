@@ -30,28 +30,54 @@ This skill does NOT write code. It helps you decide what action to take, then po
   - What pages exist? (`pages`)
 - Read `EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
 
-## Step 2: Ask the user for current data
+## Step 2: Gather funnel data and user feedback
 
-First, tell the user how to get the numbers. See the analytics stack file's "Dashboard navigation" section for provider-specific instructions on how to pull funnel numbers. If no stack file exists or it lacks a "Dashboard Navigation" section, give general guidance.
+### 2a: Attempt auto-query for funnel numbers
+
+Read the analytics stack file (`.claude/stacks/analytics/<value>.md`). If it has an "Auto Query" section, follow its credential check and query procedure to automatically fetch funnel data.
+
+If the auto-query succeeds, present the results for user verification:
+
+```
+## Auto-fetched Funnel Data (last <N> days)
+| Event | Unique Users |
+|-------|-------------|
+| <first standard_funnel event> | <count> |
+| <second standard_funnel event> | <count> |
+| ... | ... |
+Source: Analytics Query API (project_name = "<name>")
+**Please verify.** Reply "looks good" to proceed, or provide corrections.
+```
+
+- Show all events from the query, including those with 0 counts
+- Wait for user confirmation before proceeding to Step 3
+
+### 2b: Fall back to manual input
+
+If the analytics stack file has no "Auto Query" section, or credentials are missing, or the query fails, fall back to manual input.
+
+Tell the user how to get the numbers. See the analytics stack file's "Dashboard Navigation" section for provider-specific instructions on how to pull funnel numbers. If no stack file exists or it lacks a "Dashboard Navigation" section, give general guidance.
 
 > **How to get your funnel numbers:**
 > Follow the dashboard instructions in your analytics stack file (`.claude/stacks/analytics/<value>.md`). Create a funnel using the events from EVENTS.yaml `standard_funnel` in the order listed, then append `payment_funnel` events if `stack.payment` is present. Filter by `project_name` equals your idea.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
 > If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
-Then ask the user to provide whatever they have. Not all of these will be available — use what you get:
+Ask the user to provide funnel numbers — for each event in EVENTS.yaml `standard_funnel` (and `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
 
-1. **Funnel numbers** — for each event in EVENTS.yaml `standard_funnel` (and `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
+### 2c: Ask for qualitative data
 
-2. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty, also ask for counts of each custom event. Include these in the Step 3 diagnosis as supplementary data below the standard funnel table.
+Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask the user to provide whatever they have. Not all of these will be available — use what you get:
 
-3. **Timeline** — how far into the `measurement_window` are we?
+1. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty and not already fetched in 2a, ask for counts of each custom event. Include these in the Step 3 diagnosis as supplementary data below the standard funnel table.
 
-4. **Qualitative feedback** — any user quotes, complaints, feature requests, support messages?
+2. **Timeline** — how far into the `measurement_window` are we?
 
-5. **Observations** — anything the team has noticed (e.g., "users sign up but never create an invoice", "landing page bounce rate is high")
+3. **Qualitative feedback** — any user quotes, complaints, feature requests, support messages?
 
-6. **Ads data (if /distribute has been run)** — if `idea/ads.yaml` exists:
+4. **Observations** — anything the team has noticed (e.g., "users sign up but never create an invoice", "landing page bounce rate is high")
+
+5. **Ads data (if /distribute has been run)** — if `idea/ads.yaml` exists:
    - Total spend so far
    - Clicks and CTR
    - Cost per click (CPC)
