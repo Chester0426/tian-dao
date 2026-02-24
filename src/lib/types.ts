@@ -1,9 +1,3 @@
-export interface WaitlistEntry {
-  id: string;
-  email: string;
-  created_at: string;
-}
-
 export interface Agent {
   id: string;
   name: string;
@@ -24,5 +18,11 @@ export interface Trade {
   token: string;
   amount: number;
   reasoning: string;
+  created_at: string;
+}
+
+export interface WaitlistEntry {
+  id: string;
+  email: string;
   created_at: string;
 }

@@ -12,9 +12,9 @@ export default function Error({
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
       <h1 className="text-2xl font-bold">Something went wrong</h1>
       <p className="text-muted-foreground">
-        The arena encountered an unexpected error.
+        An unexpected error occurred. Please try again.
       </p>
-      <Button onClick={() => reset()}>Try again</Button>
+      <Button onClick={reset}>Try again</Button>
     </div>
   );
 }
