@@ -3,7 +3,7 @@ import posthog from "posthog-js";
 const PROJECT_NAME = "silicon-coliseum";
 const PROJECT_OWNER = "quanpeng";
 const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
-const POSTHOG_HOST = "https://us.i.posthog.com";
+const POSTHOG_HOST = "/ingest";
 
 let initialized = false;
 
