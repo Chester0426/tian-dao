@@ -73,7 +73,13 @@ Skip this step if `stack.database` is not `supabase`.
    - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
 6. Construct URLs:
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://<ref>.supabase.co`
-   - `POSTGRES_URL_NON_POOLING` = `postgresql://postgres.<ref>:<password>@db.<ref>.supabase.com:5432/postgres`
+   - `POSTGRES_URL_NON_POOLING`: query the pooler config to get the correct hostname:
+     ```bash
+     curl -s "https://api.supabase.com/v1/projects/<ref>/config/database/pooler" \
+       -H "Authorization: Bearer <token>"
+     ```
+     Use the `host` from the response with port `5432` (session mode = direct connection):
+     `postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres`
 7. Link the local project:
    ```bash
    supabase link --project-ref <ref>
@@ -185,12 +191,13 @@ If still failing after 1 fix round → report precise per-service diagnosis with
 
 ### 5e: File template observations
 
-If any auto-fix in Step 5d revealed a problem whose root cause is in a template file
-(stack file, command file, or pattern file), follow `.claude/patterns/observe.md` to
-file an observation issue. This captures deployment-specific template gaps that
-verify.md's build loop would not encounter. Do NOT file observations for environmental
-issues (missing or mistyped env vars, temporary network outages, uninitialized CLIs,
-or authentication failures) — observe.md's trigger evaluation excludes these.
+If any fix during the deploy flow (Steps 3–5d) required working around a problem whose
+root cause is in a template file (stack file, command file, or pattern file), follow
+`.claude/patterns/observe.md` to file an observation issue. This captures
+deployment-specific template gaps that verify.md's build loop would not encounter. Do
+NOT file observations for environmental issues (missing or mistyped env vars, temporary
+network outages, uninitialized CLIs, or authentication failures) — observe.md's trigger
+evaluation excludes these.
 
 ## Step 6: Summary
 

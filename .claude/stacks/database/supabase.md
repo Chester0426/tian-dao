@@ -140,7 +140,13 @@ Used by the `/deploy` skill for automated Supabase setup.
 
 ### URL/Connection String Construction
 - URL: `https://<ref>.supabase.co`
-- DB (non-pooling): `postgresql://postgres.<ref>:<password>@db.<ref>.supabase.com:5432/postgres`
+- DB (non-pooling): Discover the pooler host via the Management API:
+  ```bash
+  curl -s "https://api.supabase.com/v1/projects/<ref>/config/database/pooler" \
+    -H "Authorization: Bearer <access-token>"
+  ```
+  Use the `host` from the response with port `5432` (session mode = direct connection):
+  `postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres`
 
 ## Auto-Migration on Vercel Build
 
