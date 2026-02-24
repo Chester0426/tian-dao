@@ -133,15 +133,18 @@ Skip this step if `stack.database` is not `supabase`.
 
 Configure services that require the deployment URL. Batch all env var changes before redeploying.
 
-1. **Supabase Auth redirect URLs** (if `stack.auth: supabase`):
+1. **Supabase Auth redirect URLs and email subjects** (if `stack.auth: supabase`):
    Read the Supabase access token from `~/.supabase/access-token`. If the file does not exist, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here."
+
+   Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
+
    ```bash
    curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
      -H "Authorization: Bearer <token>" \
      -H "Content-Type: application/json" \
-     -d '{"site_url": "https://<url>", "uri_allow_list": "https://<url>/**"}'
+     -d '{"site_url": "https://<url>", "uri_allow_list": "https://<url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
    ```
-   If the PATCH fails, warn but continue — the user can configure this manually in Supabase Dashboard → Authentication → URL Configuration.
+   If the PATCH fails, warn but continue — the user can configure this manually in Supabase Dashboard → Authentication → URL Configuration and Email Templates.
 
 2. **Stripe webhook endpoint** (if `stack.payment: stripe` AND Stripe CLI is available):
    Check for existing endpoint: `stripe webhook_endpoints list` — if an endpoint with URL `https://<url>/api/webhooks/stripe` already exists, skip creation.
@@ -216,6 +219,7 @@ Print a deployment summary:
 **Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
 
 [If auth] **Auth redirect URLs:** Configured — site_url set to https://<deployment-url>
+[If auth] **Email subjects:** Configured — confirmation, recovery, and magic link emails use app name
 [If payment AND Stripe CLI was available] **Stripe webhook:** Configured — endpoint https://<deployment-url>/api/webhooks/stripe, events: checkout.session.completed
 [If payment AND Stripe CLI was NOT available] **Stripe webhook (manual):** Add the webhook URL in Stripe Dashboard → Developers → Webhooks:
   Endpoint URL: https://<deployment-url>/api/webhooks/stripe

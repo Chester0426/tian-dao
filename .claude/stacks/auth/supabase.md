@@ -74,7 +74,11 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.signUp({ email, password });
+    const { data, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/login?confirmed=true` },
+    });
     setLoading(false);
     if (authError) { setError(authError.message); return; }
     if (!data.session) {
@@ -133,25 +137,27 @@ Follows the same structure as the signup page above, with these differences:
 ```tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const confirmed = searchParams.get("confirmed") === "true";
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (authError) { setError(authError.message); return; }
@@ -159,35 +165,53 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" placeholder="you@example.com" value={email}
-          onChange={e => setEmail(e.target.value)} required />
-      </div>
-      <div>
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" placeholder="Password" value={password}
-          onChange={e => setPassword(e.target.value)} required />
-      </div>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <Button type="submit" disabled={loading}>
-        {loading ? "Logging in..." : "Log in"}
-      </Button>
-      <p className="text-sm text-muted-foreground">
-        Don't have an account? <a href="/signup" className="underline">Sign up</a>
-      </p>
-    </form>
+    <div className="space-y-4">
+      {confirmed && (
+        <p className="text-green-600 font-medium text-center">
+          Email confirmed! Please log in.
+        </p>
+      )}
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" placeholder="you@example.com" value={email}
+            onChange={e => setEmail(e.target.value)} required />
+        </div>
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" placeholder="Password" value={password}
+            onChange={e => setPassword(e.target.value)} required />
+        </div>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <Button type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Log in"}
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          Don't have an account? <a href="/signup" className="underline">Sign up</a>
+        </p>
+      </form>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
 ```
 
+> **Next.js 16 note:** `useSearchParams()` requires a `<Suspense>` boundary. The default export wraps the inner form component.
+
 #### When `stack.database` is NOT supabase (standalone client):
-Replace the import on line 3 of the login page:
+Replace the import on line 5 of the login page:
 ```tsx
 // Instead of: import { createClient } from "@/lib/supabase";
 import { createAuthClient as createClient } from "@/lib/supabase-auth";
 ```
+The rest of the component code (Suspense wrapper, confirmed banner, `createClient()` inside handler) remains identical.
 
 ## Client-Side Auth State
 - Use `supabase.auth.onAuthStateChange()` in components to react to auth changes
@@ -292,8 +316,11 @@ curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
 
 **Manual fallback:** Supabase Dashboard → Authentication → URL Configuration → set Site URL and add Redirect URLs.
 
+The `/deploy` skill also configures email subject lines in the same PATCH call, using the app's short title from idea.yaml (e.g., "Confirm your MyApp account"). This prevents default Supabase confirmation emails from looking like spam. To customize manually: Supabase Dashboard → Authentication → Email Templates.
+
 The access token is read from `~/.supabase/access-token` (created by `supabase login`). If unavailable, generate one at supabase.com/dashboard/account/tokens.
 
 ## PR Instructions
 - Email confirmation is enabled by default in Supabase. The signup form handles this: when `signUp()` returns `session: null`, it shows a "check your email" message instead of redirecting. Users who confirm their email can then log in normally.
-- Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → log in → verify redirect to post-auth page
+- The signup form passes `emailRedirectTo` pointing to `/login?confirmed=true`, so after confirming their email users land on the login page with a success banner. This requires the production URL to be in Supabase's redirect allow-list (configured by `/deploy`).
+- Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → redirected to login with "Email confirmed!" banner → log in → verify redirect to post-auth page
