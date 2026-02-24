@@ -35,4 +35,6 @@ test.describe.serial("Funnel smoke test", () => {
     await page.goto("/agent/agent-001");
     await expect(page).toHaveTitle(/.+/);
   });
+
+  // Page-load smoke tests only — see funnel.spec.ts for full user journey tests
 });

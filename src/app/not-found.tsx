@@ -1,13 +1,14 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
       <h1 className="text-4xl font-bold">404</h1>
-      <p className="text-muted-foreground">This page does not exist in the arena.</p>
-      <Link href="/" className="underline">
-        Back to the Coliseum
-      </Link>
+      <p className="text-muted-foreground">Page not found</p>
+      <Button variant="outline" asChild>
+        <Link href="/">Back to Home</Link>
+      </Button>
     </div>
   );
 }

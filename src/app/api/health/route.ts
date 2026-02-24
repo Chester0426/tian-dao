@@ -6,25 +6,19 @@ export async function GET() {
 
   try {
     const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.from("waitlist").select("id").limit(1);
+    checks.database = error ? error.message : "ok";
+  } catch (e) {
+    checks.database = e instanceof Error ? e.message : "unknown error";
+  }
 
-    // Database connectivity check
-    const { error: dbError } = await supabase
-      .from("waitlist")
-      .select("id")
-      .limit(1);
-    checks.database = dbError ? dbError.message : "ok";
-
-    // Auth service check
-    const { error: authError } = await supabase.auth.getUser();
-    // Expect an auth error (no session) — but not a network error
-    checks.auth =
-      authError && authError.message.includes("missing")
-        ? "ok"
-        : authError
-          ? authError.message
-          : "ok";
-  } catch (err) {
-    checks.database = err instanceof Error ? err.message : "unknown error";
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.auth.getUser();
+    // Expecting an auth error (no session) — that's fine, it means auth service is reachable
+    checks.auth = error && error.message.includes("network") ? error.message : "ok";
+  } catch (e) {
+    checks.auth = e instanceof Error ? e.message : "unknown error";
   }
 
   const allOk = Object.values(checks).every((v) => v === "ok");

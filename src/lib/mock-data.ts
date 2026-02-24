@@ -66,7 +66,8 @@ export const MOCK_TRADES: Trade[] = [
     action: "buy",
     token: "$PEPE",
     amount: 25000,
-    reasoning: "Detected 340% volume spike on $PEPE in last 15min. Social sentiment shifted from neutral to bullish across 12 monitored channels. Entry at support level with tight stop-loss.",
+    reasoning:
+      "Detected 340% volume spike on $PEPE in last 15min. Social sentiment shifted from neutral to bullish across 12 monitored channels. Entry at support level with tight stop-loss.",
     created_at: "2026-02-21T14:32:00Z",
   },
   {
@@ -76,7 +77,8 @@ export const MOCK_TRADES: Trade[] = [
     action: "buy",
     token: "$WIF",
     amount: 18000,
-    reasoning: "New token launch detected with strong dev wallet distribution (no single wallet >2%). Liquidity locked for 6 months. Early accumulation phase with 89% buy pressure.",
+    reasoning:
+      "New token launch detected with strong dev wallet distribution (no single wallet >2%). Liquidity locked for 6 months. Early accumulation phase with 89% buy pressure.",
     created_at: "2026-02-21T14:28:00Z",
   },
   {
@@ -86,7 +88,8 @@ export const MOCK_TRADES: Trade[] = [
     action: "sell",
     token: "$BONK",
     amount: 42000,
-    reasoning: "Sentiment divergence detected: price rising but social engagement dropping 45% over 4h window. Historical pattern shows 78% probability of correction within 2h. Taking profit at 2.3x entry.",
+    reasoning:
+      "Sentiment divergence detected: price rising but social engagement dropping 45% over 4h window. Historical pattern shows 78% probability of correction within 2h. Taking profit at 2.3x entry.",
     created_at: "2026-02-21T14:25:00Z",
   },
   {
@@ -96,7 +99,8 @@ export const MOCK_TRADES: Trade[] = [
     action: "buy",
     token: "$DOGE",
     amount: 35000,
-    reasoning: "Pattern recognition model identified accumulation phase matching historical breakout pattern with 0.87 correlation. Volume profile suggests institutional-level bot activity. Entering with 3:1 risk/reward ratio.",
+    reasoning:
+      "Pattern recognition model identified accumulation phase matching historical breakout pattern with 0.87 correlation. Volume profile suggests institutional-level bot activity. Entering with 3:1 risk/reward ratio.",
     created_at: "2026-02-21T14:20:00Z",
   },
   {
@@ -106,7 +110,8 @@ export const MOCK_TRADES: Trade[] = [
     action: "buy",
     token: "$SHIB",
     amount: 15000,
-    reasoning: "Tracked 3 whale wallets accumulating $SHIB in coordinated pattern over last 6h. Total whale inflow: $2.1M. Following with scaled entry. Whale conviction score: 8.2/10.",
+    reasoning:
+      "Tracked 3 whale wallets accumulating $SHIB in coordinated pattern over last 6h. Total whale inflow: $2.1M. Following with scaled entry. Whale conviction score: 8.2/10.",
     created_at: "2026-02-21T14:15:00Z",
   },
   {
@@ -116,7 +121,8 @@ export const MOCK_TRADES: Trade[] = [
     action: "sell",
     token: "$FLOKI",
     amount: 31000,
-    reasoning: "Momentum reversal signal triggered. RSI divergence on 5min chart confirmed by declining order book depth on bid side. Exiting position with 1.8x gain before anticipated pullback.",
+    reasoning:
+      "Momentum reversal signal triggered. RSI divergence on 5min chart confirmed by declining order book depth on bid side. Exiting position with 1.8x gain before anticipated pullback.",
     created_at: "2026-02-21T14:10:00Z",
   },
 ];

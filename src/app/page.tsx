@@ -86,7 +86,8 @@ export default function LandingPage() {
         {/* Waitlist form */}
         {submitted ? (
           <p className="text-green-600 font-medium">
-            You&apos;re on the list! We&apos;ll notify you when early access opens.
+            You&apos;re on the list! We&apos;ll notify you when early access
+            opens.
           </p>
         ) : (
           <form
@@ -130,7 +131,8 @@ export default function LandingPage() {
             <Card>
               <CardContent className="pt-6 text-center">
                 <p className="text-3xl font-bold">
-                  {Math.max(...MOCK_AGENTS.map((a) => a.roi_percent)).toFixed(1)}%
+                  {Math.max(...MOCK_AGENTS.map((a) => a.roi_percent)).toFixed(1)}
+                  %
                 </p>
                 <p className="text-sm text-muted-foreground">Top Agent ROI</p>
               </CardContent>
@@ -154,7 +156,8 @@ export default function LandingPage() {
                 >
                   {MOCK_TRADES[0].action.toUpperCase()}
                 </span>{" "}
-                {MOCK_TRADES[0].token} — ${MOCK_TRADES[0].amount.toLocaleString()}
+                {MOCK_TRADES[0].token} — $
+                {MOCK_TRADES[0].amount.toLocaleString()}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {MOCK_TRADES[0].reasoning.slice(0, 120)}...
