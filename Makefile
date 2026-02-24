@@ -4,7 +4,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help validate distribute verify-local test-e2e deploy migrate clean clean-all supabase-start supabase-stop
+.PHONY: help validate distribute verify-local test-e2e deploy setup-prod migrate clean clean-all supabase-start supabase-stop
 
 help: ## Show this help message
 	@echo "Usage: make <command>"
@@ -153,6 +153,25 @@ deploy: ## Deploy to Vercel (first run will prompt to link project)
 	else \
 		echo "Warning: Could not verify health endpoint. Check your deployment manually."; \
 	fi
+
+setup-prod: ## Link Vercel + Supabase for production debugging
+	@echo "Linking Vercel project..."
+	@npx vercel link || { echo "Error: run 'npx vercel login' first, then retry."; exit 1; }
+	@echo ""
+	@echo "Linking Supabase project..."
+	@if [ ! -f idea/idea.yaml ]; then \
+		echo "Error: idea/idea.yaml not found."; exit 1; \
+	fi
+	@REF=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/idea.yaml')); print(d.get('supabase_project_ref',''))" 2>/dev/null); \
+	if [ -n "$$REF" ]; then \
+		npx supabase link --project-ref "$$REF"; \
+	else \
+		echo "Enter your Supabase project ref (Dashboard → Settings → General → Reference ID):"; \
+		read -r REF; \
+		npx supabase link --project-ref "$$REF"; \
+	fi
+	@echo ""
+	@echo "Done. Claude Code can now debug production issues directly."
 
 migrate: ## Push pending migrations to remote Supabase database
 	@if [ ! -f package.json ]; then \
