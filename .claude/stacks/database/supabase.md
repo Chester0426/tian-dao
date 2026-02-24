@@ -121,6 +121,27 @@ Add three GitHub repository secrets (repo → Settings → Secrets and variables
 | `SUPABASE_DB_PASSWORD` | Supabase Dashboard → Settings → Database → Database password |
 | `SUPABASE_ACCESS_TOKEN` | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) → Generate new token |
 
+## CLI Project Creation (Non-Interactive)
+
+Used by the `/deploy` skill for automated Supabase setup.
+
+### Organization Discovery
+- `supabase orgs list -o json` — returns `[{"id": "...", "name": "..."}]`
+
+### Project Creation
+- `supabase projects create <name> --org-id <id> --region <region> --db-password <pw>`
+- Password: generate with `openssl rand -base64 24`
+- Project takes ~60s to initialize after creation
+
+### Readiness Polling
+- `supabase projects api-keys --project-ref <ref> -o json`
+- Poll every 5s, max 12 attempts (60s total)
+- Returns: `[{"name": "anon", "api_key": "..."}, {"name": "service_role", "api_key": "..."}]`
+
+### URL/Connection String Construction
+- URL: `https://<ref>.supabase.co`
+- DB (non-pooling): `postgresql://postgres.<ref>:<password>@db.<ref>.supabase.com:5432/postgres`
+
 ## Auto-Migration on Vercel Build
 
 When deployed via the Supabase Vercel Integration, migrations are applied automatically during every Vercel build via a `prebuild` script (`scripts/auto-migrate.mjs`). No additional configuration needed.
@@ -161,4 +182,4 @@ These keys are hardcoded in the local Supabase instance and are safe to commit i
 
 ## PR Instructions
 - When creating migrations, add to the PR body: "After merging, migrations are applied automatically during the next Vercel build (via the `prebuild` script). If not using the Supabase Vercel Integration, CI applies them on merge to `main` (requires CI secrets), or run `make migrate` manually — see Migration Setup in README."
-- For the bootstrap PR, also add: "For production env var setup, add the Supabase Vercel Integration at vercel.com/integrations/supabase — it auto-injects `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` into Vercel."
+- For the bootstrap PR, also add: "Run `/deploy` to set up Vercel + Supabase automatically, or manually add the Supabase Vercel Integration at vercel.com/integrations/supabase."

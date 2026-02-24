@@ -69,3 +69,9 @@ stack:
   ui: shadcn
   # payment: stripe         # Phase 3 — enable when adding side-betting or pay-to-view intelligence
   testing: playwright
+
+# --- Deploy ---
+deploy:
+  vercel_team: "Magpiexyz Ltd"
+  supabase_org: "Magpiexyz Labs"
+  supabase_region: us-east-1
