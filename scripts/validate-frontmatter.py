@@ -15,6 +15,7 @@ Checks:
     8. Union of ci_placeholders keys appears in ci.yml
     9. All ci_placeholders values are covered by .gitleaks.toml allowlist
     10. Skill branch_prefix values appear in CLAUDE.md Rule 1
+    11. code-writing skills and deploy.md must reference observe.md
 """
 
 import glob
@@ -248,6 +249,20 @@ if os.path.isfile(gitleaks_path):
                 f"[9] ci_placeholder value '{val}' not matched by any "
                 f".gitleaks.toml allowlist pattern"
             )
+
+# ---------------------------------------------------------------------------
+# Check 11: code-writing skills and deploy.md must reference observe.md
+# ---------------------------------------------------------------------------
+
+for sf, data in skill_data.items():
+    is_code_writing = data.get("type") == "code-writing"
+    is_deploy = os.path.basename(sf) == "deploy.md"
+    if not is_code_writing and not is_deploy:
+        continue
+    refs = data.get("references", [])
+    ref_basenames = [os.path.basename(r) for r in refs]
+    if "observe.md" not in ref_basenames:
+        error(f"[11] {sf}: missing observe.md in references")
 
 # ---------------------------------------------------------------------------
 # Summary
