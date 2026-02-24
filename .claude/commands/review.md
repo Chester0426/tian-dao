@@ -4,6 +4,7 @@ type: code-writing
 reads:
   - CLAUDE.md
   - EVENTS.yaml
+  - scripts/scoped-review-prompt.md
 stack_categories: []
 requires_approval: false
 references:
@@ -32,20 +33,108 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 
 ## Step 2: Review (iteration N)
 
-Launch 3 Explore subagents in parallel (same dimensions as
-`scripts/scoped-review-prompt.md`):
+Launch 3 Explore subagents in parallel, one per dimension below. Construct each
+agent's prompt from:
 
-- **A: Cross-File Consistency** — skills + stacks
-- **B: Edge Case Robustness** — skills + stacks + test fixtures
-- **C: User Journey Completeness** — skills + stacks + Makefile + `.claude/patterns/verify.md`
+- The **shared context instruction** (box below)
+- The agent's **dimension section** (focus, examples, files to read)
+- The **Finding Format**, **Check Proposal Criteria**, and **Rules** sections
 
-Each subagent gets:
-- Shared context instruction (read `scripts/check-inventory.md`, `CLAUDE.md`,
-  `idea/idea.example.yaml`, `EVENTS.yaml`)
-- Dimension focus, file list, examples
-- Finding format (File(s), Issue, Impact, Fix, optional Proposed Check)
-- Rules (max 5 per dimension, no check-inventory overlap, zero is valid)
-- On iteration 2+: list of seen finding signatures to skip
+> **Shared context instruction** — include verbatim in every subagent prompt:
+>
+> Before reviewing, read these files:
+> `scripts/check-inventory.md`, `CLAUDE.md`, `idea/idea.example.yaml`, `EVENTS.yaml`.
+> Do not report anything already covered by check-inventory.md (including Pending).
+
+### Dimension A: Cross-File Consistency
+
+**Focus**: Find contradictions or inconsistencies **between** files that no regex or structural check can catch. Examples:
+- A skill file says "do X" but a stack file's code template does Y
+- A rule in CLAUDE.md conflicts with how a skill actually operates
+- A stack file assumes a convention that another stack file violates
+- A prose instruction references a function/file/path that doesn't match reality
+
+**Files to read**:
+- Glob `.claude/commands/*.md` — read each skill file
+- Glob `.claude/stacks/**/*.md` — read each stack file
+
+### Dimension B: Edge Case Robustness
+
+**Focus**: Find configurations where skills or stack files would produce broken output. Examples:
+- A skill assumes auth exists but the idea.yaml has no `stack.auth`
+- A code template hard-codes a path that changes based on stack choices
+- A conditional branch in a skill handles 2 of 3 possible states
+- An edge case not covered by the test fixtures
+
+**Files to read**:
+- Glob `.claude/commands/*.md` — read each skill file
+- Glob `.claude/stacks/**/*.md` — read each stack file
+- Glob `tests/fixtures/*.yaml` — read each test fixture
+
+**After reading**: mentally simulate running `/bootstrap` and `/change` with each fixture's configuration.
+
+### Dimension C: User Journey Completeness
+
+**Focus**: Find dead-end states where a user gets stuck with no clear next step. Examples:
+- A skill exits early but doesn't tell the user what to do next
+- A build failure produces an unhelpful error message
+- A workflow step assumes a previous step succeeded but doesn't verify
+- A Makefile target fails silently or with an unhelpful error
+- The user follows instructions but ends up in an undocumented state
+
+**Files to read**:
+- Glob `.claude/commands/*.md` — read each skill file
+- Glob `.claude/stacks/**/*.md` — read each stack file
+- Read `Makefile`
+- Read `.claude/patterns/verify.md`
+
+**After reading**: trace the user journey from `make validate` → `/bootstrap` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro`.
+
+### Finding Format
+
+Each subagent must use this format for findings:
+
+```
+### Finding N: <title>
+- **File(s)**: ...
+- **Issue**: ... (be specific — quote the conflicting text)
+- **Impact**: ... (what breaks or confuses the user)
+- **Fix**: ... (concrete, implementable)
+- **Proposed check** (only if the finding qualifies — see Check Proposal Criteria):
+  - **Target**: validate-frontmatter.py | validate-semantics.py | consistency-check.sh
+  - **Name**: imperative verb phrase (e.g., "Verify X matches Y")
+  - **Category**: structural | cross-file sync | behavioral contract | reference check
+  - **Similar to**: existing/pending check from check-inventory.md, or "none"
+  - **Pass/fail**: one sentence describing what constitutes failure
+```
+
+### Check Proposal Criteria
+
+A proposed check must fall into one of these categories:
+
+| Category | What it catches | Example |
+|----------|----------------|---------|
+| Structural | Missing keys, malformed data, invalid syntax | "Fixture YAML missing required `assertions` key" |
+| Cross-file sync | Value in file A doesn't match corresponding value in file B | "Env var in prose not declared in frontmatter" |
+| Behavioral contract | Code template would produce broken output at runtime | "Non-src template uses `process.env` without loading env config" |
+| Reference check | A named reference (tool, file, path) doesn't resolve | "Skill references unknown tool `FooBar`" |
+
+**Do NOT propose checks that:**
+- Regex-match natural-language prose for specific wording (e.g., "prose must contain the word 'branch' within 200 chars of a recovery message")
+- Enforce cosmetic formatting with no silent-failure risk (e.g., "numbered lists must have no gaps")
+- Verify that prose *explains* something (e.g., "skill must document resumption behavior") — this is the scoped LLM review's job
+
+### Rules
+
+Include these in each subagent prompt:
+
+1. **Maximum 5 findings.** Keep only the 5 most impactful.
+2. **No overlap with automated checks.** `scripts/check-inventory.md` is authoritative, including the Pending and Rejected sections. If a check is pending, propose extending it instead. If a check was rejected, do not re-propose it unless the rejection reason no longer applies.
+3. **Zero findings is valid.** Say "No findings for this dimension" and summarize what was checked.
+4. **Self-review before presenting.** Merge proposed checks that cover the same invariant. Verify each finding against check-inventory.md one more time.
+5. **Concrete fixes only.** Every fix must be implementable in a single PR.
+
+On iteration 2+: include the list of seen finding signatures in the subagent prompt so they skip already-reported issues.
 
 After all 3 return: collect up to 15 findings, deduplicate.
 
