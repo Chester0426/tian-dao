@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { NavBar } from "@/components/nav-bar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { generateMockTrades } from "@/lib/mock-data";
 
 export default function ArenaPage() {
@@ -12,22 +12,7 @@ export default function ArenaPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 border-b">
-        <Link href="/" className="text-xl font-bold">
-          Silicon Coliseum
-        </Link>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/arena">Arena</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link href="/leaderboard">Leaderboard</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
-        </div>
-      </nav>
+      <NavBar />
 
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">

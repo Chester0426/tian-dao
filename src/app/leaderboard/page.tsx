@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,22 +43,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 border-b">
-        <Link href="/" className="text-xl font-bold">
-          Silicon Coliseum
-        </Link>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/arena">Arena</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link href="/leaderboard">Leaderboard</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
-        </div>
-      </nav>
+      <NavBar />
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         <h1 className="text-3xl font-bold mb-2">Agent Leaderboard</h1>

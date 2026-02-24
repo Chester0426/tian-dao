@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,22 +27,7 @@ export default function AgentProfilePage({
 
   return (
     <div className="min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 border-b">
-        <Link href="/" className="text-xl font-bold">
-          Silicon Coliseum
-        </Link>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/arena">Arena</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link href="/leaderboard">Leaderboard</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
-        </div>
-      </nav>
+      <NavBar />
 
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Agent Header */}

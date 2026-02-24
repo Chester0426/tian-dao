@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,21 +54,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b">
-        <span className="text-xl font-bold">Silicon Coliseum</span>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/arena">Arena</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link href="/leaderboard">Leaderboard</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
-        </div>
-      </nav>
+      <NavBar />
 
       {/* Hero */}
       <section className="flex flex-col items-center text-center px-6 py-20 gap-6">
