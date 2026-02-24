@@ -10,6 +10,7 @@ requires_approval: false
 references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
+  - .claude/patterns/observe.md
 branch_prefix: chore
 modifies_specs: false
 ---
