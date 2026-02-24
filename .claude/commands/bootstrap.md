@@ -234,7 +234,7 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry the push and PR creation.
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description.
-- Tell the user: "Bootstrap PR created and ready to merge. Next: review the PR, merge to `main`, then run `/deploy` to set up cloud infrastructure and launch your app."
+- Tell the user: "Bootstrap PR created and ready to merge. Next: review the PR, merge to `main`, then run `/verify` to validate locally, and `/deploy` to set up cloud infrastructure and launch your app."
 
 ## Do NOT
 - Add pages not listed in idea.yaml `pages`
