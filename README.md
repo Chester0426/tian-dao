@@ -75,17 +75,11 @@ Then open Claude Code and run `/bootstrap` to generate the full MVP. Claude will
 
 ### 3. Verify it works
 
-After merging the bootstrap PR, run one command:
+After merging the bootstrap PR, run `/verify` in Claude Code. It automatically starts local Supabase (if configured), runs all E2E tests (smoke + funnel), and fixes any failures it finds.
 
-```bash
-make verify-local
-```
+> **Note:** Docker Desktop is required for projects with `stack.database: supabase`.
 
-This automatically installs dependencies, starts local Supabase (if configured), generates `.env.local` with local keys, runs E2E tests, and cleans up. Just needs Docker running.
-
-> **Note:** Docker Desktop is required for projects with `stack.database: supabase`. The script detects your stack from config files and skips services you don't use.
-
-If tests fail, debug interactively with `npx playwright test --ui` or run `/verify` in Claude Code to auto-fix.
+Alternatively, run `make verify-local` from the terminal for a standalone pass/fail check (no auto-fix).
 
 ### 4. Go live
 
