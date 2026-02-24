@@ -10,6 +10,7 @@ requires_approval: true
 references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
+  - .claude/patterns/observe.md
 branch_prefix: feat
 modifies_specs: false
 ---
@@ -148,7 +149,7 @@ For each entry in idea.yaml `pages`:
 
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file
-- Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present.
+- Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
 - If idea.yaml features imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.
 - For the webhook handler's `// TODO: Update user's payment status in database` comment: resolve it using the database schema you planned in Phase 1. If no payments/subscriptions table was planned, add one to the migration in Step 6 and return here to wire the webhook update after the table exists.
 - Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.

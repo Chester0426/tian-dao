@@ -1,7 +1,7 @@
 # Check Inventory
 
 Scannable reference listing all automated checks by name, grouped by validator.
-64 active checks consolidated into 60 inventory rows.
+65 active checks consolidated into 61 inventory rows.
 
 Last updated: 2026-02-19
 
@@ -27,6 +27,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify ci_placeholders keys in ci.yml | Union of all `ci_placeholders` keys must appear in `.github/workflows/ci.yml` |
 | Verify ci_placeholders values in gitleaks allowlist | All `ci_placeholders` values must be matched by a `.gitleaks.toml` allowlist pattern |
 | Verify skill branch_prefix values in CLAUDE.md Rule 1 | Every skill `branch_prefix` value must appear as an allowed prefix in CLAUDE.md Rule 1 branch naming convention |
+| Require observe.md in code-writing skill and deploy.md references | Code-writing skills and deploy.md must include observe.md in their `references` list |
 
 ## validate-semantics.py
 
