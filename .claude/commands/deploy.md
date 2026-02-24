@@ -25,6 +25,7 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 5. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
 6. Check CLI auth:
    - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
+   - Verify Vercel GitHub Login Connection: run `vercel git connect --dry-run` or check the Vercel API for linked git providers. If the user's Vercel account has no GitHub Login Connection, stop: "Your Vercel account needs a GitHub Login Connection for auto-deploy. Go to https://vercel.com/account/settings/authentication → Connect GitHub. This is a one-time setup per Vercel account."
    - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `npx supabase login` first (one-time per machine)."
    - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
 
@@ -101,7 +102,10 @@ Skip this step if `stack.database` is not `supabase`.
    ```bash
    vercel git connect --yes
    ```
-   If this fails (e.g., Vercel GitHub App not installed), warn the user but continue — they can connect later from the Vercel dashboard.
+   If this fails, **do not silently continue**. Report the error and set `git_connect_failed=true` (used in Step 6 summary). Common failures:
+   - "Login Connection" error → Step 0 should have caught this. Tell the user: "Go to https://vercel.com/account/settings/authentication → Connect GitHub, then re-run `/deploy`."
+   - "Failed to connect" / access error → The Vercel GitHub App may not be installed on the GitHub org. Tell the user: "Install the Vercel GitHub App on your GitHub org: go to your Vercel team dashboard → Settings → Integrations → GitHub. Then retry."
+   - Other errors → Show the error and continue, but mark auto-deploy as not configured.
 
 3. Set environment variables for both `production` and `preview`:
    ```bash
@@ -215,7 +219,7 @@ Print a deployment summary:
 
 **Health check:** [show per-service results — e.g., database: ok, auth: ok, analytics: ok, payment: ok]
 
-**Auto-deploy:** Active — merges to main auto-deploy to production.
+**Auto-deploy:** [If git_connect_failed] Not configured — run `vercel git connect --yes` after fixing the issue above, or connect manually in Vercel Dashboard → Project Settings → Git. [Else] Active — merges to main auto-deploy to production.
 **Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
 
 [If auth] **Auth redirect URLs:** Configured — site_url set to https://<deployment-url>
