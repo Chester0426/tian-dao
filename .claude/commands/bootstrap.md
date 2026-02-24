@@ -188,7 +188,7 @@ If `stack.testing` is present in idea.yaml:
   });
   ```
   These are page-load smoke tests only — not full funnel tests with selectors.
-- Generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
+- If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
   - Read the funnel test template from the testing stack file
   - Read idea.yaml pages and EVENTS.yaml to determine funnel sequence
   - Read actual page source files (created in Step 4) to extract real selectors
