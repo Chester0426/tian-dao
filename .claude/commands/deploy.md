@@ -139,9 +139,16 @@ Print a deployment summary:
 **Auto-deploy:** Active — merges to main auto-deploy to production.
 **Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
 
-[If payment] **Next step:** Add the Stripe webhook URL in Stripe Dashboard → Developers → Webhooks:
+[If payment] **Stripe setup:** Add the Stripe webhook URL in Stripe Dashboard → Developers → Webhooks:
   Endpoint URL: https://<deployment-url>/api/webhooks/stripe
   Events: checkout.session.completed
+
+**Verify analytics:** Visit your live URL, perform an action (e.g., load the landing page), then check your analytics dashboard for incoming events. If no events appear, verify the analytics client env var is set in Vercel (see `.env.example` for the expected key name).
+
+**Next steps:**
+1. Run `/distribute` to generate Google Ads config and launch campaigns
+2. Or share the live URL with target users and gather initial feedback
+3. After collecting data, run `/iterate` to analyze metrics and decide what to change
 ```
 
 ## Idempotency
