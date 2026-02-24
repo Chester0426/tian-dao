@@ -33,7 +33,7 @@ import posthog from "posthog-js";
 const PROJECT_NAME = "TODO"; // Replaced by bootstrap with idea.yaml `name`
 const PROJECT_OWNER = "TODO"; // Replaced by bootstrap with idea.yaml `owner`
 const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
-const POSTHOG_HOST = "https://us.i.posthog.com";
+const POSTHOG_HOST = "/ingest";
 
 let initialized = false;
 
@@ -72,7 +72,7 @@ Notes:
 - `capture_pageview: false` because pages fire explicit events via `events.ts`
 - `capture_exceptions: true` sends unhandled JS errors and promise rejections to PostHog as `$exception` events — provides post-deploy error visibility without additional error tracking setup
 - Bootstrap replaces `PROJECT_NAME` and `PROJECT_OWNER` with actual idea.yaml values
-- `POSTHOG_KEY` and `POSTHOG_HOST` are hardcoded — the key is a publishable client-side key shared across all experiments (distinguished by `project_name`). This eliminates manual env var setup in Vercel.
+- `POSTHOG_HOST` is `/ingest` on the client (proxied via Next.js rewrites to avoid ad blockers) and `https://us.i.posthog.com` on the server (direct, not affected by ad blockers). `POSTHOG_KEY` is a publishable client-side key shared across all experiments (distinguished by `project_name`). This eliminates manual env var setup in Vercel.
 - Global properties are placed after the spread so they can't be overridden by callers
 
 ### `src/lib/analytics-server.ts` — Server-side tracking (for webhooks and API routes)
@@ -109,7 +109,7 @@ export async function trackServerEvent(
 
 Notes:
 - Creates a PostHog client per call and calls `shutdown()` to flush — required for serverless (Vercel)
-- `POSTHOG_KEY` and `POSTHOG_HOST` are hardcoded (same publishable key as client-side)
+- `POSTHOG_KEY` is hardcoded (same publishable key as client-side); `POSTHOG_HOST` uses the direct PostHog URL since server-side requests are not affected by ad blockers
 - Auto-attaches `project_name` and `project_owner` like client-side `track()`
 - Bootstrap replaces `PROJECT_NAME` and `PROJECT_OWNER` with actual idea.yaml values
 - Use this in webhook handlers and API routes for server-side events (e.g., `pay_success`)
@@ -164,8 +164,28 @@ No PostHog environment variables are needed — the shared publishable key and h
 Bootstrap still writes these values to `.env.example` for documentation and `verify-local.sh` compatibility:
 ```
 NEXT_PUBLIC_POSTHOG_KEY=phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY
-NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+NEXT_PUBLIC_POSTHOG_HOST=/ingest
 ```
+
+## Reverse Proxy Setup
+Client-side analytics use `/ingest` as the API host to bypass ad blockers that filter `us.i.posthog.com`. Bootstrap adds these rewrites to `next.config.ts`:
+
+```ts
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      { source: "/ingest/decide", destination: "https://us.i.posthog.com/decide" },
+      { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
+    ];
+  },
+  skipTrailingSlashRedirect: true,
+};
+```
+
+Notes:
+- `skipTrailingSlashRedirect` is required — without it, Next.js redirects `/ingest/e` to `/ingest/e/` before the rewrite applies, breaking the proxy
+- Server-side tracking (`analytics-server.ts`) still uses the direct PostHog URL — rewrites only apply to client-side browser requests
+- This is PostHog's officially recommended approach for avoiding ad blockers
 
 ## Patterns
 - Client-side tracking goes through `src/lib/analytics.ts` — never import posthog-js directly in pages or components
@@ -177,9 +197,9 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ## Test Blocking
 When running E2E tests, block analytics requests to prevent test data from polluting production analytics. The endpoint pattern for PostHog is:
 ```
-**/posthog*/**
+**/ingest/**
 ```
-This matches the PostHog ingestion endpoint (e.g., `https://us.i.posthog.com`). Playwright's `page.route()` uses this pattern to intercept and abort analytics requests. See the testing stack file's `blockAnalytics` helper for usage.
+This matches the proxied PostHog ingestion endpoint (`/ingest/*`). Playwright's `page.route()` uses this pattern to intercept and abort analytics requests. See the testing stack file's `blockAnalytics` helper for usage.
 
 When creating a new analytics stack file, document the equivalent endpoint pattern so the testing stack file can adapt its route blocking.
 
