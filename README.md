@@ -97,6 +97,18 @@ Alternatively, run `make verify-local` from the terminal for a standalone pass/f
 
 > **Without the integration:** Copy keys from Supabase Dashboard → Project Home → Data API popup into Vercel Project → Settings → Environment Variables. Apply migrations manually: open Supabase Dashboard → SQL Editor, paste each file from `supabase/migrations/` in order. Or see [Migration Setup](#migration-setup).
 
+### 5. Set up production debugging
+
+One-time setup so Claude Code can diagnose production issues directly (no dashboard screenshots needed):
+
+```bash
+make setup-prod
+```
+
+This links your local repo to your Vercel project and remote Supabase database. After setup, Claude Code can run `vercel logs`, `vercel env ls`, `supabase db execute "SELECT..."`, etc.
+
+> **Prerequisites:** `vercel login` and `npx supabase login` must be done first (one-time per machine). The command will prompt you if not authenticated.
+
 ## Commands
 
 Run `make` to see all available utility commands:
@@ -111,6 +123,7 @@ Run `make` to see all available utility commands:
 | `make distribute` | Validate idea/ads.yaml (valid YAML, schema, budget limits) |
 | `make migrate` | Push pending Supabase migrations to remote database |
 | `make deploy` | Deploy to Vercel (first-time setup or manual deploys) |
+| `make setup-prod` | Link Vercel + Supabase for production debugging |
 | `make clean` | Remove generated files (lets you re-run bootstrap) |
 | `make clean-all` | Remove everything including migrations (full reset) |
 
