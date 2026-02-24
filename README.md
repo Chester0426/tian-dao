@@ -85,9 +85,10 @@ Alternatively, run `make verify-local` from the terminal for a standalone pass/f
 
 1. **Import your repo** at [vercel.com/new](https://vercel.com/new)
 
-2. **Add the Supabase integration** — during Vercel project setup (or after, at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)):
+2. **Connect Supabase** via the [Vercel integration](https://vercel.com/integrations/supabase) (during project setup or after):
    - Select your Vercel project
-   - The integration creates a Supabase project and auto-injects all required env vars
+   - The integration walks you through creating a new Supabase project (or connecting an existing one) — no manual key copying needed
+   - Once connected, all required env vars are auto-injected into Vercel
    - **Database migrations are applied automatically** during the first build
 
 3. **Done** — Vercel auto-deploys on every merge to `main`. PostHog analytics are pre-configured.
