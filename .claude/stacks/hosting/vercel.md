@@ -83,6 +83,23 @@ When `stack.database: supabase` is present, the recommended production setup is 
 
 Bootstrap PR instructions should reference this integration as the primary setup method, with manual env var entry as a fallback.
 
+## CLI Deployment (Non-Interactive)
+
+Used by the `/deploy` skill for automated first-time setup.
+
+### Project Setup
+- `vercel link --yes --project <name> [--scope "<team>"]` — creates project if not exists, links locally
+- `vercel git connect --yes` — connects GitHub repo for push-to-main auto-deploy
+  - Prerequisite: Vercel GitHub App installed on the GitHub org/account
+
+### Environment Variables
+- `echo $VALUE | vercel env add KEY production --force` — set/overwrite an env var
+- Set for both `production` and `preview` environments
+- `vercel env ls` — verify env vars after setup
+
+### First Deploy
+- `vercel --prod --yes` — deploy to production without prompts
+
 ## Rate Limiting Limitation
 Simple in-memory counters do not persist across serverless invocations on Vercel, so they are not effective for rate limiting.
 
@@ -101,5 +118,5 @@ For auth and payment API routes:
 - Environment variables are configured per-environment (Production, Preview, Development) in the Vercel dashboard
 
 ## PR Instructions
-- After merging: import your repo at [vercel.com/new](https://vercel.com/new) and add the Supabase Vercel Integration ([vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)) to auto-inject Supabase env vars. For other env vars (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
+- After merging: run `/deploy` in Claude Code to set up Vercel + Supabase automatically. Or manually: import your repo at [vercel.com/new](https://vercel.com/new) and add the Supabase Vercel Integration ([vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)) to auto-inject Supabase env vars. For other env vars (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
 - Vercel auto-deploys on every merge to `main`
