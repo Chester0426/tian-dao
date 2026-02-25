@@ -84,6 +84,36 @@ guardrails:
     - condition: cost_per_conversion_cents > 2000 AND conversions >= 5
       action: alert_high_cpa
 
+# --- Variant Ad Groups (when idea.yaml has variants) ---
+# /distribute generates ad_groups instead of ads when variants are present.
+# Each ad group targets one variant's landing page with matched messaging.
+#
+# ad_groups:
+#   - variant: speed
+#     landing_url: "https://quickbill.vercel.app/v/speed?utm_source=google&utm_medium=cpc&utm_campaign=quickbill-search-v1&utm_content=speed"
+#     ads:
+#       - headlines:
+#           - "Invoice in 60 Seconds"
+#           - "Free Freelance Invoicing"
+#           - "Get Paid Faster"
+#           - "No Accounting Needed"
+#           - "Send Invoice, Get Paid"
+#         descriptions:
+#           - "Create and send professional invoices in under a minute. Free for freelancers."
+#           - "Stop chasing payments. Send an invoice link, get notified when paid."
+#   - variant: simplicity
+#     landing_url: "https://quickbill.vercel.app/v/simplicity?utm_source=google&utm_medium=cpc&utm_campaign=quickbill-search-v1&utm_content=simplicity"
+#     ads:
+#       - headlines:
+#           - "Dead-Simple Invoicing"
+#           - "No Accounting Required"
+#           - "Zero Complexity Invoices"
+#           - "Built for Solo Freelancers"
+#           - "Invoicing Made Easy"
+#         descriptions:
+#           - "No FreshBooks. No spreadsheets. Just create, send, and get paid."
+#           - "Professional invoices without the learning curve. Sign up free today."
+
 # --- Thresholds (AI-generated per MVP) ---
 # Generated from idea.yaml target_value, measurement_window, budget
 thresholds:

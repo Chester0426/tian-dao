@@ -79,6 +79,15 @@ Derive from idea.yaml `title`, `solution`, and `primary_metric`.
 ### Message match
 Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read `src/app/page.tsx` to extract the actual landing headline and derive ad headlines from it.
 
+### Variant ad groups (when idea.yaml has `variants`)
+When idea.yaml has a `variants` field, generate `ad_groups` instead of (or in addition to) the top-level `ads` section:
+- Create a separate ad group per variant
+- Each ad group's headlines are shortened from that variant's `headline` field (not from the shared `solution`)
+- Each ad group's landing URL includes `utm_content={slug}` (e.g., `?utm_source=google&utm_medium=cpc&utm_campaign={campaign_name}&utm_content=speed`)
+- Each ad group's landing URL points to `/v/{slug}` (e.g., `https://example.vercel.app/v/speed?...`)
+- Follow messaging.md Section D: ad headlines for a variant match that variant's landing page headline
+- See `idea/ads.example.yaml` for the `ad_groups` schema format
+
 ## Step 4: Generate thresholds
 
 Use first-principles reasoning specific to this MVP:
@@ -133,6 +142,8 @@ Present the full config for review.
 - Ensure `visit_landing` event captures `utm_source`, `utm_medium`, `utm_campaign` from URL params
 - EVENTS.yaml has these as optional properties on `visit_landing` — the landing page must parse them from `window.location.search` and pass them to the tracking call
 - Update the landing page to parse URL params and include them in the visit tracking call
+
+- When idea.yaml has `variants`, also capture `utm_content` from URL params alongside UTM params. This maps to the variant slug and enables per-variant attribution in analytics (e.g., filter `visit_landing` by `utm_content = "speed"` to see paid traffic for the speed variant).
 
 ### 7b: Add gclid capture
 

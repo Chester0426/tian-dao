@@ -43,6 +43,15 @@ DO NOT write any code, create any files, or run any install commands during this
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
    - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
+   - If `variants` is present in idea.yaml, validate the variants list:
+     - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
+     - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
+     - Each `slug` must be lowercase, start with a letter, and use only a-z, 0-9, hyphens
+     - Slugs must be unique across all variants
+     - No slug may collide with a page name from `pages`
+     - `pain_points` must have exactly 3 items per variant
+     - At most one variant may have `default: true`
+     - If any validation fails: stop and list the specific errors
 
 4. **Check preconditions**
    - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`: a previous session completed Phase 1 (plan approved) but Phase 2 was not finished. Tell the user: "Found a previously approved plan in `.claude/current-plan.md`. Resuming Phase 2 implementation on this branch. Skipping Phase 1 planning." Then skip the rest of Phase 1 and jump directly to Phase 2: Step 1.
@@ -63,6 +72,11 @@ DO NOT write any code, create any files, or run any install commands during this
    - [feature 1] → built in [file(s)]
    - [feature 2] → built in [file(s)]
    - ...
+
+   **Variants (if idea.yaml has `variants`):**
+   - [slug] — "[headline]" → /v/[slug] [default if applicable]
+   - [slug] — "[headline]" → /v/[slug]
+   - Root `/` renders: [default variant slug]
 
    **Database Tables (if any):**
    - [table name] — stores [what]
@@ -137,6 +151,12 @@ For each entry in idea.yaml `pages`:
   - Fire the appropriate EVENTS.yaml event(s) on the correct trigger
   - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page specifically**: follow the conversion structure in `.claude/patterns/messaging.md`. Derive headline, subheadline, and CTA from idea.yaml using the copy derivation rules (do NOT use `title` as the headline — that's the product name, not the value proposition). Use the landing page information architecture for section order. CTA links to the next logical page (signup if it exists in idea.yaml pages, otherwise the first non-landing page; if landing is the only page, build the idea.yaml features as sections on the landing page below the hero and use a CTA that scrolls to the first feature section via anchor link (e.g., `href="#get-started"`) — do not link to a nonexistent route or add functionality beyond what is listed in `features`; if any feature is interactive, fire `activate` when they complete that action — if all features are descriptive with no user action, omit the `activate` event and note the omission in the PR body). Fire the landing page event from EVENTS.yaml on mount with its specified properties.
+- **Variant landing pages (if idea.yaml has `variants`)**: follow messaging.md Section D instead of Section A for copy derivation. Create these additional files:
+  - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline, subheadline, cta, pain_points, isDefault) and `getVariant(slug: string)` helper that returns the matching variant or null
+  - `src/components/landing-content.tsx` — shared `LandingContent` component that accepts variant props (headline, subheadline, cta, pain_points) and renders the Section B information architecture (Hero → Pain Points → Features → CTA Repeat). Features section is shared across all variants (from idea.yaml `features`).
+  - Root `src/app/page.tsx` — renders `LandingContent` with the default variant's props (the one with `default: true`, or the first in the list). Fires `visit_landing` with `variant` property set to the default variant's slug.
+  - `src/app/v/[variant]/page.tsx` — dynamic route that looks up the variant by slug via `getVariant()`, renders `LandingContent` with that variant's props, and returns `notFound()` for unknown slugs. Fires `visit_landing` with `variant` property. Uses `generateStaticParams()` to pre-render all variant routes.
+  - The existing non-variant landing page instruction (above) applies when idea.yaml has NO `variants` field.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - **All other pages**: functional layout with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real (if minimal) screen
 
@@ -191,6 +211,13 @@ If `stack.testing` is present in idea.yaml:
   });
   ```
   These are page-load smoke tests only — not full funnel tests with selectors.
+- If idea.yaml has `variants`, also generate a smoke test per variant route:
+  ```ts
+  test("variant [slug] loads", async ({ page }) => {
+    await page.goto("/v/[slug]");
+    await expect(page).toHaveTitle(/.+/);
+  });
+  ```
 - If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
   - Read the funnel test template from the testing stack file
   - Read idea.yaml pages and EVENTS.yaml to determine funnel sequence

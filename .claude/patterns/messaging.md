@@ -68,3 +68,25 @@ Rules ensuring ad-to-landing consistency:
 - Ad descriptions MUST match the landing page subheadline in meaning
 - CTA language MUST be consistent across ads and landing page
 - The landing page headline should be recognizable to someone who just clicked the ad
+
+## Section D: Variant Messaging Rules
+
+When idea.yaml has a `variants` field, these rules extend Sections A–C:
+
+### Variant Copy Source
+- Each variant defines its own `headline`, `subheadline`, `cta`, and `pain_points`.
+- These fields **replace** the copy that Section A would derive from `solution` + `target_user` + `problem`.
+- The variant copy IS the messaging — do not re-derive from solution/target_user.
+
+### Landing Page Structure
+- Each variant uses the **same** Section B information architecture (Hero → Pain Points → Features → CTA Repeat).
+- Variant fields slot into Hero and Pain Points. Features section is shared across all variants (from idea.yaml `features`).
+
+### Default Variant
+- The variant with `default: true` (or the first in the list) renders at root `/`.
+- All variants also render at `/v/<slug>`.
+- The default variant is accessible at both `/` and `/v/<default-slug>`.
+
+### Message Match for Variants
+- Section C rules apply **per variant**: each variant's ad group must match its landing page headline.
+- Ad headlines for a variant are shortened from that variant's `headline` field, not from the shared `solution`.
