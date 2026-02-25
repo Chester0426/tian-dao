@@ -20,6 +20,7 @@ help: ## Show this help message
 	@echo "  /distribute      Generate Google Ads config from idea.yaml"
 	@echo "  /verify          Run E2E tests and fix failures"
 	@echo "  /deploy          Deploy to Vercel + Supabase (first-time setup)"
+	@echo "  /review          Automated review-fix loop (maintainers only)"
 
 validate: ## Check idea.yaml for valid YAML, TODOs, name format, and landing page
 	@echo "Validating idea/idea.yaml..."
