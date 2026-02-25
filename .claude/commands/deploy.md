@@ -23,9 +23,11 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
-6. Check CLI auth:
+6. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
+   - `which vercel` — if not found, stop: "Vercel CLI not installed. Install: `npm i -g vercel`"
    - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
-   - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `npx supabase login` first (one-time per machine)."
+   - If `stack.database: supabase`: `which supabase` — if not found, stop: "Supabase CLI not installed. Install: `brew install supabase/tap/supabase` (macOS/Linux) or see https://supabase.com/docs/guides/cli/getting-started"
+   - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `supabase login` first (one-time per machine)."
    - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
 
 ## Step 1: Gather configuration
