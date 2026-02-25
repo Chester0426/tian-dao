@@ -25,7 +25,6 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 5. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
 6. Check CLI auth:
    - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
-   - Verify Vercel GitHub Login Connection: run `vercel git connect --dry-run` or check the Vercel API for linked git providers. If the user's Vercel account has no GitHub Login Connection, stop: "Your Vercel account needs a GitHub Login Connection for auto-deploy. Go to https://vercel.com/account/settings/authentication → Connect GitHub. This is a one-time setup per Vercel account."
    - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `npx supabase login` first (one-time per machine)."
    - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
 
@@ -102,10 +101,10 @@ Skip this step if `stack.database` is not `supabase`.
    ```bash
    vercel git connect --yes
    ```
-   If this fails, **do not silently continue**. Report the error and set `git_connect_failed=true` (used in Step 6 summary). Common failures:
-   - "Login Connection" error → Step 0 should have caught this. Tell the user: "Go to https://vercel.com/account/settings/authentication → Connect GitHub, then re-run `/deploy`."
-   - "Failed to connect" / access error → The Vercel GitHub App may not be installed on the GitHub org. Tell the user: "Install the Vercel GitHub App on your GitHub org: go to your Vercel team dashboard → Settings → Integrations → GitHub. Then retry."
-   - Other errors → Show the error and continue, but mark auto-deploy as not configured.
+   If this fails, **pause and help the user fix it** — do not skip auto-deploy silently. Diagnose the error:
+   - "Login Connection" error → Tell the user: "Go to https://vercel.com/account/settings/authentication → Connect GitHub. Tell me when done." Wait for user confirmation, then retry `vercel git connect --yes`.
+   - "Failed to connect" / access error → Tell the user: "Install the Vercel GitHub App on your GitHub org: go to your Vercel team dashboard → Settings → Integrations → GitHub. Tell me when done." Wait for user confirmation, then retry.
+   - Other errors → Show the error. Ask the user: "Want me to retry, or skip auto-deploy and continue?" If skip, set `git_connect_failed=true` (reported in Step 6 summary).
 
 3. Set environment variables for both `production` and `preview`:
    ```bash
@@ -138,7 +137,10 @@ Skip this step if `stack.database` is not `supabase`.
 Configure services that require the deployment URL. Batch all env var changes before redeploying.
 
 1. **Supabase Auth redirect URLs and email subjects** (if `stack.auth: supabase`):
-   Read the Supabase access token from `~/.supabase/access-token`. If the file does not exist, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here."
+   Read the Supabase access token. Try these locations in order:
+   1. File: `~/.supabase/access-token`
+   2. macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — if found, strip the `go-keyring-base64:` prefix and base64-decode the remainder
+   3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here."
 
    Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
 
