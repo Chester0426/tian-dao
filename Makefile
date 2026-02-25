@@ -17,7 +17,7 @@ help: ## Show this help message
 	@echo "  /change ...      Make a change (e.g., /change fix the signup button)"
 	@echo "  /iterate         Review metrics and get recommendations"
 	@echo "  /retro           Run a retrospective and file feedback"
-	@echo "  /distribute      Generate Google Ads config from idea.yaml"
+	@echo "  /distribute      Generate distribution campaign config from idea.yaml"
 	@echo "  /verify          Run E2E tests and fix failures"
 	@echo "  /deploy          Deploy to Vercel + Supabase (first-time setup)"
 	@echo "  /review          Automated review-fix loop (maintainers only)"
@@ -77,26 +77,43 @@ distribute: ## Validate idea/ads.yaml (valid YAML, schema, budget limits)
 	python3 -c "\
 	import yaml, sys; \
 	data = yaml.safe_load(open('idea/ads.yaml')); \
-	req = ['campaign_name','project_name','landing_url','keywords','ads','budget','targeting','conversions','guardrails','thresholds']; \
-	errors = [f'missing required key: {k}' for k in req if k not in data]; \
-	kw = data.get('keywords', {}); \
-	kw_ok = isinstance(kw, dict); \
-	errors += ['keywords.exact needs >= 3'] if kw_ok and len(kw.get('exact', []) or []) < 3 else []; \
-	errors += ['keywords.phrase needs >= 2'] if kw_ok and len(kw.get('phrase', []) or []) < 2 else []; \
-	errors += ['keywords.broad needs >= 1'] if kw_ok and len(kw.get('broad', []) or []) < 1 else []; \
-	errors += ['keywords.negative needs >= 2'] if kw_ok and len(kw.get('negative', []) or []) < 2 else []; \
-	al = data.get('ads', []); \
-	al_ok = isinstance(al, list); \
-	errors += ['ads needs >= 2 variations'] if al_ok and len(al) < 2 else []; \
-	errors += [f'ads[{i}] needs >= 5 headlines' for i, a in enumerate(al or []) if isinstance(a, dict) and len(a.get('headlines', []) or []) < 5]; \
-	errors += [f'ads[{i}] needs >= 2 descriptions' for i, a in enumerate(al or []) if isinstance(a, dict) and len(a.get('descriptions', []) or []) < 2]; \
+	channel = data.get('channel', 'google-ads'); \
+	universal_req = ['campaign_name','project_name','landing_url','budget','targeting','conversions','guardrails','thresholds']; \
+	errors = [f'missing required key: {k}' for k in universal_req if k not in data]; \
+	if channel == 'google-ads': \
+	    errors += ['missing required key: keywords'] if 'keywords' not in data else []; \
+	    errors += ['missing required key: ads'] if 'ads' not in data else []; \
+	    kw = data.get('keywords', {}); \
+	    kw_ok = isinstance(kw, dict); \
+	    errors += ['keywords.exact needs >= 3'] if kw_ok and len(kw.get('exact', []) or []) < 3 else []; \
+	    errors += ['keywords.phrase needs >= 2'] if kw_ok and len(kw.get('phrase', []) or []) < 2 else []; \
+	    errors += ['keywords.broad needs >= 1'] if kw_ok and len(kw.get('broad', []) or []) < 1 else []; \
+	    errors += ['keywords.negative needs >= 2'] if kw_ok and len(kw.get('negative', []) or []) < 2 else []; \
+	    al = data.get('ads', []); \
+	    al_ok = isinstance(al, list); \
+	    errors += ['ads needs >= 2 variations'] if al_ok and len(al) < 2 else []; \
+	    errors += [f'ads[{i}] needs >= 5 headlines' for i, a in enumerate(al or []) if isinstance(a, dict) and len(a.get('headlines', []) or []) < 5]; \
+	    errors += [f'ads[{i}] needs >= 2 descriptions' for i, a in enumerate(al or []) if isinstance(a, dict) and len(a.get('descriptions', []) or []) < 2]; \
+	elif channel == 'twitter': \
+	    errors += ['missing required key: tweets'] if 'tweets' not in data else []; \
+	    tw = data.get('tweets', []); \
+	    tw_ok = isinstance(tw, list); \
+	    errors += ['tweets needs >= 2 variations'] if tw_ok and len(tw) < 2 else []; \
+	    errors += [f'tweets[{i}] text exceeds 280 chars' for i, t in enumerate(tw or []) if isinstance(t, dict) and len(t.get('text', '')) > 280]; \
+	elif channel == 'reddit': \
+	    errors += ['missing required key: posts'] if 'posts' not in data else []; \
+	    po = data.get('posts', []); \
+	    po_ok = isinstance(po, list); \
+	    errors += ['posts needs >= 2 variations'] if po_ok and len(po) < 2 else []; \
+	    errors += [f'posts[{i}] headline exceeds 300 chars' for i, p in enumerate(po or []) if isinstance(p, dict) and len(p.get('headline', '')) > 300]; \
 	b = data.get('budget', {}); \
 	t = b.get('total_budget_cents', 0) if isinstance(b, dict) else 0; \
 	errors += [f'budget.total_budget_cents ({t}) exceeds max 50000'] if t and t > 50000 else []; \
 	g = data.get('guardrails', {}); \
 	g_ok = isinstance(g, dict); \
-	errors += ['guardrails.max_cpc_cents missing'] if g_ok and g.get('max_cpc_cents') is None else []; \
-	errors += [f'guardrails.max_cpc_cents must be int > 0 (got {g.get(\"max_cpc_cents\")!r})'] if g_ok and g.get('max_cpc_cents') is not None and (not isinstance(g.get('max_cpc_cents'), int) or g.get('max_cpc_cents') <= 0) else []; \
+	if channel == 'google-ads': \
+	    errors += ['guardrails.max_cpc_cents missing'] if g_ok and g.get('max_cpc_cents') is None else []; \
+	    errors += [f'guardrails.max_cpc_cents must be int > 0 (got {g.get(\"max_cpc_cents\")!r})'] if g_ok and g.get('max_cpc_cents') is not None and (not isinstance(g.get('max_cpc_cents'), int) or g.get('max_cpc_cents') <= 0) else []; \
 	th = data.get('thresholds', {}); \
 	th_ok = isinstance(th, dict); \
 	errors += ['thresholds.expected_activations missing'] if th_ok and th.get('expected_activations') is None else []; \
@@ -104,7 +121,7 @@ distribute: ## Validate idea/ads.yaml (valid YAML, schema, budget limits)
 	errors += ['thresholds.go_signal must be a non-empty string'] if th_ok and (not th.get('go_signal') or not isinstance(th.get('go_signal'), str)) else []; \
 	errors += ['thresholds.no_go_signal must be a non-empty string'] if th_ok and (not th.get('no_go_signal') or not isinstance(th.get('no_go_signal'), str)) else []; \
 	[print(f'  - {e}') for e in errors] if errors else None; \
-	sys.exit(1) if errors else print('idea/ads.yaml looks good — valid schema.'); \
+	sys.exit(1) if errors else print(f'idea/ads.yaml looks good — valid {channel} schema.'); \
 	"
 
 supabase-start: ## Start local Supabase for testing (requires Docker)

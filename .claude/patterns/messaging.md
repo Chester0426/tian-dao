@@ -64,7 +64,7 @@ When landing is the only page (features as sections), apply the same structure b
 
 Rules ensuring ad-to-landing consistency:
 
-- Ad headlines MUST be derived from the same headline as the landing page (shortened to fit 30-char RSA constraint)
+- Ad headlines MUST be derived from the same headline as the landing page (shortened to fit the channel's ad format constraints — see distribution stack file)
 - Ad descriptions MUST match the landing page subheadline in meaning
 - CTA language MUST be consistent across ads and landing page
 - The landing page headline should be recognizable to someone who just clicked the ad

@@ -1,5 +1,5 @@
 ---
-description: "Generate Google Ads campaign config from idea.yaml. Requires a deployed MVP."
+description: "Generate distribution campaign config from idea.yaml. Requires a deployed MVP."
 type: code-writing
 reads:
   - idea/idea.yaml
@@ -15,9 +15,9 @@ references:
 branch_prefix: chore
 modifies_specs: true
 ---
-Generate a Google Ads campaign configuration from idea.yaml and implement distribution tracking.
+Generate a distribution campaign configuration from idea.yaml and implement distribution tracking.
 
-This skill generates `idea/ads.yaml` with keywords, ad copy, budgets, and thresholds, then adds UTM/gclid capture and a feedback widget to the deployed app. Phase 1 is manual — the human creates the campaign in Google Ads UI using the generated config.
+This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and thresholds, then adds UTM/click ID capture and a feedback widget to the deployed app. The channel is selected at runtime — each channel has a stack file at `.claude/stacks/distribution/<channel>.md` with format constraints, targeting model, policy restrictions, and config schema. Phase 1 is manual — the human creates the campaign in the channel's ad platform using the generated config.
 
 ## Step 0: Branch setup
 
@@ -30,15 +30,27 @@ Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
 5. Verify the app is deployed: check `landing_url` in existing `idea/ads.yaml`, or ask the user for the deployed URL.
-6. Verify `stack.analytics` is present in idea.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to idea.yaml `stack` and run `/bootstrap` first."
-7. Verify the analytics stack is configured: check for a `NEXT_PUBLIC_` analytics key in `.env.example` (the specific key name depends on the analytics stack file — read it to find the client env var). If not found, stop: "Analytics is not configured. Verify `.env.example` contains a `NEXT_PUBLIC_` analytics key, or run `/bootstrap` first to scaffold the app with analytics."
-8. If `idea/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
+6. **Channel selection:**
+   1. List available channels by scanning `.claude/stacks/distribution/*.md` (strip the `.md` extension to get channel names)
+   2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
+   3. Read the selected channel's stack file at `.claude/stacks/distribution/<channel>.md`
+7. **Policy check:**
+   1. Read idea.yaml `problem` and `solution`
+   2. Match against restricted-industry keywords: `crypto`, `DeFi`, `token`, `ICO`, `blockchain`, `NFT`, `yield`, `staking`, `liquidity`, `protocol`, `wallet`, `exchange`, `mining`, `DAO`
+   3. If match found, read the selected channel's "Policy Restrictions" section
+   4. If the channel restricts or bans the category, warn the user: "⚠ Your experiment mentions [keyword]. [Channel] [restricts/bans] this category: [details]. Consider switching to [alternative channels that allow it]."
+   5. Non-blocking — the user can confirm to proceed or switch channel
+8. Verify `stack.analytics` is present in idea.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to idea.yaml `stack` and run `/bootstrap` first."
+9. Verify the analytics stack is configured: check for a `NEXT_PUBLIC_` analytics key in `.env.example` (the specific key name depends on the analytics stack file — read it to find the client env var). If not found, stop: "Analytics is not configured. Verify `.env.example` contains a `NEXT_PUBLIC_` analytics key, or run `/bootstrap` first to scaffold the app with analytics."
+10. If `idea/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
 
-## Step 2: Research keywords
+## Step 2: Research targeting
 
 Read `idea/idea.yaml`: `problem`, `solution`, `target_user`, `title`, `features`.
 
-Generate keyword research analysis:
+Read the selected channel's stack file "Targeting Model" section, then generate targeting research appropriate for the channel:
+
+**For keyword-based channels (e.g., google-ads):**
 
 ```
 ## Keyword Research
@@ -54,50 +66,83 @@ Generate keyword research analysis:
 - Negative: [5+ keywords] — exclude irrelevant traffic (enterprise, existing tools, etc.)
 ```
 
-### Keyword rules
+Keyword rules (google-ads):
 - Minimum 3 exact, 2 phrase, 1 broad, 2 negative
 - Exact match keywords target users actively looking for this type of solution
 - Phrase match captures related searches with moderate intent
 - Broad match casts a wider net for discovery
 - Negative keywords exclude enterprise, existing well-known tools, and irrelevant traffic
 
-## Step 3: Generate ad copy
+**For interest/audience-based channels (e.g., twitter):**
+
+```
+## Audience Research
+
+**Target user profile:** [who the target_user is on this platform]
+**Competitor/influencer accounts:** [relevant handles to target]
+
+**Recommended targeting:**
+- Interests: [3-5 interest categories]
+- Follower lookalikes: [3-5 competitor/influencer handles]
+- Timeline keywords: [3-5 keywords users tweet about]
+```
+
+**For community-based channels (e.g., reddit):**
+
+```
+## Community Research
+
+**Target communities:** [where the target_user congregates]
+**Community tone:** [how this community expects to be addressed]
+
+**Recommended targeting:**
+- Subreddits: [3-5 relevant subreddits]
+- Interest categories: [2-3 Reddit interest categories]
+```
+
+## Step 3: Generate ad creative
 
 Derive from idea.yaml `title`, `solution`, and `primary_metric`.
 
-### Google RSA constraints
-- Headlines: 3-30 characters each
-- Descriptions: up to 90 characters each
-- Minimum 2 ad variations
-- Each ad: 5+ headlines, 2 descriptions
+### Ad format constraints
+
+Read the selected channel's stack file "Ad Format Constraints" section for character limits, creative format, and minimum variations. Apply these constraints when generating ad copy.
 
 ### Copy principles
 - Headline = outcome for target_user (what they get)
-- Description = proof + CTA (why believe + what to do next)
-- Include the landing URL with UTM parameters: `?utm_source=google&utm_medium=cpc&utm_campaign={campaign_name}`
+- Description/body = proof + CTA (why believe + what to do next)
+- Include the landing URL with UTM parameters — read the channel's stack file "UTM Parameters" section for `utm_source` and `utm_medium` values: `?utm_source={channel_source}&utm_medium={channel_medium}&utm_campaign={campaign_name}`
 
 ### Message match
-Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read `src/app/page.tsx` to extract the actual landing headline and derive ad headlines from it.
+Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read `src/app/page.tsx` to extract the actual landing headline and derive ad headlines from it. Note that character constraints are channel-specific — read the stack file's "Ad Format Constraints" for the channel's limits.
 
 ### Variant ad groups (when idea.yaml has `variants`)
-When idea.yaml has a `variants` field, generate `ad_groups` instead of (or in addition to) the top-level `ads` section:
-- Create a separate ad group per variant
-- Each ad group's headlines are shortened from that variant's `headline` field (not from the shared `solution`)
-- Each ad group's landing URL includes `utm_content={slug}` (e.g., `?utm_source=google&utm_medium=cpc&utm_campaign={campaign_name}&utm_content=speed`)
-- Each ad group's landing URL points to `/v/{slug}` (e.g., `https://example.vercel.app/v/speed?...`)
+When idea.yaml has a `variants` field, generate per-variant creative:
+- Create a separate ad group/creative set per variant
+- Each variant's creative is derived from that variant's `headline` field (not from the shared `solution`)
+- Each variant's landing URL includes `utm_content={slug}` (e.g., `?utm_source={source}&utm_medium={medium}&utm_campaign={campaign_name}&utm_content=speed`)
+- Each variant's landing URL points to `/v/{slug}` (e.g., `https://example.vercel.app/v/speed?...`)
 - Follow messaging.md Section D: ad headlines for a variant match that variant's landing page headline
-- See `idea/ads.example.yaml` for the `ad_groups` schema format
+- See `idea/ads.example.yaml` for schema format examples
 
 ## Step 4: Generate thresholds
 
-Use first-principles reasoning specific to this MVP:
+Read the channel's stack file "Cost Model" section to understand the pricing model, then use first-principles reasoning specific to this MVP:
 
-1. Parse `budget.total_budget_cents` and estimate CPC for the keyword category
-2. Estimate funnel conversion rates:
+**For CPC channels (e.g., google-ads):**
+1. Parse `budget.total_budget_cents` and estimate CPC for the targeting category
+2. Calculate: expected clicks = budget / CPC
+3. Estimate funnel conversion rates:
    - Landing → signup: 5-15% for cold paid traffic
    - Signup → activate: 20-40% depending on activation friction
-3. Calculate expected volume at each stage
-4. Define go/no-go signals based on idea.yaml `target_value` and `measurement_window`
+4. Calculate expected volume at each stage
+
+**For CPM channels (e.g., twitter, reddit):**
+1. Parse `budget.total_budget_cents` and estimate CPM for the targeting category
+2. Calculate: expected impressions = budget / (CPM / 1000)
+3. Calculate: expected clicks = impressions × estimated CTR
+4. Estimate funnel conversion rates (same as above)
+5. Calculate expected volume at each stage
 
 Show the reasoning chain, not just the numbers:
 
@@ -105,8 +150,8 @@ Show the reasoning chain, not just the numbers:
 ## Threshold Reasoning
 
 Budget: $100 over 7 days
-Estimated CPC for [keyword category]: ~$X.XX
-Expected clicks: [budget / CPC]
+Estimated [CPC/CPM] for [targeting category]: ~$X.XX
+Expected [clicks/impressions]: [calculation]
 Expected signups: [clicks * landing-to-signup rate] ([rate]% — [reasoning])
 Expected activations: [signups * signup-to-activate rate] ([rate]% — [reasoning])
 
@@ -114,16 +159,19 @@ Go signal: [N]+ activations from paid traffic in [measurement_window]
 No-go signal: 0 activations after $[half-budget] spend, or <1% CTR after 500 impressions
 ```
 
+4. Define go/no-go signals based on idea.yaml `target_value` and `measurement_window`
+
 ### Schema rules for ads.yaml
-- `campaign_name`: auto-generated as `{idea.name}-search-v{N}` (N increments if re-running)
+- `channel`: the selected distribution channel (e.g., `google-ads`, `twitter`, `reddit`)
+- `campaign_name`: auto-generated following the channel's config schema pattern (e.g., `{idea.name}-search-v{N}` for google-ads, `{idea.name}-twitter-v{N}` for twitter)
 - `budget.total_budget_cents`: defaults to 10000 ($100), max 50000 ($500) without explicit override
 - `budget.duration_days`: defaults to idea.yaml `measurement_window` parsed to days
-- `guardrails.max_cpc_cents`: auto-calculated as `total_budget / expected_clicks * 1.5` (50% buffer)
+- `guardrails`: channel-specific — CPC channels require `max_cpc_cents`; other channels may use `max_cpe_cents` or just `auto_pause_rules`
 - `thresholds`: AI-generated from idea.yaml context using first-principles reasoning
 
 ## Step 5: Generate ads.yaml
 
-Write the complete `idea/ads.yaml` file. See `idea/ads.example.yaml` for the full schema and format.
+Write the complete `idea/ads.yaml` file. Include `channel: <selected-channel>` as the first field. Follow the selected channel's stack file "Config Schema" section for the channel-specific structure. See `idea/ads.example.yaml` for full schema examples across channels.
 
 Present the full config for review.
 
@@ -145,11 +193,13 @@ Present the full config for review.
 
 - When idea.yaml has `variants`, also capture `utm_content` from URL params alongside UTM params. This maps to the variant slug and enables per-variant attribution in analytics (e.g., filter `visit_landing` by `utm_content = "speed"` to see paid traffic for the speed variant).
 
-### 7b: Add gclid capture
+### 7b: Add click ID capture
 
-- `gclid` (Google Click ID) is an optional property on `visit_landing` in EVENTS.yaml
-- Capture from URL params on landing page load alongside UTM params
-- This enables Google Ads offline conversion import matching
+- Read the selected channel's stack file "Click ID" section to get the parameter name (e.g., `gclid` for google-ads, `twclid` for twitter, `rdt_cid` for reddit)
+- Capture the channel's click ID from URL params on landing page load alongside UTM params
+- Store the value as the generic `click_id` property in the `visit_landing` analytics event (EVENTS.yaml defines `click_id` as an optional property)
+- Also capture `gclid` separately for backward compatibility (it remains an optional property on `visit_landing`)
+- This enables conversion attribution in the channel's ad platform
 
 ### 7c: Feedback widget (post-activation)
 
@@ -187,26 +237,19 @@ Add a `FeedbackWidget` component at `src/components/feedback-widget.tsx`:
 
 If the app requires signup/auth before the user can see value, add a note to the PR body recommending a demo/preview mode. This is a recommendation only — implementing the demo is a separate `/change` task.
 
-### 7e: Analytics → Google Ads conversion sync setup instructions
+### 7e: Conversion sync setup instructions
 
-Add a `## Distribution Setup` section to the PR body with step-by-step instructions for:
-
-1. Create Google Ads MCC (Manager Account) — see `docs/google-ads-setup.md` for details
-2. Create a child account for this MVP under the MCC
-3. Set up offline conversion import in Google Ads
-4. Configure the analytics provider's Google Ads destination (see analytics stack file for provider-specific instructions)
-5. Map the `activate` event -> Google Ads conversion action
-6. Verify with a test conversion
+Add a `## Distribution Setup` section to the PR body with step-by-step instructions. Read the selected channel's stack file "Setup Instructions" section and include those steps. Also read the analytics stack file for provider-specific destination/integration instructions.
 
 Also include analytics dashboard setup instructions (read the analytics stack file's Dashboard Navigation section for provider-specific terminology):
 
 ### Ads Dashboard Setup
 
 1. Go to the analytics dashboard -> New dashboard -> "Ads Performance: {project_name}"
-2. Add these insights:
+2. Add these insights (read the channel's stack file "UTM Parameters" section for the correct `utm_source` value):
    - **Traffic by Source**: Trend chart, event `visit_landing`, breakdown by `utm_source`, last 7 days
-   - **Paid Funnel**: Funnel chart, events `visit_landing` (filtered: utm_source = google) -> `signup_complete` -> `activate`, last 7 days
-   - **Cost per Activation**: Number (manual calculation) — Total Google Ads spend / activate count where utm_source = google
+   - **Paid Funnel**: Funnel chart, events `visit_landing` (filtered: utm_source = {channel_source}) -> `signup_complete` -> `activate`, last 7 days
+   - **Cost per Activation**: Number (manual calculation) — Total channel spend / activate count where utm_source = {channel_source}
    - **Feedback Summary**: Trend chart, event `feedback_submitted`, breakdown by `source` property, last 7 days
 
 ## Step 8: Verify and open PR
@@ -214,8 +257,8 @@ Also include analytics dashboard setup instructions (read the analytics stack fi
 Run the verification procedure per `.claude/patterns/verify.md`.
 
 Commit, push, and open a PR with:
-- **Summary**: what was generated and why
-- **Distribution Setup**: step-by-step Google Ads + analytics setup instructions
+- **Summary**: what was generated and why (include the selected channel)
+- **Distribution Setup**: step-by-step channel + analytics setup instructions (from stack file)
 - **What Changed**: files modified (landing page UTM capture, EVENTS.yaml, ads.yaml, FeedbackWidget)
 - The full `ads.yaml` content in the PR body for easy review
 
@@ -224,7 +267,7 @@ Commit, push, and open a PR with:
 After the PR is merged, tell the user:
 
 > Your distribution tracking is live. Next steps:
-> 1. **Create the Google Ads campaign** manually in the Google Ads UI using the config in `idea/ads.yaml`. See `docs/google-ads-setup.md` for step-by-step instructions.
+> 1. **Create the campaign** in your distribution channel's platform using the config in `idea/ads.yaml`. See the channel's stack file "Setup Instructions" for step-by-step guidance.
 > 2. **Verify conversion tracking** by clicking your own ad and completing the activation flow — confirm the event appears in your analytics dashboard.
 > 3. **Monitor performance** — after the campaign runs for a few days, run `/iterate` to analyze your metrics and decide what to change next.
 
@@ -233,5 +276,6 @@ After the PR is merged, tell the user:
 - Launch any ads automatically — Phase 1 is manual campaign creation from the generated config
 - Modify idea.yaml — this skill reads it but does not change it
 - Add new packages — the feedback widget uses existing shadcn components and the analytics library
-- Skip the approval step — the operator must review keywords, ad copy, and budget before proceeding
+- Skip the approval step — the operator must review targeting, ad creative, and budget before proceeding
 - Hardcode analytics import paths or provider names — always read the analytics stack file for the correct imports
+- Hardcode channel-specific constraints (char limits, click ID params, UTM values) — always read the distribution stack file for the selected channel

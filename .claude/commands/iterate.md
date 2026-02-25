@@ -89,9 +89,9 @@ Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask 
    - Total spend so far
    - Clicks and CTR
    - Cost per click (CPC)
-   - Conversions attributed to ads (`activate` events with utm_source=google)
+   - Conversions attributed to ads (`activate` events filtered by `utm_source` matching the channel from ads.yaml)
 
-   How to get ads data: Google Ads dashboard -> Campaigns -> select the campaign -> check Clicks, CTR, Avg CPC, Cost. For conversions: filter events in the analytics dashboard by `utm_source = "google"`.
+   How to get ads data: Open the campaign dashboard for your distribution channel and check Clicks, CTR, Avg CPC/CPM, Cost. For conversions: filter events in the analytics dashboard by `utm_source` matching the channel (e.g., `"google"`, `"twitter"`, `"reddit"` — see ads.yaml `channel` field).
 
 ## Step 3: Experiment Verdict
 
@@ -229,7 +229,7 @@ Present recommendations in priority order (highest impact first).
 
 ### Ads Decision (if ads.yaml exists and day 7 or budget exhausted)
 
-If `idea/ads.yaml` exists but the user reported no ads data in Step 2 (campaign not yet launched), skip this section and instead note: "Ads config generated but campaign not yet launched. Create the campaign in Google Ads using `idea/ads.yaml`, then return to `/iterate` after a few days of data."
+If `idea/ads.yaml` exists but the user reported no ads data in Step 2 (campaign not yet launched), skip this section and instead note: "Ads config generated but campaign not yet launched. Create the campaign in your distribution channel's platform using `idea/ads.yaml`, then return to `/iterate` after a few days of data."
 
 If `idea/ads.yaml` exists and the campaign has been running for the full `budget.duration_days` or `budget.total_budget_cents` is exhausted, present a go/no-go decision:
 
@@ -239,7 +239,7 @@ If `idea/ads.yaml` exists and the campaign has been running for the full `budget
 | 1-2 paid activations | Weak signal | Extend 3 days or improve landing page, then re-evaluate |
 | 0 activations, >10 signups | Activation problem | `/change` to reduce activation friction |
 | 0 activations, >50 clicks, <3 signups | Landing page problem | `/change` to improve landing page |
-| 0 activations, <50 clicks, <1% CTR | Targeting problem | Revise keywords in ads.yaml, re-run `/distribute` |
+| 0 activations, <50 clicks, <1% CTR | Targeting problem | Revise targeting in ads.yaml, re-run `/distribute` |
 | 0 activations, <50 clicks, >1% CTR | Budget/time problem | Extend budget or measurement window |
 
 Read `thresholds.go_signal` and `thresholds.no_go_signal` from `idea/ads.yaml` and use them as the primary decision criteria. The table above provides additional diagnostic detail.
