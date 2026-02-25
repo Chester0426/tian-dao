@@ -47,6 +47,7 @@ Checks:
   43. Distribute Skill Validates EVENTS.yaml custom_events Structure — distribute.md preconditions validate custom_events is a list
   44. Bootstrap Skill Validates Variants — bootstrap.md Step 3 contains variant validation logic
   45. visit_landing Has Variant Property — EVENTS.yaml visit_landing event includes variant property
+  46. Iterate Skill Experiment Verdict — iterate.md contains verdict/GO/NO-GO with pace logic
 """
 
 import glob
@@ -2150,6 +2151,34 @@ if os.path.isfile(events_path_45):
                 f"[45] {events_path_45}: visit_landing event not found "
                 f"in standard_funnel"
             )
+
+# ---------------------------------------------------------------------------
+# Check 46: Iterate Skill Contains Experiment Verdict
+# ---------------------------------------------------------------------------
+# Verify iterate.md has a verdict/GO/NO-GO section with pace-based logic
+
+iterate_path_46 = ".claude/commands/iterate.md"
+if os.path.isfile(iterate_path_46):
+    with open(iterate_path_46) as f:
+        iterate_content_46 = f.read()
+
+    # Check for verdict section with GO/NO-GO terminology
+    has_verdict_section = bool(
+        re.search(r"(?i)verdict", iterate_content_46)
+    )
+    has_go_nogo = bool(
+        re.search(r"(?i)NO.GO", iterate_content_46)
+    )
+    has_pace = bool(
+        re.search(r"(?i)pace", iterate_content_46)
+    )
+
+    if not has_verdict_section:
+        error("[46] iterate.md: missing experiment verdict section")
+    if not has_go_nogo:
+        error("[46] iterate.md: missing GO/NO-GO verdict terminology")
+    if not has_pace:
+        error("[46] iterate.md: missing pace-based progress metric")
 
 # ---------------------------------------------------------------------------
 # Summary
