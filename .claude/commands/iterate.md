@@ -284,6 +284,25 @@ Your measurement window ends in [X days]. [Verdict-specific guidance].
 If the experiment is near the end of its `measurement_window` or the user is considering stopping:
 > Your measurement window ends in [X days]. When you're ready to wrap up, run **`/retro`** to generate a structured retrospective and file it as feedback on the template repo.
 
+### Next Check-in
+
+Based on the measurement window and current progress, provide a concrete schedule:
+
+```
+## Next Check-in
+
+| Milestone | Date | Action |
+|-----------|------|--------|
+| Next data check | [3 days from now] | Run `/iterate` again |
+| Decision point | [when time_pct hits 50%] | Verdict becomes actionable — MONITOR/NO-GO verdicts require decision |
+| Window closes | [measurement_window end date] | Run `/retro` to file retrospective |
+```
+
+- Calculate dates from `measurement_window` and the elapsed days reported in Step 3
+- If verdict is TOO EARLY, set next check-in to 3 days or when 30+ visits are expected
+- If verdict is NO-GO, the next check-in is NOW — recommend immediate decision
+- Tell the user: "Set a calendar reminder for [next check-in date] to run `/iterate` again."
+
 ## Do NOT
 - Write code or modify source files — this skill is analysis only
 - Recommend more than 3 actions — focus is more valuable than breadth

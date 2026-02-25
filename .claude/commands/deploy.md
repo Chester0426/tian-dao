@@ -168,7 +168,35 @@ Configure services that require the deployment URL. Batch all env var changes be
    echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET preview --force
    ```
 
-3. **Redeploy** (only if env vars were added in 5b.2):
+3. **PostHog experiment dashboard** (if `stack.analytics: posthog`):
+
+   Read the PostHog personal API key from `~/.posthog/personal-api-key` (same credential used by /iterate auto-query).
+
+   If the key exists, auto-create a dashboard via PostHog API:
+
+   ```bash
+   # Create dashboard
+   curl -s -X POST "https://us.i.posthog.com/api/projects/321343/dashboards/" \
+     -H "Authorization: Bearer $POSTHOG_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.title>"}'
+   ```
+
+   Extract the dashboard `id` from the response. Then create funnel insight:
+
+   ```bash
+   # Create funnel insight and add to dashboard
+   curl -s -X POST "https://us.i.posthog.com/api/projects/321343/insights/" \
+     -H "Authorization: Bearer $POSTHOG_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [{"kind": "EventsNode", "event": "visit_landing"}, {"kind": "EventsNode", "event": "signup_start"}, {"kind": "EventsNode", "event": "signup_complete"}, {"kind": "EventsNode", "event": "activate"}], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+   ```
+
+   Add `pay_start` and `pay_success` to the funnel series if `stack.payment` is present.
+
+   If the API key is missing or any API call fails, skip auto-creation and include manual instructions in Step 6.
+
+4. **Redeploy** (only if env vars were added in 5b.2):
    ```bash
    vercel --prod --yes
    ```
@@ -233,6 +261,14 @@ Print a deployment summary:
   Endpoint URL: https://<deployment-url>/api/webhooks/stripe
   Events: checkout.session.completed
 [If any health check failed] **Action needed:** [list failing services with fix commands]
+
+[If PostHog dashboard was auto-created] **Analytics dashboard:** <dashboard_url>
+[If PostHog dashboard was NOT auto-created] **Analytics dashboard (manual):**
+  1. Go to PostHog → Dashboards → New dashboard → name it "<idea.name> Experiment"
+  2. Add a Funnel insight: visit_landing → signup_start → signup_complete → activate [→ pay_start → pay_success if payment]. Filter by project_name = "<idea.name>".
+  3. Add a Trend insight: all standard_funnel events, daily, last 14 days, filtered by project_name.
+
+**Scheduled digest (recommended):** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
 
 **Next steps** (all optional — pick what fits your distribution plan):
 1. Share the live URL with target users and gather initial feedback

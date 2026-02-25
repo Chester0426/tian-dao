@@ -48,6 +48,10 @@ Checks:
   44. Bootstrap Skill Validates Variants — bootstrap.md Step 3 contains variant validation logic
   45. visit_landing Has Variant Property — EVENTS.yaml visit_landing event includes variant property
   46. Iterate Skill Experiment Verdict — iterate.md contains verdict/GO/NO-GO with pace logic
+  47. Deploy Dashboard Setup — deploy.md contains analytics dashboard and scheduled digest setup
+  48. Iterate Next Check-in — iterate.md contains Next Check-in schedule section
+  49. Bootstrap Email-Auth-Database Dependency — bootstrap validates email requires auth and database
+  50. Change Email-Auth-Database Dependency — change validates email requires auth and database
 """
 
 import glob
@@ -511,7 +515,7 @@ if os.path.isfile(makefile_path):
 # Check 5: Conditional Dependency References
 # ---------------------------------------------------------------------------
 
-OPTIONAL_CATEGORIES = {"database", "auth", "payment", "testing"}
+OPTIONAL_CATEGORIES = {"database", "auth", "payment", "email", "testing"}
 
 for sf, content in skill_contents.items():
     prose = extract_prose(content)
@@ -2179,6 +2183,75 @@ if os.path.isfile(iterate_path_46):
         error("[46] iterate.md: missing GO/NO-GO verdict terminology")
     if not has_pace:
         error("[46] iterate.md: missing pace-based progress metric")
+
+# ---------------------------------------------------------------------------
+# Check 47: Deploy Skill Contains Analytics Dashboard Setup
+# ---------------------------------------------------------------------------
+
+deploy_path_47 = ".claude/commands/deploy.md"
+if os.path.isfile(deploy_path_47):
+    with open(deploy_path_47) as f:
+        deploy_content_47 = f.read()
+    has_dashboard = bool(re.search(r"(?i)dashboard", deploy_content_47))
+    has_digest = bool(re.search(r"(?i)digest|subscription|subscribe", deploy_content_47))
+    if not has_dashboard:
+        error("[47] deploy.md: missing analytics dashboard setup section")
+    if not has_digest:
+        error("[47] deploy.md: missing scheduled digest/subscription setup")
+
+# ---------------------------------------------------------------------------
+# Check 48: Iterate Skill Contains Next Check-in Schedule
+# ---------------------------------------------------------------------------
+
+iterate_path_48 = ".claude/commands/iterate.md"
+if os.path.isfile(iterate_path_48):
+    with open(iterate_path_48) as f:
+        iterate_content_48 = f.read()
+    has_checkin = bool(re.search(r"(?i)next.check.in", iterate_content_48))
+    if not has_checkin:
+        error("[48] iterate.md: missing Next Check-in schedule section")
+
+# ---------------------------------------------------------------------------
+# Check 49: Bootstrap Email-Auth-Database Dependency
+# ---------------------------------------------------------------------------
+
+bootstrap_path_49 = ".claude/commands/bootstrap.md"
+if os.path.isfile(bootstrap_path_49):
+    with open(bootstrap_path_49) as f:
+        bs_content_49 = f.read()
+    bs_prose_49 = extract_prose(bs_content_49)
+    has_email_auth = bool(re.search(
+        r"(?i)email.*auth.*present|email\s+requires.*auth", bs_prose_49
+    ))
+    has_email_db = bool(re.search(
+        r"(?i)email.*database.*present|email\s+requires.*database", bs_prose_49
+    ))
+    if not has_email_auth:
+        error("[49] bootstrap.md: missing email-requires-auth dependency check")
+    if not has_email_db:
+        error("[49] bootstrap.md: missing email-requires-database dependency check")
+
+# ---------------------------------------------------------------------------
+# Check 50: Change Email-Auth-Database Dependency
+# ---------------------------------------------------------------------------
+
+change_path_50 = ".claude/commands/change.md"
+if os.path.isfile(change_path_50):
+    with open(change_path_50) as f:
+        change_content_50 = f.read()
+    change_prose_50 = extract_prose(change_content_50)
+    has_email_ref = bool(re.search(r"(?i)adding\s+.*email|email.*stack", change_prose_50))
+    if has_email_ref:
+        has_email_auth_chk = bool(re.search(
+            r"(?i)email.*auth.*present|email\s+requires.*auth", change_prose_50
+        ))
+        has_email_db_chk = bool(re.search(
+            r"(?i)email.*database.*present|email\s+requires.*database", change_prose_50
+        ))
+        if not has_email_auth_chk:
+            error("[50] change.md: mentions adding email stack without auth-presence validation")
+        if not has_email_db_chk:
+            error("[50] change.md: mentions adding email stack without database-presence validation")
 
 # ---------------------------------------------------------------------------
 # Summary

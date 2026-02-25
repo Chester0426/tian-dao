@@ -100,6 +100,8 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
       NEXT_PUBLIC_POSTHOG_KEY: phc_placeholder
       NEXT_PUBLIC_POSTHOG_HOST: https://us.i.posthog.com
+      # Email stack (stack.email: resend) — safe to leave even without email
+      RESEND_API_KEY: re_placeholder_key
       # Payment stack (stack.payment: stripe) — safe to leave even without payments
       STRIPE_SECRET_KEY: placeholder-stripe-secret
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: placeholder-stripe-publishable
