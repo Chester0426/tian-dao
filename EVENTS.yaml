@@ -46,6 +46,14 @@ standard_funnel:
         type: string
         required: false
         description: Google Click ID from URL if present (for offline conversion matching)
+      click_id:
+        type: string
+        required: false
+        description: Channel-specific click identifier (e.g., gclid, twclid, rdt_cid)
+      utm_content:
+        type: string
+        required: false
+        description: UTM content parameter from URL (variant attribution and ad creative tracking)
 
   - event: signup_start
     trigger: User clicks "Sign up" or opens the registration form

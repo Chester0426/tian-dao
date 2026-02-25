@@ -39,10 +39,10 @@ Checks:
   35. No-Auth CI Template Database Env Vars — no-auth CI template includes database placeholder env vars if full-auth template does
   36. (removed)
   37. Change Classification Before Dependent Checks — classification step precedes classification-dependent checks
-  38. Ads.yaml Schema Validation — required keys, keyword counts, ad copy RSA constraints, budget limits
+  38. Ads.yaml Schema Validation — channel-aware required keys, creative constraints, budget limits
   39. Ads.yaml Campaign Name Matches idea.yaml Name — campaign_name starts with idea.name
   40. Distribute Skill Prose Event Names — distribute.md contains feedback_submitted event definition
-  41. Distribute Skill Docs Reference Exists — docs/google-ads-setup.md exists if distribute.md references it
+  41. Distribution Docs References Exist — docs/*.md files referenced in distribute.md or distribution stack files exist
   42. Distribute Skill Validates Analytics Stack — distribute.md preconditions validate stack.analytics
   43. Distribute Skill Validates EVENTS.yaml custom_events Structure — distribute.md preconditions validate custom_events is a list
   44. Bootstrap Skill Validates Variants — bootstrap.md Step 3 contains variant validation logic
@@ -580,9 +580,13 @@ if os.path.isdir(fixture_dir):
     fixture_files_cov = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
 
     # Collect category/value pairs from stack file paths
+    # Exclude distribution/ — distribution is not a bootstrap stack category;
+    # it's a runtime choice made at /distribute time and has no idea.yaml stack entry.
     stack_pairs = set()
     for sf in stack_files:
         pair = sf.replace(".claude/stacks/", "").replace(".md", "")
+        if pair.startswith("distribution/"):
+            continue
         stack_pairs.add(pair)
 
     # Collect stack coverage from all fixtures
@@ -1813,63 +1817,98 @@ if os.path.isfile(ads_yaml_path):
             ads_data = None
 
     if ads_data and isinstance(ads_data, dict):
-        # Required top-level keys
-        ads_required_keys = [
-            "campaign_name", "project_name", "landing_url", "keywords",
-            "ads", "budget", "targeting", "conversions", "guardrails",
+        # Determine channel (default google-ads for backward compatibility)
+        ads_channel = ads_data.get("channel", "google-ads")
+
+        # Universal required top-level keys (all channels)
+        ads_universal_keys = [
+            "campaign_name", "project_name", "landing_url",
+            "budget", "targeting", "conversions", "guardrails",
             "thresholds",
         ]
-        for key in ads_required_keys:
+        for key in ads_universal_keys:
             if key not in ads_data:
                 error(f"[38] {ads_yaml_path}: missing required key '{key}'")
 
-        # Keyword minimums
-        kw = ads_data.get("keywords", {})
-        if isinstance(kw, dict):
-            if len(kw.get("exact", []) or []) < 3:
-                error(
-                    f"[38] {ads_yaml_path}: keywords.exact needs at least "
-                    f"3 entries"
-                )
-            if len(kw.get("phrase", []) or []) < 2:
-                error(
-                    f"[38] {ads_yaml_path}: keywords.phrase needs at least "
-                    f"2 entries"
-                )
-            if len(kw.get("broad", []) or []) < 1:
-                error(
-                    f"[38] {ads_yaml_path}: keywords.broad needs at least "
-                    f"1 entry"
-                )
-            if len(kw.get("negative", []) or []) < 2:
-                error(
-                    f"[38] {ads_yaml_path}: keywords.negative needs at least "
-                    f"2 entries"
-                )
+        # Channel-specific required keys and validation
+        if ads_channel == "google-ads":
+            for key in ("keywords", "ads"):
+                if key not in ads_data:
+                    error(f"[38] {ads_yaml_path}: missing required key '{key}' (channel: google-ads)")
 
-        # Ad copy minimums (RSA constraints)
-        ads_list = ads_data.get("ads", [])
-        if isinstance(ads_list, list):
-            if len(ads_list) < 2:
-                error(
-                    f"[38] {ads_yaml_path}: ads needs at least 2 variations"
-                )
-            for i, ad in enumerate(ads_list):
-                if isinstance(ad, dict):
-                    headlines = ad.get("headlines", []) or []
-                    descriptions = ad.get("descriptions", []) or []
-                    if len(headlines) < 5:
-                        error(
-                            f"[38] {ads_yaml_path}: ads[{i}] needs at least "
-                            f"5 headlines"
-                        )
-                    if len(descriptions) < 2:
-                        error(
-                            f"[38] {ads_yaml_path}: ads[{i}] needs at least "
-                            f"2 descriptions"
-                        )
+            # Keyword minimums
+            kw = ads_data.get("keywords", {})
+            if isinstance(kw, dict):
+                if len(kw.get("exact", []) or []) < 3:
+                    error(
+                        f"[38] {ads_yaml_path}: keywords.exact needs at least "
+                        f"3 entries"
+                    )
+                if len(kw.get("phrase", []) or []) < 2:
+                    error(
+                        f"[38] {ads_yaml_path}: keywords.phrase needs at least "
+                        f"2 entries"
+                    )
+                if len(kw.get("broad", []) or []) < 1:
+                    error(
+                        f"[38] {ads_yaml_path}: keywords.broad needs at least "
+                        f"1 entry"
+                    )
+                if len(kw.get("negative", []) or []) < 2:
+                    error(
+                        f"[38] {ads_yaml_path}: keywords.negative needs at least "
+                        f"2 entries"
+                    )
 
-        # Budget limits
+            # Ad copy minimums (RSA constraints)
+            ads_list = ads_data.get("ads", [])
+            if isinstance(ads_list, list):
+                if len(ads_list) < 2:
+                    error(
+                        f"[38] {ads_yaml_path}: ads needs at least 2 variations"
+                    )
+                for i, ad in enumerate(ads_list):
+                    if isinstance(ad, dict):
+                        headlines = ad.get("headlines", []) or []
+                        descriptions = ad.get("descriptions", []) or []
+                        if len(headlines) < 5:
+                            error(
+                                f"[38] {ads_yaml_path}: ads[{i}] needs at least "
+                                f"5 headlines"
+                            )
+                        if len(descriptions) < 2:
+                            error(
+                                f"[38] {ads_yaml_path}: ads[{i}] needs at least "
+                                f"2 descriptions"
+                            )
+
+        elif ads_channel == "twitter":
+            if "tweets" not in ads_data:
+                error(f"[38] {ads_yaml_path}: missing required key 'tweets' (channel: twitter)")
+            tweets = ads_data.get("tweets", [])
+            if isinstance(tweets, list):
+                if len(tweets) < 2:
+                    error(f"[38] {ads_yaml_path}: tweets needs at least 2 variations")
+                for i, tw in enumerate(tweets):
+                    if isinstance(tw, dict):
+                        text = tw.get("text", "")
+                        if len(text) > 280:
+                            error(f"[38] {ads_yaml_path}: tweets[{i}] text exceeds 280 chars")
+
+        elif ads_channel == "reddit":
+            if "posts" not in ads_data:
+                error(f"[38] {ads_yaml_path}: missing required key 'posts' (channel: reddit)")
+            posts = ads_data.get("posts", [])
+            if isinstance(posts, list):
+                if len(posts) < 2:
+                    error(f"[38] {ads_yaml_path}: posts needs at least 2 variations")
+                for i, post in enumerate(posts):
+                    if isinstance(post, dict):
+                        headline = post.get("headline", "")
+                        if len(headline) > 300:
+                            error(f"[38] {ads_yaml_path}: posts[{i}] headline exceeds 300 chars")
+
+        # Budget limits (universal)
         budget = ads_data.get("budget", {})
         if isinstance(budget, dict):
             total = budget.get("total_budget_cents", 0) or 0
@@ -1879,21 +1918,22 @@ if os.path.isfile(ads_yaml_path):
                     f"({total}) exceeds max 50000 ($500)"
                 )
 
-        # Guardrails nested fields
+        # Guardrails nested fields (max_cpc_cents only required for google-ads)
         guardrails = ads_data.get("guardrails", {})
         if isinstance(guardrails, dict):
-            max_cpc = guardrails.get("max_cpc_cents")
-            if max_cpc is None:
-                error(
-                    f"[38] {ads_yaml_path}: missing guardrails.max_cpc_cents"
-                )
-            elif not isinstance(max_cpc, int) or max_cpc <= 0:
-                error(
-                    f"[38] {ads_yaml_path}: guardrails.max_cpc_cents must "
-                    f"be an integer > 0 (got {max_cpc!r})"
-                )
+            if ads_channel == "google-ads":
+                max_cpc = guardrails.get("max_cpc_cents")
+                if max_cpc is None:
+                    error(
+                        f"[38] {ads_yaml_path}: missing guardrails.max_cpc_cents"
+                    )
+                elif not isinstance(max_cpc, int) or max_cpc <= 0:
+                    error(
+                        f"[38] {ads_yaml_path}: guardrails.max_cpc_cents must "
+                        f"be an integer > 0 (got {max_cpc!r})"
+                    )
 
-        # Thresholds nested fields
+        # Thresholds nested fields (universal)
         thresholds = ads_data.get("thresholds", {})
         if isinstance(thresholds, dict):
             exp_act = thresholds.get("expected_activations")
@@ -1978,23 +2018,26 @@ if os.path.isfile(distribute_path):
         )
 
 # ---------------------------------------------------------------------------
-# Check 41: Distribute Skill Docs Reference Exists
+# Check 41: Distribution Docs References Exist
 # ---------------------------------------------------------------------------
 
-distribute_path_41 = ".claude/commands/distribute.md"
-if os.path.isfile(distribute_path_41):
-    with open(distribute_path_41) as f:
-        distribute_content_41 = f.read()
+# Check distribute.md and distribution stack files for docs references
+_docs_ref_sources_41 = [".claude/commands/distribute.md"] + glob.glob(
+    ".claude/stacks/distribution/*.md"
+)
+for _src_path_41 in _docs_ref_sources_41:
+    if os.path.isfile(_src_path_41):
+        with open(_src_path_41) as f:
+            _content_41 = f.read()
 
-    # Check if distribute.md references docs/google-ads-setup.md
-    docs_ref_match = re.search(r"`(docs/google-ads-setup\.md)`", distribute_content_41)
-    if docs_ref_match:
-        referenced_path = docs_ref_match.group(1)
-        if not os.path.isfile(referenced_path):
-            error(
-                f"[41] {distribute_path_41}: references `{referenced_path}` "
-                f"but that file does not exist on disk"
-            )
+        # Find backtick-wrapped docs/ references
+        for _ref_match_41 in re.finditer(r"`(docs/[^`]+\.md)`", _content_41):
+            referenced_path_41 = _ref_match_41.group(1)
+            if not os.path.isfile(referenced_path_41):
+                error(
+                    f"[41] {_src_path_41}: references `{referenced_path_41}` "
+                    f"but that file does not exist on disk"
+                )
 
 # ---------------------------------------------------------------------------
 # Check 42: Distribute Skill Validates Analytics Stack in idea.yaml

@@ -147,7 +147,7 @@ AI skills are invoked directly in Claude Code:
 | `/iterate` | Review metrics and get recommendations for next steps |
 | `/retro` | Run a retrospective and file feedback as GitHub issue |
 | `/deploy` | Deploy to Vercel + Supabase (first-time setup) |
-| `/distribute` | Generate Google Ads campaign config from idea.yaml |
+| `/distribute` | Generate distribution campaign config from idea.yaml |
 | `/review` | Automated review-fix loop for the template itself *(maintainers only)* |
 
 ## Workflow
@@ -157,7 +157,7 @@ After bootstrap, the typical workflow is:
 > **Note:** The commands below assume the default stack. If you've changed your stack, some steps (e.g., deploy target, database setup) will differ — check your stack files in `.claude/stacks/` for details.
 
 1. **Share with users** — your app is live after merging the bootstrap PR (auto-deployed by Vercel)
-2. **Distribute (optional)** — run `/distribute` to generate a Google Ads campaign config, then set it up in Google Ads (see `docs/google-ads-setup.md`)
+2. **Distribute (optional)** — run `/distribute` to generate a distribution campaign config for your chosen channel (Google Ads, Twitter/X, Reddit), then set it up in the channel's ad platform
 3. **Collect data** — wait a few days, check your analytics dashboards
 4. **Review progress** — `/iterate` to analyze your funnel and get recommendations (this is analysis-only — it does not create a branch or PR)
 5. **Act on recommendations** — run the suggested skill:
