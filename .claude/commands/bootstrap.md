@@ -230,6 +230,7 @@ If `stack.testing` is present in idea.yaml:
   - Read idea.yaml pages and EVENTS.yaml to determine funnel sequence
   - Read actual page source files (created in Step 4) to extract real selectors
   - Generate tests: landing content → activate action (if applicable) → login → core value pages
+  - For landing page CTA and success-message selectors, use `.first()` — the CTA Repeat section (messaging.md Section B) produces duplicate buttons and messages. Other pages have unique selectors and don't need `.first()`.
   - Use timestamped emails for form submissions to avoid duplicates
   - Skip retain_return (untestable in E2E)
 - Add `.gitignore` entries per testing stack file

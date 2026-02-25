@@ -172,7 +172,19 @@ Configure services that require the deployment URL. Batch all env var changes be
 
    Read the PostHog personal API key from `~/.posthog/personal-api-key` (same credential used by /iterate auto-query).
 
-   If the key exists, auto-create a dashboard via PostHog API:
+   If the key does NOT exist:
+   1. Tell the user: "PostHog personal API key not found at `~/.posthog/personal-api-key`. To auto-create the experiment dashboard, create one now:"
+      - Go to PostHog → click your profile (bottom left) → **Personal API keys**
+      - Click **Create personal API key**
+      - Label: `cli` (or anything)
+      - Organization & project access: select your organization
+      - Scopes: set **Dashboards** to **Write** and **Insights** to **Write** (all others can stay No access)
+      - Click **Create key** and copy the key
+   2. Ask: "Paste the key here, or type **skip** to set up the dashboard manually later."
+   3. If key provided: save to `~/.posthog/personal-api-key` (`mkdir -p ~/.posthog && echo "$KEY" > ~/.posthog/personal-api-key`) and proceed with auto-creation below.
+   4. If skipped: include manual dashboard instructions in Step 6 summary (current fallback behavior).
+
+   If the key exists (or was just created), auto-create a dashboard via PostHog API:
 
    ```bash
    # Create dashboard
@@ -194,7 +206,7 @@ Configure services that require the deployment URL. Batch all env var changes be
 
    Add `pay_start` and `pay_success` to the funnel series if `stack.payment` is present.
 
-   If the API key is missing or any API call fails, skip auto-creation and include manual instructions in Step 6.
+   If any API call fails, include manual instructions in Step 6.
 
 4. **Redeploy** (only if env vars were added in 5b.2):
    ```bash
