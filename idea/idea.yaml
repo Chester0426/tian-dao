@@ -37,7 +37,7 @@ distribution: |
 
 # --- Variants (optional) ---
 # Test different messaging for the same product. Each variant gets its own
-# landing page URL (/v/<slug>) and its own Google Ads ad group.
+# landing page URL (/v/<slug>) and its own ad group in the distribution channel.
 # Omit this section for a single-variant experiment (the default).
 # variants:
 #   - slug: TODO
