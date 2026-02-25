@@ -77,7 +77,13 @@ Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask 
 
 4. **Observations** — anything the team has noticed (e.g., "users sign up but never create an invoice", "landing page bounce rate is high")
 
-5. **Ads data (if /distribute has been run)** — if `idea/ads.yaml` exists:
+5. **Variant comparison (if idea.yaml has `variants`)** — per-variant metrics:
+   - `visit_landing` count per variant (filter by `variant` property)
+   - `signup_complete` count per variant (if available, filter by UTM content or variant context)
+   - `activate` count per variant (if available)
+   - Which variant is getting the most traffic and which has the best conversion?
+
+6. **Ads data (if /distribute has been run)** — if `idea/ads.yaml` exists:
    - Total spend so far
    - Clicks and CTR
    - Cost per click (CPC)
@@ -128,6 +134,27 @@ If `idea/ads.yaml` exists and the user provided ads data in Step 2, include this
 
 Read `idea/ads.yaml` to populate threshold values. Use the user-provided ads data for actual values.
 
+### Variant Winner Analysis (if idea.yaml has `variants`)
+
+If the user provided per-variant metrics in Step 2, present a comparison:
+
+```
+## Variant Comparison
+
+| Variant | Visits | Signups | Activations | Visit→Signup | Signup→Activate |
+|---------|--------|---------|-------------|--------------|-----------------|
+| [slug]  | [N]    | [N]     | [N]         | [%]          | [%]             |
+| [slug]  | [N]    | [N]     | [N]         | [%]          | [%]             |
+
+**Winner:** [slug] — [reason]
+**Confidence:** [Clear (2x+ difference and 50+ visits per variant) | Likely (1.5x+ and 30+ visits) | Too early (<30 visits per variant — extend the test)]
+```
+
+- **Clear winner (2x+ conversion rate, 50+ visits per variant)**: recommend consolidating on the winning variant — remove the losing variant, update root `/` to the winner's messaging
+- **Likely winner (1.5x+, 30+ visits)**: recommend extending the test for more data, or consolidating if time is short
+- **Too early (<30 visits per variant)**: recommend extending the test duration or increasing traffic — no reliable signal yet
+- **No winner (similar conversion rates)**: recommend testing a new messaging angle — current variants may not differentiate enough
+
 ## Step 4: Recommend actions
 
 Based on the diagnosis, recommend 1-3 specific actions. For each:
@@ -146,6 +173,8 @@ Common patterns:
 | Low pay conversion | `/change improve pricing/payment UX` |
 | Low retention | `/change add [engagement hook]` |
 | Everything low | Reconsider `target_user` or `distribution` — may be a positioning problem, not a product problem |
+| One variant clearly wins | `/change` to consolidate — remove losing variant, make winner the sole landing page |
+| No variant winner | Extend test for more data, or `/change` to try a new messaging angle |
 
 Present recommendations in priority order (highest impact first).
 

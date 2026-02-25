@@ -22,6 +22,10 @@ standard_funnel:
   - event: visit_landing
     trigger: User loads the landing/home page
     properties:
+      variant:
+        type: string
+        required: false
+        description: Variant slug from idea.yaml variants (e.g., "speed"). Absent when no variants defined.
       referrer:
         type: string
         required: false

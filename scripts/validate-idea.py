@@ -45,6 +45,63 @@ missing = [f for f in required if not data.get(f)]
 if missing:
     print("Error: these required fields are missing or empty: " + ", ".join(missing))
     sys.exit(1)
+# --- Variants validation (optional field) ---
+variants = data.get("variants")
+if variants is not None:
+    if not isinstance(variants, list):
+        print("Error: variants must be a list")
+        sys.exit(1)
+    if len(variants) < 2:
+        print(
+            "Error: variants must have at least 2 entries "
+            "(testing 1 variant = no variants — remove the variants field)"
+        )
+        sys.exit(1)
+
+    page_names = {p.get("name") for p in pages if isinstance(p, dict)}
+    slugs_seen = set()
+    default_count = 0
+
+    for i, v in enumerate(variants):
+        if not isinstance(v, dict):
+            print(f"Error: variants[{i}] must be a mapping")
+            sys.exit(1)
+
+        for field in ["slug", "headline", "subheadline", "cta", "pain_points"]:
+            val = v.get(field)
+            if not val:
+                print(f"Error: variants[{i}].{field} is missing or empty")
+                sys.exit(1)
+
+        slug = v.get("slug", "")
+        if not re.fullmatch(r"[a-z][a-z0-9-]*", slug):
+            print(
+                f'Error: variants[{i}].slug "{slug}" must be lowercase, '
+                "start with a letter, and use only a-z, 0-9, hyphens."
+            )
+            sys.exit(1)
+
+        if slug in slugs_seen:
+            print(f"Error: duplicate variant slug: {slug}")
+            sys.exit(1)
+        slugs_seen.add(slug)
+
+        if slug in page_names:
+            print(f"Error: variant slug '{slug}' collides with page name '{slug}'")
+            sys.exit(1)
+
+        pp = v.get("pain_points", [])
+        if not isinstance(pp, list) or len(pp) != 3:
+            print(f"Error: variants[{i}].pain_points must have exactly 3 items")
+            sys.exit(1)
+
+        if v.get("default"):
+            default_count += 1
+
+    if default_count > 1:
+        print("Error: at most one variant may have default: true")
+        sys.exit(1)
+
 if not data.get("template_repo"):
     print(
         "  Warning: template_repo not set. "
