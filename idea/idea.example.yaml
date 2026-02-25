@@ -25,6 +25,27 @@ distribution: |
   LinkedIn posts targeting freelancer communities.
   Cold DM 50 freelancers from Dribbble/Behance.
 
+# --- Variants (optional) ---
+# Uncomment to test multiple landing page messages for the same product.
+# variants:
+#   - slug: speed
+#     headline: "Invoice Clients in 60 Seconds"
+#     subheadline: "Stop wasting hours on invoicing. Create, send, get paid."
+#     cta: "Send Your First Invoice"
+#     pain_points:
+#       - "Manual invoicing wastes hours every week"
+#       - "Chasing payments is exhausting"
+#       - "Existing tools are overkill for solo freelancers"
+#     default: true
+#   - slug: simplicity
+#     headline: "Dead-Simple Invoicing for Freelancers"
+#     subheadline: "No accounting degree needed. Professional invoices in minutes."
+#     cta: "Start Invoicing Free"
+#     pain_points:
+#       - "FreshBooks and QuickBooks are too complex"
+#       - "You just need to send an invoice, not run accounting"
+#       - "Spreadsheet invoices look unprofessional"
+
 # --- Pages ---
 pages:
   - name: landing

@@ -45,6 +45,8 @@ Checks:
   41. Distribute Skill Docs Reference Exists — docs/google-ads-setup.md exists if distribute.md references it
   42. Distribute Skill Validates Analytics Stack — distribute.md preconditions validate stack.analytics
   43. Distribute Skill Validates EVENTS.yaml custom_events Structure — distribute.md preconditions validate custom_events is a list
+  44. Bootstrap Skill Validates Variants — bootstrap.md Step 3 contains variant validation logic
+  45. visit_landing Has Variant Property — EVENTS.yaml visit_landing event includes variant property
 """
 
 import glob
@@ -343,6 +345,74 @@ if os.path.isdir(fixture_dir):
                     error(
                         f"[3] {ff}: idea has {len(pages)} page(s) but "
                         f"assertions.min_pages is {min_pages}"
+                    )
+
+            # Validate variant assertions and structure
+            idea_variants = idea.get("variants")
+            has_variants_assertion = assertions.get("has_variants")
+            variant_count_assertion = assertions.get("variant_count")
+
+            if idea_variants is not None:
+                # Fixture has variants — validate structure
+                if not isinstance(idea_variants, list):
+                    error(f"[3] {ff}: idea.variants must be a list")
+                elif len(idea_variants) < 2:
+                    error(
+                        f"[3] {ff}: idea.variants must have at least 2 entries"
+                    )
+                else:
+                    variant_slugs_seen: set[str] = set()
+                    for vi, vv in enumerate(idea_variants):
+                        if not isinstance(vv, dict):
+                            error(
+                                f"[3] {ff}: idea.variants[{vi}] must be a mapping"
+                            )
+                            continue
+                        for vfield in [
+                            "slug", "headline", "subheadline", "cta", "pain_points"
+                        ]:
+                            if not vv.get(vfield):
+                                error(
+                                    f"[3] {ff}: idea.variants[{vi}].{vfield} "
+                                    f"is missing or empty"
+                                )
+                        vslug = vv.get("slug", "")
+                        if vslug in variant_slugs_seen:
+                            error(
+                                f"[3] {ff}: duplicate variant slug: {vslug}"
+                            )
+                        variant_slugs_seen.add(vslug)
+                        vpp = vv.get("pain_points", [])
+                        if isinstance(vpp, list) and len(vpp) != 3:
+                            error(
+                                f"[3] {ff}: idea.variants[{vi}].pain_points "
+                                f"must have exactly 3 items"
+                            )
+
+                # Validate has_variants assertion
+                if has_variants_assertion is not None and not has_variants_assertion:
+                    error(
+                        f"[3] {ff}: idea has variants but "
+                        f"assertions.has_variants is false"
+                    )
+
+                # Validate variant_count assertion
+                if (
+                    variant_count_assertion is not None
+                    and isinstance(idea_variants, list)
+                    and len(idea_variants) != variant_count_assertion
+                ):
+                    error(
+                        f"[3] {ff}: idea has {len(idea_variants)} variant(s) "
+                        f"but assertions.variant_count is "
+                        f"{variant_count_assertion}"
+                    )
+            else:
+                # No variants — assertions should not claim variants exist
+                if has_variants_assertion:
+                    error(
+                        f"[3] {ff}: assertions.has_variants is true but "
+                        f"idea has no variants field"
                     )
 
         # Validate events structure
@@ -2014,6 +2084,72 @@ if os.path.isfile(distribute_path_43):
             f"[43] {distribute_path_43}: could not find preconditions section "
             f"(Step 1) to check custom_events validation"
         )
+
+# ---------------------------------------------------------------------------
+# Check 44: Bootstrap Skill Validates Variants
+# ---------------------------------------------------------------------------
+
+bootstrap_path_44 = ".claude/commands/bootstrap.md"
+if os.path.isfile(bootstrap_path_44):
+    with open(bootstrap_path_44) as f:
+        bootstrap_content_44 = f.read()
+
+    # Find the "Validate idea.yaml" section (Step 3)
+    validate_section_match = re.search(
+        r"##.*(?:Step 3|Validate idea\.yaml).*?\n(.*?)(?=\n## |\Z)",
+        bootstrap_content_44,
+        re.DOTALL,
+    )
+    if validate_section_match:
+        validate_text = validate_section_match.group(1)
+        has_variant_validation = bool(
+            re.search(
+                r"variants?.*(?:present|list|at least 2|slug|valid)",
+                validate_text,
+                re.IGNORECASE,
+            )
+        )
+        if not has_variant_validation:
+            error(
+                f"[44] {bootstrap_path_44}: Step 3 (Validate idea.yaml) does not "
+                f"contain variant validation logic (expected mention of variants "
+                f"with present/list/slug/at least 2)"
+            )
+    else:
+        error(
+            f"[44] {bootstrap_path_44}: could not find 'Validate idea.yaml' "
+            f"section (Step 3) to check variant validation"
+        )
+
+# ---------------------------------------------------------------------------
+# Check 45: visit_landing Event Has Variant Property
+# ---------------------------------------------------------------------------
+
+events_path_45 = "EVENTS.yaml"
+if os.path.isfile(events_path_45):
+    with open(events_path_45) as f:
+        events_data_45 = yaml.safe_load(f)
+
+    if isinstance(events_data_45, dict):
+        standard_funnel = events_data_45.get("standard_funnel", [])
+        visit_landing_event = None
+        for ev in standard_funnel:
+            if isinstance(ev, dict) and ev.get("event") == "visit_landing":
+                visit_landing_event = ev
+                break
+
+        if visit_landing_event:
+            props = visit_landing_event.get("properties", {})
+            if not isinstance(props, dict) or "variant" not in props:
+                error(
+                    f"[45] {events_path_45}: visit_landing event is missing "
+                    f"a 'variant' property (needed for experiment matrix)"
+                )
+        else:
+            error(
+                f"[45] {events_path_45}: visit_landing event not found "
+                f"in standard_funnel"
+            )
 
 # ---------------------------------------------------------------------------
 # Summary
