@@ -5,6 +5,7 @@ packages:
   dev: []
 files:
   - src/app/auth/callback/route.ts
+  - src/app/auth/reset-password/page.tsx
   - src/app/signup/page.tsx  # conditional: only if "signup" in idea.yaml pages
   - src/app/login/page.tsx  # conditional: only if "login" in idea.yaml pages
   - src/components/nav-bar.tsx
@@ -73,6 +74,66 @@ import { createServerAuthClient as createServerSupabaseClient } from "@/lib/supa
 ```
 This aliasing keeps the rest of the route handler code identical — only the import changes.
 
+### `src/app/auth/reset-password/page.tsx` — Reset password page (always created)
+
+Lets the user set a new password after clicking the reset link from their email. The callback route exchanges the PKCE code and redirects here with an active session.
+
+#### When `stack.database` is also `supabase` (shared client):
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+export default function ResetPasswordPage() {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (updateError) { setError(updateError.message); return; }
+    router.push("/");
+  }
+
+  return (
+    <form onSubmit={handleReset} className="space-y-4">
+      <div>
+        <Label htmlFor="password">New Password</Label>
+        <Input id="password" type="password" placeholder="Min 8 characters"
+          value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
+      </div>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+      <Button type="submit" disabled={loading}>
+        {loading ? "Updating..." : "Set new password"}
+      </Button>
+    </form>
+  );
+}
+```
+
+#### When `stack.database` is NOT supabase (standalone client):
+Replace the import on line 5:
+```tsx
+// Instead of: import { createClient } from "@/lib/supabase";
+import { createAuthClient as createClient } from "@/lib/supabase-auth";
+```
+The rest of the component code remains identical — only the import changes.
+
 ### `src/app/signup/page.tsx` — Signup page (if `signup` is in idea.yaml pages)
 
 #### When `stack.database` is also `supabase` (shared client):
@@ -114,6 +175,11 @@ export default function SignupPage() {
     });
     setLoading(false);
     if (authError) { setError(authError.message); return; }
+    if (data.user?.identities?.length === 0) {
+      setError("An account with this email already exists. Please log in.");
+      setLoading(false);
+      return;
+    }
     if (!data.session) {
       setSuccess("Check your email for a confirmation link to complete signup.");
       return;
@@ -182,6 +248,8 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const confirmed = searchParams.get("confirmed") === "true";
@@ -198,6 +266,19 @@ function LoginForm() {
     router.push("/"); // Redirect to landing — bootstrap will update to the first non-auth page from idea.yaml
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+    });
+    setLoading(false);
+    if (resetError) { setError(resetError.message); return; }
+    setForgotSent(true);
+  }
+
   return (
     <div className="space-y-4">
       {confirmed && (
@@ -210,25 +291,59 @@ function LoginForm() {
           Authentication failed. Please try logging in.
         </p>
       )}
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="you@example.com" value={email}
-            onChange={e => setEmail(e.target.value)} required />
-        </div>
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" placeholder="Password" value={password}
-            onChange={e => setPassword(e.target.value)} required />
-        </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <Button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Don't have an account? <a href="/signup" className="underline">Sign up</a>
-        </p>
-      </form>
+      {forgotMode ? (
+        forgotSent ? (
+          <div className="space-y-4 text-center">
+            <p className="text-green-600 font-medium">Check your email for a reset link.</p>
+            <button type="button" className="text-sm underline text-muted-foreground"
+              onClick={() => { setForgotMode(false); setForgotSent(false); }}>
+              Back to login
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="you@example.com" value={email}
+                onChange={e => setEmail(e.target.value)} required />
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Sending..." : "Send reset link"}
+            </Button>
+            <button type="button" className="text-sm underline text-muted-foreground block"
+              onClick={() => { setForgotMode(false); setError(""); }}>
+              Back to login
+            </button>
+          </form>
+        )
+      ) : (
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="you@example.com" value={email}
+              onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" placeholder="Password" value={password}
+              onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div className="flex justify-end">
+            <button type="button" className="text-sm underline text-muted-foreground"
+              onClick={() => { setForgotMode(true); setError(""); }}>
+              Forgot password?
+            </button>
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <Button type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Log in"}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Don't have an account? <a href="/signup" className="underline">Sign up</a>
+          </p>
+        </form>
+      )}
     </div>
   );
 }
@@ -482,5 +597,9 @@ The access token is read from `~/.supabase/access-token` (created by `supabase l
 ## PR Instructions
 - Email confirmation is enabled by default in Supabase. The signup form handles this: when `signUp()` returns `session: null`, it shows a "check your email" message instead of redirecting. Users who confirm their email can then log in normally.
 - The signup form passes `emailRedirectTo` pointing to `/auth/callback`, which exchanges the PKCE code for a session and redirects to `/`. This requires the production URL to be in Supabase's redirect allow-list (configured by `/deploy`).
+- The signup form detects duplicate emails by checking `data.user.identities` — when Supabase returns a user with zero identities, it means the email already exists. The form shows "An account with this email already exists" instead of the misleading "check your email" message.
+- The login page includes a "Forgot password?" link that toggles an inline reset form. It calls `resetPasswordForEmail()` with a redirect to `/auth/callback?next=/auth/reset-password`. After clicking the email link, the callback route exchanges the code and redirects to the reset-password page where the user sets a new password.
 - Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → callback route exchanges code → auto-redirected into the app as a logged-in user
+- Test duplicate email: sign up with an existing email → see "already exists" error instead of "check your email"
+- Test forgot password: click "Forgot password?" on login → enter email → see "check your email for a reset link" → click link → land on reset-password page → set new password → redirected to app
 - If the callback fails (expired or invalid code), the user is redirected to `/login?error=auth` and sees an error banner
