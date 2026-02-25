@@ -50,7 +50,7 @@ Source: Analytics Query API (project_name = "<name>")
 ```
 
 - Show all events from the query, including those with 0 counts
-- Wait for user confirmation before proceeding to Step 3
+- Wait for user confirmation before proceeding to Step 3 verdict
 
 ### 2b: Fall back to manual input
 
@@ -69,7 +69,7 @@ Ask the user to provide funnel numbers — for each event in EVENTS.yaml `standa
 
 Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask the user to provide whatever they have. Not all of these will be available — use what you get:
 
-1. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty and not already fetched in 2a, ask for counts of each custom event. Include these in the Step 3 diagnosis as supplementary data below the standard funnel table.
+1. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty and not already fetched in 2a, ask for counts of each custom event. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
 
 2. **Timeline** — how far into the `measurement_window` are we?
 
@@ -91,7 +91,54 @@ Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask 
 
    How to get ads data: Google Ads dashboard -> Campaigns -> select the campaign -> check Clicks, CTR, Avg CPC, Cost. For conversions: filter events in the analytics dashboard by `utm_source = "google"`.
 
-## Step 3: Diagnose the funnel
+## Step 3: Experiment Verdict
+
+Before diagnosing details, assess overall experiment health. This verdict is the headline — present it first, prominently.
+
+### 3a: Calculate progress
+
+From the data gathered in Step 2, determine:
+- **Time elapsed**: parse `measurement_window` (e.g., "2 weeks" = 14 days) and ask the user how many days have passed (or derive from timeline data in 2c). Calculate `time_pct = elapsed_days / total_days`.
+- **Target progress**: compare the user's reported metrics against `target_value` from idea.yaml. Extract the target number and the closest matching metric (e.g., `target_value: "10 paid invoices"` → compare against `activate` or `pay_success` count). Calculate `target_pct = achieved / target_number`.
+- **Pace**: `pace = target_pct / time_pct`. A pace of 1.0 means exactly on track; >1.0 means ahead; <1.0 means behind.
+- **Budget progress (if ads running)**: if the user provided ads spend data, calculate `budget_pct = spent / total_budget`.
+
+### 3b: Apply verdict framework
+
+Present the verdict table and determination:
+
+| Dimension | Value |
+|-----------|-------|
+| Time | Day [N] of [total] ([time_pct]% elapsed) |
+| Target | [achieved] of [target] [metric] ([target_pct]% achieved) |
+| Pace | [pace]x ([interpretation]) |
+| Budget | $[spent] of $[total] ([budget_pct]%) — only if ads running |
+
+Then apply the decision tree:
+
+| Condition | Verdict |
+|-----------|---------|
+| time_pct < 25% AND total visits < 30 | **TOO EARLY** — not enough data for a verdict. Keep running, check back in a few days. |
+| pace >= 0.7 | **GO** — on track. Continue and optimize conversion at the biggest bottleneck. |
+| pace 0.3–0.7 AND time_pct < 60% | **MONITOR** — behind pace but recoverable. Focus on the biggest funnel bottleneck identified in Step 4. |
+| pace < 0.3 AND time_pct > 50% | **NO-GO** — unlikely to reach target. Consider stopping or major pivot. |
+| 0 activations AND time_pct > 30% | **NO-GO** — zero demand signal. Stop spending, re-evaluate positioning. |
+| target_pct > 0 AND pace < 0.3 AND funnel has clear bottleneck | **PIVOT** — there's signal, but the angle is wrong. Change messaging or target user. |
+
+Output the verdict prominently:
+
+> ### Verdict: [GO / NO-GO / PIVOT / MONITOR / TOO EARLY]
+>
+> **[One-line reasoning]**
+
+### 3c: Verdict caveats
+
+- The verdict is a **guideline, not an order** — the user makes the final call
+- Qualitative signals (user feedback, feature requests) can override quantitative pace
+- If `target_value` is not cleanly numeric (e.g., "validate that freelancers will pay"), use the closest measurable proxy and note the approximation
+- For experiments without ads (organic only), budget dimension is omitted
+
+## Step 4: Diagnose the funnel
 
 Analyze the data to find where the funnel breaks. Present a funnel visualization:
 
@@ -155,7 +202,7 @@ If the user provided per-variant metrics in Step 2, present a comparison:
 - **Too early (<30 visits per variant)**: recommend extending the test duration or increasing traffic — no reliable signal yet
 - **No winner (similar conversion rates)**: recommend testing a new messaging angle — current variants may not differentiate enough
 
-## Step 4: Recommend actions
+## Step 5: Recommend actions
 
 Based on the diagnosis, recommend 1-3 specific actions. For each:
 - **What**: concrete description of the change
@@ -195,7 +242,7 @@ If `idea/ads.yaml` exists and the campaign has been running for the full `budget
 
 Read `thresholds.go_signal` and `thresholds.no_go_signal` from `idea/ads.yaml` and use them as the primary decision criteria. The table above provides additional diagnostic detail.
 
-## Step 5: Update the experiment plan (if needed)
+## Step 6: Update the experiment plan (if needed)
 
 If the diagnosis reveals a need to change direction:
 
@@ -203,27 +250,34 @@ If the diagnosis reveals a need to change direction:
 - Propose the changes to the user and list the specific edits to idea.yaml
 - The user should edit idea.yaml manually, then run `/change ...` to implement the changes (or `make clean` followed by `/bootstrap` to rebuild from scratch)
 
-### Major pivot (change target user, problem, or solution)
-- Present the case: "The data suggests [current approach] isn't working because [reason]. Consider targeting [new user] or solving [different problem]."
+### Pivot (verdict is PIVOT — signal exists but wrong angle)
+- Identify what IS working (which funnel stage converts well)
+- Propose messaging or positioning changes that preserve what works
+- The user should run `/change` to adjust copy/CTA/targeting, NOT rebuild from scratch
+
+### Major pivot or stop (verdict is NO-GO)
+- Present the case: "The Step 3 verdict is NO-GO. The data suggests [current approach] isn't working because [reason]. Consider targeting [new user] or solving [different problem]."
 - Do NOT update idea.yaml for major pivots — the user should think about this and manually edit idea.yaml
 - Remind them: "After updating idea.yaml, run `make clean` then `/bootstrap` to start a new experiment (or in a fresh repo), or `/change ...` to iteratively shift the existing one."
 
-### On track (metrics are progressing toward target_value)
-- Say so clearly: "You're on track. [X] of [target_value] achieved with [Y days] remaining."
+### On track (verdict is GO)
+- Say so clearly: "The Step 3 verdict is GO. You're on track. [X] of [target_value] achieved with [Y days] remaining."
 - Recommend: keep going, focus on distribution, or run `/change improve conversion` to improve conversion
 
-## Step 6: Summarize next steps
+## Step 7: Summarize next steps
 
-End with a clear, numbered action list:
+End with a clear, numbered action list. Prepend the verdict from Step 3:
 
 ```
 ## Recommended Next Steps
+
+**Verdict: [GO/NO-GO/PIVOT/MONITOR/TOO EARLY]** — [one-line summary]
 
 1. Run `/change sharpen landing page headline to address [specific user pain]`
 2. Run `/change add onboarding checklist after signup`
 3. Post in [distribution channel from idea.yaml] — drive more top-of-funnel traffic
 
-Your measurement window ends in [X days]. Focus on the activation bottleneck first.
+Your measurement window ends in [X days]. [Verdict-specific guidance].
 ```
 
 ### Retro reminder
