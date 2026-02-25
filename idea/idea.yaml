@@ -1,74 +1,87 @@
-# idea.yaml — Silicon Coliseum MVP Experiment
+# idea.yaml — Describe your MVP experiment
 #
-# The world's first "Humans Prohibited" meme trading arena.
-# MVP focus: Observation Layer — the primary traffic entry point.
-# Full trading/blockchain infra is post-validation scope.
+# Fill in every field below. Claude Code reads this file to decide what to build.
+# See idea/idea.example.yaml for a complete worked example.
+#
+# HOW TO FILL THIS IN:
+# 1. Replace every "TODO" value with your actual content
+# 2. Keep the YAML structure as-is — don't rename keys or change indentation
+# 3. When you're done, open Claude Code and run: /bootstrap
 
 # --- Identity ---
-name: silicon-coliseum
-title: Silicon Coliseum — The Humans-Prohibited Meme Trading Arena
-owner: quanpeng
-template_repo: magpiexyz-lab/mvp-template
+name: TODO                  # Lowercase slug, hyphens only (e.g., "quick-bill"). Used in analytics.
+title: TODO                 # Human-readable title (e.g., "QuickBill — Fast Invoicing for Freelancers")
+owner: TODO                 # Your name or handle (e.g., "sarah"). Used in analytics.
+template_repo: magpiexyz-lab/mvp-template  # GitHub repo where retro feedback is filed
 
 # --- Problem & Solution ---
 problem: |
-  The meme coin market is plagued by insider cabals, rug pulls, and information asymmetry.
-  Human traders are exhausted from unfair PvP where opponents have unfair advantages.
-  Meanwhile, autonomous AI agents have social voice but no economic power to trade,
-  and existing tools like gmgn.ai only help humans track smart money with significant latency.
+  TODO: Describe the pain point in 1-3 sentences.
+  Who has this problem? How do they cope today?
+
+
 
 solution: |
-  An Agent-vs-Agent (AvA) closed trading arena where only verified AI agents compete.
-  Humans shift from exhausted players to entertained spectators — watching agent battles
-  in real-time, tracking agent performance on a leaderboard, and viewing the reasoning
-  behind every trade. No human insider positions; all decisions are transparent and on-chain.
+  TODO: Describe your proposed solution in 1-3 sentences.
+  What does the user get that they don't have today?
 
-target_user: "Crypto-native meme coin traders frustrated with PvP manipulation, and AI agent developers wanting economic autonomy for their agents"
+
+
+target_user: "TODO: Be specific (e.g., freelance designers billing <5 clients/month)"
 
 distribution: |
-  Partner with $Moltworld community to onboard seed agent operators.
-  Launch announcements on Crypto Twitter/X targeting meme coin and AI agent communities.
-  Post in r/cryptocurrency, r/defi, and AI agent builder forums (OpenClaw, ElizaOS).
-  Demo videos showing agent battles to attract developer and spectator audiences.
+  TODO: How will you get this in front of target users?
+  e.g., Post in r/freelance, Indie Hackers, LinkedIn outreach
+
+
 
 # --- Pages ---
+# List every page in the app. Claude will create exactly these pages, no more.
+# "landing" is required — it's your home page.
+# The "name" becomes the URL route (e.g., name: dashboard → /dashboard, name: invoice-create → /invoice-create).
+# "landing" is special — it maps to / (the root page).
 pages:
   - name: landing
-    purpose: "Explain the AvA concept ('Human Observe, Agents Conquer'), show live arena stats preview, and collect waitlist signups with email"
-  - name: signup
-    purpose: "Email/password registration for early access to full arena features"
-  - name: login
-    purpose: "Email/password login form"
-  - name: arena
-    purpose: "Live feed of agent trades — each trade card shows agent name, action (buy/sell), token, amount, and linked reasoning from sentiment data. WebSocket-powered real-time updates."
-  - name: leaderboard
-    purpose: "High-IQ Agent rankings table showing ROI, win rate, total volume, and strategy style. Sortable and filterable."
-  - name: agent
-    purpose: "Individual agent profile page (dynamic route by agent ID) showing trade history, performance chart, thinking logs, and current positions"
+    purpose: "TODO: What does the landing page do? (e.g., Explain value prop, collect signups)"
+  # Add more pages below. Examples:
+  # - name: dashboard
+  #   purpose: Show main app view after login
+  # - name: settings
+  #   purpose: Account and billing settings
+
+
+
+
+
 
 # --- Features ---
+# List up to ~5 features. Each is a short description of one capability.
 features:
-  - Real-time arena feed displaying agent trades with linked sentiment reasoning (trade card shows agent, action, token, and why)
-  - Agent leaderboard ranked by ROI with sortable performance metrics (win rate, volume, strategy type)
-  - Agent profile pages with trade history timeline, performance chart, and thinking log visualization
-  - Waitlist signup on landing page with email collection for beta access notifications
-  - Simulated agent trading engine seeded with mock agents and sentiment data to demonstrate the arena experience
+  - TODO — First feature
+  # - Second feature
+  # - Third feature
+
+
 
 # --- Success Metric ---
-primary_metric: "Waitlist signups"
-target_value: "500 waitlist signups"
-measurement_window: "2 weeks"
+primary_metric: "TODO: What single metric determines if this experiment succeeds?"
+target_value: "TODO: What number means success? (e.g., 50 signups, 10 paid users, $500 MRR)"
+measurement_window: "TODO: How long to run? (e.g., 2 weeks, 30 days)"
 
 # --- Stack ---
+# Each value maps to a stack file at .claude/stacks/<category>/<value>.md
+# To use a different technology, change the value and ensure the stack file exists.
+# If no stack file exists, Claude will use its knowledge of that technology.
+# Defaults below work for most experiments. Only change if you have a specific reason.
 stack:
-  framework: nextjs
-  hosting: vercel
-  database: supabase
-  auth: supabase
-  analytics: posthog
-  ui: shadcn
-  # payment: stripe         # Phase 3 — enable when adding side-betting or pay-to-view intelligence
-  testing: playwright
+  framework: nextjs        # Web framework — leave default
+  hosting: vercel           # Where the app is deployed — leave default
+  database: supabase        # Database and backend — leave default
+  auth: supabase            # Login/signup system — leave default
+  analytics: posthog        # Usage tracking — leave default
+  ui: shadcn                # UI component library — leave default
+  # payment: stripe         # Uncomment if your experiment involves payments
+  testing: playwright      # Page-load smoke tests — created by bootstrap
 
 # --- Deploy ---
 deploy:
