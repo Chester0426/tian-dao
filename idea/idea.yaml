@@ -35,6 +35,29 @@ distribution: |
 
 
 
+# --- Variants (optional) ---
+# Test different messaging for the same product. Each variant gets its own
+# landing page URL (/v/<slug>) and its own Google Ads ad group.
+# Omit this section for a single-variant experiment (the default).
+# variants:
+#   - slug: TODO
+#     headline: "TODO: Value proposition variant A"
+#     subheadline: "TODO: How it works, variant A"
+#     cta: "TODO: Action verb + outcome"
+#     pain_points:
+#       - "TODO: Pain point 1"
+#       - "TODO: Pain point 2"
+#       - "TODO: Pain point 3"
+#     default: true
+#   - slug: TODO
+#     headline: "TODO: Value proposition variant B"
+#     subheadline: "TODO: How it works, variant B"
+#     cta: "TODO: Action verb + outcome"
+#     pain_points:
+#       - "TODO: Pain point 1"
+#       - "TODO: Pain point 2"
+#       - "TODO: Pain point 3"
+
 # --- Pages ---
 # List every page in the app. Claude will create exactly these pages, no more.
 # "landing" is required — it's your home page.
