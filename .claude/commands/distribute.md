@@ -11,6 +11,7 @@ references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
+  - .claude/patterns/messaging.md
 branch_prefix: chore
 modifies_specs: true
 ---
@@ -74,6 +75,9 @@ Derive from idea.yaml `title`, `solution`, and `primary_metric`.
 - Headline = outcome for target_user (what they get)
 - Description = proof + CTA (why believe + what to do next)
 - Include the landing URL with UTM parameters: `?utm_source=google&utm_medium=cpc&utm_campaign={campaign_name}`
+
+### Message match
+Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read `src/app/page.tsx` to extract the actual landing headline and derive ad headlines from it.
 
 ## Step 4: Generate thresholds
 

@@ -11,6 +11,7 @@ references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
+  - .claude/patterns/messaging.md
 branch_prefix: feat
 modifies_specs: false
 ---
@@ -135,7 +136,7 @@ For each entry in idea.yaml `pages`:
   - Import tracking functions per the analytics stack file conventions
   - Fire the appropriate EVENTS.yaml event(s) on the correct trigger
   - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
-- **Landing page specifically**: headline from idea.yaml `title`, subheadline from `solution` (first sentence), CTA button linking to the next logical page (signup if it exists in idea.yaml pages, otherwise the first non-landing page; if landing is the only page, build the idea.yaml features as sections on the landing page below the hero and use a CTA that scrolls to the first feature section via anchor link (e.g., `href="#get-started"`) — do not link to a nonexistent route or add functionality beyond what is listed in `features`; if any feature is interactive (the user can take an action like submitting a form or creating a record), fire `activate` when they complete that action — if all features are descriptive with no user action, omit the `activate` event and note the omission in the PR body), fire the landing page event from EVENTS.yaml on mount with its specified properties
+- **Landing page specifically**: follow the conversion structure in `.claude/patterns/messaging.md`. Derive headline, subheadline, and CTA from idea.yaml using the copy derivation rules (do NOT use `title` as the headline — that's the product name, not the value proposition). Use the landing page information architecture for section order. CTA links to the next logical page (signup if it exists in idea.yaml pages, otherwise the first non-landing page; if landing is the only page, build the idea.yaml features as sections on the landing page below the hero and use a CTA that scrolls to the first feature section via anchor link (e.g., `href="#get-started"`) — do not link to a nonexistent route or add functionality beyond what is listed in `features`; if any feature is interactive, fire `activate` when they complete that action — if all features are descriptive with no user action, omit the `activate` event and note the omission in the PR body). Fire the landing page event from EVENTS.yaml on mount with its specified properties.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - **All other pages**: functional layout with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real (if minimal) screen
 
