@@ -4,6 +4,7 @@ packages:
   runtime: ["@supabase/supabase-js", "@supabase/ssr"]
   dev: []
 files:
+  - src/app/auth/callback/route.ts
   - src/app/signup/page.tsx  # conditional: only if "signup" in idea.yaml pages
   - src/app/login/page.tsx  # conditional: only if "login" in idea.yaml pages
   - src/components/nav-bar.tsx
@@ -40,6 +41,37 @@ npm install @supabase/supabase-js @supabase/ssr
 - Recommend enabling email verification in Supabase Dashboard (Authentication → Settings → Email Auth → "Confirm email")
 
 ## Files to Create
+
+### `src/app/auth/callback/route.ts` — Auth callback handler (always created)
+
+Exchanges PKCE authorization codes for sessions. Required for email confirmation auto-login, OAuth/social login, password reset, and magic link flows.
+
+#### When `stack.database` is also `supabase` (shared client):
+```ts
+import { NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+  const next = searchParams.get("next") ?? "/";
+
+  if (code) {
+    const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  }
+  return NextResponse.redirect(`${origin}/login?error=auth`);
+}
+```
+
+#### When `stack.database` is NOT supabase (standalone client):
+Replace the import on line 2:
+```ts
+// Instead of: import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createServerAuthClient as createServerSupabaseClient } from "@/lib/supabase-auth-server";
+```
+This aliasing keeps the rest of the route handler code identical — only the import changes.
 
 ### `src/app/signup/page.tsx` — Signup page (if `signup` is in idea.yaml pages)
 
@@ -78,7 +110,7 @@ export default function SignupPage() {
     const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/login?confirmed=true` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (authError) { setError(authError.message); return; }
@@ -153,6 +185,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const confirmed = searchParams.get("confirmed") === "true";
+  const authError = searchParams.get("error") === "auth";
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -170,6 +203,11 @@ function LoginForm() {
       {confirmed && (
         <p className="text-green-600 font-medium text-center">
           Email confirmed! Please log in.
+        </p>
+      )}
+      {authError && (
+        <p className="text-red-500 font-medium text-center">
+          Authentication failed. Please try logging in.
         </p>
       )}
       <form onSubmit={handleLogin} className="space-y-4">
@@ -335,6 +373,38 @@ if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 - Fire `signup_start` on form render (include `method` property: `"email"`, `"google"`, `"github"`)
 - Fire `signup_complete` only when `data.session` exists after `signUp()` — when email confirmation is enabled (the default), `signUp()` returns `session: null` and the user must confirm their email before they're logged in. `signup_complete` should only fire for confirmed, logged-in users.
 
+## OAuth / Social Login
+
+The callback route (`src/app/auth/callback/route.ts`, created above) handles OAuth redirects — no additional route infrastructure is needed to add social login.
+
+### Adding an OAuth provider button
+
+Add this to your signup or login page alongside the existing email/password form:
+
+```ts
+async function handleOAuthLogin(provider: "google" | "github") {
+  trackSignupStart({ method: provider });
+  const supabase = createClient();
+  await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: `${window.location.origin}/auth/callback` },
+  });
+}
+```
+
+When the OAuth flow completes, Supabase redirects to `/auth/callback` with an authorization code. The callback route exchanges it for a session and redirects the user into the app.
+
+### Analytics
+- Fire `trackSignupStart({ method: "google" })` (or `"github"`) **before** the OAuth call — the redirect leaves the page, so this must fire first
+- `signup_complete` fires automatically when the user lands back in the app with an active session (wire this in the destination page or via `onAuthStateChange`)
+
+### PR instructions for enabling a provider
+1. Go to **Supabase Dashboard → Authentication → Providers**
+2. Enable the desired provider (e.g., Google)
+3. Paste the **Client ID** and **Client Secret** from the provider's developer console (e.g., Google Cloud Console → APIs & Services → Credentials)
+4. Set the authorized redirect URI in the provider's console to: `https://<supabase-ref>.supabase.co/auth/v1/callback`
+5. No new env vars, packages, or deploy changes are needed — the callback route and redirect URL wildcard are already in place
+
 ## Shared Client Note
 When `stack.auth` matches `stack.database` (both `supabase`), they share the same client files (`supabase.ts` and `supabase-server.ts`). When `stack.database` is absent or a different provider, auth needs its own library file — see "Standalone Client" below.
 
@@ -403,11 +473,14 @@ curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
 
 **Manual fallback:** Supabase Dashboard → Authentication → URL Configuration → set Site URL and add Redirect URLs.
 
+> **Note:** The `uri_allow_list` wildcard (`https://<url>/**`) already covers `/auth/callback` — no additional deploy changes are needed when adding OAuth providers.
+
 The `/deploy` skill also configures email subject lines in the same PATCH call, using the app's short title from idea.yaml (e.g., "Confirm your MyApp account"). This prevents default Supabase confirmation emails from looking like spam. To customize manually: Supabase Dashboard → Authentication → Email Templates.
 
 The access token is read from `~/.supabase/access-token` (created by `supabase login`). If unavailable, generate one at supabase.com/dashboard/account/tokens.
 
 ## PR Instructions
 - Email confirmation is enabled by default in Supabase. The signup form handles this: when `signUp()` returns `session: null`, it shows a "check your email" message instead of redirecting. Users who confirm their email can then log in normally.
-- The signup form passes `emailRedirectTo` pointing to `/login?confirmed=true`, so after confirming their email users land on the login page with a success banner. This requires the production URL to be in Supabase's redirect allow-list (configured by `/deploy`).
-- Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → redirected to login with "Email confirmed!" banner → log in → verify redirect to post-auth page
+- The signup form passes `emailRedirectTo` pointing to `/auth/callback`, which exchanges the PKCE code for a session and redirects to `/`. This requires the production URL to be in Supabase's redirect allow-list (configured by `/deploy`).
+- Test the signup flow end-to-end: create an account → see "check your email" message → confirm email → callback route exchanges code → auto-redirected into the app as a logged-in user
+- If the callback fails (expired or invalid code), the user is redirected to `/login?error=auth` and sees an error banner
