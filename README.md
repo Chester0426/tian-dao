@@ -4,6 +4,8 @@
 
 A template repository for running parallel MVP experiments. Fill in your idea, run a command, get a deployable app.
 
+Write an idea in YAML. An AI agent builds the full app — pages, auth, database, analytics — and opens a PR. You review, merge, and deploy. Then iterate with real user data: the agent reads your metrics, recommends changes, and implements them. The whole cycle — from idea to live experiment with analytics — takes under an hour. Run multiple experiments in parallel, each in its own repo.
+
 ## How It Works
 
 > **For non-technical team members:** You don't need to understand every term in this document. The key steps are: fill in idea.yaml (Step 1), approve the build plan in Claude Code (Step 2), and deploy (Step 4). Claude handles the code. For first-time setup, ask a technical teammate to help install the prerequisites.
@@ -25,23 +27,31 @@ Every skill except `/iterate` and `/retro` creates a branch, does the work, and 
 
 **Plan-Approve-Execute**: Every code-writing skill follows a three-phase workflow. First, Claude reads your idea.yaml and presents a plain-language plan. Then it **stops and waits** for your approval. Only after you say "approve" does it write any code. This keeps you in control — you can adjust the plan before any files are changed.
 
+**Default stack:** Next.js (App Router) · Supabase (database & auth) · PostHog (analytics) · Vercel (hosting) · shadcn/ui · Playwright (testing). Optional: Stripe (payments), Resend (email). Override any in idea.yaml `stack`.
+
 ## Prerequisites
 
-Install these before starting:
+**You probably already have:**
 
-- [Python 3](https://www.python.org/) with PyYAML — `python3 --version` to check; run `pip3 install pyyaml` if needed (used by `make validate` and CI)
-- [Node.js](https://nodejs.org/) 20+ — `node --version` to check
-- [Claude Code](https://claude.ai/code) — `claude --version` to check (requires a paid plan or API credits — see [pricing](https://claude.ai/pricing))
+- [Python 3](https://www.python.org/) with PyYAML — `python3 --version`; run `pip3 install pyyaml` if needed
+- [Node.js](https://nodejs.org/) 20+ — `node --version`
 - **npm** (bundled with Node.js) — this template uses npm exclusively; do not use yarn or pnpm
-- [GitHub CLI](https://cli.github.com/) — `gh --version` to check, then `gh auth login`
-- [Supabase](https://supabase.com/) account — the Supabase Vercel Integration creates a project for you during deployment *(default stack — see idea.yaml `stack` section)*
+- [GitHub CLI](https://cli.github.com/) — `gh --version`, then `gh auth login`
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required for E2E tests with `stack.database: supabase`
+
+**Sign up for these services:**
+
+- [Claude Code](https://claude.ai/code) — requires a paid plan or API credits (see [pricing](https://claude.ai/pricing))
+- [Supabase](https://supabase.com/) account — the Vercel Integration creates a project during deployment *(default stack)*
 - [PostHog](https://posthog.com/) project — one shared project for all experiments *(default stack)*
 - [Vercel](https://vercel.com/) account — for deployment *(default stack)*
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required when using `stack.testing` with `stack.database: supabase` (E2E tests run against a local Supabase instance)
+- [Resend](https://resend.com/) account — only if you enable `email: resend` in idea.yaml *(optional)*
 
 > **Note:** The prerequisites above assume the default stack (Supabase, PostHog, Vercel). If you change `stack` values in idea.yaml, substitute the corresponding services.
 
 ## Quick Start
+
+> **Time estimate:** ~30 minutes end-to-end (assuming prerequisites installed). Step 1: 5 min, Step 2: 10-15 min, Step 3: 5 min, Step 4: 5 min.
 
 ### 1. Create your repo & describe your idea
 
@@ -95,7 +105,9 @@ Open Claude Code and run `/deploy`. It will:
 
 > **Stripe (if enabled):** If you have `payment: stripe` in idea.yaml, `/deploy` will ask for your Stripe keys. Find them in Stripe Dashboard → Developers → API keys.
 
-### 5. Set up production debugging
+> **Resend (if enabled):** If you have `email: resend` in idea.yaml, add `RESEND_API_KEY` and `CRON_SECRET` to Vercel environment variables after deploying. Get your API key from [resend.com](https://resend.com) → API Keys.
+
+## Post-Deploy: Production Debugging
 
 One-time setup so Claude Code can diagnose production issues directly (no dashboard screenshots needed):
 
@@ -136,6 +148,7 @@ AI skills are invoked directly in Claude Code:
 | `/retro` | Run a retrospective and file feedback as GitHub issue |
 | `/deploy` | Deploy to Vercel + Supabase (first-time setup) |
 | `/distribute` | Generate Google Ads campaign config from idea.yaml |
+| `/review` | Automated review-fix loop for the template itself *(maintainers only)* |
 
 ## Workflow
 
@@ -293,7 +306,7 @@ idea/idea.example.yaml   # Worked example for reference
 idea/retro-template.md   # Retrospective template (used at end of experiment)
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
 EVENTS.yaml              # Analytics event dictionary
-.claude/commands/        # Claude Code skills (bootstrap, change, verify, iterate, retro, distribute, deploy)
+.claude/commands/        # Claude Code skills (bootstrap, change, verify, iterate, retro, distribute, deploy, review)
 .claude/patterns/        # Shared patterns referenced by skills (verification procedure, etc.)
 .claude/stacks/          # Stack implementation files (one per technology — framework, database, auth, testing, etc.)
 .github/                 # PR template and CI workflow
