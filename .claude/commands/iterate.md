@@ -51,6 +51,8 @@ Source: Analytics Query API (project_name = "<name>")
 
 - Show all events from the query, including those with 0 counts
 - Wait for user confirmation before proceeding to Step 3 verdict
+- If the user replies "looks good" (or any affirmative), proceed to Step 3 with the auto-fetched data
+- If the user provides corrections (e.g., "visit_landing should be 500"), update the affected counts and re-present the table for confirmation. Use the corrected values in Step 3.
 
 ### 2b: Fall back to manual input
 
