@@ -72,6 +72,11 @@ function getSupabaseConfig() {
 
 const supabase = getSupabaseConfig();
 
+// Make keys available to global-setup/teardown (run in Playwright main process, not webServer)
+process.env.NEXT_PUBLIC_SUPABASE_URL = supabase.url;
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = supabase.anonKey;
+process.env.SUPABASE_SERVICE_ROLE_KEY = supabase.serviceRoleKey;
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -104,7 +109,7 @@ export default defineConfig({
 - Two projects: Desktop Chrome and Mobile Chrome (Pixel 5) — cross-browser is out of scope per Rule 4, but mobile viewport testing catches layout overflow issues
 - `webServer` starts `npm run dev` automatically and waits for the app
 - `getSupabaseConfig()` reads keys dynamically from `supabase status -o json` — works with both legacy JWT keys (CLI <v2.76) and new `sb_publishable_*`/`sb_secret_*` keys (CLI v2.76+)
-- `webServer.env` passes local Supabase env vars to the dev server — the user's `.env.local` (pointing to remote Supabase) is untouched. `SUPABASE_SERVICE_ROLE_KEY` is also passed so `global-setup.ts` and `global-teardown.ts` can read it from `process.env`.
+- Keys are assigned to `process.env` so `global-setup.ts` and `global-teardown.ts` (which run in the Playwright main process) can access them. `webServer.env` passes the same keys to the dev server child process.
 - Serial execution (`fullyParallel: false`, `workers: 1`) since funnel tests depend on order
 - 1 retry in CI to handle flakiness, 0 locally for fast feedback
 
