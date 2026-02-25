@@ -11,6 +11,7 @@ references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
+  - .claude/patterns/messaging.md
 branch_prefix: change
 modifies_specs: true
 ---
@@ -195,8 +196,8 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
-- Copywriting principles: headline = outcome for target_user (not what the product does), CTA = action verb + outcome
-- Keep it to one screen: headline, subheadline, CTA. Remove anything that doesn't serve conversion
+- Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. Landing page must follow the information architecture in messaging.md.
+- Remove anything that doesn't serve conversion. Keep above-the-fold to: headline, subheadline, CTA.
 - Count steps between CTA click and first value moment — remove or defer unnecessary fields
 - Every required field: inline validation errors. Every async button: loading state. API errors: user-friendly messages.
 - Consistent spacing, component usage, text hierarchy, mobile layout
