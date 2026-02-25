@@ -206,6 +206,15 @@ Configure services that require the deployment URL. Batch all env var changes be
 
    Add `pay_start` and `pay_success` to the funnel series if `stack.payment` is present.
 
+   If idea.yaml has `variants`: create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
+   ```bash
+   curl -s -X POST "https://us.i.posthog.com/api/projects/321343/insights/" \
+     -H "Authorization: Bearer $POSTHOG_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [{"kind": "EventsNode", "event": "visit_landing"}, {"kind": "EventsNode", "event": "signup_start"}, {"kind": "EventsNode", "event": "signup_complete"}, {"kind": "EventsNode", "event": "activate"}], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+   ```
+   Include `pay_start` and `pay_success` in the series if `stack.payment` is present. This lets the user compare conversion rates between variant landing pages — the core purpose of the variants feature.
+
    If any API call fails, include manual instructions in Step 6.
 
 4. **Redeploy** (only if env vars were added in 5b.2):
@@ -278,6 +287,7 @@ Print a deployment summary:
 [If PostHog dashboard was NOT auto-created] **Analytics dashboard (manual):**
   1. Go to PostHog → Dashboards → New dashboard → name it "<idea.name> Experiment"
   2. Add a Funnel insight: visit_landing → signup_start → signup_complete → activate [→ pay_start → pay_success if payment]. Filter by project_name = "<idea.name>".
+  If idea.yaml has `variants`: add a second Funnel insight with the same events, but add Breakdown → Event property → `variant`. Name it "<idea.name> Funnel by Variant".
   3. Add a Trend insight: all standard_funnel events, daily, last 14 days, filtered by project_name.
 
 **Scheduled digest (recommended):** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
