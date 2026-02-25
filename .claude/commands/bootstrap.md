@@ -5,7 +5,7 @@ reads:
   - idea/idea.yaml
   - EVENTS.yaml
   - CLAUDE.md
-stack_categories: [framework, database, auth, analytics, ui, payment, hosting, testing]
+stack_categories: [framework, database, auth, analytics, ui, payment, email, hosting, testing]
 requires_approval: true
 references:
   - .claude/patterns/verify.md
@@ -31,7 +31,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - Read `CLAUDE.md` — these are the rules to follow
 
 2. **Resolve the stack**
-   - Read idea.yaml `stack`. For each category present in idea.yaml `stack` (always: framework, analytics, ui, hosting; optional: database, auth, payment, testing), read `.claude/stacks/<category>/<value>.md`.
+   - Read idea.yaml `stack`. For each category present in idea.yaml `stack` (always: framework, analytics, ui, hosting; optional: database, auth, payment, email, testing), read `.claude/stacks/<category>/<value>.md`.
    - If a stack file doesn't exist for a given value, use your own knowledge of that technology and follow the same structural patterns as existing stack files.
    - These files define packages, library files, env vars, and patterns for each technology.
    - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in idea.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
@@ -43,6 +43,8 @@ DO NOT write any code, create any files, or run any install commands during this
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
    - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
+   - If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
+   - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
    - If `variants` is present in idea.yaml, validate the variants list:
      - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
      - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
@@ -128,6 +130,9 @@ DO NOT write any code, create any files, or run any install commands during this
 - If `stack.payment` is present, create the payment library files from the payment stack file's "Files to Create" section. Note: the payment stack file's checkout route template intentionally references `user.id` which is undefined until auth is integrated — this will cause a build error at Checkpoint B that you must fix by adding the auth check (see the auth stack file's "Server-Side Auth Check" section). The webhook route template also contains a `// TODO: Update user's payment status in database` — unlike the auth check, this TODO compiles silently, so you must resolve it using the database schema planned in Phase 1.
 - Replace placeholder constants: In BOTH analytics library files (`src/lib/analytics.ts` and `src/lib/analytics-server.ts`), replace `PROJECT_NAME = "TODO"` with the `name` from idea.yaml and `PROJECT_OWNER = "TODO"` with the `owner` from idea.yaml. These constants auto-attach to every event — if left as TODO, experiment filtering will fail.
 - Generate `src/lib/events.ts` with typed track wrapper functions from EVENTS.yaml. For each event, create a function like `trackVisitLanding(props: { referrer?: string; utm_source?: string })` that calls `track("visit_landing", props)`. Only generate wrappers for standard_funnel events and (if stack.payment is present) payment_funnel events. Pages should import from `events.ts` instead of calling `track()` directly with string event names.
+- If `stack.email` is present, add to EVENTS.yaml `custom_events`:
+  - `email_welcome_sent` (trigger: Welcome email sent after signup, properties: `recipient` string required)
+  - `email_nudge_sent` (trigger: Activation nudge email sent by cron, properties: `recipient` string required, `days_since_signup` integer required)
 
 ### Checkpoint A — verify library layer
 - Re-read `.claude/current-plan.md` to confirm implementation aligns with the approved plan.
@@ -158,6 +163,7 @@ For each entry in idea.yaml `pages`:
   - `src/app/v/[variant]/page.tsx` — dynamic route that looks up the variant by slug via `getVariant()`, renders `LandingContent` with that variant's props, and returns `notFound()` for unknown slugs. Fires `visit_landing` with `variant` property. Uses `generateStaticParams()` to pre-render all variant routes.
   - The existing non-variant landing page instruction (above) applies when idea.yaml has NO `variants` field.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
+- If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
 - **All other pages**: functional layout with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real (if minimal) screen
 
 > **STOP** — verify analytics before proceeding. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. Do not move to Checkpoint B until each event is wired. "I'll add analytics later" is not acceptable.
@@ -181,6 +187,7 @@ If `stack.database` is present and idea.yaml features require persistent data:
 - Follow the schema management approach from the database stack file
 - Create the initial migration with all tables needed for idea.yaml features. Migration numbering is based on the current branch state — concurrent branches may create conflicting numbers, which should be resolved by renumbering at merge time.
 - If `stack.payment` is present and a payments/subscriptions table was created: return to the webhook handler (`src/app/api/webhooks/stripe/route.ts`) and resolve the `// TODO: Update user's payment status in database` using the new table before proceeding to Step 7.
+- If `stack.email` is present and the nudge route requires activation tracking: add `activated_at timestamptz` and `nudge_sent_at timestamptz` columns to the user-related table (or create a `user_status` table if no user table exists beyond Supabase auth). The nudge cron queries this to find un-activated, un-nudged users.
 - Also create `src/lib/types.ts` with TypeScript types matching the table schemas
 - Include post-merge database setup instructions in the PR body (see database stack file's "PR Instructions" section)
 
@@ -245,6 +252,7 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - For each feature in `features`: confirm the implementation addresses it
 - For each standard_funnel event in `EVENTS.yaml`: confirm a tracking call exists in the appropriate page
 - If `stack.payment` is present: confirm the webhook handler does not contain `// TODO: Update user's payment status` (this compiles silently — verify it was resolved in Step 5/6)
+- If `stack.email` is present: confirm `vercel.json` contains the cron config, email routes exist, and welcome email is wired to auth callback
 - If anything is missing, implement it now. Do not proceed with gaps.
 
 ### Step 9: Commit, push, open PR

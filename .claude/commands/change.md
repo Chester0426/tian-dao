@@ -5,7 +5,7 @@ reads:
   - idea/idea.yaml
   - EVENTS.yaml
   - CLAUDE.md
-stack_categories: [framework, database, auth, analytics, ui, payment, testing, hosting]
+stack_categories: [framework, database, auth, analytics, ui, payment, email, testing, hosting]
 requires_approval: true
 references:
   - .claude/patterns/verify.md
@@ -54,6 +54,7 @@ State the classification before proceeding: "I'm treating this as a **[type]** c
 - Run `npm run build` to confirm the project compiles before making changes (unless the change IS about fixing the build or is classified as a Fix). If the build fails and the change is not a build fix or Fix-type change: stop and tell the user: "The app has build errors that need to be fixed first. Run `/change fix build errors` to address them. After that PR is merged, re-run your original change. Note: a branch was already created in Step 0 but will be abandoned — this is expected. Switch to main first (`git checkout main`), then delete the abandoned branch (`git branch -d <branch-name>` using the name created in Step 0). Re-running `/change` creates a new branch (the name may have a numeric suffix like `-2` if the old branch still exists)."
 - For analytics changes: verify the analytics library file exists (see analytics stack file for expected path). If it doesn't, stop and tell the user: "Analytics library not found. Run `/bootstrap` first."
 - If `$ARGUMENTS` mentions payment or the change will add `payment` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Payment requires authentication. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Payment requires a database. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
+- If `$ARGUMENTS` mentions email or the change will add `email` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Email requires authentication. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Email requires a database. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
 - If `testing` is present in idea.yaml `stack` and the classified type is NOT Test: read the testing stack file's `assumes` list and verify each `category/value` pair against idea.yaml `stack`. If any assumption is unmet, stop: "Your testing setup assumes [unmet dependencies]. Tests will break. Run '/change fix test configuration' first, or remove 'testing' from idea.yaml 'stack'."
 - If classified as Test type: read the testing stack file's `assumes` list and check each `category/value` against idea.yaml `stack` (per bootstrap's validation approach: the value must match, not just the category). Record the result — this determines the template path reported in the plan.
 
