@@ -1,5 +1,5 @@
 ---
-assumes: [framework/nextjs]
+assumes: [framework/nextjs, database/supabase]
 packages:
   runtime: [resend]
   dev: []
@@ -8,10 +8,11 @@ files:  # conditional
   - src/app/api/email/welcome/route.ts
   - src/app/api/email/nudge/route.ts
 env:
-  server: [RESEND_API_KEY]
+  server: [RESEND_API_KEY, CRON_SECRET]
   client: []
 ci_placeholders:
   RESEND_API_KEY: re_placeholder_key
+  CRON_SECRET: placeholder-cron-secret
 clean:
   files: []
   dirs: []
@@ -100,7 +101,7 @@ Called by Vercel Cron daily. Queries the database for users who signed up > 24h 
 
 ```ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { sendActivationNudge } from "@/lib/email";
 import { trackServerEvent } from "@/lib/analytics-server";
 
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient();
+  const supabase = await createServerSupabaseClient();
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   // Find users who signed up > 24h ago, not activated, not yet nudged
@@ -207,6 +208,7 @@ Bootstrap adds these to EVENTS.yaml `custom_events` when `stack.email` is presen
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `RESEND_API_KEY` | Server | Resend API key from resend.com → API Keys |
+| `CRON_SECRET` | Server | Vercel Cron secret — auto-sent as Bearer token to cron endpoints |
 
 ## No-Auth Fallback
 
