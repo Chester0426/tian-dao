@@ -104,6 +104,7 @@ stack:
   analytics: posthog        # Usage tracking — leave default
   ui: shadcn                # UI component library — leave default
   # payment: stripe         # Uncomment if your experiment involves payments
+  # email: resend            # Uncomment for welcome email + activation nudge
   testing: playwright      # Page-load smoke tests — created by bootstrap
 
 # --- Deploy ---
