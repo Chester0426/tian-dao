@@ -41,7 +41,7 @@ Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
    4. If the channel restricts or bans the category, warn the user: "⚠ Your experiment mentions [keyword]. [Channel] [restricts/bans] this category: [details]. Consider switching to [alternative channels that allow it]."
    5. Non-blocking — the user can confirm to proceed or switch channel
 8. Verify `stack.analytics` is present in idea.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to idea.yaml `stack` and run `/bootstrap` first."
-9. Verify the analytics stack is configured: check for a `NEXT_PUBLIC_` analytics key in `.env.example` (the specific key name depends on the analytics stack file — read it to find the client env var). If not found, stop: "Analytics is not configured. Verify `.env.example` contains a `NEXT_PUBLIC_` analytics key, or run `/bootstrap` first to scaffold the app with analytics."
+9. Verify the analytics stack is configured: read the analytics stack file's `env` frontmatter. If `env.client` lists a client env var, check that it appears in `.env.example`. If the env var is not found in `.env.example`, stop: "Analytics is not configured. Verify `.env.example` contains the analytics client key, or run `/bootstrap` first to scaffold the app with analytics." If `env.client` is empty, the stack uses hardcoded keys (e.g., PostHog's shared publishable key) — skip this check.
 10. If `idea/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
 
 ## Step 2: Research targeting
