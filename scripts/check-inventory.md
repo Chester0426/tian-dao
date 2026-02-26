@@ -1,7 +1,7 @@
 # Check Inventory
 
 Scannable reference listing all automated checks by name, grouped by validator.
-65 active checks consolidated into 61 inventory rows.
+66 active checks consolidated into 62 inventory rows.
 
 Last updated: 2026-02-19
 
@@ -62,6 +62,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify auth page templates contain post-auth redirects | Auth stack signup/login code blocks must contain `router.push` or `redirect` after auth success — a bare TODO comment fails |
 | Verify change skill assumes validation matches bootstrap assumes validation | change.md assumes validation must include value-matching language, not just category-existence checks |
 | Verify change skill validates payment dependencies before plan phase | At least one payment dependency stop message must appear before the plan phase marker in change.md |
+| Verify trackServerEvent calls match analytics stack signature | `trackServerEvent()` calls in stack file code blocks must not pass an object literal as the 2nd argument (distinctId expects a string) |
 | Verify analytics stack files include Dashboard Navigation section | Every `.claude/stacks/analytics/*.md` file must contain a `## Dashboard Navigation` heading (case-insensitive) |
 | Verify change skill revalidates testing assumes for all change types | change.md preconditions step must contain testing assumes validation that is NOT gated by the Test-type classification |
 | Verify analytics stack files include Test Blocking section | Every `.claude/stacks/analytics/*.md` file must contain a `## Test Blocking` heading (case-insensitive) |
