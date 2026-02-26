@@ -158,3 +158,186 @@ thresholds:
 ### Dashboard Filter
 
 Filter analytics dashboard by `utm_source = "google"` to see paid traffic performance.
+
+## API Campaign Creation
+
+Automated campaign creation via the Google Ads API. Used by `/distribute` Step 9 when credentials are available.
+
+### Credential Files
+
+| File | Contents |
+|------|----------|
+| `~/.google-ads/developer-token` | 22-character API developer token |
+| `~/.google-ads/client-id` | OAuth2 client ID |
+| `~/.google-ads/client-secret` | OAuth2 client secret |
+| `~/.google-ads/refresh-token` | OAuth2 refresh token |
+| `~/.google-ads/mcc-id` | Manager account ID (digits only, no dashes) |
+
+### Credential Check
+
+Check all 5 files exist with `test -f`. If any are missing, show which are missing and guide the user through the Setup steps below. Do not fall back to manual — credentials are required.
+
+### Setup
+
+1. **Create an MCC (Manager Account)** at [ads.google.com/home/tools/manager-accounts/](https://ads.google.com/home/tools/manager-accounts/) if you don't have one. Save the MCC ID (digits only) to `~/.google-ads/mcc-id`.
+2. **Apply for a developer token** — in the MCC, go to Tools & Settings → API Center → Apply for a developer token. The token starts in "Test Account" access level (sufficient for creating real campaigns under your own MCC). Save the 22-character token to `~/.google-ads/developer-token`.
+3. **Create OAuth2 credentials** — go to [Google Cloud Console](https://console.cloud.google.com/), create a project (or use an existing one), enable the "Google Ads API", then go to Credentials → Create Credentials → OAuth 2.0 Client ID → Desktop App. Save the client ID to `~/.google-ads/client-id` and client secret to `~/.google-ads/client-secret`.
+4. **Generate a refresh token** — use the OAuth2 flow to get a refresh token with scope `https://www.googleapis.com/auth/adwords`:
+   ```bash
+   # Open this URL in a browser and authorize:
+   echo "https://accounts.google.com/o/oauth2/v2/auth?client_id=$(cat ~/.google-ads/client-id)&redirect_uri=http://localhost&response_type=code&scope=https://www.googleapis.com/auth/adwords&access_type=offline&prompt=consent"
+   # After authorization, Google redirects to localhost with a ?code= parameter.
+   # Exchange the code for tokens:
+   curl -s -X POST https://oauth2.googleapis.com/token \
+     -d "code=AUTH_CODE_HERE" \
+     -d "client_id=$(cat ~/.google-ads/client-id)" \
+     -d "client_secret=$(cat ~/.google-ads/client-secret)" \
+     -d "redirect_uri=http://localhost" \
+     -d "grant_type=authorization_code"
+   # Save the refresh_token from the JSON response
+   ```
+   Save the refresh token to `~/.google-ads/refresh-token`.
+5. **Verify** — all 5 files should exist under `~/.google-ads/`.
+
+### API Procedure
+
+All API calls use REST (`https://googleads.googleapis.com/v17/`) with headers:
+- `Authorization: Bearer <access_token>`
+- `developer-token: <developer_token>`
+- `login-customer-id: <mcc_id>`
+
+**Step 1: Get access token**
+
+Exchange the refresh token for an access token:
+
+```bash
+curl -s -X POST https://oauth2.googleapis.com/token \
+  -d "refresh_token=$(cat ~/.google-ads/refresh-token)" \
+  -d "client_id=$(cat ~/.google-ads/client-id)" \
+  -d "client_secret=$(cat ~/.google-ads/client-secret)" \
+  -d "grant_type=refresh_token"
+```
+
+Extract `access_token` from the JSON response.
+
+**Step 2: Get or create customer account under MCC**
+
+Search for existing accounts under the MCC:
+
+```bash
+curl -s "https://googleads.googleapis.com/v17/customers/<mcc_id>/googleAds:searchStream" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -d '{"query": "SELECT customer_client.id, customer_client.descriptive_name FROM customer_client WHERE customer_client.manager = false"}'
+```
+
+If a matching account exists (by `project_name` from ads.yaml), use it. Otherwise, create a new one:
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<mcc_id>:createCustomerClient" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": "<mcc_id>", "customer_client": {"descriptive_name": "<project_name>", "currency_code": "USD", "time_zone": "America/New_York"}}'
+```
+
+Extract the customer ID from the response `resource_name`.
+
+**Step 3: Create campaign budget**
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<customer_id>/campaignBudgets:mutate" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"create": {"name": "<campaign_name>-budget", "amount_micros": <daily_budget_cents * 10000>, "delivery_method": "STANDARD"}}]}'
+```
+
+Extract the budget `resource_name` from the response.
+
+**Step 4: Create campaign (PAUSED)**
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<customer_id>/campaigns:mutate" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"create": {"name": "<campaign_name>", "status": "PAUSED", "advertising_channel_type": "SEARCH", "campaign_budget": "<budget_resource_name>", "start_date": "<YYYY-MM-DD>", "end_date": "<YYYY-MM-DD + duration_days>", "manual_cpc": {"enhanced_cpc_enabled": false}}}]}'
+```
+
+Extract the campaign `resource_name`.
+
+**Step 5: Create ad group(s)**
+
+One ad group per variant (if variants exist), otherwise a single ad group:
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<customer_id>/adGroups:mutate" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"create": {"name": "<ad_group_name>", "campaign": "<campaign_resource_name>", "status": "ENABLED", "type": "SEARCH_STANDARD", "cpc_bid_micros": <max_cpc_cents * 10000>}}]}'
+```
+
+**Step 6: Add keywords**
+
+For each keyword in ads.yaml `keywords` (exact, phrase, broad, negative):
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<customer_id>/adGroupCriteria:mutate" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"create": {"ad_group": "<ad_group_resource_name>", "status": "ENABLED", "keyword": {"text": "<keyword>", "match_type": "<EXACT|PHRASE|BROAD>"}}}]}'
+```
+
+For negative keywords, use `negative: true` on the criterion.
+
+**Step 7: Create responsive search ads**
+
+For each ad in ads.yaml `ads` (or per ad group for variants):
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<customer_id>/adGroupAds:mutate" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"create": {"ad_group": "<ad_group_resource_name>", "status": "ENABLED", "ad": {"responsive_search_ad": {"headlines": [{"text": "<headline>"}], "descriptions": [{"text": "<description>"}]}, "final_urls": ["<landing_url_with_utm>"]}}}]}'
+```
+
+**Step 8: Set location and language targeting**
+
+```bash
+curl -s -X POST "https://googleads.googleapis.com/v17/customers/<customer_id>/campaignCriteria:mutate" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "developer-token: <developer_token>" \
+  -H "login-customer-id: <mcc_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"create": {"campaign": "<campaign_resource_name>", "location": {"geo_target_constant": "geoTargetConstants/2840"}}}, {"create": {"campaign": "<campaign_resource_name>", "language": {"language_constant": "languageConstants/1000"}}}]}'
+```
+
+`geoTargetConstants/2840` = United States, `languageConstants/1000` = English. Adjust based on ads.yaml `targeting.locations` and `targeting.languages`.
+
+### Response Handling
+
+- **Campaign ID**: extract from the campaign resource name — format is `customers/<customer_id>/campaigns/<campaign_id>`. The numeric `<campaign_id>` is what goes in ads.yaml.
+- **Dashboard URL**: `https://ads.google.com/aw/campaigns?campaignId=<campaign_id>&ocid=<customer_id>`
+- **Status**: campaign is created in `PAUSED` status — the user enables it after verifying conversion tracking.
+
+### Error Handling
+
+| Error | Cause | Action |
+|-------|-------|--------|
+| `OAUTH_TOKEN_INVALID` | Expired or revoked refresh token | Re-run Setup step 4 to generate a new refresh token |
+| `DEVELOPER_TOKEN_NOT_APPROVED` | Developer token is pending review | Wait for Google approval (typically 1-3 business days), or use test account access |
+| `BUDGET_AMOUNT_TOO_LARGE` | Daily budget exceeds account limits | Reduce `daily_budget_cents` in ads.yaml |
+| `RESOURCE_ALREADY_EXISTS` | Campaign with same name already exists | Check if campaign was already created; if so, use existing campaign ID |
+| `AUTHORIZATION_ERROR` | MCC doesn't have access to customer | Verify MCC ID is correct and has linked the customer account |
+| Any other API error | Various | Report the full error message to the user and fall back to manual campaign creation (Step 9f) |

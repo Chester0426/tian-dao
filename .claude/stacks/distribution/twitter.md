@@ -162,3 +162,175 @@ thresholds:
 ### Dashboard Filter
 
 Filter analytics dashboard by `utm_source = "twitter"` to see paid traffic performance.
+
+## API Campaign Creation
+
+Automated campaign creation via the X (Twitter) Ads API. Used by `/distribute` Step 9 when credentials are available.
+
+### Credential Files
+
+| File | Contents |
+|------|----------|
+| `~/.x-ads/api-key` | API Key (Consumer Key) |
+| `~/.x-ads/api-secret` | API Secret (Consumer Secret) |
+| `~/.x-ads/access-token` | Access Token |
+| `~/.x-ads/access-token-secret` | Access Token Secret |
+
+### Credential Check
+
+Check all 4 files exist with `test -f`. If any are missing, show which are missing and guide the user through the Setup steps below. Do not fall back to manual — credentials are required.
+
+### Setup
+
+1. **Create an X Developer Account** at [developer.x.com](https://developer.x.com) if you don't have one.
+2. **Create an App** — go to the Developer Portal → Projects & Apps → Create App. Save the API Key to `~/.x-ads/api-key` and API Secret to `~/.x-ads/api-secret`.
+3. **Request Ads API access** — apply for Ads API access at [developer.x.com/en/docs/twitter-ads-api](https://developer.x.com/en/docs/twitter-ads-api). This requires an approved developer account and an active X Ads account with a funding instrument (payment method).
+4. **Generate access tokens** — in the Developer Portal, go to your App → Keys and Tokens → Generate Access Token and Secret (with read/write permissions). Save the Access Token to `~/.x-ads/access-token` and Access Token Secret to `~/.x-ads/access-token-secret`.
+5. **Verify** — all 4 files should exist under `~/.x-ads/`.
+
+### API Procedure
+
+All API calls use the X Ads API (`https://ads-api.x.com/12/`) with **OAuth 1.0a** request signing using all 4 credentials (consumer key, consumer secret, access token, access token secret).
+
+**Step 1: Get ads account ID**
+
+```bash
+twurl -H ads-api.x.com "/12/accounts" | jq '.data[0].id'
+```
+
+Or via curl with OAuth 1.0a signature:
+
+```bash
+curl -s "https://ads-api.x.com/12/accounts" \
+  --oauth1 "$(cat ~/.x-ads/api-key):$(cat ~/.x-ads/api-secret):$(cat ~/.x-ads/access-token):$(cat ~/.x-ads/access-token-secret)"
+```
+
+Extract the `id` from `data[0]` — this is the ads account ID used in all subsequent calls.
+
+**Step 2: Check funding instrument**
+
+```bash
+curl -s "https://ads-api.x.com/12/accounts/<account_id>/funding_instruments" \
+  --oauth1 ...
+```
+
+Verify at least one active funding instrument exists. If none, stop and tell the user to add a payment method at [ads.x.com](https://ads.x.com).
+
+**Step 3: Create campaign (PAUSED)**
+
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/campaigns" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "<campaign_name>",
+    "funding_instrument_id": "<funding_instrument_id>",
+    "daily_budget_amount_local_micro": <daily_budget_cents * 10000>,
+    "total_budget_amount_local_micro": <total_budget_cents * 10000>,
+    "start_time": "<ISO8601>",
+    "end_time": "<ISO8601 + duration_days>",
+    "entity_status": "PAUSED"
+  }'
+```
+
+Extract `data.id` as the campaign ID.
+
+**Step 4: Create line item(s)**
+
+One line item per variant (if variants exist), otherwise a single line item:
+
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/line_items" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign_id": "<campaign_id>",
+    "name": "<line_item_name>",
+    "product_type": "PROMOTED_TWEETS",
+    "placements": ["ALL_ON_TWITTER"],
+    "objective": "WEBSITE_CLICKS",
+    "bid_amount_local_micro": <max_cpe_cents * 10000>,
+    "entity_status": "ACTIVE"
+  }'
+```
+
+Extract `data.id` as the line item ID.
+
+**Step 5: Set targeting**
+
+For each targeting criterion from ads.yaml `targeting`:
+
+**Interests:**
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/targeting_criteria" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{"line_item_id": "<line_item_id>", "targeting_type": "INTEREST", "targeting_value": "<interest_id>"}'
+```
+
+Look up interest IDs via `GET /12/targeting_criteria/interests`.
+
+**Follower lookalikes:**
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/targeting_criteria" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{"line_item_id": "<line_item_id>", "targeting_type": "FOLLOWER_LOOKALIKES", "targeting_value": "<user_id>"}'
+```
+
+Look up user IDs for handles via `GET /2/users/by/username/<handle>`.
+
+**Timeline keywords:**
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/targeting_criteria" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{"line_item_id": "<line_item_id>", "targeting_type": "BROAD_KEYWORD", "targeting_value": "<keyword>"}'
+```
+
+**Locations:**
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/targeting_criteria" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{"line_item_id": "<line_item_id>", "targeting_type": "LOCATION", "targeting_value": "<location_key>"}'
+```
+
+Look up location keys via `GET /12/targeting_criteria/locations?location_type=COUNTRY&q=United States`.
+
+**Step 6: Create promoted tweets**
+
+For each tweet in ads.yaml `tweets`, first create a nullcast (promoted-only) tweet:
+
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/tweet" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{"text": "<tweet_text>", "nullcast": true}'
+```
+
+Extract the `tweet_id`, then associate it with the line item:
+
+```bash
+curl -s -X POST "https://ads-api.x.com/12/accounts/<account_id>/promoted_tweets" \
+  --oauth1 ... \
+  -H "Content-Type: application/json" \
+  -d '{"line_item_id": "<line_item_id>", "tweet_ids": ["<tweet_id>"]}'
+```
+
+### Response Handling
+
+- **Campaign ID**: extract from the campaign creation response `data.id`.
+- **Dashboard URL**: `https://ads.x.com/campaign/<account_id>/campaigns/<campaign_id>`
+- **Status**: campaign is created in `PAUSED` status — the user enables it after verifying conversion tracking.
+
+### Error Handling
+
+| Error | Cause | Action |
+|-------|-------|--------|
+| `UNAUTHORIZED` (401) | Invalid or expired OAuth credentials | Verify all 4 credential files are correct; regenerate tokens if needed |
+| `FORBIDDEN` (403) on ads endpoints | Ads API access not approved | Apply for Ads API access (Setup step 3) and wait for approval |
+| `NO_FUNDING_INSTRUMENT` | No payment method on the ads account | Add a payment method at [ads.x.com](https://ads.x.com) |
+| `BUDGET_TOO_LOW` | Budget below platform minimum | Increase `daily_budget_cents` or `total_budget_cents` in ads.yaml |
+| `RATE_LIMIT` (429) | Too many API requests | Wait for the rate limit window to reset (indicated in response headers) |
+| Any other API error | Various | Report the full error message to the user and fall back to manual campaign creation (Step 9f) |
