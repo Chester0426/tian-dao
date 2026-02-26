@@ -43,16 +43,24 @@ Anti-pattern: do NOT add custom gradients, animation tokens, or shadow scales. R
 
 ## Section C: Page-Level Conventions
 
-Specific Tailwind classes per page type:
+Specific Tailwind classes per page type — mobile-first:
 
-| Page type | Key rules |
-|-----------|-----------|
-| Landing hero | `py-24 md:py-32`, `max-w-3xl mx-auto text-center` |
-| Landing sections | `max-w-5xl mx-auto px-4 sm:px-6`, `py-16` between sections |
-| Auth pages | `min-h-screen flex items-center justify-center`, card `max-w-md` |
-| App pages | `max-w-5xl mx-auto px-4 py-8`, heading `mb-6` |
+| Page type | Mobile (default) | Desktop override |
+|-----------|-----------------|------------------|
+| Landing hero | `py-16 px-4 text-center` | `md:py-32 md:px-6` |
+| Landing sections | `py-12 px-4`, `max-w-5xl mx-auto` | `sm:px-6 sm:py-16` |
+| Auth pages | `min-h-screen flex items-center justify-center px-4`, card `w-full max-w-md` | (no override needed) |
+| App pages | `max-w-5xl mx-auto px-4 py-6`, heading `mb-4` | `sm:py-8 sm:mb-6` |
+
+> Mobile is the base. Desktop classes use `sm:` / `md:` prefixes. Never write mobile styles with a breakpoint prefix — that inverts the cascade.
 
 These constraints prevent the "full-viewport text wall" anti-pattern while keeping layout simple.
+
+### Grid Layout for Feature / Benefit Cards
+
+- `grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3`
+- Single column on mobile → 2-col on tablet → 3-col on desktop
+- Anti-pattern: do NOT use `flex flex-wrap` for card grids — inconsistent widths on odd counts.
 
 ## Section D: Component Conventions
 
@@ -73,8 +81,22 @@ Use `text-base` explicitly for body text — prevent agents defaulting to `text-
 - Secondary actions: `<Button variant="outline">`
 - In-page actions (forms, cards): default size is fine
 
+### Touch Targets
+
+- Primary CTA on mobile: add `w-full sm:w-auto` — full-width on small screens, auto on desktop
+- Minimum interactive element height: `h-11` (44px) on mobile — matches Apple HIG minimum tap target
+- Spacing between stacked interactive elements: `gap-3` minimum — prevent mis-taps
+
+### Form Inputs
+
+- All `<Input>` and `<Select>` elements: `text-base` (16px) — prevents iOS Safari auto-zoom on focus (triggered at < 16px)
+- Input height: `h-11` on mobile for comfortable tap targets
+- Stack form fields vertically on mobile (`space-y-4`), side-by-side only at `sm:` and above
+
 ### Cards
 
 Use `<Card>` with proper sub-components (`CardHeader`, `CardTitle`, `CardContent`) — never raw `<div>` with manual borders.
 
 Anti-pattern: do NOT wrap the entire page in a single `<Card>`. Cards are for discrete content units (feature cards, pricing tiers, form containers).
+
+Anti-pattern: do NOT add hamburger menus, bottom navigation bars, swipe gestures, or app-shell chrome. MVPs have few pages — a simple inline nav or single CTA per page is sufficient.
