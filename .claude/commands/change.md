@@ -227,7 +227,10 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - If `stack.payment` is present, uncomment payment-related env vars in the testing CI template when generating the CI job.
 
 ### Step 7: Verify
-- Follow the verification procedure in `.claude/patterns/verify.md` (build & lint with retry)
+- Follow the FULL verification procedure in `.claude/patterns/verify.md`:
+  1. Build & lint loop (max 3 attempts)
+  2. Save notable patterns (if you fixed errors)
+  3. Template observation review (ALWAYS — even if no errors were fixed)
 - Re-read `.claude/current-plan.md` to verify implementation matches the approved plan. Check that every item in the plan has been addressed.
 - Type-specific checks:
   - **Feature**: trace the user flow — can a user discover, use, and complete the feature? Verify all new analytics events fire.

@@ -174,6 +174,36 @@ For each entry in idea.yaml `pages`:
 - If the build fails: fix the errors in the page files (or in the library files they import from) before proceeding. After fixing, re-run `npm run build` to confirm.
 - If the build still fails after 2 fix attempts, proceed to the next step without retrying further at this checkpoint — Step 8 (final verification in `.claude/patterns/verify.md`) has its own 3-attempt retry budget that will catch any remaining issues.
 
+### Step 4b: Evaluate external dependencies
+
+Before generating API routes, assess whether idea.yaml features require external services not covered by `stack`:
+
+1. Read idea.yaml `features`. For each feature, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
+   - Examples: "Connect Xero and import invoices" → Xero OAuth, "Send SMS via Twilio" → Twilio API key, "Sync with Google Sheets" → Google OAuth
+   - Stack-handled services don't count: Supabase, Stripe, Resend, PostHog are already managed by their stack files
+
+2. If NO external dependencies detected → skip to Step 5.
+
+3. If external dependencies detected → present to the user:
+
+   > These features require external service credentials not covered by your stack:
+   >
+   > | Feature | Service | Credentials needed |
+   > |---------|---------|-------------------|
+   > | ... | ... | ... |
+   >
+   > For each service, choose:
+   > - **Provide now** — give me the credentials and I'll implement the full integration
+   > - **Skip** — I'll create a stub route (returns 501). Run `/change` later to implement.
+
+4. For services where the user provides credentials:
+   - Add env vars to `.env.local` and `.env.example`
+   - Step 5 implements the full integration using the credentials (OAuth flow, API calls, etc.)
+
+5. For skipped services:
+   - Step 5 generates stub routes with a descriptive TODO comment explaining what credentials are needed
+   - Add a note to the PR body under a "## Stub Routes" section listing which features are stubs and what credentials are needed to implement them
+
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file
 - Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
@@ -244,7 +274,10 @@ If `stack.testing` is present in idea.yaml:
 If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
 
 ### Step 8: Verify before shipping
-- Follow the verification procedure in `.claude/patterns/verify.md` (build & lint with retry)
+- Follow the FULL verification procedure in `.claude/patterns/verify.md`:
+  1. Build & lint loop (max 3 attempts)
+  2. Save notable patterns (if you fixed errors)
+  3. Template observation review (ALWAYS — even if no errors were fixed)
 
 ### Step 8b: Spec compliance check
 

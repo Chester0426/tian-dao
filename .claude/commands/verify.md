@@ -70,7 +70,10 @@ Offer options: (1) tell me what to try, (2) save progress as WIP commit on this 
 
 ## Step 5: Verify build
 
-Follow `.claude/patterns/verify.md` (build & lint with retry).
+Follow the FULL verification procedure in `.claude/patterns/verify.md`:
+1. Build & lint loop (max 3 attempts)
+2. Save notable patterns (if you fixed errors)
+3. Template observation review (ALWAYS — even if no errors were fixed)
 
 ## Step 6: Commit, push, open PR
 
