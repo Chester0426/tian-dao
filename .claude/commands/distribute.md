@@ -5,7 +5,7 @@ reads:
   - idea/idea.yaml
   - EVENTS.yaml
   - idea/ads.yaml
-stack_categories: [analytics, hosting]
+stack_categories: [analytics, hosting, distribution]
 requires_approval: true
 references:
   - .claude/patterns/verify.md
@@ -262,20 +262,89 @@ Commit, push, and open a PR with:
 - **What Changed**: files modified (landing page UTM capture, EVENTS.yaml, ads.yaml, FeedbackWidget)
 - The full `ads.yaml` content in the PR body for easy review
 
-## Step 9: Post-merge handoff
+## Step 9: Post-merge campaign creation
 
-After the PR is merged, tell the user:
+After the PR is merged, attempt automated campaign creation if the channel supports it.
 
-> Your distribution tracking is live. Next steps:
-> 1. **Create the campaign** in your distribution channel's platform using the config in `idea/ads.yaml`. See the channel's stack file "Setup Instructions" for step-by-step guidance.
+### 9a: Check API support
+
+1. Read `channel` from `idea/ads.yaml`
+2. Read the channel's stack file at `.claude/stacks/distribution/<channel>.md`
+3. If the stack file contains an "API Campaign Creation" section → proceed to **9b**
+4. If not (e.g., reddit) → skip to **9f** (manual fallback)
+
+### 9b: Check for existing campaign
+
+1. If `idea/ads.yaml` has a `campaign_id` field → campaign already created (idempotent), skip to **9g**
+2. If not → proceed to **9c**
+
+### 9c: Check credentials
+
+1. Read the "Credential Files" subsection from the channel's "API Campaign Creation" section
+2. For each credential file listed, check if it exists: `test -f <path>`
+3. If **ALL** files exist → proceed to **9d**
+4. If **ANY** are missing → guide the user through credential setup:
+   1. Show which credential files are missing
+   2. Read the "Setup" subsection from the channel's "API Campaign Creation" section
+   3. Walk the user through each setup step interactively
+   4. As each credential is provided, save it: `mkdir -p <dir> && echo "$VALUE" > <path>`
+   5. After all credentials are saved → proceed to **9d**
+   6. No "skip" option — credentials are required for campaign creation. If the user cannot set up credentials now, they should re-run `/distribute` later when ready.
+
+### 9d: STOP for approval
+
+Show a campaign creation preview:
+
+> **Ready to create campaign via API**
+> - **Channel:** {channel}
+> - **Campaign name:** {campaign_name}
+> - **Budget:** ${total_budget_cents / 100} over {duration_days} days
+> - **Targeting summary:** {keyword count or audience summary}
+> - **Ad count:** {number of ads/tweets}
+> - **Status:** Campaign will be created in **PAUSED** status (you enable it after verifying tracking)
+>
+> This will use real ad platform credentials. Reply **approve** to create the campaign, or tell me what to change.
+
+**Do not proceed until the user approves.** This is a second approval gate — Step 6 approves the config, Step 9d approves actual campaign creation with real credentials.
+
+### 9e: Create campaign via API
+
+1. Read the "API Procedure" subsection from the channel's "API Campaign Creation" section
+2. Follow the procedure step-by-step, using the credentials from **9c** and the config from `idea/ads.yaml`
+3. Campaign is created in **PAUSED** status (safety — user enables after verifying tracking)
+4. On success:
+   - Extract the campaign ID and dashboard URL from the response (see "Response Handling" subsection)
+   - Add `campaign_id: <id>` and `campaign_url: <url>` to `idea/ads.yaml`
+   - Commit the updated `idea/ads.yaml` to `main`
+5. On failure:
+   - Read the "Error Handling" subsection for guidance on the specific error
+   - Report the error to the user
+   - Fall through to **9f**
+
+### 9f: Manual fallback
+
+Only reached when:
+- (a) The channel's stack file has no "API Campaign Creation" section (e.g., reddit), or
+- (b) The API call in **9e** failed
+
+> Create the campaign manually using the config in `idea/ads.yaml`.
+> See the channel's stack file "Setup Instructions" section for step-by-step guidance.
+
+### 9g: Next steps
+
+> Your distribution campaign is ready. Next steps:
+> 1. **Enable the campaign** — it was created in PAUSED status. After verifying conversion tracking, enable it in the ad platform dashboard.
 > 2. **Verify conversion tracking** by clicking your own ad and completing the activation flow — confirm the event appears in your analytics dashboard.
 > 3. **Monitor performance** — after the campaign runs for a few days, run `/iterate` to analyze your metrics and decide what to change next.
 
 ## Do NOT
 
-- Launch any ads automatically — Phase 1 is manual campaign creation from the generated config
+- Create a campaign via API without showing the approval preview (Step 9d) — real money is at stake
+- Create a campaign if `campaign_id` already exists in `idea/ads.yaml` — campaigns are idempotent
+- Skip credential setup — if credentials are missing, guide the user through setup; do not fall back to manual campaign creation
+- Hardcode credential file paths — read from the channel's stack file "Credential Files" subsection
 - Modify idea.yaml — this skill reads it but does not change it
 - Add new packages — the feedback widget uses existing shadcn components and the analytics library
-- Skip the approval step — the operator must review targeting, ad creative, and budget before proceeding
+- Skip the config approval step (Step 6) — the operator must review targeting, ad creative, and budget before proceeding
 - Hardcode analytics import paths or provider names — always read the analytics stack file for the correct imports
 - Hardcode channel-specific constraints (char limits, click ID params, UTM values) — always read the distribution stack file for the selected channel
