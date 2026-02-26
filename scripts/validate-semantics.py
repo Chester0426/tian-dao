@@ -52,6 +52,7 @@ Checks:
   48. Iterate Next Check-in — iterate.md contains Next Check-in schedule section
   49. Bootstrap Email-Auth-Database Dependency — bootstrap validates email requires auth and database
   50. Change Email-Auth-Database Dependency — change validates email requires auth and database
+  51. trackServerEvent Signature — trackServerEvent calls pass string as distinctId, not object
 """
 
 import glob
@@ -2295,6 +2296,40 @@ if os.path.isfile(change_path_50):
             error("[50] change.md: mentions adding email stack without auth-presence validation")
         if not has_email_db_chk:
             error("[50] change.md: mentions adding email stack without database-presence validation")
+
+# ---------------------------------------------------------------------------
+# Check 51: Verify trackServerEvent Calls Match Analytics Stack Signature
+# trackServerEvent(event, distinctId, properties?) — 2nd arg must be a string,
+# not an object literal. Catches calls like trackServerEvent("event", { ... })
+# which pass an object as distinctId instead of a string identifier.
+# ---------------------------------------------------------------------------
+
+analytics_server_sig = None  # (event, distinctId, properties?)
+for sf in glob.glob(".claude/stacks/analytics/*.md"):
+    with open(sf) as f:
+        analytics_content = f.read()
+    # Check if this stack defines trackServerEvent with a distinctId: string param
+    if re.search(r"trackServerEvent\s*\(\s*\n?\s*event:\s*string,\s*\n?\s*distinctId:\s*string", analytics_content):
+        analytics_server_sig = sf
+        break
+
+if analytics_server_sig:
+    # Scan all stack files for trackServerEvent calls in code blocks
+    for sf in glob.glob(".claude/stacks/**/*.md", recursive=True):
+        with open(sf) as f:
+            sf_content = f.read()
+        code_blocks = extract_code_blocks(sf_content, {"ts", "tsx", "typescript"})
+        for block in code_blocks:
+            # Find trackServerEvent calls where the 2nd arg starts with { (object literal)
+            bad_calls = re.findall(
+                r'trackServerEvent\s*\(\s*"[^"]+"\s*,\s*\{',
+                block["code"],
+            )
+            for call in bad_calls:
+                error(
+                    f"[51] {sf}: trackServerEvent call passes object as distinctId "
+                    f"(expected string) near line {block['start_line']}: {call.strip()}"
+                )
 
 # ---------------------------------------------------------------------------
 # Summary

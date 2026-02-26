@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
   }
 
   await sendWelcomeEmail(email, name, ctaUrl || "/");
-  trackServerEvent("email_welcome_sent", { recipient: email });
+  trackServerEvent("email_welcome_sent", email, { recipient: email });
 
   return NextResponse.json({ ok: true });
 }
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
         .from("user_status")
         .update({ nudge_sent_at: new Date().toISOString() })
         .eq("user_id", user.user_id);
-      trackServerEvent("email_nudge_sent", {
+      trackServerEvent("email_nudge_sent", user.email, {
         recipient: user.email,
         days_since_signup: daysSinceSignup,
       });
