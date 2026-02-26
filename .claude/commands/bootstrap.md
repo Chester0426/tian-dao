@@ -12,6 +12,7 @@ references:
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
   - .claude/patterns/messaging.md
+  - .claude/patterns/design.md
 branch_prefix: feat
 modifies_specs: false
 ---
@@ -117,6 +118,7 @@ DO NOT write any code, create any files, or run any install commands during this
 - Install dev dependencies from the framework and UI stack files
 - Run the UI setup commands from the UI stack file
 - After UI setup, verify the UI stack file's post-setup checks pass (PostCSS config, globals.css, scripts intact). If any post-setup check fails: stop and tell the user which check failed and how to fix it (e.g., "PostCSS config was overwritten by shadcn init — restore it from the framework stack file template"). Do not proceed to Step 2 until all post-setup checks pass.
+- After post-setup checks pass, apply the theme customizations from the UI stack file's "Theme Setup" section: add CSS custom property overrides (`--primary`, `--radius`) to `globals.css`. Derive the primary hue from the product domain per `.claude/patterns/design.md` Section B, or use the default blue fallback. The font setup happens in Step 3 when `layout.tsx` is created.
 - If any install command fails: stop, show the error, and ask the user to fix the environment issue. After fixing, tell Claude: "Continue the bootstrap on this branch from the install step." Claude will re-run the failed install and any subsequent install commands, then continue with Step 2. Do NOT re-run `/bootstrap` (that would create a duplicate branch). If you close this conversation: either (1) commit partial files on this branch (`git add -A && git commit -m "WIP: partial install"`), then tell Claude "Continue the bootstrap on this branch from the install step"; or (2) switch to main (`git checkout main`), run `make clean`, and start `/bootstrap` fresh.
 
 ### Step 2: Core library files
@@ -142,7 +144,7 @@ DO NOT write any code, create any files, or run any install commands during this
 
 ### Step 3: App shell
 - Follow the framework stack file's file structure and page conventions
-- **Root layout**: metadata from idea.yaml `title`, import globals.css. Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
+- **Root layout**: metadata from idea.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (Inter via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
 - **404 page**: simple not-found page with link back to `/`
 - **Error boundary**: user-friendly message and retry button
 
@@ -154,6 +156,7 @@ For each entry in idea.yaml `pages`:
   - Follow page conventions from the framework stack file
   - Import tracking functions per the analytics stack file conventions
   - Fire the appropriate EVENTS.yaml event(s) on the correct trigger
+  - Apply the visual conventions from `.claude/patterns/design.md` — page-level spacing (Section C) and component conventions (Section D)
   - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page specifically**: follow the conversion structure in `.claude/patterns/messaging.md`. Derive headline, subheadline, and CTA from idea.yaml using the copy derivation rules (do NOT use `title` as the headline — that's the product name, not the value proposition). Use the landing page information architecture for section order. CTA links to the next logical page (signup if it exists in idea.yaml pages, otherwise the first non-landing page; if landing is the only page, build the idea.yaml features as sections on the landing page below the hero and use a CTA that scrolls to the first feature section via anchor link (e.g., `href="#get-started"`) — do not link to a nonexistent route or add functionality beyond what is listed in `features`; if any feature is interactive, fire `activate` when they complete that action — if all features are descriptive with no user action, omit the `activate` event and note the omission in the PR body). Fire the landing page event from EVENTS.yaml on mount with its specified properties.
 - **Variant landing pages (if idea.yaml has `variants`)**: follow messaging.md Section D instead of Section A for copy derivation. Create these additional files:
@@ -164,7 +167,7 @@ For each entry in idea.yaml `pages`:
   - The existing non-variant landing page instruction (above) applies when idea.yaml has NO `variants` field.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
-- **All other pages**: functional layout with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real (if minimal) screen
+- **All other pages**: functional layout following `.claude/patterns/design.md` Section C (app pages), with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real product screen
 
 > **STOP** — verify analytics before proceeding. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. Do not move to Checkpoint B until each event is wired. "I'll add analytics later" is not acceptable.
 
