@@ -1,5 +1,5 @@
 ---
-assumes: [framework/nextjs, database/supabase]
+assumes: [framework/nextjs, database/supabase, auth/supabase]
 packages:
   runtime: [resend]
   dev: []

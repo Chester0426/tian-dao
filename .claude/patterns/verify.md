@@ -32,10 +32,10 @@ For each attempt:
 > The remaining errors are: [paste current errors]
 >
 > **Your options:**
-> 1. Tell me what to try and I'll fix it
-> 2. Save current progress first: `git add -A && git commit -m "WIP: build not passing yet"` — then decide next steps
-> 3. Start fresh: first save progress with option 2, then `git checkout main`, then `make clean`, then `/bootstrap` to rebuild (**warning:** `make clean` deletes all generated code — anything not committed will be permanently lost)
-> 4. Switch to this branch later (`git checkout <branch>`) and describe the remaining build errors directly — do not re-run `/bootstrap` or `/change`, as those create new branches. Instead, just tell Claude what errors remain and it will fix them on this branch.
+> 1. **Tell me what to try** — describe the fix and I'll implement it on this branch
+> 2. **Save and investigate later** — run `git add -A && git commit -m "WIP: build not passing yet"`, then `git checkout main`. Your WIP is safe on the feature branch. Resume later with `git checkout <branch>` and tell me the remaining errors.
+> 3. **Start fresh** — run `git add -A && git commit -m "WIP: discarding"`, then `git checkout main`, then `make clean`, then `/bootstrap`. **Warning:** `make clean` deletes all generated code — only committed code is preserved in git history.
+> 4. **Debug on this branch later** — switch to this branch (`git checkout <branch>`) and describe the remaining build errors directly. Do not re-run `/bootstrap` or `/change` — those create new branches. Just tell Claude what errors remain and it will fix them here.
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
