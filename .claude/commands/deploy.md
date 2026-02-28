@@ -222,11 +222,22 @@ Configure services that require the deployment URL. Batch all env var changes be
 
    If any API call fails, include manual instructions in Step 6.
 
-4. **Redeploy** (only if env vars were added in 5b.2):
+4. **Custom subdomain** (if `deploy.domain` is set in idea.yaml):
+
+   Construct the full domain: `<idea.yaml name>.<deploy.domain>` (e.g., `invoice-tool.draftlabs.org`).
+
+   ```bash
+   vercel domains add <name>.<domain>
+   ```
+
+   If this succeeds, the custom domain is live (wildcard DNS is pre-configured).
+   If this fails, warn: "Could not add custom domain. Verify that wildcard DNS is configured for <domain> (CNAME `*` → `cname.vercel-dns.com`, DNS Only). The app is still accessible at the Vercel URL."
+
+5. **Redeploy** (only if env vars were added in 5b.2 or a custom domain was added in 5b.4):
    ```bash
    vercel --prod --yes
    ```
-   Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). Subsequent deploys via git push need only one.
+   Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). A redeploy after adding a custom domain ensures Vercel provisions the SSL certificate. Subsequent deploys via git push need only one.
 
 ### 5c: Health check
 
@@ -271,7 +282,7 @@ Print a deployment summary:
 ```
 ## Deployment Complete
 
-**Live URL:** https://<deployment-url>
+**Live URL:** https://<custom-domain if configured, otherwise deployment-url>
 **Supabase Dashboard:** https://supabase.com/dashboard/project/<ref>
 **Vercel Dashboard:** https://vercel.com/<team>/<name>
 
@@ -279,6 +290,9 @@ Print a deployment summary:
 
 **Auto-deploy:** [If git_connect_failed] Not configured — run `vercel git connect --yes` after fixing the issue above, or connect manually in Vercel Dashboard → Project Settings → Git. [Else] Active — merges to main auto-deploy to production.
 **Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
+
+[If deploy.domain AND domain add succeeded] **Custom domain:** https://<name>.<domain>
+[If deploy.domain AND domain add failed] **Custom domain (manual):** Run `vercel domains add <name>.<domain>` after verifying wildcard DNS (CNAME `*` → `cname.vercel-dns.com`, DNS Only).
 
 [If auth] **Auth redirect URLs:** Configured — site_url set to https://<deployment-url>
 [If auth] **Email subjects:** Configured — confirmation, recovery, and magic link emails use app name
@@ -313,6 +327,7 @@ This skill handles re-runs gracefully:
 - Supabase auth config PATCH is idempotent — overwrites existing values
 - Stripe webhook creation checks for existing endpoint before creating
 - Stripe CLI is a soft dependency — falls back to manual setup if not installed
+- `vercel domains add` is idempotent — adding an already-configured domain is a no-op
 
 ## Do NOT
 
