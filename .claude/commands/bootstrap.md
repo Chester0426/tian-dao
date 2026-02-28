@@ -56,6 +56,47 @@ DO NOT write any code, create any files, or run any install commands during this
      - At most one variant may have `default: true`
      - If any validation fails: stop and list the specific errors
 
+3b. **Check for duplicate experiments and update repo description**
+
+   1. Detect the GitHub org: run `gh repo view --json owner --jq '.owner.login'`.
+      If this fails (not a GitHub repo, or `gh` not authed), skip this entire step silently.
+
+   2. Update the repo description with idea.yaml `title`:
+      ```bash
+      gh repo edit --description "<idea.yaml title>"
+      ```
+      If this fails, warn but continue — description is cosmetic.
+
+   3. Hard check — name collision:
+      Run `gh repo list <org> --json name,url --limit 200 --no-archived`.
+      If any repo name exactly matches idea.yaml `name` AND is not the current repo,
+      stop: "A repo named '<name>' already exists in <org>: <url>. Pick a different
+      `name` in idea.yaml or confirm with the team that this is intentional."
+
+   4. Soft check — LLM-filtered duplicate detection:
+      Run `gh repo list <org> --json name,description,url --limit 200 --no-archived`.
+      Exclude the current repo from the list. Review the remaining repo names and
+      descriptions against the current idea.yaml (`title`, `problem`, `solution`,
+      `target_user`). Identify repos that appear to solve a substantially similar
+      problem for a similar audience.
+
+      If no suspicious matches → proceed silently.
+
+      If suspicious matches found → present them:
+
+      > **Potential overlaps detected.** These existing experiments may overlap with yours:
+      >
+      > | Repo | Description | Link |
+      > |------|-------------|------|
+      > | ... | ... | https://github.com/\<org\>/... |
+      >
+      > **Why these flagged:** [1-sentence reason per repo]
+      >
+      > If these are intentionally different (different audience, angle, or distribution),
+      > proceed. If this is an accidental duplicate, stop and coordinate with the team.
+
+      Wait for user confirmation before proceeding.
+
 4. **Check preconditions**
    - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`: a previous session completed Phase 1 (plan approved) but Phase 2 was not finished. Tell the user: "Found a previously approved plan in `.claude/current-plan.md`. Resuming Phase 2 implementation on this branch. Skipping Phase 1 planning." Then skip the rest of Phase 1 and jump directly to Phase 2: Step 1.
    - If `package.json` exists AND the `src/` directory contains application files (check for any `.ts` or `.tsx` files): stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
