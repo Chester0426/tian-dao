@@ -159,13 +159,7 @@ Notes:
 - Pages import from `@/lib/events` instead of calling `track()` directly — this provides compile-time validation of event names and property types.
 
 ## Environment Variables
-No PostHog environment variables are needed — the shared publishable key and host are hardcoded in the analytics libraries. All experiments share one PostHog project (filtered by `project_name`).
-
-Bootstrap still writes these values to `.env.example` for documentation and `verify-local.sh` compatibility:
-```
-NEXT_PUBLIC_POSTHOG_KEY=phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY
-NEXT_PUBLIC_POSTHOG_HOST=/ingest
-```
+No PostHog environment variables are needed — the shared publishable key and host are hardcoded as constants in the analytics libraries (see `src/lib/analytics.ts`). All experiments share one PostHog project (filtered by `project_name`).
 
 ## Reverse Proxy Setup
 Client-side analytics use `/ingest` as the API host to bypass ad blockers that filter `us.i.posthog.com`. Bootstrap adds these rewrites to `next.config.ts`:

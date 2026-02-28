@@ -7,6 +7,7 @@ files:  # conditional
   - src/lib/email.ts
   - src/app/api/email/welcome/route.ts
   - src/app/api/email/nudge/route.ts
+  - vercel.json
 env:
   server: [RESEND_API_KEY, CRON_SECRET]
   client: []
@@ -154,7 +155,7 @@ export async function GET(req: NextRequest) {
 
 ## Vercel Cron Config
 
-Add to `vercel.json`:
+### `vercel.json`
 
 ```json
 {
