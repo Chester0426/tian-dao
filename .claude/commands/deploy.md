@@ -222,9 +222,11 @@ Configure services that require the deployment URL. Batch all env var changes be
 
    If any API call fails, include manual instructions in Step 6.
 
-4. **Custom subdomain** (if `deploy.domain` is set in idea.yaml):
+4. **Custom subdomain**:
 
-   Construct the full domain: `<idea.yaml name>.<deploy.domain>` (e.g., `invoice-tool.draftlabs.org`).
+   The default parent domain is `draftlabs.org`. If `deploy.domain` is set in idea.yaml, use that instead.
+
+   Construct the full domain: `<idea.yaml name>.<domain>` (e.g., `quickbill.draftlabs.org`).
 
    ```bash
    vercel domains add <name>.<domain>
@@ -291,8 +293,8 @@ Print a deployment summary:
 **Auto-deploy:** [If git_connect_failed] Not configured — run `vercel git connect --yes` after fixing the issue above, or connect manually in Vercel Dashboard → Project Settings → Git. [Else] Active — merges to main auto-deploy to production.
 **Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
 
-[If deploy.domain AND domain add succeeded] **Custom domain:** https://<name>.<domain>
-[If deploy.domain AND domain add failed] **Custom domain (manual):** Run `vercel domains add <name>.<domain>` after verifying wildcard DNS (CNAME `*` → `cname.vercel-dns.com`, DNS Only).
+[If domain add succeeded] **Custom domain:** https://<name>.<domain>
+[If domain add failed] **Custom domain (manual):** Run `vercel domains add <name>.<domain>` after verifying wildcard DNS (CNAME `*` → `cname.vercel-dns.com`, DNS Only).
 
 [If auth] **Auth redirect URLs:** Configured — site_url set to https://<deployment-url>
 [If auth] **Email subjects:** Configured — confirmation, recovery, and magic link emails use app name

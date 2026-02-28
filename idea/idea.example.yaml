@@ -95,4 +95,4 @@ stack:
 #   vercel_team: "Your Vercel Team"       # from: vercel teams list
 #   supabase_org: "Your Supabase Org"     # from: supabase orgs list
 #   supabase_region: us-east-1            # AWS region for Supabase
-#   domain: draftlabs.org                 # wildcard parent domain — MVPs get <name>.<domain>
+#   domain: draftlabs.org                 # override parent domain (default: draftlabs.org)
