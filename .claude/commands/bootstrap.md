@@ -199,8 +199,14 @@ Before generating API routes, assess whether idea.yaml features require external
    > - **Provide now** — give me the credentials and I'll implement the full integration
    > - **Skip** — I'll create a stub route (returns 501). Run `/change` later to implement.
 
-4. For services where the user provides credentials:
-   - Add env vars to `.env.local` and `.env.example`
+4. For each service where the user chooses "provide now":
+   - Provide brief setup instructions for obtaining the credentials:
+     - Where to sign up or access the developer console (include URL)
+     - How to create the app/key (3–5 concrete steps)
+     - Which credential values to copy (Client ID, API Key, Secret, etc.)
+     - Note if a free tier or sandbox is available for MVP testing
+   - Then ask the user for the credential values
+   - Add env vars to `.env.local` (real values) and `.env.example` (placeholder values only — never real credentials)
    - Step 5 implements the full integration using the credentials (OAuth flow, API calls, etc.)
 
 5. For skipped services:

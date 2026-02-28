@@ -125,6 +125,11 @@ Skip this step if `stack.database` is not `supabase`.
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
    - `STRIPE_WEBHOOK_SECRET` (skip if Stripe CLI is available — set after webhook creation in Step 5)
 
+   Additional variables (external service credentials from bootstrap):
+   - Read `.env.example` and collect all env var keys
+   - Exclude keys already handled by stack categories above (Supabase, Stripe, Resend, PostHog)
+   - For each remaining key: read the value from `.env.local`. If found, set it on Vercel. If `.env.local` is missing or the key is absent, ask the user for the production value.
+
 ## Step 5: Deploy, configure services, and verify
 
 ### 5a: Initial deploy
