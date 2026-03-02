@@ -46,9 +46,10 @@ npx shadcn@latest add -y <component>
 After `shadcn init` completes and post-setup checks pass, apply these customizations:
 
 ### 1. Font (in layout.tsx — created in Step 3)
-Import Inter from `next/font/google` (ships with Next.js — no extra package):
-- `const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })`
-- Apply `className={inter.variable}` to the `<html>` tag
+Import the chosen font(s) from `next/font/google` (ships with Next.js — no extra package). When the frontend-design plugin is active, use the font it selects. When no plugin guidance is available, default to Inter.
+- Example: `const displayFont = Inter({ subsets: ["latin"], variable: "--font-sans" })`
+- Apply `className={displayFont.variable}` to the `<html>` tag
+- If using a display + body font pair, apply both variables: `className={\`${displayFont.variable} ${bodyFont.variable}\`}`
 
 ### 2. CSS overrides (in globals.css — exists after shadcn init)
 After the shadcn-generated `:root` block, add:
@@ -59,7 +60,7 @@ After the shadcn-generated `:root` block, add:
 
 ### 3. Post-theme verification
 - globals.css contains `--primary` override
-- layout.tsx imports Inter and applies variable to `<html>`
+- layout.tsx imports the display font (plugin-selected or Inter default) and applies variable to `<html>`
 
 ## Patterns
 - Always use library components (`<Button>`, `<Input>`, `<Card>`, etc.) — don't mix with raw HTML elements (`<button>`, `<input>`)

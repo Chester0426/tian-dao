@@ -20,9 +20,9 @@ Derive the primary hue from the product domain:
 
 Fallback (when the domain has no obvious hue): `hsl(221, 83%, 53%)` — professional blue.
 
-One font: **Inter** via `next/font/google` (zero-dependency, ships with Next.js).
+One display font + one body font maximum. Choose fonts that match the product's domain and tone. Load via `next/font/google` (zero-dependency, ships with Next.js). The frontend-design plugin will select distinctive, characterful fonts — accept its choices unless they conflict with readability at small sizes (body text below 14px).
 
-Anti-pattern: do NOT pick multiple fonts, add decorative typefaces, or import font files manually.
+Anti-pattern: do NOT use more than two fonts total, or import font files manually.
 
 ## Section B: Theme Defaults
 
@@ -39,7 +39,7 @@ Match the `.dark` block with a lighter primary variant if dark mode is present.
 
 Derive `--primary` from idea.yaml's domain when possible (see Section A hue table). When the domain is ambiguous, use the blue fallback.
 
-Anti-pattern: do NOT add custom gradients, animation tokens, or shadow scales. Rule 4 applies — ship the simplest thing that works.
+Anti-pattern: do NOT add animation tokens or complex shadow scales beyond what the frontend-design plugin generates. Custom gradients and accent shadows are acceptable when the plugin recommends them as part of a cohesive aesthetic — but keep them in CSS custom properties, not inline styles. Rule 4 still applies to animation: no motion libraries or JS-driven animations.
 
 ## Section C: Page-Level Conventions
 
@@ -100,3 +100,43 @@ Use `<Card>` with proper sub-components (`CardHeader`, `CardTitle`, `CardContent
 Anti-pattern: do NOT wrap the entire page in a single `<Card>`. Cards are for discrete content units (feature cards, pricing tiers, form containers).
 
 Anti-pattern: do NOT add hamburger menus, bottom navigation bars, swipe gestures, or app-shell chrome. MVPs have few pages — a simple inline nav or single CTA per page is sufficient.
+
+## Section E: Frontend-Design Plugin Coordination
+
+This template enables the Anthropic `frontend-design` plugin, which auto-activates during frontend work and pushes toward distinctive aesthetics. This section defines how design.md and the plugin coexist.
+
+### Priority Rules
+
+When the plugin's guidance conflicts with this file:
+
+1. **Aesthetic decisions — plugin wins.** Font selection, color palette, visual atmosphere (gradients, textures, shadows), and theme direction are the plugin's domain.
+
+2. **Structural decisions — design.md wins.** Layout grids (Section C), responsive breakpoints, max-width constraints, component sizing (Section D), touch targets, and spacing scales are non-negotiable. Do NOT apply asymmetric layouts, grid-breaking elements, or diagonal flow the plugin may suggest.
+
+3. **Minimalism gate — Rule 4 wins.** If the plugin suggests JS animation libraries (Framer Motion, GSAP), scroll-triggered effects, custom cursors, or any runtime dependency not in idea.yaml `stack` — skip it. CSS-only transitions and `@keyframes` animations are fine.
+
+### What the plugin controls
+
+- Font family selection (display + body, loaded via `next/font/google`)
+- Primary and accent color palette (overrides Section A hue table and Section B `--primary`)
+- Background treatment (solid, gradient, texture — via CSS custom properties)
+- Light vs dark theme direction
+- Micro-interactions using CSS transitions only
+
+### What design.md controls (plugin must NOT override)
+
+- Page layout structure (Section C tables)
+- Grid system: `grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3`
+- Max-width constraints: `max-w-5xl mx-auto`
+- Mobile-first responsive approach
+- Component library: shadcn/ui components only
+- Typography scale classes (Section D)
+- Touch targets: `h-11` minimum, `gap-3` spacing
+- Form input sizing: `text-base` (16px) to prevent iOS auto-zoom
+
+### Anti-patterns with the plugin active
+
+- Do NOT apply "asymmetric layout" or "grid-breaking" suggestions — use Section C grids
+- Do NOT add noise textures, grain overlays, or custom cursors
+- Do NOT import framer-motion or any animation library — CSS transitions only
+- Do NOT override Section D component sizing for aesthetic effect
