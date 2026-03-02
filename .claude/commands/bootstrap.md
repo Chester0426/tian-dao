@@ -416,6 +416,8 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
   - **Checklist — Analytics**: list every event wired and which page fires it
   - **Checklist — Build**: confirm build passes, no hardcoded secrets, .env.example created
 - Add a prominent note at the top of the PR body with post-merge instructions: database setup (from database stack file), environment variable setup (from .env.example)
+- If Fake Door features exist: add a "## Fake Door Features" section listing each feature, its component file, and that it can be upgraded to a real integration via `/change`
+- If provision-at-deploy routes exist: add a "## Provision at Deploy" section listing each service, its env vars, and that `/deploy` will prompt for credentials
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry the push and PR creation.
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description.
