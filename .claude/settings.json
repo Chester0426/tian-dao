@@ -1,4 +1,7 @@
 {
+  "enabledPlugins": {
+    "frontend-design@claude-plugin-directory": true
+  },
   "hooks": {
     "SessionStart": [
       {
