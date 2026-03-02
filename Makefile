@@ -216,7 +216,7 @@ migrate: ## Push pending migrations to remote Supabase database
 # Default: Next.js + shadcn artifacts. Update if you change stack.framework or stack.ui.
 clean: ## Remove generated files (lets you re-run bootstrap)
 	rm -rf node_modules .next out                          # framework/nextjs
-	rm -f .nvmrc package.json package-lock.json tsconfig.json next.config.ts next-env.d.ts  # framework/nextjs
+	rm -f .nvmrc package.json package-lock.json tsconfig.json next.config.ts next-env.d.ts eslint.config.mjs  # framework/nextjs
 	rm -f components.json tailwind.config.ts .eslintrc.json eslint.config.mjs postcss.config.mjs  # ui/shadcn
 	rm -rf src                                             # all generated app code
 	rm -f .env.example                                     # all stacks
