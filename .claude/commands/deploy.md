@@ -40,7 +40,7 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 6. **External service credentials**: Read `.env.example` and collect all env var keys not handled by stack categories (Supabase, Stripe, Resend, PostHog). Cross-reference with `src/app/api/` routes that reference these env vars. For each unhandled external service env var:
    - **Tier 1** (CLI/API-provisionable): the service has a CLI that can create credentials programmatically (e.g., `twilio api`, `gcloud`)
    - **Tier 2** (manual setup): credentials must be obtained via a web dashboard
-   - Skip env vars associated with Fake Door features (these have no real service behind them — check if the corresponding route exists and whether it returns 503 with `"Service not configured"`)
+   - Note: Fake Door features have no env vars in `.env.example` and no API routes — they are UI-only components. Only env vars with corresponding API routes need provisioning here.
 
 ## Step 2: Present deployment plan — STOP for approval
 
@@ -251,7 +251,7 @@ Configure services that require the deployment URL. Batch all env var changes be
    - Where to create the app/credentials (include URL)
    - The deployment URL is now known — include it for OAuth redirect URIs (e.g., `https://<url>/api/auth/callback/<service>`)
    - Which credential values to copy
-   - Ask the user for each credential value
+   - Ask the user for each credential value, or offer **skip** — the feature will return 503 until credentials are configured later via `vercel env add`
    - Set Vercel env vars: `echo "<value>" | vercel env add <KEY> production --force` (and preview)
 
 6. **Redeploy** (only if env vars were added in 5b.2, 5b.5, or a custom domain was added in 5b.4):
