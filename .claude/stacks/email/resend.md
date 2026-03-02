@@ -40,12 +40,23 @@ npm install resend
 ```ts
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
+
 
 const FROM_ADDRESS = "onboarding@resend.dev";
 
 export async function sendWelcomeEmail(to: string, name: string, ctaUrl: string) {
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
     subject: `Welcome to the app, ${name}!`,
@@ -59,7 +70,7 @@ export async function sendWelcomeEmail(to: string, name: string, ctaUrl: string)
 }
 
 export async function sendActivationNudge(to: string, name: string, activationAction: string, ctaUrl: string) {
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
     subject: `Quick reminder: ${activationAction}`,

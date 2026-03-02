@@ -34,10 +34,20 @@ npm install stripe @stripe/stripe-js
 ```ts
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+let _stripe: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return _stripe;
+}
 ```
 - The Stripe SDK automatically uses the API version bundled with the installed package. To pin a specific version, add `apiVersion` — see https://stripe.com/docs/upgrades.
-- Use this in API route handlers only — never import in client components
+- Import `getStripe` in API route handlers only — call it inside the handler function, not at module scope
 
 ### `src/lib/stripe-client.ts` — Client-side Stripe loader
 ```ts
@@ -62,7 +72,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ```ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 
 const checkoutSchema = z.object({
   plan: z.string(),
@@ -77,7 +87,7 @@ export async function POST(request: Request) {
 
     // TODO: Add auth check here — see auth stack file "Server-Side Auth Check" for the correct import
     // This defines `user`, whose `user.id` is referenced in metadata below
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       line_items: [
         {
@@ -119,7 +129,7 @@ Notes:
 ### `src/app/api/webhooks/stripe/route.ts` — Stripe Webhook Handler
 ```ts
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { trackServerEvent } from "@/lib/analytics-server";
 
 export async function POST(request: Request) {
@@ -133,7 +143,7 @@ export async function POST(request: Request) {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
