@@ -106,7 +106,7 @@ Examples:
 
 **Template file:** `<full path>`
 **Skill running:** /<skill-name>
-**Trigger:** verify.md build fix | verify.md observation review | deploy.md auto-fix
+**Trigger:** verify.md build fix | verify.md observation review | deploy.md auto-fix | auto-generated stack file
 
 ## Symptom
 
