@@ -136,6 +136,11 @@ DO NOT write any code, create any files, or run any install commands during this
    - [table name] — stores [what]
    - ...
 
+   **External Dependencies (decided in Phase 2, Step 4b):**
+   - [service] — [credentials needed] — user chooses: Provide now / Skip
+   - ...
+   - (Or: "None — all features use stack-managed services")
+
    **Analytics Events:**
    - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
    - [For each payment_funnel event if stack.payment present, show: event_name on page/route]
