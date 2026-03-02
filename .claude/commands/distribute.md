@@ -29,7 +29,7 @@ Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
 3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
-5. Verify the app is deployed: check `landing_url` in existing `idea/ads.yaml`, or ask the user for the deployed URL.
+5. Verify the app is deployed: check `landing_url` in existing `idea/ads.yaml`, or ask the user for the deployed URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live landing page. Run `/deploy` first, then re-run `/distribute`."
 6. **Channel selection:**
    1. List available channels by scanning `.claude/stacks/distribution/*.md` (strip the `.md` extension to get channel names)
    2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
