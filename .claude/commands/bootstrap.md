@@ -270,10 +270,21 @@ Before generating API routes, assess whether idea.yaml features require external
 6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration" / "Provide now"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it using the same procedure as bootstrap Step 2 for missing stack files:
    - Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema
    - Read existing stack files as structural reference
-   - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details
+   - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details, and a `## CLI Provisioning` section
    - Run `python3 scripts/validate-frontmatter.py` to verify (max 2 attempts)
    - Tell the user: "Generated `.claude/stacks/external/<service-slug>.md` — auto-generated from Claude's knowledge. Review after bootstrap."
    - File an observation per `.claude/patterns/observe.md`
+
+   The generated external stack file must include a `## CLI Provisioning` section. If the service has a CLI that can create credentials:
+   ```
+   ## CLI Provisioning
+   cli: <command-name>
+   install: <install-command>
+   auth: <auth-check-command>
+   provision: <provisioning-command-template>
+   ```
+   If the service has no CLI, write: "No CLI available — credentials must be obtained via the web dashboard."
+   This section is read by `/deploy` to check CLI availability and attempt auto-provisioning.
 
 7. For each service where the user chooses "Provide now" or "Full Integration":
    - Provide brief setup instructions for obtaining the credentials:
