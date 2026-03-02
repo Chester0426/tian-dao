@@ -29,6 +29,12 @@ This skill automates first-time deployment: creates a Supabase project, creates 
    - If `stack.database: supabase`: `which supabase` — if not found, stop: "Supabase CLI not installed. Install: `brew install supabase/tap/supabase` (macOS/Linux) or see https://supabase.com/docs/guides/cli/getting-started"
    - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `supabase login` first (one-time per machine)."
    - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
+7. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
+   - `which <cli>` — record `cli_status: not_installed` (with install command) if not found
+   - If found, run auth check — record `cli_status: not_authed` if fails
+   - If both pass — record `cli_status: ready`
+   - If no `## CLI Provisioning` section found — treat as no CLI (stack file predates CLI metadata)
+   - Do NOT stop for missing external CLIs — record status for display in Step 2.
 
 ## Step 1: Gather configuration
 
@@ -37,10 +43,11 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 3. **Supabase region**: Read `deploy.supabase_region` from idea.yaml, or default to `us-east-1`.
 4. **DB password**: Generate with `openssl rand -base64 24`.
 5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
-6. **External service credentials**: Read `.env.example` and collect all env var keys not handled by stack categories (Supabase, Stripe, Resend, PostHog). Cross-reference with `src/app/api/` routes that reference these env vars. For each unhandled external service env var:
-   - **Tier 1** (CLI/API-provisionable): the service has a CLI that can create credentials programmatically (e.g., `twilio api`, `gcloud`)
-   - **Tier 2** (manual setup): credentials must be obtained via a web dashboard
-   - Note: Fake Door features have no env vars in `.env.example` and no API routes — they are UI-only components. Only env vars with corresponding API routes need provisioning here.
+6. **External service credentials**: Read `.env.example`, collect env vars not handled by stack categories. For each external service, use CLI status from Step 0.7:
+   - **Auto via CLI** — installed + authenticated → will auto-provision in Step 5b
+   - **Manual (CLI available)** — CLI exists but not installed/authed → user can install to enable auto
+   - **Manual (no CLI)** — no CLI for this service → web dashboard
+   - Note: Fake Door features have no env vars and no API routes — UI-only. Skip them.
 
 ## Step 2: Present deployment plan — STOP for approval
 
@@ -55,7 +62,9 @@ Present a summary of what will be created:
 **Migrations:** <N files in supabase/migrations/ will be applied>
 
 **External service credentials (post-deploy):**
-- [service] — Tier 1: auto-provision via CLI / Tier 2: manual setup guided
+- [service] — auto via CLI (`<cli>` installed + authed)
+- [service] — manual setup — CLI `<cli>` available but not installed (`<install-cmd>`)
+- [service] — manual setup (no CLI)
 - (Or: "None")
 
 Reply **approve** to proceed, or tell me what to change.
@@ -243,16 +252,18 @@ Configure services that require the deployment URL. Batch all env var changes be
    If this succeeds, the custom domain is live (wildcard DNS is pre-configured).
    If this fails, warn: "Could not add custom domain. Verify that wildcard DNS is configured for <domain> (CNAME `*` → `cname.vercel-dns.com`, DNS Only). The app is still accessible at the Vercel URL."
 
-5. **External service credentials** (for each service identified in Step 1.6):
+5. **External service credentials** (using CLI status from Step 0.7):
 
-   **Tier 1 (CLI-provisionable):** Check if the service CLI is installed and authenticated → auto-provision credentials (create API key, register OAuth app with the now-known deployment URL as redirect URI) → extract credentials → set Vercel env vars via `echo "<value>" | vercel env add <KEY> production --force` (and preview). If the CLI is not available or auto-provisioning fails, fall through to Tier 2.
+   **Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with deployment URL → extract credentials → set Vercel env vars. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
 
-   **Tier 2 (manual setup):** Read the external stack file at `.claude/stacks/external/<service-slug>.md` if it exists for setup instructions. Provide step-by-step guidance:
-   - Where to create the app/credentials (include URL)
-   - The deployment URL is now known — include it for OAuth redirect URIs (e.g., `https://<url>/api/auth/callback/<service>`)
-   - Which credential values to copy
-   - Ask the user for each credential value, or offer **skip** — the feature will return 503 until credentials are configured later via `vercel env add`
-   - Set Vercel env vars: `echo "<value>" | vercel env add <KEY> production --force` (and preview)
+   **Manual (CLI available)** (not_installed/not_authed): Tell user: "[service] has CLI `<cli>` for auto-provisioning. Install: `<install-cmd>`. Or provide credentials manually now." Then proceed to Manual setup.
+
+   **Manual setup** (shared path for "CLI available", "no CLI", and auto-provision failures): Read external stack file for instructions. Provide step-by-step guidance:
+   - Where to create credentials (include URL)
+   - Deployment URL for redirect URIs (e.g., `https://<url>/api/auth/callback/<service>`)
+   - Which values to copy
+   - Ask for credentials, or offer **skip** — feature returns 503 until configured via `vercel env add`
+   - Set Vercel env vars
 
 6. **Redeploy** (only if env vars were added in 5b.2, 5b.5, or a custom domain was added in 5b.4):
    ```bash
@@ -323,9 +334,9 @@ Print a deployment summary:
   Events: checkout.session.completed
 [If any health check failed] **Action needed:** [list failing services with fix commands]
 
-[If external services were provisioned] **External services:**
-- [service name]: ✅ auto-provisioned / ✅ manually configured / ❌ not configured — [action needed]
-[If no external services] **External services:** None
+[If external services] **External services:**
+- [service]: ✅ auto-provisioned via CLI / ✅ manually configured / ❌ not configured — `vercel env add <KEY> production`
+[If none] **External services:** None
 
 [If PostHog dashboard was auto-created] **Analytics dashboard:** <dashboard_url>
 [If PostHog dashboard was NOT auto-created] **Analytics dashboard (manual):**
