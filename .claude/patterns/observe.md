@@ -22,7 +22,7 @@ input, never block on filing.
 
 ## Trigger Evaluation
 
-For each code change or error fix made during this skill execution, evaluate
+For each code change or error fix made during the current session, evaluate
 whether it qualifies as a template observation. A change qualifies when **all
 three** conditions are true:
 
@@ -82,7 +82,7 @@ Comment body:
 ```
 ## Additional occurrence
 
-**Skill:** /<skill-name>
+**Context:** /<skill-name> or ad-hoc fix
 **Date:** <today>
 **Symptom:** <one-line generic description>
 **Fix applied in project:** <generic description of the workaround>
@@ -106,8 +106,8 @@ Examples:
 ## Observation
 
 **Template file:** `<full path>`
-**Skill running:** /<skill-name>
-**Trigger:** verify.md build fix | verify.md observation review | deploy.md auto-fix | auto-generated stack file
+**Context:** /<skill-name> | ad-hoc fix
+**Trigger:** verify.md build fix | verify.md observation review | deploy.md auto-fix | auto-generated stack file | ad-hoc fix (Rule 12)
 
 ## Symptom
 
@@ -129,7 +129,7 @@ that change. If you only fixed project code as a workaround, describe the
 template-level fix.>
 
 ---
-*Auto-filed by the observation pattern during /<skill-name> execution.*
+*Auto-filed by the observation pattern.*
 ```
 
 **Filing command:**
@@ -148,7 +148,7 @@ gh issue create --repo <template_repo> \
 
 ## Constraints
 
-- **Best-effort.** Any failure → skip silently. Never block the skill.
-- **Max 1 issue per skill execution.** Multiple fixes → combine into one issue with
+- **Best-effort.** Any failure → skip silently. Never block the current task.
+- **Max 1 issue per session.** Multiple fixes → combine into one issue with
   multiple Symptom/Fix sections.
 - **Skip simple typos** unlikely to recur (consistent with verify.md's skip rule).

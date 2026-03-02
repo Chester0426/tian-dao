@@ -272,6 +272,13 @@ Before generating API routes, assess whether idea.yaml features require external
    - Read existing stack files as structural reference
    - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details, and a `## CLI Provisioning` section
    - Run `python3 scripts/validate-frontmatter.py` to verify (max 2 attempts)
+   - After generating the external stack file, search the web for the service's
+     current official API/OAuth documentation to verify:
+     - OAuth scope names and format
+     - Authorization and token endpoint URLs
+     - Required request parameters and headers
+     If any generated value conflicts with the official documentation, update the
+     stack file before proceeding.
    - Tell the user: "Generated `.claude/stacks/external/<service-slug>.md` — auto-generated from Claude's knowledge. Review after bootstrap."
    - File an observation per `.claude/patterns/observe.md`
 
