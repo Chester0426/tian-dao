@@ -37,6 +37,10 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 3. **Supabase region**: Read `deploy.supabase_region` from idea.yaml, or default to `us-east-1`.
 4. **DB password**: Generate with `openssl rand -base64 24`.
 5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
+6. **External service credentials**: Read `.env.example` and collect all env var keys not handled by stack categories (Supabase, Stripe, Resend, PostHog). Cross-reference with `src/app/api/` routes that reference these env vars. For each unhandled external service env var:
+   - **Tier 1** (CLI/API-provisionable): the service has a CLI that can create credentials programmatically (e.g., `twilio api`, `gcloud`)
+   - **Tier 2** (manual setup): credentials must be obtained via a web dashboard
+   - Skip env vars associated with Fake Door features (these have no real service behind them — check if the corresponding route exists and whether it returns 503 with `"Service not configured"`)
 
 ## Step 2: Present deployment plan — STOP for approval
 
@@ -49,6 +53,10 @@ Present a summary of what will be created:
 **Supabase project:** <name> (org: <org>, region: <region>)
 **Environment variables:** <list of env vars to be set>
 **Migrations:** <N files in supabase/migrations/ will be applied>
+
+**External service credentials (post-deploy):**
+- [service] — Tier 1: auto-provision via CLI / Tier 2: manual setup guided
+- (Or: "None")
 
 Reply **approve** to proceed, or tell me what to change.
 ```
@@ -235,7 +243,18 @@ Configure services that require the deployment URL. Batch all env var changes be
    If this succeeds, the custom domain is live (wildcard DNS is pre-configured).
    If this fails, warn: "Could not add custom domain. Verify that wildcard DNS is configured for <domain> (CNAME `*` → `cname.vercel-dns.com`, DNS Only). The app is still accessible at the Vercel URL."
 
-5. **Redeploy** (only if env vars were added in 5b.2 or a custom domain was added in 5b.4):
+5. **External service credentials** (for each service identified in Step 1.6):
+
+   **Tier 1 (CLI-provisionable):** Check if the service CLI is installed and authenticated → auto-provision credentials (create API key, register OAuth app with the now-known deployment URL as redirect URI) → extract credentials → set Vercel env vars via `echo "<value>" | vercel env add <KEY> production --force` (and preview). If the CLI is not available or auto-provisioning fails, fall through to Tier 2.
+
+   **Tier 2 (manual setup):** Read the external stack file at `.claude/stacks/external/<service-slug>.md` if it exists for setup instructions. Provide step-by-step guidance:
+   - Where to create the app/credentials (include URL)
+   - The deployment URL is now known — include it for OAuth redirect URIs (e.g., `https://<url>/api/auth/callback/<service>`)
+   - Which credential values to copy
+   - Ask the user for each credential value
+   - Set Vercel env vars: `echo "<value>" | vercel env add <KEY> production --force` (and preview)
+
+6. **Redeploy** (only if env vars were added in 5b.2, 5b.5, or a custom domain was added in 5b.4):
    ```bash
    vercel --prod --yes
    ```
@@ -303,6 +322,10 @@ Print a deployment summary:
   Endpoint URL: https://<deployment-url>/api/webhooks/stripe
   Events: checkout.session.completed
 [If any health check failed] **Action needed:** [list failing services with fix commands]
+
+[If external services were provisioned] **External services:**
+- [service name]: ✅ auto-provisioned / ✅ manually configured / ❌ not configured — [action needed]
+[If no external services] **External services:** None
 
 [If PostHog dashboard was auto-created] **Analytics dashboard:** <dashboard_url>
 [If PostHog dashboard was NOT auto-created] **Analytics dashboard (manual):**

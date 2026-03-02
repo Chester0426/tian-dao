@@ -41,6 +41,7 @@ Determine the type from `$ARGUMENTS`:
 | Type      | Signal                                     |
 |-----------|---------------------------------------------|
 | Feature   | Adds capability that doesn't exist today    |
+| Upgrade   | Replaces Fake Door or stub with real integration |
 | Fix       | Repairs broken behavior                     |
 | Polish    | Improves UX/copy/visuals of existing stuff  |
 | Analytics | Fixes/audits analytics coverage             |
@@ -59,6 +60,7 @@ State the classification before proceeding: "I'm treating this as a **[type]** c
 - If `$ARGUMENTS` mentions email or the change will add `email` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Email requires a database to track user activation status. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
 - If `testing` is present in idea.yaml `stack` and the classified type is NOT Test: read the testing stack file's `assumes` list and verify each `category/value` pair against idea.yaml `stack`. If any assumption is unmet, stop: "Your testing setup assumes [unmet dependencies]. Tests will break. Run '/change fix test configuration' first, or remove 'testing' from idea.yaml 'stack'."
 - If classified as Test type: read the testing stack file's `assumes` list and check each `category/value` against idea.yaml `stack` (per bootstrap's validation approach: the value must match, not just the category). Record the result — this determines the template path reported in the plan.
+- If classified as Upgrade: scan `src/app/` for a Fake Door component (`fake_door: true` in a `track()` call) or a stub route (returns 501 or 503 with `"Service not configured"`) related to the feature described in `$ARGUMENTS`. If neither a Fake Door nor a stub is found, reclassify as Feature and tell the user: "No Fake Door or stub found for this feature — treating as a new Feature instead."
 
 ---
 
@@ -90,6 +92,23 @@ Present the plan using the format for the classified type:
 **Questions:**
 - [any ambiguities, or "None"]
 - [if new library needed: "This feature needs [library]. Should I add it?"]
+```
+
+### Upgrade plan
+```
+## Upgrade: [feature name]
+
+**Current state:** Fake Door / Stub
+**Target state:** Full integration with [service name]
+**Credentials needed:** [env vars + how to obtain]
+
+**Files to modify:**
+- [file] — [what changes]
+
+**Analytics changes:** Remove `fake_door: true` from activate event (now fires as real activation)
+
+**Questions:**
+- [any ambiguities, or "None"]
 ```
 
 ### Fix plan
@@ -168,6 +187,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 ### Step 5: Update specs (type-specific)
 
 - **Feature**: add the new feature to idea.yaml `features` list. Add any new pages to `pages` list. Do NOT remove or modify existing features or pages.
+- **Upgrade**: do NOT modify idea.yaml `features` (the feature already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
 - **Analytics**: if the user approved custom events, add them to `custom_events` in EVENTS.yaml following the `<object>_<action>` naming convention with all properties.
 - **Fix / Polish**: do NOT modify idea.yaml or EVENTS.yaml.
 - **Test**: do NOT modify EVENTS.yaml. If adding tests for the first time (no `stack.testing` in idea.yaml and no `playwright.config.ts` on disk), add `testing: <value>` to idea.yaml `stack` section. Do not modify other parts of idea.yaml.
@@ -190,6 +210,15 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - Re-read `.claude/current-plan.md` to confirm sub-step 6a output aligns with the approved plan.
   - Checkpoint: run `npm run build`. Fix errors before proceeding. If still broken after 2 attempts, proceed to Sub-step 6b without retrying — Step 7 (verification) has its own 3-attempt retry budget.
   - Sub-step 6b — Client layer (pages, components, analytics wiring)
+
+#### Upgrade constraints
+- Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as bootstrap Step 4b.6
+- Replace the Fake Door component with real UI that calls the actual API route
+- Replace any stub route (501/503) with the full integration logic using the service's API
+- Remove `fake_door: true` from the `activate` event call — keep the same event name (`activate`) and `action` value for analytics continuity
+- Add the service's env vars to `.env.example`
+- Ask the user for credential values and add to `.env.local`
+- Verify the end-to-end user flow after the upgrade: UI → API route → external service
 
 #### Fix constraints
 - Make the minimal change needed — smaller diffs are easier to review

@@ -78,6 +78,10 @@ standard_funnel:
         type: string
         required: true
         description: What specific action the user took (e.g., "created_invoice", "sent_message")
+      fake_door:
+        type: boolean
+        required: false
+        description: "True when the feature is a Fake Door (intent tracking only, not real integration). Absent or false for real activations."
 
   - event: retain_return
     trigger: User returns to the app after 24+ hours since last visit

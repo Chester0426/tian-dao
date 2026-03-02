@@ -137,9 +137,12 @@ DO NOT write any code, create any files, or run any install commands during this
    - ...
 
    **External Dependencies (decided in Phase 2, Step 4b):**
-   - [service] — [credentials needed] — user chooses: Provide now / Skip
+   - [service] — [credentials needed] — **core** — must integrate (credentials at bootstrap or /deploy)
+   - [service] — [credentials needed] — **non-core** — Fake Door (default) / Skip / Full Integration
    - ...
    - (Or: "None — all features use stack-managed services")
+
+   Core = removing it prevents users from completing primary_metric ("[value]").
 
    **Analytics Events:**
    - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
@@ -243,19 +246,36 @@ Before generating API routes, assess whether idea.yaml features require external
 
 2. If NO external dependencies detected → skip to Step 5.
 
-3. If external dependencies detected → present to the user:
+3. **Classify each dependency as core or non-core.** For each external dependency, ask: "If this feature were entirely absent, could users still complete `primary_metric`?" If no → **core**. If yes → **non-core**. Present the classification to the user for confirmation or override:
 
    > These features require external service credentials not covered by your stack:
    >
-   > | Feature | Service | Credentials needed |
-   > |---------|---------|-------------------|
-   > | ... | ... | ... |
+   > | Feature | Service | Credentials needed | Classification |
+   > |---------|---------|-------------------|----------------|
+   > | ... | ... | ... | **core** / **non-core** |
    >
-   > For each service, choose:
-   > - **Provide now** — give me the credentials and I'll implement the full integration
-   > - **Skip** — I'll create a stub route (returns 501). Run `/change` later to implement.
+   > Core = removing it prevents users from completing primary_metric ("[value]").
+   >
+   > Does this classification look right? If so, choose an option for each:
 
-4. For each service where the user chooses "provide now":
+4. **Core features — two options** (no Skip, no Fake Door — core features must have a complete experience):
+   - **Provide now** — user gives credentials during bootstrap, Step 5 builds full integration
+   - **Provision at deploy** — Step 5 builds full integration code referencing env vars; credentials are obtained during `/deploy` Step 5b. Code must compile without real credentials (guard with runtime check → 503 `{ error: "Service not configured", service: "[name]", setup: "Run /deploy to provision credentials" }`).
+
+5. **Non-core features — three options:**
+   - **Fake Door** (default) — real UI + `activate` event with `fake_door: true` + "Coming soon" dialog. Collects intent data from paid traffic. See Step 4 Fake Door integration below.
+   - **Skip** — omit the feature from the UI entirely (not a 501 stub — the feature is simply not built)
+   - **Full Integration** — same as core "Provide now" (user gives credentials, Step 5 builds it)
+
+6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration" / "Provide now"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it using the same procedure as bootstrap Step 2 for missing stack files:
+   - Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema
+   - Read existing stack files as structural reference
+   - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details
+   - Run `python3 scripts/validate-frontmatter.py` to verify (max 2 attempts)
+   - Tell the user: "Generated `.claude/stacks/external/<service-slug>.md` — auto-generated from Claude's knowledge. Review after bootstrap."
+   - File an observation per `.claude/patterns/observe.md`
+
+7. For each service where the user chooses "Provide now" or "Full Integration":
    - Provide brief setup instructions for obtaining the credentials:
      - Where to sign up or access the developer console (include URL)
      - How to create the app/key (3–5 concrete steps)
@@ -265,9 +285,18 @@ Before generating API routes, assess whether idea.yaml features require external
    - Add env vars to `.env.local` (real values) and `.env.example` (placeholder values only — never real credentials)
    - Step 5 implements the full integration using the credentials (OAuth flow, API calls, etc.)
 
-5. For skipped services:
-   - Step 5 generates stub routes with a descriptive TODO comment explaining what credentials are needed
-   - Add a note to the PR body under a "## Stub Routes" section listing which features are stubs and what credentials are needed to implement them
+8. For "Provision at deploy" services:
+   - Add env vars to `.env.example` with placeholder values and a comment: `# Provisioned by /deploy`
+   - Step 5 builds full integration code referencing these env vars (see Step 5 provision-at-deploy routes below)
+
+#### Fake Door integration (for non-core features choosing Fake Door)
+
+For each Fake Door feature, generate a component in the page folder where the feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
+- Real, polished UI using shadcn components (Card + Button + Dialog), following `.claude/patterns/design.md`
+- On button click: `track("activate", { action: "[feature-name]", fake_door: true })`
+- Shows a Dialog: "[Feature Name] is coming soon — we're building this now."
+- Import and render the Fake Door component in the parent page where the feature would naturally live
+- The component should look like a real feature entry point — not a placeholder or disabled button
 
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file
@@ -276,6 +305,25 @@ Before generating API routes, assess whether idea.yaml features require external
 - For the webhook handler's `// TODO: Update user's payment status in database` comment: resolve it using the database schema you planned in Phase 1. If no payments/subscriptions table was planned, add one to the migration in Step 6 and return here to wire the webhook update after the table exists.
 - Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
 - Follow the hosting stack file for rate limiting guidance in auth and payment API route handlers. Mention any limitations in the PR body so the user knows to address them before production
+
+#### Provision-at-deploy routes
+
+For each core dependency marked "Provision at deploy" in Step 4b: create the full API route implementation referencing env vars from `.env.example`. Guard against missing credentials at runtime:
+
+```typescript
+if (!process.env.SERVICE_API_KEY) {
+  return NextResponse.json(
+    { error: "Service not configured", service: "[name]", setup: "Run /deploy to provision credentials" },
+    { status: 503 }
+  );
+}
+```
+
+These routes must:
+- Compile and pass `npm run build` without real credentials present
+- Return 503 with actionable error message when env vars are missing
+- Implement the complete integration logic (OAuth flow, API calls, etc.) when env vars are present
+- Read the external stack file (`.claude/stacks/external/<service-slug>.md`) for API patterns and code templates
 
 ### Step 6: Database schema (if needed)
 If `stack.database` is present and idea.yaml features require persistent data:
@@ -352,6 +400,8 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - For each standard_funnel event in `EVENTS.yaml`: confirm a tracking call exists in the appropriate page
 - If `stack.payment` is present: confirm the webhook handler does not contain `// TODO: Update user's payment status` (this compiles silently — verify it was resolved in Step 5/6)
 - If `stack.email` is present: confirm `vercel.json` contains the cron config, email routes exist, and welcome email is wired to auth callback
+- If Fake Door features exist: confirm Fake Door components exist, fire `activate` with `fake_door: true`, and render polished UI with a "coming soon" dialog
+- If core "Provision at deploy" routes exist: confirm they compile without real credentials and return 503 with actionable error when env vars are missing
 - If anything is missing, implement it now. Do not proceed with gaps.
 
 ### Step 9: Commit, push, open PR
