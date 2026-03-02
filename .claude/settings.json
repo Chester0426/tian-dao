@@ -1,6 +1,8 @@
 {
   "enabledPlugins": {
-    "frontend-design@claude-plugin-directory": true
+    "frontend-design@claude-plugin-directory": true,
+    "security-guidance@claude-plugin-directory": true,
+    "typescript-lsp@claude-plugin-directory": true
   },
   "hooks": {
     "SessionStart": [
