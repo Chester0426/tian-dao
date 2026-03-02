@@ -1,9 +1,10 @@
 # Template Observation Procedure
 
-Follow this procedure after verify.md's "Template Observation Review" step, or
-after deploy.md's auto-fix loop (Step 5d). This evaluates whether any code
-change or error fix made during the current skill execution has a root cause in
-a template file.
+Follow this procedure whenever you identify an error whose root cause is in a
+template file — whether during a skill step, an ad-hoc bug fix, or any other
+context. Skills like verify.md and deploy.md reference this procedure at specific
+steps, but CLAUDE.md Rule 12 makes the trigger condition-based: any template-level
+root cause qualifies.
 
 **If you are running an analysis-only skill (`/review`, `/iterate`, or `/retro`),
 skip this entire procedure** — analysis-only skills do not make code changes that

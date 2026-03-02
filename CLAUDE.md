@@ -91,3 +91,10 @@ Follow the database patterns defined in your active database stack file (`.claud
 - After fixing build errors in the verification procedure, save project-specific patterns to auto memory
 - Universal patterns that apply to any project with this stack belong in `.claude/stacks/<category>/<value>.md` — not in auto memory
 - Auto memory is an accelerator, not a dependency — skills must function correctly with empty auto memory (fresh developer, fresh machine)
+
+## Rule 12: Template Observations
+When fixing any error whose root cause is in a template file
+(`.claude/stacks/`, `.claude/commands/`, `.claude/patterns/`,
+`scripts/`, `Makefile`, `CLAUDE.md`), follow `.claude/patterns/observe.md`
+to file an observation — regardless of whether you are inside a skill
+execution or responding to an ad-hoc user request.
