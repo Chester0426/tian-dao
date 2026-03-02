@@ -116,7 +116,22 @@ Skip this step if `stack.database` is not `supabase`.
    ```
    If the project already exists, `vercel link` will connect to it (idempotent).
 
-2. Connect GitHub repo for auto-deploy:
+2. **Resolve canonical URL**:
+
+   The default parent domain is `draftlabs.org`. If `deploy.domain` is set in idea.yaml, use that instead.
+   Construct the full domain: `<idea.yaml name>.<domain>` (e.g., `quickbill.draftlabs.org`).
+
+   Attempt to add the domain to the Vercel project (requires only the project to exist, not a deployment):
+   ```bash
+   vercel domains add <name>.<domain>
+   ```
+
+   - If this succeeds: `canonical_url` = `<name>.<domain>`, `domain_added` = true. The custom domain is live (wildcard DNS is pre-configured).
+   - If this fails: warn "Could not add custom domain. Verify that wildcard DNS is configured for <domain> (CNAME `*` → `cname.vercel-dns.com`, DNS Only). Will use Vercel deployment URL instead." Set `canonical_url` = null, `domain_added` = false.
+
+   `canonical_url` is finalized after Step 5a deploy if still null.
+
+3. Connect GitHub repo for auto-deploy:
    ```bash
    vercel git connect --yes
    ```
@@ -125,7 +140,7 @@ Skip this step if `stack.database` is not `supabase`.
    - "Failed to connect" / access error → Tell the user: "Install the Vercel GitHub App on your GitHub org: go to your Vercel team dashboard → Settings → Integrations → GitHub. Tell me when done." Wait for user confirmation, then retry.
    - Other errors → Show the error. Ask the user: "Want me to retry, or skip auto-deploy and continue?" If skip, set `git_connect_failed=true` (reported in Step 6 summary).
 
-3. Set environment variables for both `production` and `preview`:
+4. Set environment variables for both `production` and `preview`:
    ```bash
    echo "<value>" | vercel env add <KEY> production --force
    echo "<value>" | vercel env add <KEY> preview --force
@@ -155,10 +170,11 @@ Skip this step if `stack.database` is not `supabase`.
    vercel --prod --yes
    ```
 2. Get the deployment URL from the output.
+3. If `canonical_url` is null (domain add failed or no `deploy.domain`): set `canonical_url` = the Vercel deployment URL.
 
 ### 5b: Post-deploy service configuration
 
-Configure services that require the deployment URL. Batch all env var changes before redeploying.
+Configure services using `canonical_url` (custom domain if added in Step 4.2, otherwise Vercel deployment URL). Batch all env var changes before redeploying.
 
 1. **Supabase Auth redirect URLs and email subjects** (if `stack.auth: supabase`):
    Read the Supabase access token. Try these locations in order:
@@ -172,16 +188,16 @@ Configure services that require the deployment URL. Batch all env var changes be
    curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
      -H "Authorization: Bearer <token>" \
      -H "Content-Type: application/json" \
-     -d '{"site_url": "https://<url>", "uri_allow_list": "https://<url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
+     -d '{"site_url": "https://<canonical_url>", "uri_allow_list": "https://<canonical_url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
    ```
    If the PATCH fails, warn but continue — the user can configure this manually in Supabase Dashboard → Authentication → URL Configuration and Email Templates.
 
 2. **Stripe webhook endpoint** (if `stack.payment: stripe` AND Stripe CLI is available):
-   Check for existing endpoint: `stripe webhook_endpoints list` — if an endpoint with URL `https://<url>/api/webhooks/stripe` already exists, skip creation.
+   Check for existing endpoint: `stripe webhook_endpoints list` — if an endpoint with URL `https://<canonical_url>/api/webhooks/stripe` already exists, skip creation.
    Otherwise:
    ```bash
    stripe webhook_endpoints create \
-     --url "https://<url>/api/webhooks/stripe" \
+     --url "https://<canonical_url>/api/webhooks/stripe" \
      --events checkout.session.completed
    ```
    Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel:
@@ -239,42 +255,29 @@ Configure services that require the deployment URL. Batch all env var changes be
 
    If any API call fails, include manual instructions in Step 6.
 
-4. **Custom subdomain**:
+4. **External service credentials** (using CLI status from Step 0.7):
 
-   The default parent domain is `draftlabs.org`. If `deploy.domain` is set in idea.yaml, use that instead.
-
-   Construct the full domain: `<idea.yaml name>.<domain>` (e.g., `quickbill.draftlabs.org`).
-
-   ```bash
-   vercel domains add <name>.<domain>
-   ```
-
-   If this succeeds, the custom domain is live (wildcard DNS is pre-configured).
-   If this fails, warn: "Could not add custom domain. Verify that wildcard DNS is configured for <domain> (CNAME `*` → `cname.vercel-dns.com`, DNS Only). The app is still accessible at the Vercel URL."
-
-5. **External service credentials** (using CLI status from Step 0.7):
-
-   **Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with deployment URL → extract credentials → set Vercel env vars. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
+   **Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with canonical URL → extract credentials → set Vercel env vars. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
 
    **Manual (CLI available)** (not_installed/not_authed): Tell user: "[service] has CLI `<cli>` for auto-provisioning. Install: `<install-cmd>`. Or provide credentials manually now." Then proceed to Manual setup.
 
    **Manual setup** (shared path for "CLI available", "no CLI", and auto-provision failures): Read external stack file for instructions. Provide step-by-step guidance:
    - Where to create credentials (include URL)
-   - Deployment URL for redirect URIs (e.g., `https://<url>/api/auth/callback/<service>`)
+   - Canonical URL for redirect URIs (e.g., `https://<canonical_url>/api/auth/callback/<service>`)
    - Which values to copy
    - Ask for credentials, or offer **skip** — feature returns 503 until configured via `vercel env add`
    - Set Vercel env vars
 
-6. **Redeploy** (only if env vars were added in 5b.2, 5b.5, or a custom domain was added in 5b.4):
+5. **Redeploy** (only if env vars were added in 5b.2 or 5b.4):
    ```bash
    vercel --prod --yes
    ```
-   Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). A redeploy after adding a custom domain ensures Vercel provisions the SSL certificate. Subsequent deploys via git push need only one.
+   Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). Subsequent deploys via git push need only one.
 
 ### 5c: Health check
 
 ```bash
-curl -s <url>/api/health
+curl -s <canonical_url>/api/health
 ```
 Parse the JSON response. Each service returns `"ok"` or an error message.
 
@@ -293,7 +296,7 @@ If any health check fails, diagnose and attempt to fix:
 
 After all fixable issues are addressed:
 - If any env vars were changed → batch into a single redeploy: `vercel --prod --yes`
-- Re-run health check: `curl -s <url>/api/health`
+- Re-run health check: `curl -s <canonical_url>/api/health`
 
 If still failing after 1 fix round → report precise per-service diagnosis with actionable next steps.
 
@@ -314,7 +317,7 @@ Print a deployment summary:
 ```
 ## Deployment Complete
 
-**Live URL:** https://<custom-domain if configured, otherwise deployment-url>
+**Live URL:** https://<canonical_url>
 **Supabase Dashboard:** https://supabase.com/dashboard/project/<ref>
 **Vercel Dashboard:** https://vercel.com/<team>/<name>
 
@@ -326,11 +329,11 @@ Print a deployment summary:
 [If domain add succeeded] **Custom domain:** https://<name>.<domain>
 [If domain add failed] **Custom domain (manual):** Run `vercel domains add <name>.<domain>` after verifying wildcard DNS (CNAME `*` → `cname.vercel-dns.com`, DNS Only).
 
-[If auth] **Auth redirect URLs:** Configured — site_url set to https://<deployment-url>
+[If auth] **Auth redirect URLs:** Configured — site_url set to https://<canonical_url>
 [If auth] **Email subjects:** Configured — confirmation, recovery, and magic link emails use app name
-[If payment AND Stripe CLI was available] **Stripe webhook:** Configured — endpoint https://<deployment-url>/api/webhooks/stripe, events: checkout.session.completed
+[If payment AND Stripe CLI was available] **Stripe webhook:** Configured — endpoint https://<canonical_url>/api/webhooks/stripe, events: checkout.session.completed
 [If payment AND Stripe CLI was NOT available] **Stripe webhook (manual):** Add the webhook URL in Stripe Dashboard → Developers → Webhooks:
-  Endpoint URL: https://<deployment-url>/api/webhooks/stripe
+  Endpoint URL: https://<canonical_url>/api/webhooks/stripe
   Events: checkout.session.completed
 [If any health check failed] **Action needed:** [list failing services with fix commands]
 
