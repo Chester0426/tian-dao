@@ -2,9 +2,10 @@
 assumes: []
 packages:
   runtime: [next, react, react-dom]
-  dev: [typescript, "@types/react", "@types/node", eslint, eslint-config-next]
+  dev: [typescript, "@types/react", "@types/node", eslint, "@eslint/js", typescript-eslint]
 files:
   - .nvmrc
+  - eslint.config.mjs
   - src/app/layout.tsx
   - src/app/page.tsx
   - src/app/not-found.tsx
@@ -15,7 +16,7 @@ env:
   client: []
 ci_placeholders: {}
 clean:
-  files: [.nvmrc, package.json, package-lock.json, tsconfig.json, next.config.ts, next-env.d.ts]
+  files: [.nvmrc, package.json, package-lock.json, tsconfig.json, next.config.ts, next-env.d.ts, eslint.config.mjs]
   dirs: [node_modules, .next, out]
 gitignore: [.next/, out/]
 ---
@@ -25,14 +26,26 @@ gitignore: [.next/, out/]
 ## Packages
 ```bash
 npm install next react react-dom
-npm install -D typescript @types/react @types/node eslint eslint-config-next
+npm install -D typescript @types/react @types/node eslint @eslint/js typescript-eslint
 ```
 
 ## Project Setup
 - `.nvmrc`: containing `20` (used by CI and local version managers)
-- `package.json`: `scripts` with `prebuild` (auto-migrate, see database stack file), `dev`, `build`, `start`, `lint` and `engines: { "node": ">=20" }`
+- `package.json`: `scripts` with `prebuild` (auto-migrate, see database stack file), `dev`, `build`, `start`, `lint` (`eslint src/`) and `engines: { "node": ">=20" }`
 - `tsconfig.json`: enable `strict: true` and `@/` path alias mapping to `src/`
 - `next.config.ts`: minimal, no custom config
+
+### `eslint.config.mjs`
+```js
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
+
+export default tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  { ignores: [".next/", "out/", "node_modules/"] }
+);
+```
 
 ## File Structure
 ```
@@ -57,6 +70,10 @@ src/
 - One `page.tsx` per route folder
 - `layout.tsx` for root layout only
 - Import analytics tracking functions in every page that fires events (see analytics stack file for exports)
+- Exception: when a page needs both `generateStaticParams()` (server export) and client-side hooks (`useEffect`, analytics tracking), split into two files:
+  - `page.tsx` — server component, exports `generateStaticParams`, imports and renders the client component with props
+  - `<name>-client.tsx` — `"use client"`, receives props, handles interactivity and analytics
+  Next.js does not allow `generateStaticParams` in `"use client"` components.
 
 ## API Route Conventions
 - Route handlers in `src/app/api/<resource>/route.ts`
