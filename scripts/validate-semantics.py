@@ -373,11 +373,11 @@ if os.path.isdir(fixture_dir):
                                 f"assertions.skippable_events"
                             )
             else:
-                # Service: visit_landing, signup_start, signup_complete must be skippable
+                # Non-web-app (service, cli, etc.): visit_landing, signup_start, signup_complete must be skippable
                 for ev in ["visit_landing", "signup_start", "signup_complete"]:
                     if ev not in skippable:
                         error(
-                            f"[3] {ff}: service type but '{ev}' not in "
+                            f"[3] {ff}: {fixture_type} type but '{ev}' not in "
                             f"assertions.skippable_events"
                         )
 
@@ -398,6 +398,16 @@ if os.path.isdir(fixture_dir):
                     error(
                         f"[3] {ff}: idea has {len(endpoints)} endpoint(s) but "
                         f"assertions.min_endpoints is {min_endpoints}"
+                    )
+
+            # Validate min_commands matches actual command count
+            commands = idea.get("commands", [])
+            min_commands = assertions.get("min_commands")
+            if min_commands is not None and isinstance(commands, list):
+                if len(commands) < min_commands:
+                    error(
+                        f"[3] {ff}: idea has {len(commands)} command(s) but "
+                        f"assertions.min_commands is {min_commands}"
                     )
 
             # Validate variant assertions and structure

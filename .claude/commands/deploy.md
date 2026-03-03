@@ -22,7 +22,7 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 2. Verify on `main` branch with clean working tree (`git status --porcelain` is empty). If not, stop: "Switch to main with a clean working tree before deploying."
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
-5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
+5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`, stop: "The /deploy skill does not apply to CLI tools. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file." The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
 6. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
 7. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
    - `which vercel` — if not found, stop: "Vercel CLI not installed. Install: `npm i -g vercel`"
