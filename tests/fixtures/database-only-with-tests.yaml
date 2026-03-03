@@ -6,6 +6,7 @@ idea:
   title: DB+Tests — Public App with Database and E2E Tests
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Users need a public data browser to explore open datasets without needing to sign in.
