@@ -6,7 +6,7 @@ name: quickbill
 title: QuickBill — Dead-Simple Invoicing for Freelancers
 owner: sarah
 template_repo: acme/experiment-template  # GitHub repo where retro feedback is filed
-type: web-app                  # Product archetype (web-app | agent-service | api). Default: web-app.
+type: web-app                  # Product archetype (web-app | service | cli). Default: web-app.
 
 # --- Problem & Solution ---
 problem: |
