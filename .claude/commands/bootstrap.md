@@ -31,7 +31,8 @@ DO NOT write any code, create any files, or run any install commands during this
    - Read `EVENTS.yaml` — these are the canonical analytics events to wire up
    - Read `CLAUDE.md` — these are the rules to follow
 
-2. **Resolve the stack**
+2. **Resolve the archetype and stack**
+   - Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). The archetype defines required idea.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance.
    - Read idea.yaml `stack`. For each category present in idea.yaml `stack` (always: framework, analytics, ui, hosting; optional: database, auth, payment, email, testing), read `.claude/stacks/<category>/<value>.md`.
    - If a stack file doesn't exist for a given value:
      1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
@@ -48,9 +49,10 @@ DO NOT write any code, create any files, or run any install commands during this
    - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in idea.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
 
 3. **Validate idea.yaml**
-   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `title`, `owner`, `problem`, `solution`, `target_user`, `distribution`, `pages`, `features`, `primary_metric`, `target_value`, `measurement_window`, `stack`
+   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `title`, `owner`, `problem`, `solution`, `target_user`, `distribution`, `features`, `primary_metric`, `target_value`, `measurement_window`, `stack`, plus fields from the archetype's `required_idea_fields` (e.g., `pages` for web-app, `endpoints` for service)
    - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
-   - Verify `pages` includes an entry with `name: landing` (required)
+   - If the archetype requires `pages` (web-app): verify `pages` includes an entry with `name: landing`
+   - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
    - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."

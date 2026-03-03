@@ -2,6 +2,7 @@
 
 Scannable reference listing all automated checks by name, grouped by validator.
 69 active checks consolidated into 65 inventory rows.
+Checks 3 and 7 are archetype-aware — they read `required_idea_fields` and `excluded_stacks` from archetype frontmatter.
 
 Last updated: 2026-03-03
 

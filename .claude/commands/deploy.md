@@ -22,14 +22,15 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 2. Verify on `main` branch with clean working tree (`git status --porcelain` is empty). If not, stop: "Switch to main with a clean working tree before deploying."
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
-5. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
-6. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
+5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
+6. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
+7. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
    - `which vercel` — if not found, stop: "Vercel CLI not installed. Install: `npm i -g vercel`"
    - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
    - If `stack.database: supabase`: `which supabase` — if not found, stop: "Supabase CLI not installed. Install: `brew install supabase/tap/supabase` (macOS/Linux) or see https://supabase.com/docs/guides/cli/getting-started"
    - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `supabase login` first (one-time per machine)."
    - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
-7. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
+8. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
    - `which <cli>` — record `cli_status: not_installed` (with install command) if not found
    - If found, run auth check — record `cli_status: not_authed` if fails
    - If both pass — record `cli_status: ready`

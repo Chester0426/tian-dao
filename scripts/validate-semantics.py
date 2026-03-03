@@ -127,7 +127,7 @@ for sf in skill_files:
         skill_contents[sf] = f.read()
 
 # Required fields for idea.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
-REQUIRED_IDEA_FIELDS = [
+BASE_REQUIRED_IDEA_FIELDS = [
     "name",
     "title",
     "owner",
@@ -135,13 +135,28 @@ REQUIRED_IDEA_FIELDS = [
     "solution",
     "target_user",
     "distribution",
-    "pages",
     "features",
     "primary_metric",
     "target_value",
     "measurement_window",
     "stack",
 ]
+
+
+def get_required_idea_fields(idea_type: str | None = None) -> list[str]:
+    """Return required idea.yaml fields based on archetype type."""
+    effective = idea_type if idea_type else "web-app"
+    archetype_path = f".claude/archetypes/{effective}.md"
+    extra = ["pages"]  # fallback if archetype file missing
+    if os.path.isfile(archetype_path):
+        fm = parse_frontmatter(archetype_path)
+        if fm and "required_idea_fields" in fm:
+            extra = fm["required_idea_fields"]
+    return BASE_REQUIRED_IDEA_FIELDS + extra
+
+
+# Default for web-app — used by Check 6 (consistency with Makefile)
+REQUIRED_IDEA_FIELDS = get_required_idea_fields("web-app")
 
 # ---------------------------------------------------------------------------
 # Check 1: Import Completeness in TSX Templates
@@ -268,6 +283,7 @@ if os.path.isfile(makefile_path):
 # ---------------------------------------------------------------------------
 
 fixture_dir = "tests/fixtures"
+fixture_type_map: dict[str, str] = {}
 if os.path.isdir(fixture_dir):
     fixture_files = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
 
@@ -304,19 +320,27 @@ if os.path.isdir(fixture_dir):
                 f"a letter, and use only a-z, 0-9, hyphens"
             )
 
+        # Resolve per-fixture archetype required fields
+        fixture_type = idea.get("type", "web-app")
+        fixture_type_map[ff] = fixture_type
+        fixture_required = get_required_idea_fields(fixture_type)
+
         # Validate required idea fields
-        for field in REQUIRED_IDEA_FIELDS:
+        for field in fixture_required:
             if not idea.get(field):
                 error(f"[3] {ff}: idea.{field} is missing or empty")
 
-        # Validate pages includes landing
-        pages = idea.get("pages", [])
-        if isinstance(pages, list):
-            has_landing = any(
-                isinstance(p, dict) and p.get("name") == "landing" for p in pages
-            )
-            if not has_landing:
-                error(f"[3] {ff}: idea.pages must include a 'landing' entry")
+        # Validate pages includes landing (only for archetypes requiring pages)
+        if "pages" in fixture_required:
+            pages = idea.get("pages", [])
+            if isinstance(pages, list):
+                has_landing = any(
+                    isinstance(p, dict) and p.get("name") == "landing" for p in pages
+                )
+                if not has_landing:
+                    error(f"[3] {ff}: idea.pages must include a 'landing' entry")
+        else:
+            pages = []  # no pages for service archetype
 
         # Validate assertions
         assertions = fixture.get("assertions", {})
@@ -331,18 +355,29 @@ if os.path.isdir(fixture_dir):
                     f"idea.stack has no payment entry"
                 )
 
-            # If no signup page, signup events should be in skippable
-            has_signup = False
-            if isinstance(pages, list):
-                has_signup = any(
-                    isinstance(p, dict) and p.get("name") == "signup" for p in pages
-                )
+            # Signup and landing event checks — archetype-aware
             skippable = assertions.get("skippable_events", [])
-            if not has_signup:
-                for ev in ["signup_start", "signup_complete"]:
+            if "pages" in fixture_required:
+                # Web-app: if no signup page, signup events should be in skippable
+                has_signup = False
+                if isinstance(pages, list):
+                    has_signup = any(
+                        isinstance(p, dict) and p.get("name") == "signup"
+                        for p in pages
+                    )
+                if not has_signup:
+                    for ev in ["signup_start", "signup_complete"]:
+                        if ev not in skippable:
+                            error(
+                                f"[3] {ff}: no signup page but '{ev}' not in "
+                                f"assertions.skippable_events"
+                            )
+            else:
+                # Service: visit_landing, signup_start, signup_complete must be skippable
+                for ev in ["visit_landing", "signup_start", "signup_complete"]:
                     if ev not in skippable:
                         error(
-                            f"[3] {ff}: no signup page but '{ev}' not in "
+                            f"[3] {ff}: service type but '{ev}' not in "
                             f"assertions.skippable_events"
                         )
 
@@ -353,6 +388,16 @@ if os.path.isdir(fixture_dir):
                     error(
                         f"[3] {ff}: idea has {len(pages)} page(s) but "
                         f"assertions.min_pages is {min_pages}"
+                    )
+
+            # Validate min_endpoints matches actual endpoint count
+            endpoints = idea.get("endpoints", [])
+            min_endpoints = assertions.get("min_endpoints")
+            if min_endpoints is not None and isinstance(endpoints, list):
+                if len(endpoints) < min_endpoints:
+                    error(
+                        f"[3] {ff}: idea has {len(endpoints)} endpoint(s) but "
+                        f"assertions.min_endpoints is {min_endpoints}"
                     )
 
             # Validate variant assertions and structure
@@ -637,7 +682,17 @@ if os.path.isdir(fixture_dir):
 
             for ff, pairs in fixture_stack_coverage.items():
                 fixture_cats = {p.split("/")[0] for p in pairs}
+                # Read archetype excluded_stacks for this fixture
+                ft = fixture_type_map.get(ff, "web-app")
+                excluded: set[str] = set()
+                arch_path = f".claude/archetypes/{ft}.md"
+                if os.path.isfile(arch_path):
+                    afm = parse_frontmatter(arch_path)
+                    if afm:
+                        excluded = set(afm.get("excluded_stacks", []))
                 for cat in mandatory_cats:
+                    if cat in excluded:
+                        continue  # skip excluded categories for this archetype
                     if cat not in fixture_cats:
                         error(
                             f"[7] {ff}: missing mandatory stack category "
