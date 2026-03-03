@@ -301,7 +301,7 @@ Notes:
 - `retain_return` is skipped — requires 24h+ delay, untestable in E2E
 - Waitlist/form tests use timestamped emails (`funnel-${Date.now()}@test.example`) to avoid duplicate conflicts on re-runs
 - Unlike smoke tests (page-load only), funnel tests verify the actual user journey through the app
-- **CTA Repeat strict mode**: Landing pages following messaging.md Section B have a CTA Repeat section with the same button text as the hero. Selectors targeting CTA buttons or success messages on landing pages will match 2+ elements. Use `.first()` on these selectors (e.g., `page.getByRole("button", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
+- **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B required elements), so selectors targeting CTA buttons will match 2+ elements. Use `.first()` on these selectors (e.g., `page.getByRole("button", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
 
 ## Environment Variables
 ```

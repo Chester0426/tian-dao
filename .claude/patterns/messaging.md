@@ -35,30 +35,20 @@ Examples:
 
 Format: icon/emoji + short statement (e.g., "Manual invoicing wastes hours every week").
 
-## Section B: Landing Page Information Architecture
+## Section B: Landing Page Required Elements
 
-The proven high-converting structure that `/bootstrap` must follow:
+Every landing page must include all of these elements. The specific arrangement, styling, and visual treatment are chosen by the AI (with the frontend-design plugin when active) — there is no fixed section order.
 
-```
-Section 1: Hero (above the fold)
-  - Headline (from copy derivation rules)
-  - Subheadline (from copy derivation rules)
-  - Primary CTA (from copy derivation rules)
+**Required elements:**
+- **Value proposition above the fold**: headline + subheadline (derived from Section A rules)
+- **Primary CTA**: the call-to-action button (derived from Section A rules)
+- **Pain points or social proof**: derived from idea.yaml `problem` — 3 short statements addressing aspects of the pain
+- **Feature highlight**: derived from idea.yaml `features` — showcase what the product does
+- **CTA repeat**: the same CTA must appear at least twice on the page (once above the fold, once further down)
 
-Section 2: Pain Points (optional — include if problem has multiple aspects)
-  - 3 short pain-point statements from idea.yaml `problem`
-  - Format: icon/emoji + short statement
+When landing is the only page (features as sections), apply the same required elements but with feature sections being interactive rather than descriptive cards.
 
-Section 3: How It Works / Features
-  - 3 steps or feature cards from idea.yaml `features`
-  - Format: number + title + one-line description
-
-Section 4: CTA Repeat
-  - Same CTA button as hero
-  - Optional trust signal: "Free", "No credit card required", etc. (derived from features)
-```
-
-When landing is the only page (features as sections), apply the same structure but with feature sections being interactive rather than descriptive cards.
+> **Testing note**: Because the CTA appears 2+ times on landing pages, test selectors targeting CTA buttons must use `.first()` to avoid ambiguous matches.
 
 ## Section C: Message Match Rules
 
@@ -79,7 +69,7 @@ When idea.yaml has a `variants` field, these rules extend Sections A–C:
 - The variant copy IS the messaging — do not re-derive from solution/target_user.
 
 ### Landing Page Structure
-- Each variant uses the **same** Section B information architecture (Hero → Pain Points → Features → CTA Repeat).
+- Each variant uses the **same** page structure (chosen by AI at bootstrap). Variant fields slot into the shared layout.
 - Variant fields slot into Hero and Pain Points. Features section is shared across all variants (from idea.yaml `features`).
 
 ### Default Variant
