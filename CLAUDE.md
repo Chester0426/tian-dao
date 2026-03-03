@@ -30,6 +30,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 
 ## Rule 3: Use Stack from idea.yaml
 - Default stack: Next.js (App Router), Vercel, Supabase, PostHog, shadcn/ui
+- The optional `type` field in idea.yaml selects a product archetype (default: `web-app`). Each archetype is defined at `.claude/archetypes/<type>.md` and specifies required stacks, file structure, and funnel shape.
 - For each stack category in idea.yaml, there is a corresponding implementation file at `.claude/stacks/<category>/<value>.md`. Skills read these files to know which packages to install, which library files to create, and which patterns to follow.
 - To add support for a new technology (e.g., Firebase), create the corresponding stack file — don't modify skill files.
 - Do not add frameworks or libraries not listed in idea.yaml `stack` section

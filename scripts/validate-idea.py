@@ -28,6 +28,25 @@ if not re.fullmatch(r"[a-z][a-z0-9-]*", name):
     print("Example: my-experiment-1")
     sys.exit(1)
 
+# --- Product type (optional) ---
+idea_type = data.get("type")
+if idea_type is not None:
+    if not re.fullmatch(r"[a-z][a-z0-9-]*", str(idea_type)):
+        print(
+            f'Error: type "{idea_type}" must be lowercase, start with a letter, '
+            "and use only a-z, 0-9, hyphens."
+        )
+        print("Example: web-app")
+        sys.exit(1)
+    archetype_path = f".claude/archetypes/{idea_type}.md"
+    if not os.path.isfile(archetype_path):
+        print(f"  Warning: type '{idea_type}' — no file at {archetype_path}")
+        print(
+            "  Claude will use general knowledge for this archetype. "
+            "To fix: create the archetype file or change the type value."
+        )
+        warnings = True
+
 # --- Landing page ---
 pages = data.get("pages", [])
 if not any(p.get("name") == "landing" for p in pages):

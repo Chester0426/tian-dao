@@ -53,6 +53,7 @@ stack_files = sorted(
     if "TEMPLATE" not in f
 )
 skill_files = sorted(glob.glob(".claude/commands/*.md"))
+archetype_files = sorted(glob.glob(".claude/archetypes/*.md"))
 
 STACK_REQUIRED_KEYS = [
     "assumes",
@@ -71,6 +72,15 @@ SKILL_REQUIRED_KEYS = [
     "references",
     "branch_prefix",
     "modifies_specs",
+]
+ARCHETYPE_REQUIRED_KEYS = [
+    "description",
+    "required_stacks",
+    "optional_stacks",
+    "excluded_stacks",
+    "required_idea_fields",
+    "build_command",
+    "funnel_template",
 ]
 
 # ---------------------------------------------------------------------------
@@ -97,6 +107,21 @@ for sf, data in stack_data.items():
         dep_path = f".claude/stacks/{dep}.md"
         if not os.path.isfile(dep_path):
             error(f"[2] {sf}: assumes '{dep}' but {dep_path} does not exist")
+
+# ---------------------------------------------------------------------------
+# Check 2b: Archetype files have all required frontmatter keys
+# ---------------------------------------------------------------------------
+
+archetype_data: dict[str, dict] = {}
+for af in archetype_files:
+    data = parse_frontmatter(af)
+    if data is None:
+        error(f"[2b] {af}: missing frontmatter")
+        continue
+    archetype_data[af] = data
+    for key in ARCHETYPE_REQUIRED_KEYS:
+        if key not in data:
+            error(f"[2b] {af}: missing required key '{key}'")
 
 # ---------------------------------------------------------------------------
 # Check 3: Skill files have all required frontmatter keys
