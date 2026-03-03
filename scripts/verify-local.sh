@@ -102,10 +102,6 @@ if [ "$HAS_ENV_EXAMPLE" = true ] && [ ! -f .env.local ]; then
         echo "NEXT_PUBLIC_SUPABASE_URL=$LOCAL_SUPABASE_URL" ;;
       NEXT_PUBLIC_SUPABASE_ANON_KEY=*)
         echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$LOCAL_SUPABASE_ANON_KEY" ;;
-      NEXT_PUBLIC_POSTHOG_KEY=*)
-        echo "NEXT_PUBLIC_POSTHOG_KEY=phc_test" ;;
-      NEXT_PUBLIC_POSTHOG_HOST=*)
-        echo "NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com" ;;
       *)
         echo "$line" ;;
     esac

@@ -24,7 +24,7 @@ gitignore: []
 
 ## Packages
 ```bash
-npm install @supabase/supabase-js @supabase/ssr
+npm install @supabase/supabase-js @supabase/ssr pg
 ```
 
 ## Files to Create

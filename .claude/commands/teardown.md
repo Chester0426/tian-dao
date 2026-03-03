@@ -122,7 +122,7 @@ If fails: report "Vercel project — delete manually at https://vercel.com/<team
 ### 3e: Supabase project (if present in manifest)
 
 ```bash
-supabase projects delete <ref>
+supabase projects delete --project-ref <ref>
 ```
 The CLI will prompt for confirmation — this is expected.
 

@@ -289,7 +289,7 @@ After the PR is merged, attempt automated campaign creation if the channel suppo
    3. Walk the user through each setup step interactively
    4. As each credential is provided, save it: `mkdir -p <dir> && echo "$VALUE" > <path>`
    5. After all credentials are saved → proceed to **9d**
-   6. No "skip" option — credentials are required for campaign creation. If the user cannot set up credentials now, they should re-run `/distribute` later when ready.
+   6. If the user cannot set up credentials now, offer: "Type **skip** to open the PR without campaign creation. You can re-run `/distribute` later — Step 9b checks for `campaign_id` and picks up where you left off." If skipped, jump to Step 9f (manual fallback).
 
 ### 9d: STOP for approval
 
