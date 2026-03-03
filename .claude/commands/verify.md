@@ -22,7 +22,7 @@ Run E2E tests against the local dev server and fix any failures.
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`).
 - If `stack.testing` is present in idea.yaml, read `.claude/stacks/testing/<value>.md`. It specifies the test runner, test command, prerequisites, and configuration file. Do NOT hardcode any specific test runner. Then, while still inside this `stack.testing` guard:
   - Determine the test command (`playwright` → `npx playwright test`, `vitest` → `npx vitest run`, other → per stack file)
-  - Verify the configuration file exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest). If not: "No test configuration found. Add `testing: <value>` to idea.yaml `stack` and re-run `/bootstrap`, or run `/change add tests`."
+  - Verify the configuration file exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest). If not: "No test configuration found. Run `/change add tests` to set up testing."
   - Verify the required dev packages are in package.json devDependencies. If not: "Test runner is not installed. Run `npm install -D <packages listed in the stack file>`."
 
 ### Full-Auth prerequisite checks (only when testing stack file's `assumes` includes `database/supabase`)
