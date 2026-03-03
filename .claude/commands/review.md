@@ -58,7 +58,7 @@ agent's prompt from:
 > **Shared context instruction** — include verbatim in every subagent prompt:
 >
 > Before reviewing, read these files:
-> `scripts/check-inventory.md`, `CLAUDE.md`, `idea/idea.example.yaml`, `EVENTS.yaml`.
+> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `idea/idea.example.yaml`, `EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 **Dimension A: Cross-File Consistency**
@@ -80,6 +80,7 @@ Focus: Find configurations where skills or stack files would produce broken outp
 - A skill assumes auth exists but the idea.yaml has no `stack.auth`
 - A code template hard-codes a path that changes based on stack choices
 - A conditional branch in a skill handles 2 of 3 possible states
+- A skill's conditional branching handles 2 of 3 archetypes (e.g., web-app and service but not cli)
 - An edge case not covered by the test fixtures
 
 Files to read:
@@ -104,7 +105,10 @@ Files to read:
 - Glob `.claude/patterns/*.md` — read each pattern file
 - Read `Makefile`
 
-After reading: trace the user journey from `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`.
+After reading: trace the user journey for each archetype:
+- web-app: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`
+- service: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/iterate` → `/retro` → `/teardown`
+- cli: `make validate` → `/bootstrap` → merge → `/verify` → `npm publish` → `/change` → `/verify` → `/iterate` → `/retro`
 
 **Finding Format**
 
