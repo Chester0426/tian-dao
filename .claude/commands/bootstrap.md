@@ -156,9 +156,12 @@ DO NOT write any code, create any files, or run any install commands during this
    - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all features are descriptive, activate will be omitted" if no feature involves an interactive user action
 
    **Tests (if stack.testing present):**
-   - Template path: Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list])
-   - Smoke tests for: [list each page name]
-   - Funnel test: landing → [activate action] → login → [core value pages in order]
+   - Test runner: [testing stack value]
+   - [If web-app] Template path: Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list])
+   - [If web-app] Smoke tests for: [list each page name]
+   - [If web-app] Funnel test: landing → [activate action] → login → [core value pages]
+   - [If service] Endpoint smoke tests for: /api/health, [list each endpoint]
+   - [If cli] Command smoke tests for: --version, --help, [list each command] --help
 
    **Questions:**
    - [any ambiguities — or "None"]
@@ -365,6 +368,13 @@ If no features require database tables, skip this step.
 
 If `stack.testing` is present in idea.yaml:
 - Read the testing stack file at `.claude/stacks/testing/<value>.md`
+- Read the archetype file at `.claude/archetypes/<type>.md` to determine the archetype
+
+**Compatibility check:**
+- If archetype is `service` or `cli` and `stack.testing` is `playwright`: stop with error — "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` instead."
+- If archetype is `web-app` and `stack.testing` is `vitest`: warn — "Vitest does not provide page-load testing for web apps. Proceeding, but consider using `testing: playwright` for browser-based smoke tests." Then proceed.
+
+**If archetype is `web-app`:**
 - Check assumes: for each `category/value` in the testing stack file's `assumes` list, verify
   it matches idea.yaml `stack`. If all match → use full templates. If any unmet → use No-Auth
   Fallback templates.
@@ -404,7 +414,32 @@ If `stack.testing` is present in idea.yaml:
   template path (full-auth vs. no-auth fallback), replace the `e2e:` job with the
   testing stack file's correct CI Job Template for that path.
 - Add env vars from testing stack file to `.env.example` (based on chosen template path)
-- NOTE: Tests are NOT run during bootstrap — only created
+
+**If archetype is `service`:**
+- Install vitest packages: `npm install -D vitest @vitest/coverage-v8`
+- Create `vitest.config.ts` per the testing stack file's "Files to Create" section
+- Generate `tests/smoke.test.ts` per the testing stack file's "Bootstrap Smoke Tests > Service Smoke Tests" template:
+  - Import `app` from `../src/index` (the framework's exported app instance)
+  - Health check test: `app.request("/api/health")` → assert status 200
+  - One test per idea.yaml `endpoints` entry: `app.request("/api/<endpoint>")` → assert `not.toBe(500)`
+  - POST endpoints use empty JSON body — verifies route registration, not input validation
+  - For frameworks without `app.request()` (e.g., Virtuals ACP): test handler functions directly
+- Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
+- Add CI step per the testing stack file's "CI Integration" section
+
+**If archetype is `cli`:**
+- Install vitest packages: `npm install -D vitest @vitest/coverage-v8`
+- Create `vitest.config.ts` per the testing stack file's "Files to Create" section
+- Generate `tests/commands.test.ts` per the testing stack file's "Bootstrap Smoke Tests > CLI Smoke Tests" template:
+  - Helper `runCli(args)` that runs `node dist/index.js ${args}` via `execSync`, returns `{ stdout, exitCode }`
+  - `--version` test: assert exit 0 + semver pattern
+  - `--help` test: assert exit 0 + "Usage:" in output
+  - One test per idea.yaml `commands` entry: `<command> --help` → assert exit 0 + command name in output
+  - Note: requires `npm run build` first — CI runs build before test
+- Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
+- Add CI step per the testing stack file's "CI Integration" section
+
+NOTE: Tests are NOT run during bootstrap — only created
 
 If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
 
@@ -417,13 +452,26 @@ If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
 ### Step 8b: Spec compliance check
 
 Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these before proceeding to the PR:
-- For each page in `pages`: confirm `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
+
+**Archetype-specific structure checks:**
+- If archetype requires `pages` (web-app): for each page in `pages`, confirm `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
+- If archetype requires `endpoints` (service): for each endpoint in `endpoints`, confirm the API route exists (e.g., `src/routes/<endpoint>.ts` for Hono)
+- If archetype requires `commands` (cli): for each command in `commands`, confirm `src/commands/<command-name>.ts` exists
+
+**Feature and analytics checks:**
 - For each feature in `features`: confirm the implementation addresses it
-- For each standard_funnel event in `EVENTS.yaml`: confirm a tracking call exists in the appropriate page
+- If `funnel_template` is `web` (web-app): for each standard_funnel event in `EVENTS.yaml`, confirm a tracking call exists in the appropriate page
+- If `funnel_template` is `custom` (service/cli): confirm custom_events tracking calls exist (if any are defined in EVENTS.yaml)
 - If `stack.payment` is present: confirm the webhook handler does not contain `// TODO: Update user's payment status` (this compiles silently — verify it was resolved in Step 5/6)
 - If `stack.email` is present: confirm `vercel.json` contains the cron config, email routes exist, and welcome email is wired to auth callback
 - If Fake Door features exist: confirm Fake Door components exist, fire `activate` with `fake_door: true`, and render polished UI with a "coming soon" dialog
 - If core "Provision at deploy" routes exist: confirm they compile without real credentials and return 503 with actionable error when env vars are missing
+
+**Test file existence check (if `stack.testing` present):**
+- If archetype is `web-app`: confirm `e2e/smoke.spec.ts` exists
+- If archetype is `service`: confirm `tests/smoke.test.ts` exists
+- If archetype is `cli`: confirm `tests/commands.test.ts` exists
+
 - If anything is missing, implement it now. Do not proceed with gaps.
 
 ### Step 9: Commit, push, open PR
