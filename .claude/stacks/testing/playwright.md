@@ -248,7 +248,7 @@ test.describe.serial("User funnel", () => {
   });
 
   // Bootstrap generates tests for:
-  // 1. Landing page content verification (h1 text, CTA button visible)
+  // 1. Landing page content verification (h1 text, CTA visible)
   // 2. Activate action if landing has an interactive feature (e.g. waitlist form, use timestamped email)
   // 3. Login with test user → verify redirect to post-auth page
   // 4. Core value pages: navigate and verify content using real selectors from page source
@@ -258,7 +258,7 @@ test.describe.serial("User funnel", () => {
   // test("landing page shows pitch", async ({ page }) => {
   //   await page.goto("/");
   //   await expect(page.getByRole("heading", { name: /your h1 text/i })).toBeVisible();
-  //   await expect(page.getByRole("button", { name: /cta text/i })).toBeVisible();
+  //   await expect(page.getByRole("link", { name: /cta text/i })).toBeVisible();
   // });
   //
   // test("waitlist form submits", async ({ page }) => {
@@ -288,7 +288,7 @@ test.describe.serial("User funnel", () => {
   });
 
   // Bootstrap generates tests for:
-  // 1. Landing page content verification (h1 text, CTA button visible)
+  // 1. Landing page content verification (h1 text, CTA visible)
   // 2. Activate action if landing has an interactive feature
   // 3. Core value pages: navigate and verify content using real selectors
   // (No login test — auth is not configured)
@@ -301,7 +301,8 @@ Notes:
 - `retain_return` is skipped — requires 24h+ delay, untestable in E2E
 - Waitlist/form tests use timestamped emails (`funnel-${Date.now()}@test.example`) to avoid duplicate conflicts on re-runs
 - Unlike smoke tests (page-load only), funnel tests verify the actual user journey through the app
-- **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B required elements), so selectors targeting CTA buttons will match 2+ elements. Use `.first()` on these selectors (e.g., `page.getByRole("button", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
+- **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B required elements), so selectors targeting CTAs will match 2+ elements. Use `.first()` on these selectors (e.g., `page.getByRole("link", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
+- **CTA selector role**: Landing page CTAs that navigate to another page use `<Button asChild><Link>`, which renders as `<a>` (role `"link"`). Use `getByRole("link")` for navigation CTAs. Use `getByRole("button")` only for CTAs that trigger actions (form submits, dialogs). Bootstrap determines the correct role by reading the actual page source.
 
 ## Environment Variables
 ```
