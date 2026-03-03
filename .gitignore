@@ -24,6 +24,9 @@ Thumbs.db
 # Vercel (update if you change stack.hosting)
 .vercel/
 
+# Deploy manifest (infrastructure state — not app code)
+.claude/deploy-manifest.json
+
 # TypeScript
 *.tsbuildinfo
 
