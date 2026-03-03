@@ -1,0 +1,53 @@
+# Test fixture: Service with Hono + SQLite — covers database/sqlite
+# Validates that service archetype works with the full Brigent stack (Hono + SQLite + Railway + Vitest).
+idea:
+  name: test-service-hono-sqlite
+  title: Bookmark API Service
+  owner: tester
+  template_repo: acme/experiment-template
+  type: service
+
+  problem: |
+    Developers need a simple bookmark API to store and retrieve saved links.
+
+  solution: |
+    A Hono-based API service with SQLite persistence for bookmark management.
+
+  target_user: Developers building bookmark features
+
+  distribution: |
+    API docs shared in developer communities.
+
+  endpoints:
+    - name: bookmarks
+      purpose: List and create bookmarks
+    - name: bookmark-detail
+      purpose: Get, update, or delete a single bookmark
+
+  features:
+    - Bookmark listing and creation endpoint
+    - Bookmark detail management endpoint
+
+  primary_metric: Bookmarks saved per day
+  target_value: "50 bookmarks in 1 week"
+  measurement_window: 1 week
+
+  stack:
+    framework: hono
+    database: sqlite
+    analytics: posthog
+    hosting: railway
+    testing: vitest
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User creates their first bookmark via the API
+    - event: retain_return
+      trigger: User makes a request after 24+ hours since last call
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_endpoints: 2
