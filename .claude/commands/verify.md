@@ -19,6 +19,7 @@ Run E2E tests against the local dev server and fix any failures.
 
 - Read `idea/idea.yaml` — understand pages, features, stack
 - Read `EVENTS.yaml` — understand tracked events
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If `stack.testing` is present, the test runner comes from the testing stack file — Playwright for web-app, but services may use a different runner (Vitest, Jest). Adapt test commands accordingly.
 - If `stack.testing` is present in idea.yaml, read `.claude/stacks/testing/<value>.md`
 - Verify `playwright.config.ts` exists. If not: "No test configuration found. Add
   `testing: playwright` to idea.yaml `stack` and re-run `/bootstrap`, or run

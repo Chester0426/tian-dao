@@ -31,6 +31,7 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 
 - Read `idea/idea.yaml` — understand the current scope, existing pages, existing features, target user, primary metric
 - Read `EVENTS.yaml` — understand existing analytics events (this is the canonical event list)
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references.
 - Resolve the stack: read idea.yaml `stack`. For each category, read `.claude/stacks/<category>/<value>.md`. If a stack file doesn't exist for a given value, generate it: read `.claude/stacks/TEMPLATE.md` for the schema, read existing files in the same category as reference, and create `.claude/stacks/<category>/<value>.md` with complete frontmatter and code templates. Run `python3 scripts/validate-frontmatter.py` to verify (max 2 fix attempts). If validation fails, stop: "Could not generate a valid stack file for `<category>/<value>`. Create it manually using TEMPLATE.md as a guide." File an observation per `.claude/patterns/observe.md` for the missing stack file.
 - Scan `src/app/` to understand the current page structure and codebase state
 

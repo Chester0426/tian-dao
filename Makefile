@@ -22,7 +22,7 @@ help: ## Show this help message
 	@echo "  /deploy          Deploy to Vercel + Supabase (first-time setup)"
 	@echo "  /review          Automated review-fix loop (maintainers only)"
 
-validate: ## Check idea.yaml for valid YAML, TODOs, name format, and landing page
+validate: ## Check idea.yaml for valid YAML, TODOs, name format, and structure
 	@echo "Validating idea/idea.yaml..."
 	@if [ ! -f idea/idea.yaml ]; then \
 		echo "Error: idea/idea.yaml not found. Copy the example: cp idea/idea.example.yaml idea/idea.yaml"; \
@@ -51,7 +51,7 @@ validate: ## Check idea.yaml for valid YAML, TODOs, name format, and landing pag
 		echo "Replace every TODO before running make bootstrap."; \
 		exit 1; \
 	fi
-	@# validate-idea.py checks: name format, landing page, required fields, stack files, testing warning, assumes
+	@# validate-idea.py checks: name format, archetype structure, required fields, stack files, testing warning, assumes
 	@STACK_WARN=0; \
 	python3 scripts/validate-idea.py || STACK_WARN=$$?; \
 	if [ "$$STACK_WARN" -ne 0 ] && [ "$$STACK_WARN" -ne 2 ]; then exit 1; fi; \

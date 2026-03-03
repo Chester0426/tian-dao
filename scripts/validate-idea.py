@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate idea.yaml structure: name format, landing page, required fields,
+"""Validate idea.yaml structure: name format, archetype structure, required fields,
 stack file existence, testing warning, and stack assumes consistency.
 
 Exit codes:
@@ -47,19 +47,33 @@ if idea_type is not None:
         )
         warnings = True
 
-# --- Landing page ---
+# --- Resolve archetype metadata ---
+effective_type = idea_type if idea_type is not None else "web-app"
+archetype_path_resolved = f".claude/archetypes/{effective_type}.md"
+archetype_fm = {}
+if os.path.isfile(archetype_path_resolved):
+    with open(archetype_path_resolved) as af:
+        _content = af.read()
+    _m = re.match(r"^---\n(.*?\n)---", _content, re.DOTALL)
+    if _m:
+        archetype_fm = yaml.safe_load(_m.group(1)) or {}
+archetype_required = archetype_fm.get("required_idea_fields", ["pages"])
+
+# --- Landing page (only for archetypes that require pages) ---
 pages = data.get("pages", [])
-if not any(p.get("name") == "landing" for p in pages):
-    print("Error: pages must include an entry with name: landing")
-    print("Add a landing page to the pages list in idea.yaml.")
-    sys.exit(1)
+if "pages" in archetype_required:
+    if not any(p.get("name") == "landing" for p in pages):
+        print("Error: pages must include an entry with name: landing")
+        print("Add a landing page to the pages list in idea.yaml.")
+        sys.exit(1)
 
 # --- Required fields ---
-required = [
+base_required = [
     "name", "title", "owner", "problem", "solution", "target_user",
-    "distribution", "pages", "features", "primary_metric", "target_value",
+    "distribution", "features", "primary_metric", "target_value",
     "measurement_window", "stack",
 ]
+required = base_required + archetype_required
 missing = [f for f in required if not data.get(f)]
 if missing:
     print("Error: these required fields are missing or empty: " + ", ".join(missing))

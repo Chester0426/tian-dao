@@ -7,7 +7,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 ## Rule 0: Scope Lock
 - Only build what is described in `idea/idea.yaml`
 - If a feature isn't listed in `features`, don't build it
-- If a page isn't listed in `pages`, don't create it
+- If a page isn't listed in `pages` (web-app) or an endpoint isn't listed in `endpoints` (service), don't create it
 - If you're unsure whether something is in scope, it isn't
 - To add a new feature, use the /change skill — it updates idea.yaml first, then implements
 - When asked to do something outside a defined skill (/bootstrap, /change, /deploy, /distribute, /iterate, /retro, /review, /teardown, /verify), ask the user to clarify before proceeding
@@ -20,7 +20,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Fill in the PR template at `.github/PULL_REQUEST_TEMPLATE.md` for every PR
 
 ## Rule 2: Analytics Mandatory
-- Every page and user action must fire events defined in `EVENTS.yaml` — that file is the **canonical** list of all events; always read it for the full specification
+- Every page (web-app) or endpoint (service) and user action must fire events defined in `EVENTS.yaml` — that file is the **canonical** list of all events; always read it for the full specification
 - Use the analytics library for all tracking calls — never call the analytics provider directly. See your analytics stack file (`.claude/stacks/analytics/<value>.md`) for the file path, exports, and import conventions.
 - Use typed event wrappers (see analytics stack file) for standard and payment funnel events — this provides compile-time validation. For custom events, use the generic `track()` function. For server-side events (webhooks, API routes), use `trackServerEvent()` from the server analytics library with the event name as a string — typed wrappers are client-side only.
 - The analytics library auto-attaches global properties defined in EVENTS.yaml `global_properties` to every event — these distinguish experiments in the shared analytics project.
@@ -50,7 +50,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Skills use the verification procedure in `.claude/patterns/verify.md` (3-attempt retry with error tracking)
 - No broken imports, no missing env vars in code
 - Reference `.env.example` for all environment variables
-- Every page must render without runtime errors
+- Every page (web-app) must render and every endpoint (service) must respond without runtime errors
 
 ## Rule 6: Security Baseline
 - Secrets go in environment variables, never in code
@@ -73,6 +73,17 @@ src/
 idea/               # idea.yaml lives here
 ```
 > This tree shows the default layout (Next.js). See your framework stack file for the actual file structure and extensions.
+> For `type: service`, the structure replaces page folders with API routes only:
+> ```
+> src/
+>   app/
+>     api/            # API route handlers (one per idea.yaml endpoint)
+>       <endpoint>/
+>         route.ts    # Route handler
+>   lib/              # Utilities
+>     analytics.*     # Server-side analytics only for services
+> idea/               # idea.yaml lives here
+> ```
 - One component per file
 - Colocate page-specific components in the page's folder
 - API routes: see your framework stack file for the route handler convention
