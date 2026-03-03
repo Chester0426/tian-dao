@@ -92,11 +92,12 @@ Skip this step if `stack.database` is not `supabase`.
    - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
 6. Construct URLs:
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://<ref>.supabase.co`
-   - `POSTGRES_URL_NON_POOLING`: query the pooler config to get the correct hostname:
+   - `POSTGRES_URL_NON_POOLING`: query the pooler config to get the correct hostname. **Important:** query this AFTER Step 3.4 confirms the project is ACTIVE_HEALTHY. The pooler API may lag behind the project status API by several seconds.
      ```bash
      curl -s "https://api.supabase.com/v1/projects/<ref>/config/database/pooler" \
        -H "Authorization: Bearer <token>"
      ```
+     If the response is empty (`[]`), wait 5s and retry (max 3 attempts). If still empty after 3 attempts, stop: "Pooler config not available yet. Wait a minute and re-run `/deploy`."
      Use the `host` from the response with port `5432` (session mode = direct connection):
      `postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres`
 7. Link the local project:
@@ -123,7 +124,7 @@ Skip this step if `stack.database` is not `supabase`.
 
    Attempt to add the domain to the Vercel project (requires only the project to exist, not a deployment):
    ```bash
-   vercel domains add <name>.<domain>
+   vercel domains add <name>.<domain> --scope "<team>"
    ```
 
    - If this succeeds: `canonical_url` = `<name>.<domain>`, `domain_added` = true. The custom domain is live (wildcard DNS is pre-configured).
@@ -142,9 +143,12 @@ Skip this step if `stack.database` is not `supabase`.
 
 4. Set environment variables for both `production` and `preview`:
    ```bash
+   # Production — piped input works reliably
    echo "<value>" | vercel env add <KEY> production --force
-   echo "<value>" | vercel env add <KEY> preview --force
+   # Preview — requires explicit git branch (Vercel CLI v50+ rejects piped input without it)
+   vercel env add <KEY> preview --git-branch main --force --yes <<< "<value>"
    ```
+   If the preview command fails, warn: "Could not set `<KEY>` for preview. Set it manually in Vercel Dashboard → Project → Settings → Environment Variables." Continue with the remaining variables — preview env vars are non-blocking.
 
    Variables to set (when `stack.database: supabase`):
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -203,7 +207,7 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
    Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel:
    ```bash
    echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force
-   echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET preview --force
+   vercel env add STRIPE_WEBHOOK_SECRET preview --git-branch main --force --yes <<< "<whsec_secret>"
    ```
 
 3. **PostHog experiment dashboard** (if `stack.analytics: posthog`):
