@@ -210,7 +210,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - Sub-step 6a — Data and server layer (migrations, types, API routes)
   - Re-read `.claude/current-plan.md` to confirm sub-step 6a output aligns with the approved plan.
   - Checkpoint: run `npm run build`. Fix errors before proceeding. If still broken after 2 attempts, proceed to Sub-step 6b without retrying — Step 7 (verification) has its own 3-attempt retry budget.
-  - Sub-step 6b — Client layer (pages, components, analytics wiring)
+  - Sub-step 6b — Client/output layer (pages/endpoints/commands, components if applicable, analytics wiring)
 
 #### Upgrade constraints
 - Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as bootstrap Step 4b.6
@@ -229,7 +229,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
-- Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. Landing page must include all required elements from messaging.md Section B. When idea.yaml has `variants`, variant messaging fields (`headline`, `subheadline`, `cta`, `pain_points`) override Section A derivation — see messaging.md Section D.
+- Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. If the archetype includes a landing page (web-app): landing page must include all required elements from messaging.md Section B. When idea.yaml has `variants`, variant messaging fields (`headline`, `subheadline`, `cta`, `pain_points`) override Section A derivation — see messaging.md Section D.
 - Visual design: follow `.claude/patterns/design.md` quality invariants. Read existing pages and maintain visual consistency with the established design direction.
 - Remove anything that doesn't serve conversion. Keep above-the-fold to: headline, subheadline, CTA.
 - Count steps between CTA click and first value moment — remove or defer unnecessary fields
@@ -244,10 +244,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - Only add custom events the user explicitly approved
 
 #### Test constraints
-- If `playwright.config.ts` already exists (e.g., from bootstrap): do NOT recreate
-  playwright.config.ts, e2e/helpers.ts, or global-setup/teardown files. Only add or
-  modify test cases in `e2e/smoke.spec.ts` (or additional spec files). If
-  `playwright.config.ts` does NOT exist, follow the full setup procedure below.
+- If the testing stack file's configuration file already exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest — from bootstrap): do NOT recreate configuration, helper, or setup/teardown files. Only add or modify test case files. If the configuration file does NOT exist, follow the full setup procedure below.
 - Do NOT modify application code — tests observe the app, they don't change it
 - Install packages per the testing stack file, create config and helpers per the testing stack file templates
 - Test funnel happy path only — skip error states, edge cases, and `retain_return`
@@ -270,8 +267,12 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - **Fix**: trace the bug report's user flow through code to confirm it's fixed.
   - **Polish**: open each changed file and confirm analytics imports and event calls are intact.
   - **Analytics**: re-trace each standard funnel event through the code to confirm it now fires correctly.
-  - **Test**: run `npx playwright test --list` to verify test discovery works. If test discovery fails, treat it as a build error — fix the test files and re-run. If still failing after the verify.md retry budget, report to the user with the error output.
-  - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `idea/idea.yaml`. For each page in `pages`, confirm `src/app/<page-name>/page.tsx` exists. For each feature in `features`, confirm the implementation addresses it. For each event in `EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
+  - **Test**: verify test discovery works by running the testing stack file's test command in dry-run/list mode (e.g., `npx playwright test --list` for Playwright, `npx vitest run --reporter=verbose` for Vitest). If test discovery fails, treat it as a build error — fix the test files and re-run. If still failing after the verify.md retry budget, report to the user with the error output.
+  - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `idea/idea.yaml`. Verify implementation matches the archetype's primary units:
+    - If archetype requires `pages`: confirm `src/app/<page-name>/page.tsx` exists for each page in idea.yaml `pages`
+    - If archetype requires `endpoints`: confirm API route exists for each endpoint in idea.yaml `endpoints` (path depends on framework stack file)
+    - If archetype requires `commands` (cli): confirm `src/commands/<command-name>.ts` exists for each entry in the idea.yaml command list
+    - For each feature in `features`, confirm the implementation addresses it. For each event in `EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
 
 ### Step 8: Commit, push, open PR
 - You are already on a feature branch (created in Step 0). Do not create another branch.

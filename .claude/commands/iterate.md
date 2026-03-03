@@ -27,7 +27,10 @@ This skill does NOT write code. It helps you decide what action to take, then po
   - What does success look like? (`primary_metric`, `target_value`)
   - How long do we have? (`measurement_window`)
   - What features exist? (`features`)
-  - What pages exist? (`pages`)
+  - What is the scope? (`pages` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_idea_fields`)
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). Note the `funnel_template` value:
+  - `web` (web-app) — funnel events come from EVENTS.yaml `standard_funnel`
+  - `custom` (service, cli) — funnel events come from EVENTS.yaml `custom_events` and the experiment's own event definitions
 - Read `EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
 
 ## Step 2: Gather funnel data and user feedback
@@ -61,11 +64,17 @@ If the analytics stack file has no "Auto Query" section, or credentials are miss
 Tell the user how to get the numbers. See the analytics stack file's "Dashboard Navigation" section for provider-specific instructions on how to pull funnel numbers. If no stack file exists or it lacks a "Dashboard Navigation" section, give general guidance.
 
 > **How to get your funnel numbers:**
-> Follow the dashboard instructions in your analytics stack file (`.claude/stacks/analytics/<value>.md`). Create a funnel using the events from EVENTS.yaml `standard_funnel` in the order listed, then append `payment_funnel` events if `stack.payment` is present. Filter by `project_name` equals your idea.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
+> Follow the dashboard instructions in your analytics stack file (`.claude/stacks/analytics/<value>.md`).
+>
+> If `funnel_template` is `web` (web-app): create a funnel using events from EVENTS.yaml `standard_funnel` in the order listed, then append `payment_funnel` events if `stack.payment` is present.
+>
+> If `funnel_template` is `custom` (service, cli): create a funnel using events from EVENTS.yaml `custom_events`. If `custom_events` is empty, use the typical events suggested in the archetype file (e.g., `api_call` → `activate` → `retain_return` for services, `command_run` → `activate` → `retain_return` for CLIs). Also include `payment_funnel` events if `stack.payment` is present.
+>
+> Filter by `project_name` equals your idea.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
 > If you haven't deployed yet, the app isn't collecting data — run `/deploy` first, then return to `/iterate` after a few days of live traffic. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
-Ask the user to provide funnel numbers — for each event in EVENTS.yaml `standard_funnel` (and `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
+Ask the user to provide funnel numbers — for each event in the funnel (from `standard_funnel` for web-app or `custom_events` for service/cli, plus `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
 
 ### 2c: Ask for qualitative data
 
@@ -149,9 +158,9 @@ Analyze the data to find where the funnel breaks. Present a funnel visualization
 
 | Stage | Count | Conversion | Diagnosis |
 |-------|-------|-----------|-----------|
-| [1st standard_funnel event] | [count] | — | [diagnosis] |
-| [2nd standard_funnel event] | [count] | [%] | ⚠️/✅/❌ [specific diagnosis] |
-| ... (one row per EVENTS.yaml standard_funnel event) | ... | ... | ... |
+| [1st funnel event] | [count] | — | [diagnosis] |
+| [2nd funnel event] | [count] | [%] | ⚠️/✅/❌ [specific diagnosis] |
+| ... (one row per funnel event — from standard_funnel or custom_events depending on archetype) | ... | ... | ... |
 | [payment_funnel events if stack.payment present] | ... | ... | ... |
 | [retain_return] | [count] | — | [retention diagnosis] |
 
@@ -222,6 +231,16 @@ Common patterns:
 | Low pay conversion | `/change improve pricing/payment UX` |
 | Low retention | `/change add [engagement hook]` |
 | Everything low | Reconsider `target_user` or `distribution` — may be a positioning problem, not a product problem |
+
+**Service/CLI bottleneck patterns (when `funnel_template` is `custom`):**
+
+| Bottleneck | Typical Actions |
+|-----------|----------------|
+| Low API calls / command runs | Distribution problem — how do users discover the service/CLI? |
+| Low activation (calls exist but no first-value action) | `/change simplify [activation action]` or improve onboarding |
+| Low retention | `/change add [engagement hook]` or improve core value delivery |
+| Everything low | Reconsider `target_user` or distribution channel |
+
 | One variant clearly wins | `/change` to consolidate — remove losing variant, make winner the sole landing page |
 | No variant winner | Extend test for more data, or `/change` to try a new messaging angle |
 

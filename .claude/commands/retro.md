@@ -27,7 +27,10 @@ Collect these data points and present a summary before asking questions:
    - Run `gh pr list --state all --limit 50` — report PR counts (merged, open, closed)
 
 2. **App scope**
-   - Count page directories in `src/app/` (excluding `api/`)
+   - Count primary units based on archetype (read `.claude/archetypes/<type>.md`, type from idea.yaml, default `web-app`):
+     - web-app: count page directories in `src/app/` (excluding `api/`)
+     - service: count API route directories (e.g., `src/app/api/` or `src/routes/`)
+     - cli: count command modules in `src/commands/`
    - Count production dependencies from `package.json` (if it exists)
 
 3. **Spec files**
