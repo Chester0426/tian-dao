@@ -98,6 +98,13 @@ gh issue create \
   - Try filing manually by copying the retro content above
 - If the issue is created successfully, show the issue URL.
 
+## Step 5: Next steps
+
+After filing the retro, guide the user:
+- If the archetype is `web-app` or `service` and cloud infrastructure was deployed: "If you're done with this experiment, run `/teardown` to remove cloud resources (Vercel, Supabase, etc.)."
+- If the archetype is `cli`: "CLI tools have no cloud infrastructure to tear down. If you want to unpublish the npm package, run `npm unpublish <name>` (within 72 hours of publish) or deprecate it with `npm deprecate <name> \"Experiment concluded\"`."
+- For all archetypes: "Your source code, idea.yaml, and experiment history are preserved on the main branch."
+
 ## Do NOT
 - Modify any code files
 - Create branches or PRs

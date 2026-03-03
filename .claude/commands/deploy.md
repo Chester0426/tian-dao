@@ -392,10 +392,16 @@ Print a deployment summary:
 
 **Scheduled digest (recommended):** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
 
-**Next steps** (all optional — pick what fits your distribution plan):
+**Next steps** (all optional — pick what fits your experiment):
+[If web-app archetype]
 1. Share the live URL with target users and gather initial feedback
-2. Run `/distribute` to generate Google Ads config (only if using paid ads)
+2. Run `/distribute` to generate ad campaign config (only if using paid ads)
 3. After collecting data, run `/iterate` to analyze metrics and decide what to change
+4. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources
+[If service archetype]
+1. Share the API endpoint URL with target users (see `.claude/archetypes/service.md` Distribution section)
+2. After collecting data, run `/iterate` to analyze metrics and decide what to change
+3. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources
 ```
 
 ### Write deploy manifest

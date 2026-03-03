@@ -19,8 +19,8 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Use `gh pr create` to open PRs
 - Fill in the PR template at `.github/PULL_REQUEST_TEMPLATE.md` for every PR
 
-## Rule 2: Analytics Mandatory
-- Every page (web-app) or endpoint (service) and user action must fire events defined in `EVENTS.yaml` — that file is the **canonical** list of all events; always read it for the full specification
+## Rule 2: Analytics (when `stack.analytics` is present)
+- When `stack.analytics` is present in idea.yaml, every page (web-app) or endpoint (service) and user action must fire events defined in `EVENTS.yaml` — that file is the **canonical** list of all events; always read it for the full specification. When `stack.analytics` is absent, skip analytics implementation entirely.
 - Use the analytics library for all tracking calls — never call the analytics provider directly. See your analytics stack file (`.claude/stacks/analytics/<value>.md`) for the file path, exports, and import conventions.
 - Use typed event wrappers (see analytics stack file) for standard and payment funnel events — this provides compile-time validation. For custom events, use the generic `track()` function. For server-side events (webhooks, API routes), use `trackServerEvent(event, distinctId, properties?)` from the server analytics library — `distinctId` identifies the user (e.g., `user.id`; use `"server"` when no user context is available). Typed wrappers are client-side only.
 - The analytics library auto-attaches global properties defined in EVENTS.yaml `global_properties` to every event — these distinguish experiments in the shared analytics project.
