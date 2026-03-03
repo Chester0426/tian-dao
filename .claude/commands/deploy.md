@@ -362,6 +362,38 @@ Print a deployment summary:
 3. After collecting data, run `/iterate` to analyze metrics and decide what to change
 ```
 
+### Write deploy manifest
+
+Write `.claude/deploy-manifest.json` with the resources created during this deploy:
+
+```json
+{
+  "name": "<idea.yaml name>",
+  "canonical_url": "<canonical_url>",
+  "supabase": {
+    "ref": "<ref>",
+    "org_id": "<org-id>"
+  },
+  "vercel": {
+    "project": "<name>",
+    "team": "<team>",
+    "domain": "<domain or null>"
+  },
+  "posthog": {
+    "dashboard_id": "<id or null>"
+  },
+  "stripe": {
+    "webhook_endpoint_url": "<url or null>"
+  },
+  "external_services": ["<service-slug>", ...],
+  "deployed_at": "<ISO 8601 timestamp>"
+}
+```
+
+Omit sections for inactive stack categories (e.g., no `supabase` key if `stack.database` is absent). This manifest is consumed by `/teardown` to identify what to delete.
+
+If the write fails, warn but continue — the manifest is for convenience, not correctness.
+
 ## Idempotency
 
 This skill handles re-runs gracefully:
@@ -373,6 +405,7 @@ This skill handles re-runs gracefully:
 - Stripe webhook creation checks for existing endpoint before creating
 - Stripe CLI is a soft dependency — falls back to manual setup if not installed
 - `vercel domains add` is idempotent — adding an already-configured domain is a no-op
+- Re-running `/deploy` overwrites `.claude/deploy-manifest.json` with current resource state
 
 ## Do NOT
 
