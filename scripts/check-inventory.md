@@ -1,9 +1,9 @@
 # Check Inventory
 
 Scannable reference listing all automated checks by name, grouped by validator.
-66 active checks consolidated into 62 inventory rows.
+68 active checks consolidated into 64 inventory rows.
 
-Last updated: 2026-02-19
+Last updated: 2026-03-03
 
 ## Validation philosophy
 
@@ -77,6 +77,8 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify distribution docs references exist | If distribute.md or any `.claude/stacks/distribution/*.md` file contains a backtick-wrapped `docs/*.md` reference, that file must exist on disk |
 | Verify distribute skill validates analytics stack in idea.yaml | distribute.md preconditions section (Step 1) must validate that `stack.analytics` is present in idea.yaml before proceeding |
 | Verify distribute skill validates EVENTS.yaml custom_events structure | distribute.md preconditions section (Step 1) must reference `custom_events` near a stop/validation context (`stop`, `list`, `malformed`, or `missing` within 200 chars) |
+| Verify trackServerEvent calls are awaited in stack file code blocks | `trackServerEvent()` calls in stack file code blocks (excluding function definitions) must be preceded by `await` on the same line |
+| Verify Supabase CLI commands use correct flag syntax | Code blocks containing `supabase projects delete` must include the `--project-ref` flag |
 
 ## consistency-check.sh
 

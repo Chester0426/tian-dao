@@ -120,7 +120,7 @@ import { track } from "./analytics";
 
 // --- Standard funnel events (always generated) ---
 
-export function trackVisitLanding(props?: { referrer?: string; utm_source?: string }) {
+export function trackVisitLanding(props?: { variant?: string; referrer?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string; gclid?: string; click_id?: string; utm_content?: string }) {
   track("visit_landing", props);
 }
 
@@ -132,7 +132,7 @@ export function trackSignupComplete(props: { method: string }) {
   track("signup_complete", props);
 }
 
-export function trackActivate(props: { action: string }) {
+export function trackActivate(props: { action: string; fake_door?: boolean }) {
   track("activate", props);
 }
 

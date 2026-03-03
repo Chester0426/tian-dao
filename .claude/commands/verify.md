@@ -84,6 +84,7 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
   - **What Changed**: files modified and why
   - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
   - **Checklist**: standard checks
+- After PR is created, tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`), then run `/deploy`."
 
 ## Cleanup
 

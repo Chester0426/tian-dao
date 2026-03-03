@@ -199,10 +199,13 @@ Skip this step if `stack.database` is not `supabase`.
 Configure services using `canonical_url` (custom domain if added in Step 4.2, otherwise Vercel deployment URL). Batch all env var changes before redeploying.
 
 1. **Supabase Auth redirect URLs and email subjects** (if `stack.auth: supabase`):
+   If `stack.database` is not `supabase` (no Supabase project was created in Step 3), skip auth config — the project ref is unknown. Tell the user: "Auth redirect URLs must be configured manually in the Supabase Dashboard since no Supabase project was created during deploy."
+
    Read the Supabase access token. Try these locations in order:
    1. File: `~/.supabase/access-token`
    2. macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — if found, strip the `go-keyring-base64:` prefix and base64-decode the remainder
    3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here."
+      Once the user provides the token, persist it: `mkdir -p ~/.supabase && echo "$TOKEN" > ~/.supabase/access-token` (mirrors PostHog key persistence in Step 5b.3).
 
    Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
 
