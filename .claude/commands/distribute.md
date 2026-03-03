@@ -19,13 +19,14 @@ Generate a distribution campaign configuration from idea.yaml and implement dist
 
 This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and thresholds, then adds UTM/click ID capture and a feedback widget to the deployed app. The channel is selected at runtime — each channel has a stack file at `.claude/stacks/distribution/<channel>.md` with format constraints, targeting model, policy restrictions, and config schema. Phase 1 is manual — the human creates the campaign in the channel's ad platform using the generated config.
 
-## Step 0: Branch setup
+## Step 0: Archetype check and branch setup
 
-Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
+Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype's `excluded_stacks` includes `ui` (no browser UI / no landing page), stop **before creating a branch**: "The /distribute skill generates ad campaigns for web apps with landing pages. For services, see `.claude/archetypes/service.md` Distribution section for API marketplace and direct outreach guidance. For CLIs, see `.claude/archetypes/cli.md` Distribution section for npm and GitHub Releases guidance."
+
+If the archetype check passes, follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 
 ## Step 1: Validate preconditions
 
-0. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype's `excluded_stacks` includes `ui` (no browser UI / no landing page), stop: "The /distribute skill generates ad campaigns for web apps with landing pages. For services, see `.claude/archetypes/service.md` Distribution section for API marketplace and direct outreach guidance. For CLIs, see `.claude/archetypes/cli.md` Distribution section for npm and GitHub Releases guidance."
 1. Verify `idea/idea.yaml` exists and is complete. If not, stop: "No experiment found. Create `idea/idea.yaml` from the template first, then run `/bootstrap`."
 2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
 3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
