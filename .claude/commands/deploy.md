@@ -5,7 +5,7 @@ reads:
   - idea/idea.yaml
   - .env.example
   - CLAUDE.md
-stack_categories: [hosting, database, auth, analytics, payment]
+stack_categories: [hosting, database, auth, analytics, payment, email]
 requires_approval: true
 references:
   - .claude/patterns/observe.md
@@ -174,14 +174,23 @@ Skip this step if `stack.database` is not `supabase`.
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `POSTGRES_URL_NON_POOLING`
 
+   Additional variables (when `stack.auth: supabase` AND `stack.database` is NOT `supabase`):
+   The auth stack needs a Supabase project even without the database stack. Ask the user for their existing Supabase project URL and anon key:
+   - `NEXT_PUBLIC_SUPABASE_URL` — from Supabase Dashboard → Settings → API → Project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — from Supabase Dashboard → Settings → API → Publishable Key
+
    Additional variables (when `stack.payment: stripe`):
    - `STRIPE_SECRET_KEY`
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
    - `STRIPE_WEBHOOK_SECRET` (skip if Stripe CLI is available — set after webhook creation in Step 5)
 
+   Additional variables (when `stack.email` is present):
+   - `RESEND_API_KEY` — ask the user (from resend.com → API Keys)
+   - `CRON_SECRET` — generate with `openssl rand -base64 24`
+
    Additional variables (external service credentials from bootstrap):
    - Read `.env.example` and collect all env var keys
-   - Exclude keys already handled by stack categories above (Supabase, Stripe, Resend, PostHog)
+   - Exclude keys already handled by stack categories above (Supabase, Stripe, email, PostHog)
    - For each remaining key: read the value from `.env.local`. If found, set it on Vercel. If `.env.local` is missing or the key is absent, ask the user for the production value.
 
 ## Step 5: Deploy, configure services, and verify

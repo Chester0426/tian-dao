@@ -5,7 +5,7 @@ reads:
   - idea/idea.yaml
   - EVENTS.yaml
   - idea/ads.yaml
-stack_categories: [analytics, hosting, distribution]
+stack_categories: [analytics, hosting, distribution, ui, framework]
 requires_approval: true
 references:
   - .claude/patterns/verify.md
