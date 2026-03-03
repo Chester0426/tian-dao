@@ -1,10 +1,23 @@
 # Template Observation Procedure
 
-Follow this procedure whenever you identify an error whose root cause is in a
-template file — whether during a skill step, an ad-hoc bug fix, or any other
-context. Skills like verify.md and deploy.md reference this procedure at specific
-steps, but CLAUDE.md Rule 12 makes the trigger condition-based: any template-level
-root cause qualifies.
+Follow this procedure at the end of a skill execution (called by verify.md and
+deploy.md Step 5e) to process observation notes and file them as GitHub issues.
+
+During skill execution, CLAUDE.md Rule 12 captures template-rooted issues as
+one-line notes in `.claude/observation-scratch.md`. This procedure processes
+those notes into properly formatted observation issues.
+
+## Process Scratch File
+
+1. Check if `.claude/observation-scratch.md` exists and is non-empty.
+   - If missing or empty: proceed to Trigger Evaluation below (which catches
+     issues that weren't noted during execution).
+   - If non-empty: read the notes. Each line is a captured observation to file.
+     Use the notes as input for the Issue Creation section below (one issue
+     combining all notes, per the "Max 1 issue per session" constraint).
+     After filing, delete `.claude/observation-scratch.md`.
+2. Then proceed to Trigger Evaluation to catch any additional issues not noted
+   in the scratch file.
 
 **If you are running an analysis-only skill (`/review`, `/iterate`, or `/retro`),
 skip this entire procedure** — analysis-only skills do not make code changes that

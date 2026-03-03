@@ -60,9 +60,10 @@ users. Skip if no fixes were universal, or if you didn't fix any errors.
 ## Template Observation Review (always run)
 
 After every verification — regardless of whether build errors were encountered —
-evaluate whether any code change made during this skill execution has a root cause
-in a template file. Follow `.claude/patterns/observe.md` for the evaluation and
-filing procedure.
+follow `.claude/patterns/observe.md`. This will:
+1. Process any notes in `.claude/observation-scratch.md` (captured by Rule 12
+   during this skill execution)
+2. Evaluate whether any additional code changes have a template root cause
 
 This catches template-rooted issues that don't manifest as build errors (e.g.,
 runtime behavior bugs, missing UX patterns, incorrect template guidance that

@@ -93,8 +93,13 @@ Follow the database patterns defined in your active database stack file (`.claud
 - Auto memory is an accelerator, not a dependency — skills must function correctly with empty auto memory (fresh developer, fresh machine)
 
 ## Rule 12: Template Observations
-When fixing any error whose root cause is in a template file
+When working around any error whose root cause is in a template file
 (`.claude/stacks/`, `.claude/commands/`, `.claude/patterns/`,
-`scripts/`, `Makefile`, `CLAUDE.md`), follow `.claude/patterns/observe.md`
-to file an observation — regardless of whether you are inside a skill
-execution or responding to an ad-hoc user request.
+`scripts/`, `Makefile`, `CLAUDE.md`), immediately append a one-line note
+to `.claude/observation-scratch.md`:
+```
+- [template file] — [symptom] — [workaround]
+```
+Do this regardless of whether you are inside a skill or responding to an
+ad-hoc request. The end-of-skill observation step (verify.md / deploy.md
+Step 5e) will process and file these notes via `.claude/patterns/observe.md`.
