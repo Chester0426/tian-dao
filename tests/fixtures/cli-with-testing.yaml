@@ -1,0 +1,54 @@
+# Test fixture: CLI with testing — covers commander + vitest combination
+# Validates that cli archetype works with the testing stack.
+idea:
+  name: test-cli-with-testing
+  title: Service Monitor CLI
+  owner: tester
+  template_repo: acme/experiment-template
+  type: cli
+
+  problem: |
+    DevOps teams need a CLI to deploy, monitor, and inspect logs for their services.
+
+  solution: |
+    A command-line tool with deploy, status, and logs commands for service lifecycle management.
+
+  target_user: DevOps engineers managing production services
+
+  distribution: |
+    Published to npm registry and shared in DevOps communities.
+
+  commands:
+    - name: deploy
+      purpose: Deploy a service to the platform
+    - name: status
+      purpose: Check current status of a deployment
+    - name: logs
+      purpose: Stream or fetch recent logs for a service
+
+  features:
+    - Service deployment command
+    - Status monitoring command
+    - Log streaming command
+
+  primary_metric: CLI installs per week
+  target_value: "50 installs in 2 weeks"
+  measurement_window: 2 weeks
+
+  stack:
+    framework: commander
+    analytics: posthog
+    testing: vitest
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User completes their first deployment via the CLI
+    - event: retain_return
+      trigger: User runs the CLI again after 24+ hours since last use
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_commands: 3

@@ -1,0 +1,50 @@
+# Test fixture: Minimal CLI — commands only, no database/testing
+# Validates that cli archetype skips pages, endpoints, hosting, and UI requirements.
+idea:
+  name: test-cli-minimal
+  title: Cloud Deploy CLI
+  owner: tester
+  template_repo: acme/experiment-template
+  type: cli
+
+  problem: |
+    Developers need a simple CLI to deploy and check status of cloud services.
+
+  solution: |
+    A command-line tool with deploy and status commands for cloud service management.
+
+  target_user: Developers managing cloud deployments
+
+  distribution: |
+    Published to npm registry and shared in developer communities.
+
+  commands:
+    - name: deploy
+      purpose: Deploy a service to the cloud platform
+    - name: status
+      purpose: Check deployment status of a service
+
+  features:
+    - Cloud deployment command
+    - Deployment status command
+
+  primary_metric: CLI installs per week
+  target_value: "30 installs in 2 weeks"
+  measurement_window: 2 weeks
+
+  stack:
+    framework: commander
+    analytics: posthog
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User completes their first deployment via the CLI
+    - event: retain_return
+      trigger: User runs the CLI again after 24+ hours since last use
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_commands: 2
