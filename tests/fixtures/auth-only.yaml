@@ -5,6 +5,7 @@ idea:
   title: AuthOnly — App with Supabase Auth but No Supabase Database
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Users want a simple authenticated app that stores data in a third-party API

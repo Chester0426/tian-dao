@@ -5,6 +5,7 @@ idea:
   title: NoPayment — Auth App Without Payment
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Teams need a simple shared notes tool but existing options are too complex.

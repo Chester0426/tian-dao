@@ -5,6 +5,7 @@ idea:
   title: Landing Variants — Minimal Static Page with Messaging Variants
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Users need a simple landing page to validate demand before building a product.
