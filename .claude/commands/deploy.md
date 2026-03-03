@@ -215,8 +215,9 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
    Read the Supabase access token. Try these locations in order:
    1. File: `~/.supabase/access-token`
    2. macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — if found, strip the `go-keyring-base64:` prefix and base64-decode the remainder
-   3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here."
-      Once the user provides the token, persist it: `mkdir -p ~/.supabase && echo "$TOKEN" > ~/.supabase/access-token` (mirrors PostHog key persistence in Step 5b.3).
+   3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here, or type **skip** to configure auth redirect URLs manually later."
+      If the user provides a token: persist it with `mkdir -p ~/.supabase && echo "$TOKEN" > ~/.supabase/access-token` (mirrors PostHog key persistence in Step 5b.3) and proceed with auth config.
+      If the user types "skip": skip the auth config PATCH. Include in Step 6 summary: "Auth redirect URLs not configured — set site_url and redirect allowlist manually in Supabase Dashboard → Authentication → URL Configuration."
 
    Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
 
