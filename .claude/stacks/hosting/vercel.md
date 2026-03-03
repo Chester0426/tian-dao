@@ -97,9 +97,27 @@ Used by the `/deploy` skill for automated first-time setup.
   - Prerequisite: Vercel GitHub App installed on the GitHub org/account
 
 ### Environment Variables
+
+**Primary method — Vercel REST API (batch, all environments):**
+```bash
+curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
+  -H "Authorization: Bearer <vercel_token>" \
+  -H "Content-Type: application/json" \
+  -d '[{"key":"KEY","value":"VAL","type":"encrypted","target":["production","preview","development"]}]'
+```
+- `upsert=true` overwrites existing values (idempotent)
+- Sets all environments (production, preview, development) in one call
+- Omit `&slug=<team>` for personal accounts
+
+**Auth token location:**
+- macOS: `~/Library/Application Support/com.vercel.cli/auth.json` → parse JSON, extract `token`
+- Linux: `~/.local/share/com.vercel.cli/auth.json` → parse JSON, extract `token`
+
+**Fallback — Vercel CLI (production only, per-variable):**
 - `echo $VALUE | vercel env add KEY production --force` — set/overwrite an env var
-- Set for both `production` and `preview` environments
-- `vercel env ls` — verify env vars after setup
+- Used when auth token is unavailable or REST API fails
+
+**Verify:** `vercel env ls` — list env vars after setup
 
 ### First Deploy
 - `vercel --prod --yes` — deploy to production without prompts

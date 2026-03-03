@@ -141,14 +141,32 @@ Skip this step if `stack.database` is not `supabase`.
    - "Failed to connect" / access error → Tell the user: "Install the Vercel GitHub App on your GitHub org: go to your Vercel team dashboard → Settings → Integrations → GitHub. Tell me when done." Wait for user confirmation, then retry.
    - Other errors → Show the error. Ask the user: "Want me to retry, or skip auto-deploy and continue?" If skip, set `git_connect_failed=true` (reported in Step 6 summary).
 
-4. Set environment variables for both `production` and `preview`:
+4. **Read Vercel auth token:**
+   Read the Vercel CLI auth token from the local filesystem:
+   - macOS: `~/Library/Application Support/com.vercel.cli/auth.json`
+   - Linux: `~/.local/share/com.vercel.cli/auth.json`
+
+   Parse JSON and extract the `token` field → `vercel_token`.
+   If the file is missing or JSON parsing fails → set `vercel_token = null` (will use CLI fallback in point 5).
+
+5. **Set environment variables via REST API:**
+
+   Collect all env vars into a single JSON array, then send one batch request:
    ```bash
-   # Production — piped input works reliably
-   echo "<value>" | vercel env add <KEY> production --force
-   # Preview — requires explicit git branch (Vercel CLI v50+ rejects piped input without it)
-   vercel env add <KEY> preview --git-branch main --force --yes <<< "<value>"
+   curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
+     -H "Authorization: Bearer <vercel_token>" \
+     -H "Content-Type: application/json" \
+     -d '[{"key":"KEY","value":"VAL","type":"encrypted","target":["production","preview","development"]}, ...]'
    ```
-   If the preview command fails, warn: "Could not set `<KEY>` for preview. Set it manually in Vercel Dashboard → Project → Settings → Environment Variables." Continue with the remaining variables — preview env vars are non-blocking.
+   If personal account (no team): omit `&slug=<team>`.
+
+   Parse the response: `created` array (success) + `failed` array (errors). Warn per failed var, continue.
+
+   **Fallback** — if `vercel_token` is null or the API returns non-2xx: fall back to per-variable CLI:
+   ```bash
+   echo "<value>" | vercel env add <KEY> production --force
+   ```
+   CLI fallback sets production only (no preview) — preview env vars can be added manually in Vercel Dashboard.
 
    Variables to set (when `stack.database: supabase`):
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -204,11 +222,14 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
      --url "https://<canonical_url>/api/webhooks/stripe" \
      --events checkout.session.completed
    ```
-   Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel:
+   Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel using the REST API (Step 4.5 pattern):
    ```bash
-   echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force
-   vercel env add STRIPE_WEBHOOK_SECRET preview --git-branch main --force --yes <<< "<whsec_secret>"
+   curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
+     -H "Authorization: Bearer <vercel_token>" \
+     -H "Content-Type: application/json" \
+     -d '[{"key":"STRIPE_WEBHOOK_SECRET","value":"<whsec_secret>","type":"encrypted","target":["production","preview","development"]}]'
    ```
+   If `vercel_token` is null or the API fails, fall back to CLI: `echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force`
 
 3. **PostHog experiment dashboard** (if `stack.analytics: posthog`):
 
@@ -293,7 +314,7 @@ If any health check fails, diagnose and attempt to fix:
 
 | Check | Diagnosis | Auto-fix |
 |-------|-----------|----------|
-| `database` | Re-extract keys: `supabase projects api-keys --project-ref <ref> -o json`. Compare with `vercel env ls`. | If mismatch: `vercel env add <KEY> production --force` for each, then redeploy |
+| `database` | Re-extract keys: `supabase projects api-keys --project-ref <ref> -o json`. Compare with `vercel env ls`. | If mismatch: use REST API (Step 4.5 pattern) or CLI fallback to re-set each key, then redeploy |
 | `auth` | Re-check Supabase auth config via Management API GET endpoint | Re-PATCH site_url and uri_allow_list |
 | `analytics` | Code integration issue — cannot fix via CLI | Report: "Analytics health check failed. This is likely a code issue — merge the current PR to `main`, pull (`git checkout main && git pull`), then run `/change fix analytics integration`." |
 | `payment` | Verify webhook: `stripe webhook_endpoints list`. Check env var: `vercel env ls \| grep STRIPE` | Re-set env vars if missing/wrong, redeploy |
@@ -398,7 +419,7 @@ If the write fails, warn but continue — the manifest is for convenience, not c
 
 This skill handles re-runs gracefully:
 - `vercel link` reuses existing projects
-- `--force` flag on `vercel env add` overwrites existing values
+- `upsert=true` on the env var REST API overwrites existing values; CLI fallback uses `--force`
 - `supabase db push` skips already-applied migrations
 - Checks for existing Supabase projects before creating
 - Supabase auth config PATCH is idempotent — overwrites existing values
