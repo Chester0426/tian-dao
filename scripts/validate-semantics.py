@@ -53,6 +53,8 @@ Checks:
   49. Bootstrap Email-Auth-Database Dependency — bootstrap validates email requires auth and database
   50. Change Email-Auth-Database Dependency — change validates email requires auth and database
   51. trackServerEvent Signature — trackServerEvent calls pass string as distinctId, not object
+  52. trackServerEvent Awaited — trackServerEvent calls are awaited in stack file code blocks
+  53. Supabase Delete Flag Syntax — supabase projects delete uses --project-ref flag
 """
 
 import glob
@@ -2329,6 +2331,48 @@ if analytics_server_sig:
                 error(
                     f"[51] {sf}: trackServerEvent call passes object as distinctId "
                     f"(expected string) near line {block['start_line']}: {call.strip()}"
+                )
+
+# ---------------------------------------------------------------------------
+# Check 52: Verify trackServerEvent Calls Are Awaited in Stack File Code Blocks
+# trackServerEvent is async — without await, serverless functions may terminate
+# before the event is flushed, silently losing analytics data.
+# ---------------------------------------------------------------------------
+
+if analytics_server_sig:
+    for sf in glob.glob(".claude/stacks/**/*.md", recursive=True):
+        with open(sf) as f:
+            sf_content_52 = f.read()
+        code_blocks_52 = extract_code_blocks(sf_content_52, {"ts", "tsx", "typescript"})
+        for block in code_blocks_52:
+            # Find trackServerEvent calls NOT preceded by await on the same line
+            # Exclude function definitions (export async function trackServerEvent)
+            unwaited = re.findall(
+                r"^(?!.*\bawait\b)(?!.*\bfunction\b).*\btrackServerEvent\s*\(",
+                block["code"],
+                re.MULTILINE,
+            )
+            for call in unwaited:
+                error(
+                    f"[52] {sf}: trackServerEvent call without await "
+                    f"near line {block['start_line']}: {call.strip()}"
+                )
+
+# ---------------------------------------------------------------------------
+# Check 53: Verify Supabase CLI Commands Use Correct Flag Syntax
+# `supabase projects delete` requires `--project-ref <ref>`, not a positional arg.
+# ---------------------------------------------------------------------------
+
+for sf in glob.glob(".claude/commands/*.md") + glob.glob(".claude/stacks/**/*.md", recursive=True):
+    with open(sf) as f:
+        sf_content_53 = f.read()
+    code_blocks_53 = extract_code_blocks(sf_content_53, {"bash", "sh"})
+    for block in code_blocks_53:
+        if "supabase projects delete" in block["code"]:
+            if "--project-ref" not in block["code"]:
+                error(
+                    f"[53] {sf}: `supabase projects delete` without --project-ref flag "
+                    f"near line {block['start_line']}"
                 )
 
 # ---------------------------------------------------------------------------
