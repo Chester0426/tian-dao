@@ -39,6 +39,13 @@ For each attempt:
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
+## Visual Review (after build passes)
+
+Follow the visual review procedure in `.claude/patterns/visual-review.md`.
+This screenshots all pages and checks for visual issues that compile-time
+checks miss (broken layout, missing fonts, wrong colors, empty pages).
+Requires Playwright — skips automatically when not installed.
+
 ## Save Notable Patterns (if you fixed any errors above)
 
 After a successful verification where you fixed build or lint errors:
