@@ -50,6 +50,14 @@ E2E tests (Playwright). The test runner comes from the testing stack file.
 Deployment follows the hosting stack file. For services, browser-based
 health checks don't apply — use the `/api/health` endpoint instead.
 
+## Distribution
+
+Services are distributed by sharing the API endpoint URL with target users.
+The `/distribute` skill generates ad campaigns that drive traffic to a landing
+page — since services have no landing page, distribution is typically
+direct outreach, documentation links, or API marketplace listings rather
+than paid ads.
+
 ## Conventions
 
 - Every endpoint fires analytics events per EVENTS.yaml (server-side)

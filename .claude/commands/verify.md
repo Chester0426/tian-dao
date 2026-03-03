@@ -46,7 +46,7 @@ If the testing stack file's `assumes` list includes `database/supabase` and `aut
 
 ## Step 2: Report results
 
-- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. Then tell the user: "All tests pass. Next steps: if you're on a feature branch, merge the PR to `main` first. Then run `/deploy` to deploy to production (requires `main` with clean working tree), or run `/change` to make more improvements before deploying." If the archetype is `cli`, replace the `/deploy` guidance with: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file." **Done.** No branch, no PR, no further steps.
+- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. Then tell the user: "All tests pass. Next steps: if you're on a feature branch, merge the PR to `main` first. Then run `/deploy` to deploy to production (requires `main` with clean working tree), or run `/change` to make more improvements before deploying." If the archetype is `cli`, replace the `/deploy` guidance with: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up the experiment." **Done.** No branch, no PR, no further steps.
 - If any tests fail: proceed to Step 3
 
 ## Step 3: Branch setup
@@ -82,7 +82,7 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
   - **What Changed**: files modified and why
   - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
   - **Checklist**: standard checks
-- After PR is created, tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`), then run `/deploy`."
+- After PR is created, tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If the archetype is `cli`, add: "Then publish via `npm publish` or GitHub Releases — see the archetype file." Otherwise, add: "Then run `/deploy` to deploy to production."
 
 ## Cleanup
 
