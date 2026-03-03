@@ -35,12 +35,14 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 
 ## Step 2: Review-Fix Loop
 
-Repeat the following cycle **up to 3 times**. Exit early if step 2b
-produces 0 remaining findings.
+Run **exactly 3 iterations** of the following cycle. The ONLY early exit
+is when step 2b produces 0 remaining findings (all 3 subagents found nothing
+new). Completing fixes does NOT justify exiting early — fixes may introduce
+new issues that only a fresh scan can detect.
 
 Initialize before the first iteration:
 - `seen_findings` = empty set
-- `iteration` = 0
+- `iteration` = 1
 
 ---
 
@@ -188,7 +190,7 @@ build verification in `.claude/patterns/verify.md`.
 
 If no fixes succeeded this iteration → **exit loop**, proceed to Step 3.
 
-#### 2e: Compact state
+#### 2e: Compact state and loop gate
 
 Emit a compact state summary and discard prior detail:
 
@@ -205,9 +207,15 @@ This summary is the only carry-forward state needed. Prior subagent results,
 file reads, and validator outputs from this iteration are no longer needed and
 can be safely compressed.
 
----
+**MANDATORY LOOP GATE — answer before proceeding:**
 
-### End of iteration — loop back to 2a.
+> Is `iteration` ≥ 3?
+> - **YES** → proceed to Step 3.
+> - **NO** → increment `iteration`, **go to 2a NOW**. Do NOT proceed to Step 3.
+>
+> You MUST re-scan with fresh subagents. Fixes from this iteration may have
+> introduced new issues, and reviewers may find things they missed when the
+> old text was still present. Proceeding to Step 3 early wastes review coverage.
 
 ## Step 3: Update check-inventory.md
 
