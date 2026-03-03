@@ -113,5 +113,5 @@ For high-traffic production use, consider Redis-based rate limiting via a Railwa
 - In-memory rate limiting works on Railway (persistent process, not serverless)
 
 ## PR Instructions
-- After merging: run `/deploy` in Claude Code to set up Railway automatically. Or manually: create a project at [railway.app](https://railway.app), connect your GitHub repo, and add environment variables in the Railway dashboard.
+- After merging: create a project at [railway.app](https://railway.app), connect your GitHub repo, and add environment variables in the Railway dashboard. Note: `/deploy` currently only automates Vercel hosting — for Railway, use the CLI (`railway up`) or the dashboard.
 - Railway auto-deploys on every push to `main` when GitHub integration is connected

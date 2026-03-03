@@ -183,7 +183,7 @@ describe("smoke tests", () => {
 - Health check asserts status 200 (the `/api/health` endpoint always exists)
 - Per-endpoint tests assert `not.toBe(500)` — smoke tests verify route registration, not business logic
 - POST endpoints send an empty JSON body — a 400 (validation error) is acceptable, a 500 is not
-- **Fallback for frameworks without `app.request()`** (e.g., Virtuals ACP): test handler functions directly by importing from `src/handlers/<name>` and calling with mock input. The test verifies the handler exists and returns without throwing.
+- **Fallback for frameworks without `app.request()`** (e.g., Virtuals ACP, Next.js): test handler functions directly by importing from the path defined by the framework stack file (e.g., `src/handlers/<name>` for Virtuals ACP, `src/app/api/<endpoint>/route` for Next.js) and calling with mock input. The test verifies the handler exists and returns without throwing.
 
 ### CLI Smoke Tests — `tests/commands.test.ts`
 

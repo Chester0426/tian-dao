@@ -21,7 +21,7 @@ Tear down the cloud infrastructure created by `/deploy`.
 3. Check CLI installation and auth (same checks as /deploy Step 0.6, but only for
    services present in the manifest):
    - If `supabase` in manifest: `which supabase` + `supabase projects list`
-   - `which vercel` + `vercel whoami`
+   - If `vercel` in manifest: `which vercel` + `vercel whoami`
    - If `posthog` in manifest: check `~/.posthog/personal-api-key` exists
    - If `stripe` in manifest: `which stripe` + `stripe whoami` (soft — webhook
      deletion is nice-to-have)
@@ -35,13 +35,13 @@ Present a summary:
 
 **Project:** <name>
 
-**Resources to delete:**
-- [If supabase] Supabase project: <ref> (org: <org_id>)
-- Vercel project: <project> (team: <team>)
-- [If domain] Vercel domain: <domain>
-- [If posthog] PostHog dashboard: #<dashboard_id>
-- [If stripe] Stripe webhook endpoint: <url>
-- [If external_services] External services (manual): <list>
+**Resources to delete (in reverse order of creation):**
+1. [If posthog] PostHog dashboard: #<dashboard_id>
+2. [If stripe] Stripe webhook endpoint: <url>
+3. [If domain] Vercel domain: <domain>
+4. [If vercel] Vercel project: <project> (team: <team>) — unlinks integrations
+5. [If supabase] Supabase project: <ref> (org: <org_id>) — permanent data loss
+6. [If external_services] External services (manual): <list>
 
 ⚠️  This action is irreversible. All data in the Supabase database will be
 permanently deleted.
