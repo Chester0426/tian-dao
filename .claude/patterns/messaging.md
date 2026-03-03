@@ -37,7 +37,7 @@ Format: icon/emoji + short statement (e.g., "Manual invoicing wastes hours every
 
 ## Section B: Landing Page Required Elements
 
-Every landing page must include all of these elements. The specific arrangement, styling, and visual treatment are chosen by the AI (with the frontend-design plugin when active) — there is no fixed section order.
+Every landing page must include all of these elements. The specific arrangement, styling, and visual treatment are chosen by the AI — there is no fixed section order.
 
 **Required elements:**
 - **Value proposition above the fold**: headline + subheadline (derived from Section A rules)

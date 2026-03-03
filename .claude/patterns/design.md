@@ -8,22 +8,9 @@ Two non-negotiable rules that prevent real usability issues:
 
 2. **Use shadcn/ui components**: Use library components (`<Button>`, `<Input>`, `<Card>`, etc.) instead of raw HTML elements. This ensures accessibility baselines (ARIA attributes, keyboard handling, focus management) without manual effort.
 
-## Frontend-Design Plugin
+## Aesthetic Direction
 
-The frontend-design plugin has **full authority** over all aesthetic and structural visual decisions:
-
-- **Layout**: page structure, grid systems, content arrangement, information architecture
-- **Color**: palette, primary/accent colors, gradients, backgrounds
-- **Typography**: font selection, scale, weight, spacing
-- **Spacing**: margins, padding, gaps, section sizing
-- **Animation**: CSS transitions, keyframes, and Framer Motion (included in UI stack)
-- **Atmosphere**: shadows, borders, textures, visual treatments
-
-The plugin's choices create the product's visual identity. Accept them fully — the only constraints are the two quality invariants above.
-
-## When No Plugin Guidance Is Available
-
-Use your best judgment based on the product domain. Choose fonts, colors, layout, and spacing that feel appropriate for the target user and product category. There are no default hue tables or prescribed Tailwind classes — create a distinctive look that matches the product.
+Create a distinctive, polished visual identity that matches the product domain and target user. Choose fonts, colors, layout, spacing, and animation that feel intentional — not generic or template-like. The only constraints are the quality invariants above.
 
 ## `/change` Consistency
 
