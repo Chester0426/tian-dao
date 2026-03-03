@@ -95,6 +95,7 @@ standard_funnel:
 # Note: The standard_funnel above applies to web-app archetypes (browser pages).
 # Services (type: service) use funnel_template: custom — define events in custom_events.
 # Typical service events: api_call, activate, retain_return (all via trackServerEvent).
+# CLIs (type: cli) also use funnel_template: custom — typical events: command_run, activate, retain_return.
 
 # Payment funnel — only include when stack.payment is present in idea.yaml
 payment_funnel:

@@ -32,7 +32,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - Read `CLAUDE.md` — these are the rules to follow
 
 2. **Resolve the archetype and stack**
-   - Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). The archetype defines required idea.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance.
+   - Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). The archetype defines required idea.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per idea.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
    - Read idea.yaml `stack`. For each category present in idea.yaml `stack` (always: framework, analytics, ui, hosting; optional: database, auth, payment, email, testing), read `.claude/stacks/<category>/<value>.md`.
    - If a stack file doesn't exist for a given value:
      1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
@@ -53,6 +53,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
    - If the archetype requires `pages` (web-app): verify `pages` includes an entry with `name: landing`
    - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
+   - If the archetype requires `commands` (cli): verify `commands` is a non-empty list
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
    - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
