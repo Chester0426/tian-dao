@@ -5,6 +5,8 @@ packages:
   dev: [vitest, "@vitest/coverage-v8"]
 files:
   - vitest.config.ts
+  - tests/smoke.test.ts       # conditional: service archetype bootstrap smoke tests
+  - tests/commands.test.ts    # conditional: cli archetype bootstrap smoke tests
 env:
   server: []
   client: []
@@ -140,11 +142,106 @@ Vitest runs in the existing `build` CI job after lint, or in a dedicated test jo
 
 No additional CI env vars or services needed — vitest runs entirely in-process.
 
+## Bootstrap Smoke Tests
+
+Bootstrap generates minimal smoke tests to verify that routes/commands are registered and reachable. These are created by `/bootstrap` Step 7b — not by hand.
+
+### Service Smoke Tests — `tests/smoke.test.ts`
+
+Template for `type: service` projects. One test per idea.yaml endpoint plus a health check:
+
+```ts
+import { describe, it, expect } from "vitest";
+import app from "../src/index";
+
+describe("smoke tests", () => {
+  it("GET /api/health returns 200", async () => {
+    const res = await app.request("/api/health");
+    expect(res.status).toBe(200);
+  });
+
+  // One test per idea.yaml endpoint:
+  // GET endpoints:
+  it("GET /api/<endpoint> does not 500", async () => {
+    const res = await app.request("/api/<endpoint>");
+    expect(res.status).not.toBe(500);
+  });
+
+  // POST endpoints — empty body (verifies route is registered, not input validation):
+  it("POST /api/<endpoint> does not 500", async () => {
+    const res = await app.request("/api/<endpoint>", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).not.toBe(500);
+  });
+});
+```
+
+- Imports `app` from `../src/index` — the framework's exported app instance
+- Health check asserts status 200 (the `/api/health` endpoint always exists)
+- Per-endpoint tests assert `not.toBe(500)` — smoke tests verify route registration, not business logic
+- POST endpoints send an empty JSON body — a 400 (validation error) is acceptable, a 500 is not
+- **Fallback for frameworks without `app.request()`** (e.g., Virtuals ACP): test handler functions directly by importing from `src/handlers/<name>` and calling with mock input. The test verifies the handler exists and returns without throwing.
+
+### CLI Smoke Tests — `tests/commands.test.ts`
+
+Template for `type: cli` projects. Tests `--version`, `--help`, and each idea.yaml command:
+
+```ts
+import { describe, it, expect } from "vitest";
+import { execSync } from "child_process";
+
+function runCli(args: string): { stdout: string; exitCode: number } {
+  try {
+    const stdout = execSync(`node dist/index.js ${args}`, {
+      encoding: "utf-8",
+      timeout: 10000,
+    });
+    return { stdout, exitCode: 0 };
+  } catch (error: any) {
+    return {
+      stdout: error.stdout ?? "",
+      exitCode: error.status ?? 1,
+    };
+  }
+}
+
+describe("CLI smoke tests", () => {
+  it("--version exits 0 and prints semver", () => {
+    const { stdout, exitCode } = runCli("--version");
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toMatch(/\d+\.\d+\.\d+/);
+  });
+
+  it("--help exits 0 and prints usage", () => {
+    const { stdout, exitCode } = runCli("--help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Usage:");
+  });
+
+  // One test per idea.yaml command:
+  it("<command> --help exits 0", () => {
+    const { stdout, exitCode } = runCli("<command> --help");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("<command>");
+  });
+});
+```
+
+- Helper `runCli(args)` runs `node dist/index.js ${args}` via `execSync`, returns `{ stdout, exitCode }`
+- `--version` test asserts exit code 0 and a semver-like pattern in output
+- `--help` test asserts exit code 0 and "Usage:" in output (Commander.js default)
+- Per-command tests run `<command> --help` and assert exit code 0 + command name in output
+- **Requires `npm run build` first** — tests run against compiled output in `dist/`. CI runs build before test.
+
 ## Patterns
 - **Colocate tests**: place `*.test.ts` files next to the code they test (e.g., `src/routes/health.test.ts`)
 - **Use framework test client**: prefer `app.request()` (Hono) or equivalent over `supertest` when available
 - **Test file naming**: `*.test.ts` — vitest config includes this pattern by default
 - **No browser tests**: vitest handles unit and API tests only — use Playwright for E2E browser testing
+- **Bootstrap smoke tests**: service archetypes test endpoints via `app.request()`, CLI archetypes test commands via `--help`. Both use vitest — no browser needed.
 - **Coverage threshold**: not enforced by default — add thresholds in vitest.config.ts if needed
 
 ## PR Instructions
