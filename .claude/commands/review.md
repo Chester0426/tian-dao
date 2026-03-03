@@ -32,7 +32,20 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
   - `bash scripts/consistency-check.sh`
 - If a script fails to run (missing python3/pyyaml): stop and tell the user
 
-## Step 2: Review (iteration N)
+## Step 2: Review-Fix Loop
+
+Repeat the following cycle **up to 3 times**. Exit early if step 2b
+produces 0 remaining findings.
+
+Initialize before the first iteration:
+- `seen_findings` = empty set
+- `iteration` = 0
+
+---
+
+### Each iteration:
+
+#### 2a: Review
 
 Launch 3 Explore subagents in parallel, one per dimension below. Construct each
 agent's prompt from:
@@ -47,51 +60,51 @@ agent's prompt from:
 > `scripts/check-inventory.md`, `CLAUDE.md`, `idea/idea.example.yaml`, `EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
-### Dimension A: Cross-File Consistency
+**Dimension A: Cross-File Consistency**
 
-**Focus**: Find contradictions or inconsistencies **between** files that no regex or structural check can catch. Examples:
+Focus: Find contradictions or inconsistencies **between** files that no regex or structural check can catch. Examples:
 - A skill file says "do X" but a stack file's code template does Y
 - A rule in CLAUDE.md conflicts with how a skill actually operates
 - A stack file assumes a convention that another stack file violates
 - A prose instruction references a function/file/path that doesn't match reality
 
-**Files to read**:
+Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
 
-### Dimension B: Edge Case Robustness
+**Dimension B: Edge Case Robustness**
 
-**Focus**: Find configurations where skills or stack files would produce broken output. Examples:
+Focus: Find configurations where skills or stack files would produce broken output. Examples:
 - A skill assumes auth exists but the idea.yaml has no `stack.auth`
 - A code template hard-codes a path that changes based on stack choices
 - A conditional branch in a skill handles 2 of 3 possible states
 - An edge case not covered by the test fixtures
 
-**Files to read**:
+Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
 - Glob `tests/fixtures/*.yaml` — read each test fixture
 
-**After reading**: mentally simulate running `/bootstrap` and `/change` with each fixture's configuration.
+After reading: mentally simulate running `/bootstrap` and `/change` with each fixture's configuration.
 
-### Dimension C: User Journey Completeness
+**Dimension C: User Journey Completeness**
 
-**Focus**: Find dead-end states where a user gets stuck with no clear next step. Examples:
+Focus: Find dead-end states where a user gets stuck with no clear next step. Examples:
 - A skill exits early but doesn't tell the user what to do next
 - A build failure produces an unhelpful error message
 - A workflow step assumes a previous step succeeded but doesn't verify
 - A Makefile target fails silently or with an unhelpful error
 - The user follows instructions but ends up in an undocumented state
 
-**Files to read**:
+Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
 - Read `Makefile`
 - Read `.claude/patterns/verify.md`
 
-**After reading**: trace the user journey from `make validate` → `/bootstrap` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro`.
+After reading: trace the user journey from `make validate` → `/bootstrap` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro`.
 
-### Finding Format
+**Finding Format**
 
 Each subagent must use this format for findings:
 
@@ -109,7 +122,7 @@ Each subagent must use this format for findings:
   - **Pass/fail**: one sentence describing what constitutes failure
 ```
 
-### Check Proposal Criteria
+**Check Proposal Criteria**
 
 A proposed check must fall into one of these categories:
 
@@ -120,12 +133,12 @@ A proposed check must fall into one of these categories:
 | Behavioral contract | Code template would produce broken output at runtime | "Non-src template uses `process.env` without loading env config" |
 | Reference check | A named reference (tool, file, path) doesn't resolve | "Skill references unknown tool `FooBar`" |
 
-**Do NOT propose checks that:**
+Do NOT propose checks that:
 - Regex-match natural-language prose for specific wording (e.g., "prose must contain the word 'branch' within 200 chars of a recovery message")
 - Enforce cosmetic formatting with no silent-failure risk (e.g., "numbered lists must have no gaps")
 - Verify that prose *explains* something (e.g., "skill must document resumption behavior") — this is the scoped LLM review's job
 
-### Rules
+**Rules**
 
 Include these in each subagent prompt:
 
@@ -139,20 +152,20 @@ On iteration 2+: include the list of seen finding signatures in the subagent pro
 
 After all 3 return: collect up to 15 findings, deduplicate.
 
-## Step 3: Filter findings
+#### 2b: Filter findings
 
 - A finding signature = `<file_path>:<finding_title>`
 - Remove findings whose signatures match `seen_findings` set (oscillation guard)
-- If 0 remaining findings → skip to Step 8
+- If 0 remaining findings → **exit loop**, proceed to Step 3
 - Add new signatures to `seen_findings`
 
-## Step 4: Branch setup (first iteration with findings only)
+#### 2c: Branch setup (first iteration only)
 
 Follow `.claude/patterns/branch.md` with prefix `chore` and name `chore/review-fixes`.
 
 If branch already exists from prior iteration, continue on it.
 
-## Step 5: Fix findings
+#### 2d: Fix findings
 
 For each finding in priority order:
 
@@ -167,42 +180,44 @@ For each finding in priority order:
 The validator scripts serve as this skill's quality gate, analogous to the
 build verification in `.claude/patterns/verify.md`.
 
-## Step 6: Check iteration limit and compact state
+If no fixes succeeded this iteration → **exit loop**, proceed to Step 3.
 
-- Increment iteration counter
-- If iteration >= 3 OR no fixes succeeded → proceed to Step 7
-- Before returning to Step 2, emit a compact state summary and discard prior detail:
+#### 2e: Compact state
 
-  ```
-  ## Iteration N complete
-  - seen_findings: [list of all finding signatures across all iterations]
-  - error_count: [current validator error count]
-  - files_modified: [list of files changed so far]
-  - fixes_applied: N, reverted: M, skipped: K
-  - checks_added: [list of new validator checks, or "none"]
-  ```
+Emit a compact state summary and discard prior detail:
 
-  This summary is the only carry-forward state needed. Prior subagent results,
-  file reads, and validator outputs from this iteration are no longer needed and
-  can be safely compressed.
+```
+## Iteration N complete
+- seen_findings: [list of all finding signatures across all iterations]
+- error_count: [current validator error count]
+- files_modified: [list of files changed so far]
+- fixes_applied: N, reverted: M, skipped: K
+- checks_added: [list of new validator checks, or "none"]
+```
 
-- Return to Step 2
+This summary is the only carry-forward state needed. Prior subagent results,
+file reads, and validator outputs from this iteration are no longer needed and
+can be safely compressed.
 
-## Step 7: Update check-inventory.md
+---
 
-If new validator checks were implemented in Step 5:
+### End of iteration — loop back to 2a.
+
+## Step 3: Update check-inventory.md
+
+If new validator checks were implemented in Step 2d:
 
 - Add each to the appropriate table in `scripts/check-inventory.md`
 - Update the total counts in the header
 - Clear any matching entries from the Pending table
 
-## Step 8: Final validation
+## Step 4: Final validation
 
 - Run all 3 validators
 - Record `final_errors`
 - If `final_errors` > `baseline_errors` → stop and report regression
 
-## Step 9: Commit, push, open PR
+## Step 5: Commit, push, open PR
 
 If no branch exists (no findings across all iterations):
   Report "Review clean — no findings" and stop.
