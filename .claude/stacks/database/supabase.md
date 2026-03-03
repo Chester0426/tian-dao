@@ -7,6 +7,7 @@ files:
   - src/lib/supabase.ts
   - src/lib/supabase-server.ts
   - src/lib/types.ts
+  - scripts/auto-migrate.mjs
 env:
   server: []
   client: [NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY]
@@ -70,6 +71,54 @@ export async function createServerSupabaseClient() {
 - Use this in all API route handlers (`src/app/api/`) and Server Components
 - Import `cookies` from `next/headers` (server-only)
 - The cookie-based approach preserves the user's auth session server-side
+
+### `scripts/auto-migrate.mjs`
+
+Runs as the `prebuild` script before every `npm run build`. Applies SQL migrations from `supabase/migrations/` in order, tracking applied migrations in an `_auto_migrations` table.
+
+```js
+import { loadEnvConfig } from "@next/env";
+import pg from "pg";
+import { readdir, readFile } from "fs/promises";
+import { join } from "path";
+
+loadEnvConfig(process.cwd());
+
+const connectionString = process.env.POSTGRES_URL_NON_POOLING;
+if (!connectionString) process.exit(0); // No database URL — skip silently (local dev, CI)
+
+const client = new pg.Client({ connectionString });
+await client.connect();
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS _auto_migrations (
+    name TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ DEFAULT now()
+  )
+`);
+
+const { rows: applied } = await client.query("SELECT name FROM _auto_migrations");
+const appliedSet = new Set(applied.map((r) => r.name));
+
+const migrationsDir = join(process.cwd(), "supabase", "migrations");
+let files;
+try {
+  files = (await readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).sort();
+} catch {
+  await client.end();
+  process.exit(0); // No migrations directory — skip
+}
+
+for (const file of files) {
+  if (appliedSet.has(file)) continue;
+  const sql = await readFile(join(migrationsDir, file), "utf8");
+  await client.query(sql);
+  await client.query("INSERT INTO _auto_migrations (name) VALUES ($1)", [file]);
+  console.log(`Applied migration: ${file}`);
+}
+
+await client.end();
+```
 
 ## Environment Variables
 ```

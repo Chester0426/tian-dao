@@ -1,7 +1,7 @@
 ---
 assumes: [framework/nextjs]
 packages:
-  runtime: [framer-motion]
+  runtime: []
   dev: [tailwindcss, "@tailwindcss/postcss"]
 files: []
 env:
