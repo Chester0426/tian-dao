@@ -1,0 +1,52 @@
+# Test fixture: Service with Virtuals ACP framework — covers framework/virtuals-acp
+# Validates that service archetype works with the ACP Agent stack (protocol agent, not HTTP server).
+idea:
+  name: test-service-acp
+  title: Token Security Intelligence Agent
+  owner: tester
+  template_repo: acme/experiment-template
+  type: service
+
+  problem: |
+    Crypto traders need quick risk assessments for new tokens before investing.
+
+  solution: |
+    An ACP agent that performs multi-source token analysis and returns risk reports.
+
+  target_user: Crypto traders evaluating new token launches
+
+  distribution: |
+    Listed on Virtuals Protocol ACP marketplace for agent-to-agent discovery.
+
+  endpoints:
+    - name: analyze-token
+      purpose: Multi-source token risk analysis and report generation
+    - name: scan-protocol
+      purpose: Protocol-level risk scan with TVL and liquidity data
+
+  features:
+    - Token risk analysis endpoint
+    - Protocol scanning endpoint
+
+  primary_metric: Tasks completed per day
+  target_value: "50 tasks in 1 week"
+  measurement_window: 1 week
+
+  stack:
+    framework: virtuals-acp
+    analytics: posthog
+    hosting: railway
+    testing: vitest
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: Agent completes its first token analysis task
+    - event: retain_return
+      trigger: Agent receives a task after 24+ hours since last task
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_endpoints: 2
