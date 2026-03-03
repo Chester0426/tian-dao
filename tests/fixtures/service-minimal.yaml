@@ -1,0 +1,51 @@
+# Test fixture: Minimal service — API endpoints only, no auth/database/payment
+# Validates that service archetype skips pages, landing page, and UI requirements.
+idea:
+  name: test-service-minimal
+  title: Currency Conversion Service
+  owner: tester
+  template_repo: acme/experiment-template
+  type: service
+
+  problem: |
+    Developers need a simple currency conversion API for their applications.
+
+  solution: |
+    A lightweight API service with endpoints for conversion and rate listing.
+
+  target_user: Developers integrating currency features
+
+  distribution: |
+    API docs shared in developer communities.
+
+  endpoints:
+    - name: convert
+      purpose: Currency conversion between two currencies
+    - name: rates
+      purpose: List current exchange rates
+
+  features:
+    - Currency conversion endpoint
+    - Exchange rate listing endpoint
+
+  primary_metric: API calls per day
+  target_value: "100 API calls in 1 week"
+  measurement_window: 1 week
+
+  stack:
+    framework: nextjs
+    analytics: posthog
+    hosting: vercel
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User completes a successful currency conversion via the API
+    - event: retain_return
+      trigger: User makes a request after 24+ hours since last call
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_endpoints: 2
