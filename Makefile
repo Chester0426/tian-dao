@@ -141,11 +141,13 @@ supabase-stop: ## Stop local Supabase
 verify-local: ## Verify the app works locally (install, test, cleanup)
 	@bash scripts/verify-local.sh
 
-test-e2e: ## Run Playwright E2E tests
+test-e2e: ## Run E2E / integration tests
 	@if [ -f playwright.config.ts ]; then \
 		npx playwright test; \
+	elif [ -f vitest.config.ts ]; then \
+		npx vitest run; \
 	else \
-		echo "No playwright.config.ts found — add 'testing: playwright' to idea.yaml stack and re-run /bootstrap, or run '/change add E2E smoke tests'"; \
+		echo "No test configuration found — run '/change add tests' to set up testing"; \
 	fi
 
 # Default: Vercel. Update this target if you change stack.hosting.
@@ -213,14 +215,16 @@ migrate: ## Push pending migrations to remote Supabase database
 	npx supabase db push
 	@echo "Migrations applied successfully."
 
-# Default: Next.js + shadcn artifacts. Update if you change stack.framework or stack.ui.
+# Default artifacts for all archetypes. Update if you change stack.framework or stack.ui.
 clean: ## Remove generated files (lets you re-run bootstrap)
 	rm -rf node_modules .next out                          # framework/nextjs
+	rm -rf dist                                            # framework/hono, framework/commander
 	rm -f .nvmrc package.json package-lock.json tsconfig.json next.config.ts next-env.d.ts eslint.config.mjs  # framework/nextjs
 	rm -f components.json tailwind.config.ts .eslintrc.json eslint.config.mjs postcss.config.mjs  # ui/shadcn
 	rm -rf src                                             # all generated app code
 	rm -f .env.example                                     # all stacks
 	rm -rf e2e playwright.config.ts test-results playwright-report blob-report  # testing/playwright
+	rm -rf tests vitest.config.ts                          # testing/vitest
 	@echo "Cleaned. You can now open Claude Code and run /bootstrap again."
 	@echo "Note: idea/idea.yaml, EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
 

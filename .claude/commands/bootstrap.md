@@ -423,7 +423,7 @@ If `stack.testing` is present in idea.yaml:
   - Health check test: `app.request("/api/health")` → assert status 200
   - One test per idea.yaml `endpoints` entry: `app.request("/api/<endpoint>")` → assert `not.toBe(500)`
   - POST endpoints use empty JSON body — verifies route registration, not input validation
-  - For frameworks without `app.request()` (e.g., Virtuals ACP): test handler functions directly
+  - For frameworks without an exported `app` instance or `app.request()` (e.g., Virtuals ACP, Next.js): use the testing stack file's fallback guidance — test handler functions directly by importing from the path defined by the framework stack file
 - Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
 - Add CI step per the testing stack file's "CI Integration" section
 
@@ -455,7 +455,7 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 
 **Archetype-specific structure checks:**
 - If archetype requires `pages` (web-app): for each page in `pages`, confirm `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
-- If archetype requires `endpoints` (service): for each endpoint in `endpoints`, confirm the API route exists (e.g., `src/routes/<endpoint>.ts` for Hono)
+- If archetype requires `endpoints` (service): for each endpoint in `endpoints`, confirm the API route or handler exists at the path defined by the framework stack file (e.g., `src/routes/<endpoint>.ts` for Hono, `src/handlers/<endpoint>.ts` for Virtuals ACP)
 - If archetype requires `commands` (cli): for each command in `commands`, confirm `src/commands/<command-name>.ts` exists
 
 **Feature and analytics checks:**

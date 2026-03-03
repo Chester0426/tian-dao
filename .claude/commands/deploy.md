@@ -5,6 +5,7 @@ reads:
   - idea/idea.yaml
   - .env.example
   - CLAUDE.md
+  - EVENTS.yaml
 stack_categories: [hosting, database, auth, analytics, payment, email]
 requires_approval: true
 references:
@@ -23,7 +24,7 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`, stop: "The /deploy skill does not apply to CLI tools. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file." The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
-6. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is supported by /deploy. Deploy manually for other hosting providers."
+6. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is automated by /deploy. For your hosting provider, read `.claude/stacks/hosting/<value>.md` for CLI setup and deployment steps."
 7. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
    - `which vercel` — if not found, stop: "Vercel CLI not installed. Install: `npm i -g vercel`"
    - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
@@ -270,24 +271,25 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
      -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.title>"}'
    ```
 
-   Extract the dashboard `id` from the response. Then create funnel insight:
+   Extract the dashboard `id` from the response. Then create funnel insight. **Choose the funnel series based on the archetype's `funnel_template`:**
+
+   - If `funnel_template: web` (web-app): use `visit_landing → signup_start → signup_complete → activate`. Add `pay_start` and `pay_success` if `stack.payment` is present.
+   - If `funnel_template: custom` (service): read EVENTS.yaml `custom_events`. If non-empty, use those events as the funnel series. If empty, use `activate → retain_return` as the minimal service funnel.
 
    ```bash
    # Create funnel insight and add to dashboard
    curl -s -X POST "https://us.i.posthog.com/api/projects/321343/insights/" \
      -H "Authorization: Bearer $POSTHOG_API_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [{"kind": "EventsNode", "event": "visit_landing"}, {"kind": "EventsNode", "event": "signup_start"}, {"kind": "EventsNode", "event": "signup_complete"}, {"kind": "EventsNode", "event": "activate"}], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+     -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
    ```
 
-   Add `pay_start` and `pay_success` to the funnel series if `stack.payment` is present.
-
-   If idea.yaml has `variants`: create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
+   If idea.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
    ```bash
    curl -s -X POST "https://us.i.posthog.com/api/projects/321343/insights/" \
      -H "Authorization: Bearer $POSTHOG_API_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [{"kind": "EventsNode", "event": "visit_landing"}, {"kind": "EventsNode", "event": "signup_start"}, {"kind": "EventsNode", "event": "signup_complete"}, {"kind": "EventsNode", "event": "activate"}], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+     -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
    ```
    Include `pay_start` and `pay_success` in the series if `stack.payment` is present. This lets the user compare conversion rates between variant landing pages — the core purpose of the variants feature.
 
