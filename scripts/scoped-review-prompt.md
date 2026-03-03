@@ -43,6 +43,7 @@ one per dimension below. Construct each agent's prompt from:
 **Files to read**:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
+- Glob `.claude/patterns/*.md` — read each pattern file
 
 ### Dimension B: Edge Case Robustness
 
@@ -71,10 +72,10 @@ After reading: mentally simulate running `/bootstrap` and `/change` with each fi
 **Files to read**:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
+- Glob `.claude/patterns/*.md` — read each pattern file
 - Read `Makefile`
-- Read `.claude/patterns/verify.md`
 
-After reading: trace the user journey from `make validate` → `/bootstrap` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro`.
+After reading: trace the user journey from `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`.
 
 ---
 

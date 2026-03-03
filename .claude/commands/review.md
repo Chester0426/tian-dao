@@ -4,7 +4,8 @@ type: code-writing
 reads:
   - CLAUDE.md
   - EVENTS.yaml
-  - scripts/scoped-review-prompt.md
+  - scripts/check-inventory.md
+  - idea/idea.example.yaml
 stack_categories: []
 requires_approval: false
 references:
@@ -71,6 +72,7 @@ Focus: Find contradictions or inconsistencies **between** files that no regex or
 Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
+- Glob `.claude/patterns/*.md` — read each pattern file
 
 **Dimension B: Edge Case Robustness**
 
@@ -99,10 +101,10 @@ Focus: Find dead-end states where a user gets stuck with no clear next step. Exa
 Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
+- Glob `.claude/patterns/*.md` — read each pattern file
 - Read `Makefile`
-- Read `.claude/patterns/verify.md`
 
-After reading: trace the user journey from `make validate` → `/bootstrap` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro`.
+After reading: trace the user journey from `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`.
 
 **Finding Format**
 

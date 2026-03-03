@@ -19,8 +19,8 @@ those notes into properly formatted observation issues.
 2. Then proceed to Trigger Evaluation to catch any additional issues not noted
    in the scratch file.
 
-**If you are running an analysis-only skill (`/review`, `/iterate`, or `/retro`),
-skip this entire procedure** — analysis-only skills do not make code changes that
+**If you are running `/review`, `/iterate`, or `/retro`,
+skip this entire procedure** — these skills do not make code changes that
 trigger observations. `/review` fixes are already captured in the review PR.
 
 ## Prerequisites
