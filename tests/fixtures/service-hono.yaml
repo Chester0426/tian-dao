@@ -1,0 +1,52 @@
+# Test fixture: Service with Hono framework — covers framework/hono
+# Validates that service archetype works with non-Next.js framework on Railway.
+idea:
+  name: test-service-hono
+  title: URL Shortener Service
+  owner: tester
+  template_repo: acme/experiment-template
+  type: service
+
+  problem: |
+    Teams need a simple URL shortener API for internal link tracking.
+
+  solution: |
+    A lightweight Hono-based API service for creating and resolving short URLs.
+
+  target_user: Marketing teams managing campaign links
+
+  distribution: |
+    Internal team distribution via API docs.
+
+  endpoints:
+    - name: shorten
+      purpose: Create a shortened URL from a long URL
+    - name: resolve
+      purpose: Resolve a short URL to its original destination
+
+  features:
+    - URL shortening endpoint
+    - URL resolution endpoint
+
+  primary_metric: URLs shortened per day
+  target_value: "50 URLs shortened in 1 week"
+  measurement_window: 1 week
+
+  stack:
+    framework: hono
+    analytics: posthog
+    hosting: railway
+    testing: vitest
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User creates their first shortened URL via the API
+    - event: retain_return
+      trigger: User makes a request after 24+ hours since last call
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_endpoints: 2
