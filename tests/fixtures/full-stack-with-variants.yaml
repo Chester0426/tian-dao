@@ -5,6 +5,7 @@ idea:
   title: FullStack Variants — MVP with Auth, Database, and Messaging Variants
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Freelancers billing fewer than 5 clients per month waste time on invoicing.

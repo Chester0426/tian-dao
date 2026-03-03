@@ -6,6 +6,7 @@ idea:
   title: Auth+Tests — Authenticated App with E2E Tests but No Database
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Users want to validate an authenticated workflow backed by a third-party API

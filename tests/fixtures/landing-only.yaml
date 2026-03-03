@@ -5,6 +5,7 @@ idea:
   title: Landing Only — Minimal Static Page
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Users need a simple landing page to validate demand before building a product.

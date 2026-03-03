@@ -5,6 +5,7 @@ idea:
   title: FullStack+Tests — Complete MVP with Auth, Payment, Database, and E2E Tests
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Freelancers billing fewer than 5 clients per month waste time on invoicing.

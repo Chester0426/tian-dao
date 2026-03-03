@@ -6,6 +6,7 @@ idea:
   title: Interactive — Single Page with Calculator Feature
   owner: tester
   template_repo: acme/experiment-template
+  type: web-app
 
   problem: |
     Freelancers don't know how much to charge per hour. They guess and often undercharge.
