@@ -41,9 +41,11 @@ per experiment.
 - `features` → feature showcase
 - CTA → API docs link or first endpoint
 
-**Inline PostHog snippet:** Embed a `<script>` tag to fire `visit_landing`
-with UTM properties on page load (read PostHog project API key from the
-analytics stack file's hardcoded value).
+**Inline analytics snippet (if `stack.analytics` is present):** Embed a
+`<script>` tag to fire `visit_landing` with UTM properties on page load
+(read the project API key from the analytics stack file's hardcoded value).
+If `stack.analytics` is absent, skip the tracking script — the surface
+page still works as a marketing page, just without visit tracking.
 
 **CSS:** Inline `<style>` — no build step, no framework dependency.
 
@@ -57,7 +59,7 @@ product domain.
 
 ## Analytics wiring
 
-The inline PostHog snippet captures `visit_landing` with:
+When `stack.analytics` is present, the inline snippet captures `visit_landing` with:
 - `referrer`
 - `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`
 - `click_id`
