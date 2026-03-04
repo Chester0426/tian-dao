@@ -25,20 +25,27 @@ src/app/api/<endpoint>/route.ts
 There are no page folders, no landing page, no UI components, and no
 `src/components/` directory. The `ui` stack category is excluded.
 
+When surface is `co-located` (default), the root URL (`/`) serves an HTML
+marketing page — see `.claude/stacks/surface/co-located.md`. API endpoints
+live under `/api/*`.
+
 ## Funnel
 
-Services use `funnel_template: custom` — there is no standard web funnel.
-The standard web events (`visit_landing`, `signup_start`, `signup_complete`)
-do not apply. Instead, define experiment-specific events in EVENTS.yaml
-`custom_events`.
+Services use `funnel_template: custom` for product-specific events. However,
+when a surface is configured (default: `co-located`), `visit_landing` fires
+on the surface — providing a complete acquisition → activation → retention
+funnel.
 
-Typical service events (suggestions, not requirements):
+Surface events (fired by the HTML surface page, not the API):
+1. `visit_landing` — user loads the surface page at the root URL
 
+Product events (suggestions, not requirements):
 1. `api_call` — a request hits an endpoint
 2. `activate` — user completes the core action via the API
 3. `retain_return` — user makes a request after 24+ hours since last call
 
-All service events use `trackServerEvent()` from the server analytics library.
+Surface events use an inline PostHog snippet. Product events use
+`trackServerEvent()` from the server analytics library.
 
 ## Testing
 
@@ -52,11 +59,13 @@ health checks don't apply — use the `/api/health` endpoint instead.
 
 ## Distribution
 
-Services are distributed by sharing the API endpoint URL with target users.
-The `/distribute` skill generates ad campaigns that drive traffic to a landing
-page — since services have no landing page, distribution is typically
-direct outreach, documentation links, or API marketplace listings rather
-than paid ads.
+When a surface is configured (default: `co-located`), the root URL serves
+a marketing page. `/distribute` generates ad campaigns pointing to this URL.
+This gives services the same distribution capability as web-apps — paid ads,
+social campaigns, and tracked referral links all point to the surface.
+
+When surface is `none`: distribution is direct outreach, documentation links,
+or API marketplace listings.
 
 ## Conventions
 

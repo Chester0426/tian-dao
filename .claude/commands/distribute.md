@@ -21,9 +21,9 @@ This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and t
 
 ## Step 0: Archetype check and branch setup
 
-Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype's `excluded_stacks` includes `ui` (no browser UI / no landing page), stop **before creating a branch**: "The /distribute skill generates ad campaigns for web apps with landing pages. For services, see `.claude/archetypes/service.md` Distribution section for API marketplace and direct outreach guidance. For CLIs, see `.claude/archetypes/cli.md` Distribution section for npm and GitHub Releases guidance."
+Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured — add `stack.surface: co-located` or `detached` to idea.yaml, or distribute manually."
 
-If the archetype check passes, follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
+If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 
 ## Step 1: Validate preconditions
 
@@ -31,7 +31,7 @@ If the archetype check passes, follow `.claude/patterns/branch.md`. Branch: `cho
 2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
 3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
-5. Verify the app is deployed: check `landing_url` in existing `idea/ads.yaml`, or ask the user for the deployed URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live landing page. Run `/deploy` first, then re-run `/distribute`."
+5. Verify the app is deployed: check `landing_url` in existing `idea/ads.yaml`, or check `surface_url` (then `canonical_url`) in `.claude/deploy-manifest.json`, or ask the user for the deployed URL. For CLI archetype, the surface URL IS the target URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live surface page. Run `/deploy` first, then re-run `/distribute`."
 6. **Channel selection:**
    1. List available channels by scanning `.claude/stacks/distribution/*.md` (strip the `.md` extension to get channel names)
    2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
@@ -116,7 +116,7 @@ Read the selected channel's stack file "Ad Format Constraints" section for chara
 - Include the landing URL with UTM parameters — read the channel's stack file "UTM Parameters" section for `utm_source` and `utm_medium` values: `?utm_source={channel_source}&utm_medium={channel_medium}&utm_campaign={campaign_name}`
 
 ### Message match
-Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read `src/app/page.tsx` to extract the actual landing headline and derive ad headlines from it. Note that character constraints are channel-specific — read the stack file's "Ad Format Constraints" for the channel's limits.
+Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read the surface source to extract the actual landing headline and derive ad headlines from it: for web-app read `src/app/page.tsx`; for service read the root route handler (path per framework stack file); for CLI read `site/index.html`. Note that character constraints are channel-specific — read the stack file's "Ad Format Constraints" for the channel's limits.
 
 ### Variant ad groups (when idea.yaml has `variants`)
 When idea.yaml has a `variants` field, generate per-variant creative:

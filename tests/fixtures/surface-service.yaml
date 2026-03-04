@@ -1,0 +1,54 @@
+# Test fixture: Service with co-located surface
+# Validates that service archetype with surface: co-located gets a root HTML page.
+idea:
+  name: test-surface-service
+  title: Weather Forecast API
+  owner: tester
+  template_repo: acme/experiment-template
+  type: service
+
+  problem: |
+    Developers need a simple weather API for their applications.
+
+  solution: |
+    A lightweight API service returning current weather and forecasts.
+
+  target_user: Developers building weather-aware apps
+
+  distribution: |
+    Surface page at root URL drives developer signups.
+
+  endpoints:
+    - name: current
+      purpose: Get current weather for a location
+    - name: forecast
+      purpose: Get 5-day forecast for a location
+
+  features:
+    - Current weather endpoint
+    - 5-day forecast endpoint
+
+  primary_metric: API calls per day
+  target_value: "100 API calls in 1 week"
+  measurement_window: 1 week
+
+  stack:
+    framework: nextjs
+    analytics: posthog
+    hosting: vercel
+    surface: co-located
+
+events:
+  standard_funnel:
+    - event: visit_landing
+      trigger: User loads the surface page at the root URL
+    - event: activate
+      trigger: User completes a successful weather API call
+    - event: retain_return
+      trigger: User makes a request after 24+ hours since last call
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [signup_start, signup_complete]
+  min_endpoints: 2

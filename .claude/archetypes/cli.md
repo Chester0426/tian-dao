@@ -28,20 +28,23 @@ no `src/app/` directory, and no `src/components/` directory. The `hosting`,
 
 ## Funnel
 
-CLIs use `funnel_template: custom` — there is no standard web funnel.
-The standard web events (`visit_landing`, `signup_start`, `signup_complete`)
-do not apply. Instead, define experiment-specific events in EVENTS.yaml
-`custom_events`.
+CLIs use `funnel_template: custom` for product-specific events. However,
+when a surface is configured (default: `detached`), `visit_landing` fires
+on the surface — providing a complete acquisition → activation → retention
+funnel.
 
-Typical CLI events (suggestions, not requirements):
+Surface events (fired by the HTML marketing page, not the CLI):
+1. `visit_landing` — user loads the detached marketing page
 
+Product events (suggestions, not requirements):
 1. `command_run` — user executes a command
 2. `activate` — user completes the core action for the first time
 3. `retain_return` — user runs the CLI again after 24+ hours since last use
 
-All CLI events use `trackServerEvent()` from the server analytics library.
-Analytics must be opt-in — check for a consent flag or environment variable
-before sending any telemetry.
+Surface events use an inline PostHog snippet. Product events use opt-in
+`trackServerEvent()` from the server analytics library. Analytics must be
+opt-in — check for a consent flag or environment variable before sending
+any telemetry.
 
 ## Testing
 
@@ -54,14 +57,17 @@ and exit codes.
 
 ## Distribution
 
-CLIs are distributed via package registries, not server hosting:
+When a surface is configured (default: `detached`), it is deployed to Vercel
+and available at the custom domain. `/distribute` generates ad campaigns
+pointing to this URL.
 
+CLIs are also distributed via package registries:
 - `npm publish` — primary distribution for Node.js CLIs
 - GitHub Releases — binary artifacts for non-Node users
 - Homebrew formula — optional, for macOS users
 
-The `/deploy` skill does not apply to CLI tools. Use `npm publish` or
-GitHub Releases directly.
+The `/deploy` skill deploys the surface (Vercel) but not the CLI binary —
+use `npm publish` or GitHub Releases directly for the product.
 
 ## Health Check
 

@@ -13,11 +13,19 @@ Two non-negotiable rules that prevent real usability issues:
 Before generating pages, make all visual design decisions based on the
 product domain in idea.yaml.
 
-> Skip this section if the archetype is `service` or `cli` — no UI.
+> Skip this section if `stack.surface` resolves to `none`.
+> (Inference: `stack.hosting` present → `co-located`; absent → `detached`.
+> Explicit `stack.surface` in idea.yaml overrides inference.)
 
 **Invoke the `frontend-design` skill** (via the Skill tool) to make these
 decisions. The skill has full authority over visual direction — color
 palette, typography, spacing, component styling, and layout composition.
+
+For **service/cli archetypes with a surface**: the skill creates a complete,
+self-contained HTML marketing page (not a React component). CSS is inline,
+fonts via Google Fonts `<link>`, animations via CSS keyframes. The skill has
+the same creative authority as for web-app — unique visual identity per
+experiment, not a generic template.
 
 If the skill is not available (not listed in available skills): stop and
 tell the user:

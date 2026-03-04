@@ -23,7 +23,11 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 2. Verify on `main` branch with clean working tree (`git status --porcelain` is empty). If not, stop: "Switch to main with a clean working tree before deploying."
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
-5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`, stop: "The /deploy skill does not apply to CLI tools. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file." The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
+5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`:
+   - Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
+   - If surface is `detached`: proceed with surface-only deployment (skip Steps 3-4, go directly to Step 5 surface deployment).
+   - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
+   The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
 6. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is automated by /deploy. For your hosting provider, read `.claude/stacks/hosting/<value>.md` for CLI setup and deployment steps."
 7. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
    - `which vercel` — if not found, stop: "Vercel CLI not installed. Install: `npm i -g vercel`"
@@ -205,6 +209,18 @@ Skip this step if `stack.database` is not `supabase`.
 2. Get the deployment URL from the output.
 3. If `canonical_url` is null (domain add failed or no `deploy.domain`): set `canonical_url` = the Vercel deployment URL.
 
+### 5a.1: Surface deployment (if archetype is `cli` and surface is `detached`)
+
+1. Verify `site/index.html` exists. If not, stop: "Surface page not found. Run `/bootstrap` to generate it."
+2. Deploy the surface to Vercel:
+   ```bash
+   cd site && vercel --prod --yes && cd ..
+   ```
+3. Get the deployment URL from the output.
+4. If `deploy.domain` is set in idea.yaml: add custom domain to the Vercel surface project.
+5. Set `surface_url` = custom domain URL or Vercel deployment URL.
+6. For CLI archetype: `canonical_url` = `surface_url` (the surface IS the canonical web presence).
+
 ### 5b: Post-deploy service configuration
 
 Configure services using `canonical_url` (custom domain if added in Step 4.2, otherwise Vercel deployment URL). Batch all env var changes before redeploying.
@@ -364,6 +380,7 @@ Print a deployment summary:
 **Supabase Dashboard:** https://supabase.com/dashboard/project/<ref>
 **Vercel Dashboard:** https://vercel.com/<team>/<name>
 
+**Surface URL:** https://<surface_url>
 **Health check:** [show per-service results — e.g., database: ok, auth: ok, analytics: ok, payment: ok]
 
 **Auto-deploy:** [If git_connect_failed] Not configured — run `vercel git connect --yes` after fixing the issue above, or connect manually in Vercel Dashboard → Project Settings → Git. [Else] Active — merges to main auto-deploy to production.
@@ -428,6 +445,7 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
   "stripe": {
     "webhook_endpoint_url": "<url or null>"
   },
+  "surface_url": "<url or null>",
   "external_services": ["<service-slug>", ...],
   "deployed_at": "<ISO 8601 timestamp>"
 }

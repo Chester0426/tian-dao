@@ -322,6 +322,24 @@ For each Fake Door feature, generate a component in the page folder where the fe
 - Import and render the Fake Door component in the parent page where the feature would naturally live
 - The component should look like a real feature entry point — not a placeholder or disabled button
 
+### Step 4c: Surface generation (if surface ≠ none)
+
+Resolve the surface type: if `stack.surface` is set in idea.yaml, use it.
+Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
+Read the surface stack file at `.claude/stacks/surface/<value>.md`.
+
+- **web-app + co-located**: skip — the landing page created in Step 4 IS the surface.
+- **service + co-located**: Create a root route handler that returns an HTML marketing
+  page. The `frontend-design` skill (invoked in Step 1 via design.md) has already made
+  design decisions — apply them to a self-contained HTML page. Content from idea.yaml:
+  name, title (headline), solution (subheadline), features (showcase), CTA (API docs or
+  first endpoint). Embed PostHog `<script>` to fire `visit_landing` on load. See the
+  surface stack file for the full specification.
+- **cli + detached**: Create `site/index.html` — a self-contained HTML marketing page.
+  Same design quality as above. CTA is the install command with copy button. See the
+  surface stack file for the full specification.
+- **surface: none**: skip this step entirely.
+
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file
 - Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
@@ -461,6 +479,8 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - For each feature in `features`: confirm the implementation addresses it
 - If `funnel_template` is `web` (web-app): for each standard_funnel event in `EVENTS.yaml`, confirm a tracking call exists in the appropriate page
 - If `funnel_template` is `custom` (service/cli): confirm custom_events tracking calls exist (if any are defined in EVENTS.yaml)
+- If surface ≠ none and archetype is `service`: confirm root route exists and returns HTML (Content-Type: text/html)
+- If surface ≠ none and archetype is `cli`: confirm `site/index.html` exists
 - If `stack.payment` is present: confirm the webhook handler does not contain `// TODO: Update user's payment status` (this compiles silently — verify it was resolved in Step 5/6)
 - If `stack.email` is present: confirm `vercel.json` contains the cron config, email routes exist, and welcome email is wired to auth callback
 - If Fake Door features exist: confirm Fake Door components exist, fire `activate` with `fake_door: true`, and render polished UI with a "coming soon" dialog
