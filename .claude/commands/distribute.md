@@ -21,7 +21,7 @@ This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and t
 
 ## Step 0: Archetype check and branch setup
 
-Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured — add `stack.surface: co-located` or `detached` to idea.yaml, or distribute manually."
+Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured. Options: (1) add `stack.surface: co-located` or `detached` to idea.yaml and re-run `/distribute`, or (2) distribute manually — for CLI tools: `npm publish` to npm registry, GitHub Releases for binaries, Homebrew for macOS; for services: API marketplace listings, documentation links, or direct outreach. See the archetype file for details."
 
 If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 
