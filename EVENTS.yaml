@@ -14,13 +14,13 @@ global_properties:
     type: string
     required: true
 
-# Standard funnel — every experiment tracks these events.
-# They map to: acquisition → activation → retention.
+# Standard funnel — every experiment with a surface tracks visit_landing.
+# Remaining events map to: activation → retention.
 # All properties marked required:true must be included in every track() call for that event.
 # Properties marked required:false are optional — include them when the data is available.
 standard_funnel:
   - event: visit_landing
-    trigger: User loads the landing/home page
+    trigger: User loads the surface page (landing page for web-app, root URL for service, marketing page for CLI)
     properties:
       variant:
         type: string

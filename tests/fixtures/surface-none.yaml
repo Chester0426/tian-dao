@@ -1,0 +1,52 @@
+# Test fixture: Service with no surface
+# Validates that surface: none skips surface-related steps and funnel starts at activate.
+idea:
+  name: test-surface-none
+  title: Internal Data Pipeline
+  owner: tester
+  template_repo: acme/experiment-template
+  type: service
+
+  problem: |
+    Teams need a simple internal API for data transformation.
+
+  solution: |
+    A lightweight API service for internal data processing pipelines.
+
+  target_user: Internal engineering teams
+
+  distribution: |
+    Shared internally via documentation and Slack channels.
+
+  endpoints:
+    - name: transform
+      purpose: Transform data according to configured rules
+    - name: status
+      purpose: Check pipeline processing status
+
+  features:
+    - Data transformation endpoint
+    - Pipeline status endpoint
+
+  primary_metric: API calls per day
+  target_value: "50 API calls in 1 week"
+  measurement_window: 1 week
+
+  stack:
+    framework: nextjs
+    analytics: posthog
+    hosting: vercel
+    surface: none
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User completes a successful data transformation via the API
+    - event: retain_return
+      trigger: User makes a request after 24+ hours since last call
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_endpoints: 2

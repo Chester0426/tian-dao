@@ -1,0 +1,53 @@
+# Test fixture: CLI with detached surface
+# Validates that cli archetype with surface: detached gets a site/index.html marketing page.
+idea:
+  name: test-surface-cli
+  title: Git Stats CLI
+  owner: tester
+  template_repo: acme/experiment-template
+  type: cli
+
+  problem: |
+    Developers want quick insights into their git repository activity.
+
+  solution: |
+    A command-line tool that shows commit stats and contributor activity.
+
+  target_user: Developers analyzing repository activity
+
+  distribution: |
+    Detached surface page deployed to Vercel drives npm installs.
+
+  commands:
+    - name: stats
+      purpose: Show commit statistics for the current repository
+    - name: contributors
+      purpose: List top contributors with activity metrics
+
+  features:
+    - Commit statistics command
+    - Contributor activity command
+
+  primary_metric: CLI installs per week
+  target_value: "30 installs in 2 weeks"
+  measurement_window: 2 weeks
+
+  stack:
+    framework: commander
+    analytics: posthog
+    surface: detached
+
+events:
+  standard_funnel:
+    - event: visit_landing
+      trigger: User loads the detached marketing page
+    - event: activate
+      trigger: User runs their first stats command
+    - event: retain_return
+      trigger: User runs the CLI again after 24+ hours since last use
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [signup_start, signup_complete]
+  min_commands: 2
