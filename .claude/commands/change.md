@@ -229,7 +229,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
-- Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. If the archetype includes a landing page (web-app): landing page must include all required elements from messaging.md Section B. When idea.yaml has `variants`, variant messaging fields (`headline`, `subheadline`, `cta`, `pain_points`) override Section A derivation — see messaging.md Section D.
+- Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. If the archetype includes a landing page (web-app): landing page must include all content inventory from messaging.md Section B. When idea.yaml has `variants`, variant messaging fields (`headline`, `subheadline`, `cta`, `pain_points`) override Section A derivation — see messaging.md Section D.
 - If the change modifies idea.yaml `features`, `title`, or `solution` AND the archetype is service or cli AND surface ≠ none: regenerate the surface HTML to reflect the updated content (surface location: root route handler for co-located — file path per framework stack file, e.g., `src/app/route.ts` for Next.js; `site/index.html` for detached). Re-invoke `frontend-design` for the surface if the visual direction changed.
 - Visual design: follow `.claude/patterns/design.md` quality invariants. Read existing pages and maintain visual consistency with the established design direction.
 - Remove anything that doesn't serve conversion. Keep above-the-fold to: headline, subheadline, CTA.

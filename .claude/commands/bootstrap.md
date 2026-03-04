@@ -184,7 +184,13 @@ DO NOT write any code, create any files, or run any install commands during this
 - Check if `typescript-language-server` is available globally (`which typescript-language-server`). If not found, tell the user: "The `typescript-lsp` plugin is enabled for this template but requires a global binary. Install it with: `npm install -g typescript-language-server typescript`. This gives Claude real-time type checking during code generation — errors are caught immediately instead of at build time." Then **stop and wait** for the user to confirm they've installed it (or to say "skip"). If the user confirms installation, re-check with `which typescript-language-server` to verify. If the user says "skip", proceed without it.
 - Run the UI setup commands from the UI stack file
 - After UI setup, verify the UI stack file's post-setup checks pass (PostCSS config, globals.css, scripts intact). If any post-setup check fails: stop and tell the user which check failed and how to fix it (e.g., "PostCSS config was overwritten by shadcn init — restore it from the framework stack file template"). Do not proceed to Step 2 until all post-setup checks pass.
-- After post-setup checks pass, make design decisions per `.claude/patterns/design.md` — record choices in globals.css custom properties and tailwind config before proceeding. Font setup applies in Step 3 when layout.tsx is created.
+- After post-setup checks pass, make design decisions:
+  1. Derive the three design constraints per `.claude/patterns/design.md` (color direction, design philosophy, optimization target) from idea.yaml's product domain.
+  2. **Invoke the `frontend-design` skill** (via the Skill tool) with the constraints and idea.yaml content. The skill has full authority over visual direction within the derived constraints.
+  3. If the skill is not available (not listed in available skills): stop and tell the user:
+     > The `frontend-design` plugin is enabled in `.claude/settings.json` but did not load in this session. Restart Claude Code to reload plugins. If the issue persists, verify `"frontend-design@claude-plugins-official": true` is set in `.claude/settings.json`.
+     Then **stop and wait** for the user to confirm it's fixed (or to say "skip"). If the user says "skip", proceed using your own judgment — match the product's personality, not framework defaults.
+  4. Record choices in globals.css custom properties and tailwind config per the theme contract in design.md. Font setup applies in Step 3 when layout.tsx is created.
 - If any install command fails: stop, show the error, and ask the user to fix the environment issue. After fixing, tell Claude: "Continue the bootstrap on this branch from the install step." Claude will re-run the failed install and any subsequent install commands, then continue with Step 2. Do NOT re-run `/bootstrap` (that would create a duplicate branch). If you close this conversation: either (1) commit partial files on this branch (`git add -A && git commit -m "WIP: partial install"`), then tell Claude "Continue the bootstrap on this branch from the install step"; or (2) switch to main (`git checkout main`), run `make clean`, and start `/bootstrap` fresh.
 
 ### Step 2: Core library files
@@ -223,13 +229,17 @@ For each entry in idea.yaml `pages`:
   - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate EVENTS.yaml event(s) on the correct trigger
   - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
   - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
-- **Landing page specifically**: follow the conversion structure in `.claude/patterns/messaging.md`. Derive headline, subheadline, and CTA from idea.yaml using the copy derivation rules (do NOT use `title` as the headline — that's the product name, not the value proposition). Use the landing page information architecture for section order. CTA links to the next logical page (signup if it exists in idea.yaml pages, otherwise the first non-landing page; if landing is the only page, build the idea.yaml features as sections on the landing page below the hero and use a CTA that scrolls to the first feature section via anchor link (e.g., `href="#get-started"`) — do not link to a nonexistent route or add functionality beyond what is listed in `features`; if any feature is interactive, fire `activate` when they complete that action — if all features are descriptive with no user action, omit the `activate` event and note the omission in the PR body). Fire the landing page event from EVENTS.yaml on mount with its specified properties.
-- **Variant landing pages (if idea.yaml has `variants`)**: follow messaging.md Section D instead of Section A for copy derivation. Create these additional files:
-  - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline, subheadline, cta, pain_points, isDefault) and `getVariant(slug: string)` helper that returns the matching variant or null
-  - `src/components/landing-content.tsx` — shared `LandingContent` component that accepts variant props (headline, subheadline, cta, pain_points) and renders the landing page structure using messaging.md Section B required elements. The specific arrangement is chosen by AI — all variants share the same structure.. Features section is shared across all variants (from idea.yaml `features`).
-  - Root `src/app/page.tsx` — renders `LandingContent` with the default variant's props (the one with `default: true`, or the first in the list). Fires `visit_landing` with `variant` property set to the default variant's slug.
-  - `src/app/v/[variant]/page.tsx` — dynamic route that looks up the variant by slug via `getVariant()`, renders `LandingContent` with that variant's props, and returns `notFound()` for unknown slugs. Fires `visit_landing` with `variant` property. Uses `generateStaticParams()` to pre-render all variant routes.
-  - The existing non-variant landing page instruction (above) applies when idea.yaml has NO `variants` field.
+- **Landing page**: Do NOT generate the landing page content here — it is
+  created by a dedicated agent in Step 4c for higher creative quality. If
+  idea.yaml has `variants`, create only the structural routing files here:
+  - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline,
+    subheadline, cta, pain_points, isDefault) and `getVariant(slug)` helper
+  - Root `src/app/page.tsx` — imports and renders `LandingContent` with the
+    default variant's props. Fires `visit_landing` with `variant` property.
+  - `src/app/v/[variant]/page.tsx` — dynamic route, imports `LandingContent`,
+    fires `visit_landing` with `variant` property. `generateStaticParams()`
+    for all variant routes. Returns `notFound()` for unknown slugs.
+  If no `variants`, skip entirely — Step 4c creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
 - **All other pages**: functional layout following `.claude/patterns/design.md`, with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real product screen
@@ -324,23 +334,62 @@ For each Fake Door feature, generate a component in the page folder where the fe
 - Import and render the Fake Door component in the parent page where the feature would naturally live
 - The component should look like a real feature entry point — not a placeholder or disabled button
 
-### Step 4c: Surface generation (if surface ≠ none)
+### Step 4c: Landing page generation (if surface ≠ none)
 
 Resolve the surface type: if `stack.surface` is set in idea.yaml, use it.
 Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
 Read the surface stack file at `.claude/stacks/surface/<value>.md`.
 
-- **web-app + co-located**: skip — the landing page created in Step 4 IS the surface.
-- **service + co-located**: Create a root route handler that returns an HTML marketing
-  page. The `frontend-design` skill (invoked in Step 1 via design.md) has already made
-  design decisions — apply them to a self-contained HTML page. Content from idea.yaml:
-  name, title (headline), solution (subheadline), features (showcase), CTA (API docs or
-  first endpoint). Embed PostHog `<script>` to fire `visit_landing` on load. See the
-  surface stack file for the full specification.
-- **cli + detached**: Create `site/index.html` — a self-contained HTML marketing page.
-  Same design quality as above. CTA is the install command with copy button. See the
-  surface stack file for the full specification.
 - **surface: none**: skip this step entirely.
+
+**All other cases**: Launch an Agent (subagent_type: general-purpose) with a
+focused creative brief. The agent runs in a clean context — free from the
+infrastructure setup that preceded this step.
+
+Include in the agent prompt:
+
+1. The full content of idea.yaml (product context)
+2. The three derived constraints from design.md (color direction, design
+   philosophy, optimization target — already decided in Step 1)
+3. The quality bar from design.md: "Create a world-class, conversion-optimized
+   landing page. The visual quality must match a $50K agency page — not
+   adequate, exceptional."
+4. Copy derivation rules from messaging.md Section A (headline = outcome for
+   target_user, CTA = action verb + outcome)
+5. Content inventory from messaging.md Section B (raw material, not structure)
+6. Instruction: "If the `frontend-design` skill is available in your context,
+   invoke it to make visual decisions within the derived constraints, then use
+   its output for the page. If the skill is not available, the creative brief
+   and constraints above provide sufficient direction — proceed with your own
+   creative judgment."
+7. Technical context per archetype (see below)
+
+**web-app + co-located** (React component):
+- Include: theme tokens (globals.css custom properties, tailwind config from
+  Step 1), available shadcn/ui components, analytics function signatures from
+  `src/lib/events.ts`, framework page conventions from framework stack file
+- If no `variants`: agent writes `src/app/page.tsx` — a complete React landing
+  page component. Must fire `visit_landing` on mount with EVENTS.yaml properties.
+- If `variants`: agent writes `src/components/landing-content.tsx` — a shared
+  `LandingContent` component that accepts variant props (headline, subheadline,
+  cta, pain_points). Features section is shared across variants (from idea.yaml
+  `features`). The structural routing files (variants.ts, root page, dynamic
+  route) were already created in Step 4.
+
+**service + co-located** (self-contained HTML):
+- Include: surface stack file content (route path, analytics wiring, CSS approach)
+- Agent writes the route handler file at [path from framework stack file]
+  returning a complete self-contained HTML page
+
+**cli + detached** (self-contained HTML):
+- Include: surface stack file content (file path, CSS approach)
+- Agent writes `site/index.html` as a complete self-contained HTML page
+
+After the agent returns, verify the output:
+- Wire analytics if `stack.analytics` is present and not already included by
+  the agent (add inline snippet for service/cli per surface stack file's
+  analytics section; for web-app, verify event imports and tracking calls)
+- Run `npm run build` to verify the landing page compiles (web-app only)
 
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file

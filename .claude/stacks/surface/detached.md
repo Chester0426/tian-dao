@@ -27,18 +27,29 @@ needed beyond Google Fonts and PostHog CDN.
 
 ## Design
 
-Same quality bar as co-located. `frontend-design` has full creative
-authority — custom color palette, typography (Google Fonts via `<link>`),
-animations (CSS keyframes), responsive layout, dark/light mode
-(`prefers-color-scheme`). Not a template — a unique page that matches the
-product domain.
+The surface is the first thing a potential user sees. It must be
+**world-class** — visually equivalent to a $50K agency landing page.
 
-**Content from idea.yaml:**
-- `name` → page title
-- `title` → headline
-- `solution` → subheadline
-- `features` → feature showcase
-- CTA → `npm install -g <name>` command with copy button (pure CSS/minimal JS)
+`frontend-design` has full creative authority AND full creative
+responsibility. The expectation is not "use nice colors." The expectation
+is: custom color palette, considered typography (Google Fonts via `<link>`),
+meaningful animations (CSS keyframes, scroll-triggered reveals, staggered
+transitions), textured depth (subtle gradients, noise overlays, backdrop
+effects), responsive layout, dark/light mode (`prefers-color-scheme`).
+
+Not a template. Not adequate. Exceptional — a unique page that makes the
+founder proud to share the URL.
+
+> _Mirrors `.claude/patterns/design.md` Quality bar — keep in sync._
+
+**Content inventory from idea.yaml** (raw material — page architecture is a
+creative decision by `frontend-design`, not a fixed mapping):
+- `name` — product identity
+- `title` — core value proposition
+- `solution` — what the product does
+- `features` — capabilities to showcase
+- `problem` (if present) — pain points to activate
+- CTA — `npm install -g <name>` command with copy button (pure CSS/minimal JS)
 
 Can include CSS-based terminal animation showing CLI usage.
 

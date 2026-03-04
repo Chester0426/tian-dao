@@ -1710,7 +1710,7 @@ if os.path.isfile(events_yaml_path):
                 "name", "title", "owner", "problem", "solution",
                 "target_user", "distribution", "primary_metric",
                 "target_value", "measurement_window",
-                "page_name", "feature", "features", "pages",
+                "page_name", "feature", "features", "pages", "variants",
             }
             if token in skip_tokens:
                 continue

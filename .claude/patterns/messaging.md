@@ -35,20 +35,26 @@ Examples:
 
 Format: icon/emoji + short statement (e.g., "Manual invoicing wastes hours every week").
 
-## Section B: Landing Page Required Elements
+## Section B: Landing Page Content Inventory
 
-Every landing page must include all of these elements. The specific arrangement, styling, and visual treatment are chosen by the AI — there is no fixed section order.
+Content inventory for landing pages (raw material — page architecture is a
+creative decision by `frontend-design`, not a fixed checklist):
 
-**Required elements:**
-- **Value proposition above the fold**: headline + subheadline (derived from Section A rules)
-- **Primary CTA**: the call-to-action button (derived from Section A rules)
-- **Pain points or social proof**: derived from idea.yaml `problem` — 3 short statements addressing aspects of the pain
-- **Feature highlight**: derived from idea.yaml `features` — showcase what the product does
-- **CTA repeat**: the same CTA must appear at least twice on the page (once above the fold, once further down)
+- **Value proposition** — headline + subheadline (derived from Section A rules)
+- **CTA** — the call-to-action (derived from Section A rules)
+- **Pain points** — derived from idea.yaml `problem` — aspects of the pain to activate
+- **Features** — derived from idea.yaml `features` — capabilities to showcase
+- **Social proof** — testimonials, logos, metrics (if available in idea.yaml or inferable)
 
-When landing is the only page (features as sections), apply the same required elements but with feature sections being interactive rather than descriptive cards.
+`frontend-design` decides which elements to include, how to arrange them, how
+many times CTA appears, and what additional sections the page needs (comparison
+tables, pricing, FAQ, demo, etc.). The content inventory is input, not structure.
 
-> **Testing note**: Because the CTA appears 2+ times on landing pages, test selectors targeting CTA buttons must use `.first()` to avoid ambiguous matches.
+When landing is the only page (features as sections), features become interactive
+sections rather than descriptive cards.
+
+> **Testing note**: CTA typically appears 2+ times on landing pages — test
+> selectors targeting CTA buttons should use `.first()` to avoid ambiguous matches.
 
 ## Section C: Message Match Rules
 
