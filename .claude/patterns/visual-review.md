@@ -12,6 +12,22 @@ entire procedure with the message:
 
 > Skipping visual review — Playwright not installed.
 
+## 1b. Ensure client env vars for rendering
+
+If `.env.example` contains `NEXT_PUBLIC_*` variables and `.env.local`
+does not exist, the build has inlined `undefined` values — pages will
+crash at runtime. Rebuild with safe placeholder values:
+
+```bash
+if grep -q 'NEXT_PUBLIC_' .env.example 2>/dev/null && [ ! -f .env.local ]; then
+  grep 'NEXT_PUBLIC_' .env.example | sed 's/=.*/=placeholder/' > /tmp/.env.visual-review
+  set -a && . /tmp/.env.visual-review && set +a && npm run build
+  rm /tmp/.env.visual-review
+fi
+```
+
+This rebuild is for visual review only — it is not committed.
+
 ## 2. Start Production Server
 
 The build has already passed at this point. Start a production server on a

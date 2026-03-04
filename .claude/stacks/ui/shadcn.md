@@ -23,8 +23,18 @@ npm install -D tailwindcss @tailwindcss/postcss
 
 ## Setup Commands
 Run in order:
-1. `npx shadcn@latest init --yes --defaults` — sets up Tailwind, PostCSS, and globals.css (the `--yes --defaults` flags prevent interactive prompts)
-2. `npx shadcn@latest add -y button input card label separator badge tabs accordion avatar tooltip dialog alert progress` — install base components (add more later as needed)
+1. Create prerequisites that `shadcn init` expects to exist (Tailwind CSS v4):
+   - `postcss.config.mjs`:
+     ```js
+     const config = { plugins: { "@tailwindcss/postcss": {} } };
+     export default config;
+     ```
+   - `src/app/globals.css`:
+     ```css
+     @import "tailwindcss";
+     ```
+2. `npx shadcn@latest init --yes --defaults` — configures component paths and theme
+3. `npx shadcn@latest add -y button input card label separator badge tabs accordion avatar tooltip dialog alert progress` — install base components (add more later as needed)
 
 ## Post-Setup Verification
 After running setup commands, verify:
