@@ -373,8 +373,17 @@ if os.path.isdir(fixture_dir):
                                 f"assertions.skippable_events"
                             )
             else:
-                # Non-web-app (service, cli, etc.): visit_landing, signup_start, signup_complete must be skippable
-                for ev in ["visit_landing", "signup_start", "signup_complete"]:
+                # Non-web-app (service, cli, etc.): determine which events must be skippable
+                # visit_landing is skippable only when surface is none;
+                # when a surface is configured, visit_landing fires on the surface page
+                fixture_stack = idea.get("stack", {})
+                effective_surface = fixture_stack.get("surface")
+                if effective_surface is None:
+                    effective_surface = "co-located" if "hosting" in fixture_stack else "detached"
+                non_webapp_skippable = ["signup_start", "signup_complete"]
+                if effective_surface == "none":
+                    non_webapp_skippable.append("visit_landing")
+                for ev in non_webapp_skippable:
                     if ev not in skippable:
                         error(
                             f"[3] {ff}: {fixture_type} type but '{ev}' not in "

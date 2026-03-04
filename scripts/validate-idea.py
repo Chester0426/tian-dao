@@ -157,6 +157,34 @@ if stack_warnings:
     )
     warnings = True
 
+# --- Surface validation ---
+effective_surface = stack.get("surface")
+if effective_surface is None:
+    # Infer from hosting presence
+    effective_surface = "co-located" if "hosting" in stack else "detached"
+
+# Validate surface value format
+if effective_surface not in ("co-located", "detached", "none"):
+    print(f'Error: stack.surface "{effective_surface}" must be one of: co-located, detached, none')
+    sys.exit(1)
+
+# Validate surface + archetype combination
+invalid_combos = {
+    ("service", "detached"): "Services have a server — use co-located (surface at root URL) or none.",
+    ("cli", "co-located"): "CLIs have no server — use detached (Vercel static site) or none.",
+}
+combo = (effective_type, effective_surface)
+if combo in invalid_combos:
+    print(f"Error: type '{effective_type}' + surface '{effective_surface}' is invalid. {invalid_combos[combo]}")
+    sys.exit(1)
+
+# Check surface stack file existence
+if effective_surface != "none":
+    sf_path = f".claude/stacks/surface/{effective_surface}.md"
+    if not os.path.isfile(sf_path):
+        print(f"  Warning: surface '{effective_surface}' — no file at {sf_path}")
+        warnings = True
+
 # --- Stack assumes consistency ---
 assumes_warnings = []
 for cat, val in stack.items():
