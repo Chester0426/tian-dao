@@ -10,12 +10,13 @@ those notes into properly formatted observation issues.
 ## Process Scratch File
 
 1. Check if `.claude/observation-scratch.md` exists and is non-empty.
-   - If missing or empty: proceed to Trigger Evaluation below (which catches
-     issues that weren't noted during execution).
    - If non-empty: read the notes. Each line is a captured observation to file.
      Use the notes as input for the Issue Creation section below (one issue
      combining all notes, per the "Max 1 issue per session" constraint).
      After filing, delete `.claude/observation-scratch.md`.
+   - If missing or empty: **Rule 12 was likely not followed during this session.**
+     Do NOT skip — proceed to Trigger Evaluation below, which will actively
+     re-scan for template-rooted fixes that were not captured.
 2. Then proceed to Trigger Evaluation to catch any additional issues not noted
    in the scratch file.
 
