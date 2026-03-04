@@ -264,8 +264,9 @@ test.describe.serial("User funnel", () => {
   // test("waitlist form submits", async ({ page }) => {
   //   await page.goto("/");
   //   const email = `funnel-${Date.now()}@test.example`;
-  //   await page.getByPlaceholder("your@email.com").fill(email);
-  //   await page.getByRole("button", { name: /join waitlist/i }).click();
+  //   const emailInput = page.getByPlaceholder("your@email.com");
+  //   await emailInput.fill(email);
+  //   await emailInput.press("Enter");
   //   await expect(page.getByText(/success message/i)).toBeVisible({ timeout: 10_000 });
   // });
   //
@@ -301,7 +302,7 @@ Notes:
 - `retain_return` is skipped — requires 24h+ delay, untestable in E2E
 - Waitlist/form tests use timestamped emails (`funnel-${Date.now()}@test.example`) to avoid duplicate conflicts on re-runs
 - Unlike smoke tests (page-load only), funnel tests verify the actual user journey through the app
-- **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B required elements), so selectors targeting CTAs will match 2+ elements. Use `.first()` on these selectors (e.g., `page.getByRole("link", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
+- **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B required elements), so selectors targeting CTAs will match 2+ elements. For **form submit** actions (waitlist, signup), use `input.press("Enter")` instead of clicking the submit button — this binds to user intent and avoids ambiguous button selectors entirely. For **navigation CTAs** (links), use `.first()` on these selectors (e.g., `page.getByRole("link", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
 - **CTA selector role**: Landing page CTAs that navigate to another page use `<Button asChild><Link>`, which renders as `<a>` (role `"link"`). Use `getByRole("link")` for navigation CTAs. Use `getByRole("button")` only for CTAs that trigger actions (form submits, dialogs). Bootstrap determines the correct role by reading the actual page source.
 
 ## Environment Variables
