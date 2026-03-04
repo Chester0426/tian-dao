@@ -5,11 +5,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-}"
-if [ -z "$PROJECT_ROOT" ]; then
-  echo '{"hookSpecificOutput":{"additionalContext":"Could not determine project root (CLAUDE_PROJECT_DIR not set)."}}'
-  exit 0
-fi
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 escape_for_json() {
   local s="$1"
