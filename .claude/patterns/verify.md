@@ -83,4 +83,12 @@ This catches template-rooted issues that don't manifest as build errors (e.g.,
 runtime behavior bugs, missing UX patterns, incorrect template guidance that
 produces working but broken code).
 
+**Empty scratch file = Rule 12 likely wasn't followed.** Do NOT interpret an
+empty or missing scratch file as "no observations." Instead, observe.md will
+re-scan tool output history for template-rooted fixes that were missed.
+
+After processing, append a line to `.claude/observation-scratch.md`:
+`- Observation review executed at [checkpoint/verify/deploy] — [N observations filed | no observations]`
+This turns the scratch file into evidence that the review ran, not just evidence of issues.
+
 Skip if you already filed an observation in the previous step (max 1 per skill).
