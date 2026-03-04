@@ -58,6 +58,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Add rate limiting to auth and payment API routes. See hosting stack file for deployment-specific constraints (e.g., serverless rate-limiting limitations).
 - Use database-level access control (e.g., RLS) for all data access — never trust the client. See database stack file for details.
 - Never expose database admin/service keys to the client
+- These rules are enforced by `.claude/patterns/security-review.md` during verification
 
 ## Rule 7: File Conventions
 ```
