@@ -28,6 +28,8 @@ Pages are React components rendered in the browser. The landing page
 ## Funnel
 
 Standard web funnel defined in EVENTS.yaml:
+The landing page serves as both the product entry point and the acquisition
+surface — `visit_landing` fires here.
 
 1. `visit_landing` — user loads the landing page
 2. `signup_start` — user begins the signup flow
