@@ -11,9 +11,26 @@ Two non-negotiable rules that prevent real usability issues:
 ## Design Decisions
 
 Before generating pages, make all visual design decisions based on the
-product domain in idea.yaml. The frontend-design plugin has full authority
-over what to decide and how. If the plugin is not enabled, use your own
-judgment — match the product's personality, not framework defaults.
+product domain in idea.yaml.
+
+> Skip this section if the archetype is `service` or `cli` — no UI.
+
+**Invoke the `frontend-design` skill** (via the Skill tool) to make these
+decisions. The skill has full authority over visual direction — color
+palette, typography, spacing, component styling, and layout composition.
+
+If the skill is not available (not listed in available skills): stop and
+tell the user:
+
+> The `frontend-design` plugin is enabled in `.claude/settings.json` but
+> did not load in this session. Restart Claude Code to reload plugins.
+> If the issue persists, verify
+> `"frontend-design@claude-plugins-official": true` is set in
+> `.claude/settings.json`.
+
+Then **stop and wait** for the user to confirm it's fixed (or to say
+"skip"). If the user says "skip", proceed using your own judgment — match
+the product's personality, not framework defaults.
 
 Output contract:
 - Record choices in the theme layer (globals.css custom properties,

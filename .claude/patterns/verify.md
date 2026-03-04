@@ -46,6 +46,13 @@ This screenshots all pages and checks for visual issues that compile-time
 checks miss (broken layout, missing fonts, wrong colors, empty pages).
 Requires Playwright — skips automatically when not installed.
 
+## Security Review (after visual review passes)
+
+Follow the security review procedure in `.claude/patterns/security-review.md`.
+This scans for security issues that compile-time checks miss: hardcoded secrets,
+missing input validation, absent RLS policies, and client/server boundary violations.
+The security-guidance plugin augments this review when enabled.
+
 ## Save Notable Patterns (if you fixed any errors above)
 
 After a successful verification where you fixed build or lint errors:
