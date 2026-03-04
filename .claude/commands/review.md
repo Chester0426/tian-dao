@@ -109,8 +109,8 @@ Files to read:
 
 After reading: trace the user journey for each archetype:
 - web-app: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`
-- service: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/iterate` → `/retro` → `/teardown`
-- cli: `make validate` → `/bootstrap` → merge → `/verify` → `npm publish` → `/change` → `/verify` → `/iterate` → `/retro`
+- service: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro` → `/teardown`
+- cli: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` (surface only) → `npm publish` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro`
 
 **Finding Format**
 
