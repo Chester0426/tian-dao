@@ -213,7 +213,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - Sub-step 6b — Client/output layer (pages/endpoints/commands, components if applicable, analytics wiring)
 
 #### Upgrade constraints
-- Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as bootstrap Step 4b.6
+- Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as Step 4b.6 in `.claude/procedures/scaffold.md`
 - Replace the Fake Door component with real UI that calls the actual API route
 - Replace any stub route (501/503) with the full integration logic using the service's API
 - Remove `fake_door: true` from the `activate` event call — keep the same event name (`activate`) and `action` value for analytics continuity

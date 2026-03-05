@@ -18,7 +18,7 @@ For each attempt:
    Warnings are OK; errors are not.
 4. If lint fails: note the errors (mentally log: "Attempt N — lint: [error summary]").
    Fix the errors, then start the next attempt.
-5. If both pass: verification is complete. Proceed to the next step.
+5. If both pass: build and lint verification passed. Continue to Visual Review below — do NOT skip the remaining verification steps.
 6. **Prove it.** Quote the last 3–5 lines of the build output in your response. State facts: "Build completed with 0 errors. Lint passed with 0 warnings." Never say "should work", "probably passes", or "seems fine."
 
 **If all 3 attempts fail**, stop and report to the user:

@@ -1,0 +1,202 @@
+# Wire Procedure
+
+This procedure is executed by a team teammate spawned by `/bootstrap`
+after the scaffold phase completes. The project structure already exists —
+packages installed, library files created, pages generated, build passes.
+As an independent Claude Code session, you have full access to project
+files, plugins (security-guidance, typescript-lsp), and tools.
+
+## Scope
+Execute Steps 5 through 9. Do NOT recreate packages, library files, or
+pages. Only create API routes, database schema, environment config, test
+scaffolding, run verification, and open the PR.
+
+## Prerequisites
+- Scaffold phase completed (project structure exists, Checkpoint B passed)
+- `.claude/current-plan.md` exists
+- Scaffold teammate's completion report (external dep decisions) provided in your prompt
+- Read all context files listed in your task assignment before starting
+
+## Steps
+
+### Step 5: API routes
+- Create the API routes directory per the framework stack file
+- Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
+- If idea.yaml features imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.
+- For the webhook handler's `// TODO: Update user's payment status in database` comment: resolve it using the database schema you planned in Phase 1. If no payments/subscriptions table was planned, add one to the migration in Step 6 and return here to wire the webhook update after the table exists.
+- Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
+- Follow the hosting stack file for rate limiting guidance in auth and payment API route handlers. Mention any limitations in the PR body so the user knows to address them before production
+
+#### Provision-at-deploy routes
+
+For each core dependency marked "Provision at deploy" in Step 4b: create the full API route implementation referencing env vars from `.env.example`. Guard against missing credentials at runtime:
+
+```typescript
+if (!process.env.SERVICE_API_KEY) {
+  return NextResponse.json(
+    { error: "Service not configured", service: "[name]", setup: "Run /deploy to provision credentials" },
+    { status: 503 }
+  );
+}
+```
+
+These routes must:
+- Compile and pass `npm run build` without real credentials present
+- Return 503 with actionable error message when env vars are missing
+- Implement the complete integration logic (OAuth flow, API calls, etc.) when env vars are present
+- Read the external stack file (`.claude/stacks/external/<service-slug>.md`) for API patterns and code templates
+
+### Step 6: Database schema (if needed)
+If `stack.database` is present and idea.yaml features require persistent data:
+- Follow the schema management approach from the database stack file
+- Create the initial migration with all tables needed for idea.yaml features. Migration numbering is based on the current branch state — concurrent branches may create conflicting numbers, which should be resolved by renumbering at merge time.
+- If `stack.payment` is present and a payments/subscriptions table was created: return to the webhook handler (`src/app/api/webhooks/stripe/route.ts`) and resolve the `// TODO: Update user's payment status in database` using the new table before proceeding to Step 7.
+- If `stack.email` is present and the nudge route requires activation tracking: add `activated_at timestamptz` and `nudge_sent_at timestamptz` columns to the user-related table (or create a `user_status` table if no user table exists beyond Supabase auth). The nudge cron queries this to find un-activated, un-nudged users.
+- Also create `src/lib/types.ts` with TypeScript types matching the table schemas
+- Include post-merge database setup instructions in the PR body (see database stack file's "PR Instructions" section)
+
+If no features require database tables, skip this step.
+
+### Step 7: Environment config
+- Generate `.env.example` by combining all environment variables from active stack files (framework, database, analytics, and any others that define env vars)
+
+### Step 7b: Test scaffolding (if stack.testing is present)
+
+If `stack.testing` is present in idea.yaml:
+- Read the testing stack file at `.claude/stacks/testing/<value>.md`
+- Read the archetype file at `.claude/archetypes/<type>.md` to determine the archetype
+
+**Compatibility check:**
+- If archetype is `service` or `cli` and `stack.testing` is `playwright`: stop with error — "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` instead."
+- If archetype is `web-app` and `stack.testing` is `vitest`: warn — "Vitest does not provide page-load testing for web apps. Proceeding, but consider using `testing: playwright` for browser-based smoke tests." Then proceed.
+
+**If archetype is `web-app`:**
+- Check assumes: for each `category/value` in the testing stack file's `assumes` list, verify
+  it matches idea.yaml `stack`. If all match → use full templates. If any unmet → use No-Auth
+  Fallback templates.
+- Install packages: `npm install -D @playwright/test && npx playwright install chromium`
+- If using the full-auth path: install Supabase CLI (`npm install -D supabase`) and if
+  `supabase/config.toml` does not exist, run `npx supabase init`
+- Create files per the chosen template path:
+  - `playwright.config.ts` (full or no-auth)
+  - `e2e/helpers.ts` (full or no-auth)
+  - If full-auth path: `e2e/global-setup.ts` and `e2e/global-teardown.ts`
+- Generate `e2e/smoke.spec.ts` with one page-load test per idea.yaml page:
+  ```ts
+  test("[page name] loads", async ({ page }) => {
+    await page.goto("/[route]");
+    await expect(page).toHaveTitle(/.+/);
+  });
+  ```
+  These are page-load smoke tests only — not full funnel tests with selectors.
+- If idea.yaml has `variants`, also generate a smoke test per variant route:
+  ```ts
+  test("variant [slug] loads", async ({ page }) => {
+    await page.goto("/v/[slug]");
+    await expect(page).toHaveTitle(/.+/);
+  });
+  ```
+- If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
+  - Read the funnel test template from the testing stack file
+  - Read idea.yaml pages and EVENTS.yaml to determine funnel sequence
+  - Read actual page source files (created in Step 4) to extract real selectors
+  - Generate tests: landing content → activate action (if applicable) → login → core value pages
+  - For landing page CTA and success-message selectors, use `.first()` — the CTA appears at least twice on landing pages (messaging.md Section B), so selectors will match 2+ elements. Other pages have unique selectors and don't need `.first()`.
+  - Use timestamped emails for form submissions to avoid duplicates
+  - Skip retain_return (untestable in E2E)
+- Add `.gitignore` entries per testing stack file
+- Add `test:e2e` and `test:e2e:ui` scripts to `package.json`
+- If the existing CI e2e job in `.github/workflows/ci.yml` does not match the chosen
+  template path (full-auth vs. no-auth fallback), replace the `e2e:` job with the
+  testing stack file's correct CI Job Template for that path.
+- Add env vars from testing stack file to `.env.example` (based on chosen template path)
+
+**If archetype is `service`:**
+- Install vitest packages: `npm install -D vitest @vitest/coverage-v8`
+- Create `vitest.config.ts` per the testing stack file's "Files to Create" section
+- Generate `tests/smoke.test.ts` per the testing stack file's "Bootstrap Smoke Tests > Service Smoke Tests" template:
+  - Import `app` from `../src/index` (the framework's exported app instance)
+  - Health check test: `app.request("/api/health")` → assert status 200
+  - One test per idea.yaml `endpoints` entry: `app.request("/api/<endpoint>")` → assert `not.toBe(500)`
+  - POST endpoints use empty JSON body — verifies route registration, not input validation
+  - For frameworks without an exported `app` instance or `app.request()` (e.g., Virtuals ACP, Next.js): use the testing stack file's fallback guidance — test handler functions directly by importing from the path defined by the framework stack file
+- Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
+- Add CI step per the testing stack file's "CI Integration" section
+
+**If archetype is `cli`:**
+- Install vitest packages: `npm install -D vitest @vitest/coverage-v8`
+- Create `vitest.config.ts` per the testing stack file's "Files to Create" section
+- Generate `tests/commands.test.ts` per the testing stack file's "Bootstrap Smoke Tests > CLI Smoke Tests" template:
+  - Helper `runCli(args)` that runs `node dist/index.js ${args}` via `execSync`, returns `{ stdout, exitCode }`
+  - `--version` test: assert exit 0 + semver pattern
+  - `--help` test: assert exit 0 + "Usage:" in output
+  - One test per idea.yaml `commands` entry: `<command> --help` → assert exit 0 + command name in output
+  - Note: requires `npm run build` first — CI runs build before test
+- Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
+- Add CI step per the testing stack file's "CI Integration" section
+
+NOTE: Tests are NOT run during bootstrap — only created
+
+If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
+
+### Step 8: Verify before shipping
+- Follow the FULL verification procedure in `.claude/patterns/verify.md`:
+  1. Build & lint loop (max 3 attempts)
+  2. Save notable patterns (if you fixed errors)
+  3. Template observation review (ALWAYS — even if no errors were fixed)
+
+### Step 8b: Spec compliance check
+
+Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these before proceeding to the PR:
+
+**Archetype-specific structure checks:**
+- If archetype requires `pages` (web-app): for each page in `pages`, confirm `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
+- If archetype requires `endpoints` (service): for each endpoint in `endpoints`, confirm the API route or handler exists at the path defined by the framework stack file (e.g., `src/routes/<endpoint>.ts` for Hono, `src/app/api/<endpoint>/route.ts` for Next.js, `src/handlers/<endpoint>.ts` for Virtuals ACP). Also verify the route is registered in the entry point (e.g., `app.route()` call in `src/index.ts` for Hono).
+- If archetype requires `commands` (cli): for each command in `commands`, confirm `src/commands/<command-name>.ts` exists with a `register<CommandName>Command(program)` export, and verify it is registered in `src/index.ts` per the framework stack file
+
+**Feature and analytics checks:**
+- For each feature in `features`: confirm the implementation addresses it
+- If `funnel_template` is `web` (web-app): for each standard_funnel event in `EVENTS.yaml`, confirm a tracking call exists in the appropriate page
+- If `funnel_template` is `custom` (service/cli): confirm custom_events tracking calls exist (if any are defined in EVENTS.yaml)
+- If surface ≠ none and archetype is `service`: confirm root route exists and returns HTML (Content-Type: text/html)
+- If surface ≠ none and archetype is `cli`: confirm `site/index.html` exists
+- If `stack.payment` is present: confirm the webhook handler does not contain `// TODO: Update user's payment status` (this compiles silently — verify it was resolved in Step 5/6)
+- If `stack.email` is present: confirm `vercel.json` contains the cron config, email routes exist, and welcome email is wired to auth callback
+- If Fake Door features exist: confirm Fake Door components exist, fire `activate` with `fake_door: true`, and render polished UI with a "coming soon" dialog
+- If core "Provision at deploy" routes exist: confirm they compile without real credentials and return 503 with actionable error when env vars are missing
+
+**Test file existence check (if `stack.testing` present):**
+- If archetype is `web-app`: confirm `e2e/smoke.spec.ts` exists
+- If archetype is `service`: confirm `tests/smoke.test.ts` exists
+- If archetype is `cli`: confirm `tests/commands.test.ts` exists
+
+- If anything is missing, implement it now. Do not proceed with gaps.
+
+### Step 9: Commit, push, open PR
+- You are already on a feature branch (created in Step 0). Do not create another branch.
+- Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
+- Push and open PR using the `.github/PULL_REQUEST_TEMPLATE.md` format:
+  - **Summary**: plain-English explanation — "Full MVP scaffold generated from idea.yaml" with key highlights
+  - **How to Test**: "After merging: [If hosting is Vercel: 1) Import your repo at vercel.com/new, 2) Connect Supabase via the Vercel integration (vercel.com/integrations/supabase) — it walks you through creating a Supabase project; database migrations are applied automatically during the first build, [If stack.payment is present: add Stripe env vars manually in Vercel Project → Settings → Environment Variables,] 3) Verify: visit your production URL and check each page] [If hosting is not Vercel: read the hosting stack file's PR Instructions for deployment steps] [If archetype is CLI: run `npm run build && node dist/index.js --help` to verify the CLI works] For local verification: run `/verify` in Claude Code (auto-fixes failures), or `make verify-local` from terminal"
+  - **What Changed**: list every file created and its purpose
+  - **Why**: reference the idea.yaml problem/solution
+  - **Checklist — Scope**: check all boxes (only built what's in idea.yaml)
+  - **Checklist — Analytics**: list every event wired and which page fires it
+  - **Checklist — Build**: confirm build passes, no hardcoded secrets, .env.example created
+- Add a prominent note at the top of the PR body with post-merge instructions: database setup (from database stack file), environment variable setup (from .env.example)
+- If Fake Door features exist: add a "## Fake Door Features" section listing each feature, its component file, and that it can be upgraded to a real integration via `/change`
+- If provision-at-deploy routes exist: add a "## Provision at Deploy" section listing each service, its env vars, and that `/deploy` will prompt for credentials
+- Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
+- If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry the push and PR creation.
+- Delete `.claude/current-plan.md` — the plan is now captured in the PR description.
+- Tell the user: "Bootstrap PR created and ready to merge. Next: review the PR, merge to `main`, then run `/verify` to validate locally, and `/deploy` to set up cloud infrastructure and launch your app."
+
+## Do NOT
+- Add pages not listed in idea.yaml `pages`
+- Add features not listed in idea.yaml `features`
+- Add libraries not in idea.yaml `stack` (small utilities like clsx are fine)
+- Add tests beyond the funnel happy path — bootstrap generates smoke tests and one funnel test; use /change for edge cases
+- Violate the restrictions listed in the framework stack file
+- Add placeholder "lorem ipsum" text — use real copy derived from idea.yaml
+- Skip the build verification step
+- Commit to main directly
