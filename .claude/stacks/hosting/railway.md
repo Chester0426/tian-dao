@@ -113,5 +113,115 @@ For high-traffic production use, consider Redis-based rate limiting via a Railwa
 - In-memory rate limiting works on Railway (persistent process, not serverless)
 
 ## PR Instructions
-- After merging: create a project at [railway.app](https://railway.app), connect your GitHub repo, and add environment variables in the Railway dashboard. Note: `/deploy` currently only automates Vercel hosting — for Railway, use the CLI (`railway up`) or the dashboard.
+- After merging: run `/deploy` in Claude Code to set up Railway automatically. Or manually: create a project at [railway.app](https://railway.app), connect your GitHub repo, and add environment variables in the Railway dashboard.
 - Railway auto-deploys on every push to `main` when GitHub integration is connected
+
+## Deploy Interface
+
+Standardized subsections referenced by deploy.md and teardown.md. Each subsection is a self-contained recipe — deploy.md reads them by name and executes the instructions.
+
+### Prerequisites
+
+- **install_check:** `which railway`
+- **install_fix:** `npm i -g @railway/cli`
+- **auth_check:** `railway whoami`
+- **auth_fix:** `railway login`
+
+### Config Gathering
+
+- **CLI command:** `railway whoami` — shows current account info
+- Railway uses projects (no team/org concept for selection). No idea.yaml field needed.
+
+### Project Setup
+
+1. Create a new project (idempotent — reuses if already linked):
+   ```bash
+   railway init
+   ```
+   If a project already exists in the directory (`.railway/` config), `railway init` will ask to reuse it.
+2. Link to the project:
+   ```bash
+   railway link
+   ```
+3. Select or create a service:
+   ```bash
+   railway service
+   ```
+4. Connect GitHub: Install the Railway GitHub App on your repo via Railway dashboard → Project → Settings → GitHub. Railway auto-deploys on push to the configured branch.
+   - If GitHub connection cannot be automated, inform the user: "Connect your GitHub repo in Railway dashboard → Project → Settings → GitHub. Tell me when done."
+
+### Domain Setup
+
+1. Generate a Railway domain:
+   ```bash
+   railway domain
+   ```
+   This generates a domain like `<project>.up.railway.app`.
+2. For custom domains:
+   ```bash
+   railway custom-domain add <domain>
+   ```
+3. **On success:** `canonical_url` = the domain, `domain_added` = true
+4. **On failure:** Warn "Could not add domain. Add manually in Railway dashboard → Service → Settings → Domains." Set `canonical_url` = null (finalized after deploy), `domain_added` = false
+
+### Environment Variables
+
+**Primary method — CLI (per-variable):**
+```bash
+railway variables set KEY=VALUE
+```
+- No batch API — loop over variables
+- No auth token dance needed (CLI handles auth)
+
+**Verify:** `railway variables`
+
+### Volume Setup
+
+Create a persistent volume for databases that need filesystem storage (e.g., SQLite):
+```bash
+railway volume add --mount <mount_path>
+```
+- `<mount_path>` comes from the database stack file's `volume_config.mount_path` (e.g., `/data`)
+- Set env vars from `volume_config.env_vars` using `railway variables set`
+
+### Deploy
+
+- **Command:** `railway up --detach`
+- **Extract URL:** from `railway domain` output (run after deploy completes)
+
+### Health Check
+
+```bash
+curl -s <canonical_url>/api/health
+```
+Returns JSON `{ status: "ok", ... }` with per-service checks.
+
+### Auto-Fix
+
+| Check | Diagnosis | Fix |
+|-------|-----------|-----|
+| Env vars | `railway variables` — compare with expected | Re-set via `railway variables set KEY=VALUE`, then redeploy |
+| Redeploy | — | `railway up --detach` |
+
+### Teardown
+
+1. Remove project (includes all services, volumes, and domains):
+   ```bash
+   railway project delete --yes
+   ```
+2. **Dashboard URL (manual fallback):** `https://railway.app/project/<project_id>`
+
+### Manifest Keys
+
+```json
+{
+  "provider": "railway",
+  "project_id": "<project_id>",
+  "domain": "<domain or null>"
+}
+```
+
+### Compatibility
+
+- **incompatible_databases:** `[]`
+- Railway supports all database types (persistent process with optional volumes)

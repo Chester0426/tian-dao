@@ -78,3 +78,51 @@ VARIABLE_NAME=description-or-example
 - [Post-merge setup steps for the user]
 - [Environment variables to configure]
 - [External service configuration]
+
+<!-- Include the Deploy Interface section for hosting and database stack files.
+     deploy.md and teardown.md reference these subsections by name.
+     Omit this section for non-hosting/non-database stacks (analytics, payment, etc.). -->
+
+## Deploy Interface
+
+<!-- For hosting stacks, include all of these subsections: -->
+<!-- ### Prerequisites -->
+<!-- - install_check, install_fix, auth_check, auth_fix -->
+<!-- ### Config Gathering -->
+<!-- - CLI command to discover team/org, idea.yaml field name -->
+<!-- ### Project Setup -->
+<!-- - Create/link project, connect GitHub -->
+<!-- ### Domain Setup -->
+<!-- - Add custom domain command, fallback behavior -->
+<!-- ### Environment Variables -->
+<!-- - Primary method (API or CLI), auth token location, fallback, verify command -->
+<!-- ### Volume Setup (optional — only if the hosting provider supports persistent volumes) -->
+<!-- - Create volume command, mount path -->
+<!-- ### Deploy -->
+<!-- - Production deploy command, how to extract deployment URL -->
+<!-- ### Health Check -->
+<!-- - URL pattern -->
+<!-- ### Auto-Fix -->
+<!-- - Env var verify command, re-set method, redeploy command -->
+<!-- ### Teardown -->
+<!-- - Remove domain command, remove project command, dashboard URL for manual fallback -->
+<!-- ### Manifest Keys -->
+<!-- - Provider-specific keys for deploy-manifest.json -->
+<!-- ### Compatibility -->
+<!-- - incompatible_databases: [], reason: "..." -->
+
+<!-- For database stacks, include all of these subsections: -->
+<!-- ### Prerequisites -->
+<!-- - install_check, auth_check (empty for embedded databases like sqlite) -->
+<!-- ### Config Gathering -->
+<!-- - Required parameters (org, region, etc.), idea.yaml field names -->
+<!-- ### Provisioning -->
+<!-- - Project creation, readiness polling, key extraction, link + migration commands -->
+<!-- ### Hosting Requirements -->
+<!-- - incompatible_hosting: [], volume_config: { needed: bool, mount_path, env_vars } -->
+<!-- ### Auth Config (optional — only if the database provides auth services) -->
+<!-- - Management API token discovery, auth redirect URL configuration -->
+<!-- ### Teardown -->
+<!-- - Pre-delete safety check, delete command, dashboard URL for manual fallback -->
+<!-- ### Manifest Keys -->
+<!-- - Provider-specific keys for deploy-manifest.json -->

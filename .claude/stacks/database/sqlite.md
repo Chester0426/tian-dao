@@ -196,3 +196,40 @@ export function createTestDb() {
 - The SQLite database is created automatically on first run — no setup needed
 - Run `npm run dev` and the database will be initialized with migrations
 - Database file is gitignored — each environment has its own database
+
+## Deploy Interface
+
+Standardized subsections referenced by deploy.md and teardown.md. Each subsection is a self-contained recipe — deploy.md reads them by name and executes the instructions.
+
+### Prerequisites
+
+None — SQLite requires no external CLI or authentication.
+
+### Config Gathering
+
+None — SQLite has no external service to configure.
+
+### Provisioning
+
+None — SQLite database is auto-created on application startup when `db.ts` is first imported. No cloud provisioning step needed.
+
+### Hosting Requirements
+
+- **incompatible_hosting:** `[vercel]`
+- **reason:** Serverless functions have no persistent filesystem — SQLite database files are lost between invocations
+- **volume_config:**
+  - `needed: true`
+  - `mount_path: "/data"`
+  - `env_vars: { "DATABASE_PATH": "/data/app.db" }`
+
+### Teardown
+
+None — SQLite database lives on the hosting provider's volume. Volume cleanup is handled by the hosting provider's teardown (deleting the project removes the volume).
+
+### Manifest Keys
+
+```json
+{
+  "provider": "sqlite"
+}
+```
