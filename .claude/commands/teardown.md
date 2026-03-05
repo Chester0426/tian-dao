@@ -128,6 +128,18 @@ For each service in `external_services`:
 - Read `.claude/stacks/external/<service-slug>.md` for the dashboard URL
 - List the service with its dashboard URL for manual cleanup
 
+### 3g: Provision scan (verify deletion)
+
+Spawn the `provision-scanner` agent (`subagent_type: provision-scanner`).
+Pass context:
+
+> Mode: teardown
+> Manifest path: .claude/deploy-manifest.json
+
+Note: the manifest still exists at this point (Step 4 deletes it). The scanner reads it to know what to verify as deleted.
+
+Wait for the agent to complete. Include the scanner's output table in the Step 5 summary under a **Deletion Verification** heading. If any check FAILs (resource still exists), list the resource with its manual-deletion dashboard URL from the relevant stack file's Teardown section.
+
 ## Step 4: Cleanup
 
 1. Delete `.claude/deploy-manifest.json`

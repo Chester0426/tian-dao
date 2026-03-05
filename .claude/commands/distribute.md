@@ -256,6 +256,14 @@ Also include analytics dashboard setup instructions (read the analytics stack fi
 
 ## Step 8: Verify and open PR
 
+Before running verify.md, validate that distribute artifacts were created:
+
+1. **ads.yaml**: verify `idea/ads.yaml` exists (Glob). If missing, stop — "ads.yaml was not generated. Re-run Step 5."
+2. **UTM capture**: Grep for `utm_source` in the landing page file. If no match, warn — "UTM capture may not be wired on the landing page (Step 7a)."
+3. **Feedback widget**: verify feedback widget component exists (Glob `src/components/*feedback*`). If missing, warn — "Feedback widget not found (Step 7c)."
+
+If any check returns "stop", halt before verify.md. Warnings are non-blocking — proceed and include in PR body.
+
 Run the verification procedure per `.claude/patterns/verify.md`.
 
 Commit, push, and open a PR with:
