@@ -221,121 +221,190 @@ Skip this step if `stack.database` is not `supabase`.
 5. Set `surface_url` = custom domain URL or Vercel deployment URL.
 6. For CLI archetype: `canonical_url` = `surface_url` (the surface IS the canonical web presence).
 
-### 5b: Post-deploy service configuration
+### 5b: Post-deploy service configuration (parallel)
 
-Configure services using `canonical_url` (custom domain if added in Step 4.2, otherwise Vercel deployment URL). Batch all env var changes before redeploying.
+Configure services using `canonical_url` (custom domain if added in Step 4.2, otherwise Vercel deployment URL). Up to 4 independent agents run **simultaneously** — each calls a different external API with no shared mutable state.
 
-1. **Supabase Auth redirect URLs and email subjects** (if `stack.auth: supabase`):
-   If `stack.database` is not `supabase` (no Supabase project was created in Step 3), skip auth config — the project ref is unknown. Tell the user: "Auth redirect URLs must be configured manually in the Supabase Dashboard since no Supabase project was created during deploy."
+#### 5b preamble: determine which agents to spawn
 
-   Read the Supabase access token. Try these locations in order:
-   1. File: `~/.supabase/access-token`
-   2. macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — if found, strip the `go-keyring-base64:` prefix and base64-decode the remainder
-   3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here, or type **skip** to configure auth redirect URLs manually later."
-      If the user provides a token: persist it with `mkdir -p ~/.supabase && echo "$TOKEN" > ~/.supabase/access-token` (mirrors PostHog key persistence in Step 5b.3) and proceed with auth config.
-      If the user types "skip": skip the auth config PATCH. Include in Step 6 summary: "Auth redirect URLs not configured — set site_url and redirect allowlist manually in Supabase Dashboard → Authentication → URL Configuration."
+Assemble the shared context block (read-only inputs for all agents):
+- `canonical_url`, `vercel_token`, Supabase `ref` (from Step 3), Vercel project `name` and `team` (from Step 4)
+- idea.yaml contents (name, title, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
+- CLI statuses from Step 0
 
-   Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
+Determine which agents to launch based on idea.yaml stack:
+- **Agent A** (Supabase Auth): spawn if `stack.auth: supabase` AND `stack.database: supabase`
+- **Agent B** (Stripe Webhook): spawn if `stack.payment: stripe` AND Stripe CLI is available
+- **Agent C** (PostHog Dashboard): spawn if `stack.analytics: posthog`
+- **Agent D** (External Services): spawn if any external stack files exist (Step 0.8 found services)
 
-   ```bash
-   curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
-     -H "Authorization: Bearer <token>" \
-     -H "Content-Type: application/json" \
-     -d '{"site_url": "https://<canonical_url>", "uri_allow_list": "https://<canonical_url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
-   ```
-   If the PATCH fails, warn but continue — the user can configure this manually in Supabase Dashboard → Authentication → URL Configuration and Email Templates.
+Launch all applicable agents **simultaneously** using parallel Agent tool calls. Each agent returns a result object: `{status, message, env_vars_added, ...}`.
 
-2. **Stripe webhook endpoint** (if `stack.payment: stripe` AND Stripe CLI is available):
-   Check for existing endpoint: `stripe webhook_endpoints list` — if an endpoint with URL `https://<canonical_url>/api/webhooks/stripe` already exists, skip creation.
-   Otherwise:
-   ```bash
-   stripe webhook_endpoints create \
-     --url "https://<canonical_url>/api/webhooks/stripe" \
-     --events checkout.session.completed
-   ```
-   Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel using the REST API (Step 4.5 pattern):
-   ```bash
-   curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
-     -H "Authorization: Bearer <vercel_token>" \
-     -H "Content-Type: application/json" \
-     -d '[{"key":"STRIPE_WEBHOOK_SECRET","value":"<whsec_secret>","type":"encrypted","target":["production","preview","development"]}]'
-   ```
-   If `vercel_token` is null or the API fails, fall back to CLI: `echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force`
+---
 
-3. **PostHog experiment dashboard** (if `stack.analytics: posthog`):
+#### Agent A — Supabase Auth config
 
-   Read the PostHog personal API key from `~/.posthog/personal-api-key` (same credential used by /iterate auto-query).
+**Spawn condition:** `stack.auth: supabase` AND `stack.database: supabase`
+**Receives:** `canonical_url`, Supabase `ref`, idea.yaml `title`/`name`
+**Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: []}`
 
-   If the key does NOT exist:
-   1. Tell the user: "PostHog personal API key not found at `~/.posthog/personal-api-key`. To auto-create the experiment dashboard, create one now:"
-      - Go to PostHog → click your profile (bottom left) → **Personal API keys**
-      - Click **Create personal API key**
-      - Label: `cli` (or anything)
-      - Organization & project access: select your organization
-      - Scopes: set **Dashboards** to **Write** and **Insights** to **Write** (all others can stay No access)
-      - Click **Create key** and copy the key
-   2. Ask: "Paste the key here, or type **skip** to set up the dashboard manually later."
-   3. If key provided: save to `~/.posthog/personal-api-key` (`mkdir -p ~/.posthog && echo "$KEY" > ~/.posthog/personal-api-key`) and proceed with auto-creation below.
-   4. If skipped: include manual dashboard instructions in Step 6 summary (current fallback behavior).
+Instructions for Agent A:
 
-   If the key exists (or was just created), auto-create a dashboard via PostHog API:
+If `stack.database` is not `supabase` (no Supabase project was created in Step 3), return `{status: "skipped", message: "Auth redirect URLs must be configured manually in the Supabase Dashboard since no Supabase project was created during deploy.", env_vars_added: []}`.
 
-   First, discover the PostHog project ID:
-   ```bash
-   POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
-     -H "Authorization: Bearer $POSTHOG_API_KEY" | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
-   ```
+Read the Supabase access token. Try these locations in order:
+1. File: `~/.supabase/access-token`
+2. macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — if found, strip the `go-keyring-base64:` prefix and base64-decode the remainder
+3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here, or type **skip** to configure auth redirect URLs manually later."
+   If the user provides a token: persist it with `mkdir -p ~/.supabase && echo "$TOKEN" > ~/.supabase/access-token` and proceed with auth config.
+   If the user types "skip": return `{status: "skipped", message: "Auth redirect URLs not configured — set site_url and redirect allowlist manually in Supabase Dashboard → Authentication → URL Configuration.", env_vars_added: []}`.
 
-   ```bash
-   # Create dashboard
-   curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashboards/" \
-     -H "Authorization: Bearer $POSTHOG_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.title>"}'
-   ```
+Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
 
-   Extract the dashboard `id` from the response. Then create funnel insight. **Choose the funnel series based on the archetype's `funnel_template`:**
+```bash
+curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"site_url": "https://<canonical_url>", "uri_allow_list": "https://<canonical_url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
+```
+If the PATCH fails, return `{status: "failed", message: "Auth config PATCH failed — configure manually in Supabase Dashboard → Authentication → URL Configuration and Email Templates.", env_vars_added: []}`.
+If the PATCH succeeds, return `{status: "ok", message: "Auth redirect URLs and email subjects configured.", env_vars_added: []}`.
 
-   - If `funnel_template: web` (web-app): use `visit_landing → signup_start → signup_complete → activate`. Add `pay_start` and `pay_success` if `stack.payment` is present.
-   - If `funnel_template: custom` (service): read EVENTS.yaml `custom_events`. If non-empty, use those events as the funnel series. If empty, use `activate → retain_return` as the minimal service funnel.
+---
 
-   ```bash
-   # Create funnel insight and add to dashboard
-   curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
-     -H "Authorization: Bearer $POSTHOG_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
-   ```
+#### Agent B — Stripe Webhook
 
-   If idea.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
-   ```bash
-   curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
-     -H "Authorization: Bearer $POSTHOG_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
-   ```
-   Include `pay_start` and `pay_success` in the series if `stack.payment` is present. This lets the user compare conversion rates between variant landing pages — the core purpose of the variants feature.
+**Spawn condition:** `stack.payment: stripe` AND Stripe CLI is available
+**Receives:** `canonical_url`, `vercel_token`, Vercel `name`/`team`
+**Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: ["STRIPE_WEBHOOK_SECRET"]|[]}`
 
-   If any API call fails, include manual instructions in Step 6.
+Instructions for Agent B:
 
-4. **External service credentials** (using CLI status from Step 0.7):
+Check for existing endpoint: `stripe webhook_endpoints list` — if an endpoint with URL `https://<canonical_url>/api/webhooks/stripe` already exists, return `{status: "ok", message: "Stripe webhook already exists.", env_vars_added: []}`.
+Otherwise:
+```bash
+stripe webhook_endpoints create \
+  --url "https://<canonical_url>/api/webhooks/stripe" \
+  --events checkout.session.completed
+```
+Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel using the REST API (Step 4.5 pattern):
+```bash
+curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
+  -H "Authorization: Bearer <vercel_token>" \
+  -H "Content-Type: application/json" \
+  -d '[{"key":"STRIPE_WEBHOOK_SECRET","value":"<whsec_secret>","type":"encrypted","target":["production","preview","development"]}]'
+```
+If `vercel_token` is null or the API fails, fall back to CLI: `echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force`
 
-   **Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with canonical URL → extract credentials → set Vercel env vars. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
+Return `{status: "ok", message: "Stripe webhook created and secret set.", env_vars_added: ["STRIPE_WEBHOOK_SECRET"]}`.
+If webhook creation fails, return `{status: "failed", message: "<error details>", env_vars_added: []}`.
 
-   **Manual (CLI available)** (not_installed/not_authed): Tell user: "[service] has CLI `<cli>` for auto-provisioning. Install: `<install-cmd>`. Or provide credentials manually now." Then proceed to Manual setup.
+---
 
-   **Manual setup** (shared path for "CLI available", "no CLI", and auto-provision failures): Read external stack file for instructions. Provide step-by-step guidance:
-   - Where to create credentials (include URL)
-   - Canonical URL for redirect URIs (e.g., `https://<canonical_url>/api/auth/callback/<service>`)
-   - Which values to copy
-   - Ask for credentials, or offer **skip** — feature returns 503 until configured via `vercel env add`
-   - Set Vercel env vars
+#### Agent C — PostHog Dashboard
 
-5. **Redeploy** (only if env vars were added in 5b.2 or 5b.4):
-   ```bash
-   vercel --prod --yes
-   ```
-   Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). Subsequent deploys via git push need only one.
+**Spawn condition:** `stack.analytics: posthog`
+**Receives:** `canonical_url`, idea.yaml `name`/`title`/`variants`, archetype `funnel_template`, `EVENTS.yaml` content, `stack.payment` presence
+**Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", dashboard_url: "<url>"|null, env_vars_added: []}`
+
+Instructions for Agent C:
+
+Read the PostHog personal API key from `~/.posthog/personal-api-key` (same credential used by /iterate auto-query).
+
+If the key does NOT exist:
+1. Tell the user: "PostHog personal API key not found at `~/.posthog/personal-api-key`. To auto-create the experiment dashboard, create one now:"
+   - Go to PostHog → click your profile (bottom left) → **Personal API keys**
+   - Click **Create personal API key**
+   - Label: `cli` (or anything)
+   - Organization & project access: select your organization
+   - Scopes: set **Dashboards** to **Write** and **Insights** to **Write** (all others can stay No access)
+   - Click **Create key** and copy the key
+2. Ask: "Paste the key here, or type **skip** to set up the dashboard manually later."
+3. If key provided: save to `~/.posthog/personal-api-key` (`mkdir -p ~/.posthog && echo "$KEY" > ~/.posthog/personal-api-key`) and proceed with auto-creation below.
+4. If skipped: return `{status: "skipped", message: "PostHog dashboard not auto-created — manual setup needed.", dashboard_url: null, env_vars_added: []}`.
+
+If the key exists (or was just created), auto-create a dashboard via PostHog API:
+
+First, discover the PostHog project ID:
+```bash
+POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
+  -H "Authorization: Bearer $POSTHOG_API_KEY" | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+```
+
+```bash
+# Create dashboard
+curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashboards/" \
+  -H "Authorization: Bearer $POSTHOG_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.title>"}'
+```
+
+Extract the dashboard `id` from the response. Then create funnel insight. **Choose the funnel series based on the archetype's `funnel_template`:**
+
+- If `funnel_template: web` (web-app): use `visit_landing → signup_start → signup_complete → activate`. Add `pay_start` and `pay_success` if `stack.payment` is present.
+- If `funnel_template: custom` (service): read EVENTS.yaml `custom_events`. If non-empty, use those events as the funnel series. If empty, use `activate → retain_return` as the minimal service funnel.
+
+```bash
+# Create funnel insight and add to dashboard
+curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
+  -H "Authorization: Bearer $POSTHOG_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+```
+
+If idea.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
+```bash
+curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
+  -H "Authorization: Bearer $POSTHOG_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+```
+Include `pay_start` and `pay_success` in the series if `stack.payment` is present. This lets the user compare conversion rates between variant landing pages — the core purpose of the variants feature.
+
+If any API call fails, return `{status: "failed", message: "<error details>", dashboard_url: null, env_vars_added: []}`. Include manual instructions in Step 6.
+If all API calls succeed, return `{status: "ok", message: "Dashboard and funnel insights created.", dashboard_url: "<PostHog dashboard URL>", env_vars_added: []}`.
+
+---
+
+#### Agent D — External Services
+
+**Spawn condition:** any external stack files exist (Step 0.8 found services)
+**Receives:** `canonical_url`, `vercel_token`, Vercel `name`/`team`, external CLI statuses from Step 0.8, external stack file paths
+**Returns:** `{status: "ok"|"partial"|"failed"|"skipped", message: "<details>", env_vars_added: ["KEY1", ...], per_service: [{name, status, message}]}`
+
+Instructions for Agent D:
+
+For each external service (using CLI status from Step 0.8):
+
+**Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with canonical URL → extract credentials → set Vercel env vars. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
+
+**Manual (CLI available)** (not_installed/not_authed): Tell user: "[service] has CLI `<cli>` for auto-provisioning. Install: `<install-cmd>`. Or provide credentials manually now." Then proceed to Manual setup.
+
+**Manual setup** (shared path for "CLI available", "no CLI", and auto-provision failures): Read external stack file for instructions. Provide step-by-step guidance:
+- Where to create credentials (include URL)
+- Canonical URL for redirect URIs (e.g., `https://<canonical_url>/api/auth/callback/<service>`)
+- Which values to copy
+- Ask for credentials, or offer **skip** — feature returns 503 until configured via `vercel env add`
+- Set Vercel env vars
+
+Collect all env vars added across all services. Return `{status, message, env_vars_added: [...all keys set...], per_service: [{name, status, message}, ...]}`.
+
+---
+
+#### 5b post-join: collect results
+
+**Wait for all agents to complete before continuing.**
+
+1. Collect `env_vars_added` arrays from all agent results into a single list.
+2. Collect `dashboard_url` from Agent C result (for Step 6 summary).
+3. Collect per-agent `status` and `message` (for Step 6 summary).
+4. Collect `per_service` from Agent D result (for Step 6 external services section).
+
+#### 5b.5: Redeploy (only if any agent reported non-empty `env_vars_added`)
+```bash
+vercel --prod --yes
+```
+Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). Subsequent deploys via git push need only one.
 
 ### 5c: Health check
 
@@ -477,6 +546,7 @@ This skill handles re-runs gracefully:
 - Stripe CLI is a soft dependency — falls back to manual setup if not installed
 - `vercel domains add` is idempotent — adding an already-configured domain is a no-op
 - Re-running `/deploy` overwrites `.claude/deploy-manifest.json` with current resource state
+- Post-deploy service configuration (5b) runs agents in parallel — each agent operates on a different external API with no cross-agent state, preserving all idempotency guarantees
 
 ## Do NOT
 
