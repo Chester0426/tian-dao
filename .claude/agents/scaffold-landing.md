@@ -9,6 +9,8 @@ tools:
   - Bash
   - Glob
   - Grep
+  - Skill
+  - ToolSearch
 disallowedTools:
   - Agent
 maxTurns: 40
