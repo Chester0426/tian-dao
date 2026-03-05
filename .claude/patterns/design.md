@@ -48,7 +48,7 @@ Weakest section determines overall quality. A page cannot hide mediocre social
 proof behind a great hero.
 
 **Landing page** (marketing surface) — optimized for **persuasion**.
-The benchmark is a $50K agency landing page:
+The benchmark is world-champion persuasion — the absolute limit of your ability:
 - Custom color palette (not default shadcn/tailwind colors)
 - Considered typography (display + body font, clear hierarchy)
 - Meaningful animations (scroll-triggered reveals, staggered transitions)
