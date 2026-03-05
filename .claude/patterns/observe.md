@@ -1,24 +1,17 @@
 # Template Observation Procedure
 
-Follow this procedure at the end of a skill execution (called by verify.md and
-deploy.md Step 5e) to process observation notes and file them as GitHub issues.
+Follow this procedure to evaluate and file template-rooted issues as GitHub
+issues on the template repo.
 
-During skill execution, CLAUDE.md Rule 12 captures template-rooted issues as
-one-line notes in `.claude/observation-scratch.md`. This procedure processes
-those notes into properly formatted observation issues.
+## Entry Point
 
-## Process Scratch File
+This procedure is called:
+1. By verify.md's "Auto-Observe" section — after build fixes are identified
+2. By deploy.md Step 5e — after deployment fixes
+3. Manually — for ad-hoc fixes outside of skills
 
-1. Check if `.claude/observation-scratch.md` exists and is non-empty.
-   - If non-empty: read the notes. Each line is a captured observation to file.
-     Use the notes as input for the Issue Creation section below (one issue
-     combining all notes, per the "Max 1 issue per session" constraint).
-     After filing, delete `.claude/observation-scratch.md`.
-   - If missing or empty: **Rule 12 was likely not followed during this session.**
-     Do NOT skip — proceed to Trigger Evaluation below, which will actively
-     re-scan for template-rooted fixes that were not captured.
-2. Then proceed to Trigger Evaluation to catch any additional issues not noted
-   in the scratch file.
+When called, you should already know which fix(es) to evaluate. Proceed
+directly to Trigger Evaluation below.
 
 **If you are running `/review`, `/iterate`, or `/retro`,
 skip this entire procedure** — these skills do not make code changes that
@@ -121,7 +114,7 @@ Examples:
 
 **Template file:** `<full path>`
 **Context:** /<skill-name> | ad-hoc fix
-**Trigger:** verify.md build fix | verify.md observation review | deploy.md auto-fix | auto-generated stack file | ad-hoc fix (Rule 12)
+**Trigger:** verify.md auto-observe | deploy.md auto-fix | auto-generated stack file | ad-hoc fix
 
 ## Symptom
 

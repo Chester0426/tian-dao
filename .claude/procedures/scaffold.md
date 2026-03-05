@@ -238,6 +238,6 @@ When all steps are complete, report:
 2. Checkpoint B result (pass/fail, attempt count)
 3. External dependencies: [service] → [core/non-core] → [chosen option]
 4. User decisions made during Step 4b (credentials provided, fake doors chosen)
-5. Rule 12 observations (template file, symptom, workaround)
+5. Template observations (if any template files were modified to fix errors)
 6. Generated external stack files (paths)
 7. Env vars added to .env.local (if any)

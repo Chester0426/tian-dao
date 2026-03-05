@@ -24,6 +24,13 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 - Read `EVENTS.yaml`
 - Read `scripts/check-inventory.md`
 - Read `idea/idea.example.yaml` (for understanding template structure)
+- **Check open observation issues** (if `template_repo` is set in idea.yaml):
+  ```bash
+  gh issue list --repo <template_repo> --label observation --state open --limit 10 --json number,title,body
+  ```
+  If any open issues exist, save them as `observation_backlog`. These will be
+  used as additional input in Step 2a below. If none exist or the command fails,
+  set `observation_backlog` to empty and continue.
 
 ## Step 1: Run baseline validators
 
@@ -156,6 +163,12 @@ Include these in each subagent prompt:
 4. **Self-review before presenting.** Merge proposed checks that cover the same invariant. Verify each finding against check-inventory.md one more time.
 5. **Concrete fixes only.** Every fix must be implementable in a single PR.
 
+**Observation backlog** (if `observation_backlog` is non-empty):
+Include the observation issue titles and root cause descriptions as additional
+review context for all three dimension agents. Each agent should check whether
+any of their findings overlap with an open observation. If a dimension agent's
+fix addresses an observation issue's root cause, note the issue number.
+
 On iteration 2+: include the list of seen finding signatures in the subagent prompt so they skip already-reported issues.
 
 After all 3 return: collect up to 15 findings, deduplicate.
@@ -246,6 +259,11 @@ If branch exists with changes:
   - **Why**: "Template quality — fixes found by 3-dimension LLM review"
 - Include in PR body: review summary, fixed findings, skipped/reverted
   findings, new checks added, remaining unfixable findings
+- **Close resolved observations**: For each observation issue whose root cause
+  was fixed in this review PR, close it with a comment:
+  ```bash
+  gh issue close <number> --repo <template_repo> --comment "Fixed in review PR #<pr-number>"
+  ```
 
 ## Do NOT
 

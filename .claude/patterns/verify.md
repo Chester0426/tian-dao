@@ -39,7 +39,36 @@ For each attempt:
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
-## Visual Review (after build passes)
+## Auto-Observe (after build passes, before visual review)
+
+If you fixed any build or lint errors above, check for template-rooted issues:
+
+### Step 1: Deterministic scan
+
+Run:
+```bash
+git diff --name-only | grep -E '^\.(claude/(stacks|commands|patterns)/|scripts/|Makefile$|CLAUDE\.md$)' || true
+```
+
+If any template files appear in the diff:
+- You directly modified a template file to fix a build error → this IS a template observation
+- Proceed to Step 3
+
+### Step 2: LLM evaluation (only if Step 1 found nothing)
+
+If Step 1 found no template files in the diff, but you fixed project code:
+ask yourself — "Would another developer using this template with a different
+idea.yaml hit this same problem?" If the root cause is incorrect template
+guidance (not the template file itself), this still qualifies.
+
+If yes → proceed to Step 3. If no → skip to Save Notable Patterns.
+
+### Step 3: File observation
+
+Follow `.claude/patterns/observe.md` to file a GitHub issue.
+Pass the specific template file and error context.
+
+## Visual Review (after Auto-Observe)
 
 Follow the visual review procedure in `.claude/patterns/visual-review.md`.
 This screenshots all pages and checks for visual issues that compile-time
@@ -59,36 +88,7 @@ After a successful verification where you fixed build or lint errors:
 
 1. For each error you fixed, decide: is this **universal** or **project-specific**?
    - **Universal** (applies to any project with this stack): add the pattern to the relevant
-     `.claude/stacks/<category>/<value>.md` file instead
+     `.claude/stacks/<category>/<value>.md` file
    - **Project-specific** (unique to this codebase): save a brief entry to your auto memory
      with the error, cause, and fix
 2. Skip if: the error was a simple typo or something unlikely to recur
-
-## File Template Observations (if you fixed errors with a template root cause)
-
-After saving notable patterns, follow the observation procedure in
-`.claude/patterns/observe.md` for any fix you categorized as **universal** above.
-This files a GitHub issue on the template repo for visibility across all template
-users. Skip if no fixes were universal, or if you didn't fix any errors.
-
-## Template Observation Review (always run)
-
-After every verification — regardless of whether build errors were encountered —
-follow `.claude/patterns/observe.md`. This will:
-1. Process any notes in `.claude/observation-scratch.md` (captured by Rule 12
-   during this skill execution)
-2. Evaluate whether any additional code changes have a template root cause
-
-This catches template-rooted issues that don't manifest as build errors (e.g.,
-runtime behavior bugs, missing UX patterns, incorrect template guidance that
-produces working but broken code).
-
-**Empty scratch file = Rule 12 likely wasn't followed.** Do NOT interpret an
-empty or missing scratch file as "no observations." Instead, observe.md will
-re-scan tool output history for template-rooted fixes that were missed.
-
-After processing, append a line to `.claude/observation-scratch.md`:
-`- Observation review executed at [checkpoint/verify/deploy] — [N observations filed | no observations]`
-This turns the scratch file into evidence that the review ran, not just evidence of issues.
-
-Skip if you already filed an observation in the previous step (max 1 per skill).

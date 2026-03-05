@@ -365,15 +365,15 @@ If still failing after 1 fix round → report precise per-service diagnosis with
 
 ### 5e: File template observations
 
-Follow `.claude/patterns/observe.md`. This will:
-1. Process any notes in `.claude/observation-scratch.md` (captured by Rule 12
-   during Steps 3–5d when working around template-rooted issues)
-2. Evaluate whether any additional fixes have a template root cause
+If any fix during the deploy flow (Steps 3–5d) required working around a
+problem whose root cause is in a template file (stack file, command file,
+or pattern file), follow `.claude/patterns/observe.md` to file an
+observation issue. This captures deployment-specific template gaps that
+verify.md's build loop would not encounter.
 
-This captures deployment-specific template gaps that verify.md's build loop would
-not encounter. Environmental issues (missing or mistyped env vars, temporary network
-outages, uninitialized CLIs, or authentication failures) are excluded by observe.md's
-trigger evaluation.
+Do NOT file observations for environmental issues (missing/mistyped env
+vars, temporary network outages, uninitialized CLIs, or authentication
+failures) — observe.md's trigger evaluation excludes these.
 
 ## Step 6: Summary
 
