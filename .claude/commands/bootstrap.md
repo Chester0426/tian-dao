@@ -227,7 +227,6 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 
 **Libs subagent:**
 - subagent_type: scaffold-libs
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -236,7 +235,6 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 
 **Pages subagent:**
 - subagent_type: scaffold-pages
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -247,7 +245,6 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 
 **Externals subagent (analysis only):**
 - subagent_type: scaffold-externals
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-externals.md` and execute the
      analysis steps (evaluate dependencies, classify core/non-core)
@@ -259,7 +256,6 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 
 **Landing subagent (if surface ≠ none):**
 - subagent_type: scaffold-landing
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -269,8 +265,6 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
      `.claude/current-visual-brief.md`,
      `src/app/globals.css` (theme tokens from init phase)
   3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
-
-Wait for all four subagents to complete (three if surface = none).
 
 ### Externals: User Decisions + Execution
 
