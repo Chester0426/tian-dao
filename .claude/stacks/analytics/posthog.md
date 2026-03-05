@@ -1,12 +1,12 @@
 ---
-assumes: [framework/nextjs]
+assumes: []
 packages:
-  runtime: [posthog-js, posthog-node]
+  runtime: [posthog-js, posthog-node]  # posthog-js conditional: only when framework is nextjs
   dev: []
 files:
-  - src/lib/analytics.ts
+  - src/lib/analytics.ts  # conditional: only when framework is nextjs
   - src/lib/analytics-server.ts
-  - src/lib/events.ts
+  - src/lib/events.ts  # conditional: only when framework is nextjs
 env:
   server: []
   client: []
@@ -180,6 +180,26 @@ Notes:
 - `skipTrailingSlashRedirect` is required — without it, Next.js redirects `/ingest/e` to `/ingest/e/` before the rewrite applies, breaking the proxy
 - Server-side tracking (`analytics-server.ts`) still uses the direct PostHog URL — rewrites only apply to client-side browser requests
 - This is PostHog's officially recommended approach for avoiding ad blockers
+
+## When framework is NOT nextjs (server-only analytics)
+
+For non-Next.js frameworks (Hono, Commander, Virtuals-ACP, etc.), only server-side
+analytics are generated. Client-side tracking (`posthog-js`, `analytics.ts`,
+`events.ts`, Reverse Proxy Setup) does not apply — these frameworks have no
+browser context.
+
+**Packages:** Install only `posthog-node` (skip `posthog-js`).
+
+**Files:** Generate only `src/lib/analytics-server.ts` (same template as above).
+Skip `src/lib/analytics.ts` and `src/lib/events.ts`.
+
+**All tracking uses `trackServerEvent()`** from `analytics-server.ts`. There are
+no typed event wrappers — call `trackServerEvent(eventName, distinctId, properties)`
+directly for all events (standard funnel, payment funnel, and custom).
+
+**Reverse Proxy Setup:** Skip — no client-side requests to proxy.
+
+**`next.config.ts` rewrites:** Not applicable — no Next.js config file.
 
 ## Patterns
 - Client-side tracking goes through `src/lib/analytics.ts` — never import posthog-js directly in pages or components
