@@ -1,6 +1,6 @@
 # Scaffold: Library Files
 
-This procedure is executed by an Agent subagent spawned by `/bootstrap`.
+This procedure is executed by the `scaffold-libs` agent spawned by `/bootstrap`.
 As an independent Claude Code session, you have full access to project
 files, tools (LSP if available), and file system. You run concurrently
 with the pages and externals subagents. **Your exclusive write territory is `src/lib/`.**

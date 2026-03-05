@@ -1,6 +1,6 @@
 # Wire Procedure
 
-This procedure is executed by an Agent subagent spawned by `/bootstrap`
+This procedure is executed by the `scaffold-wire` agent spawned by `/bootstrap`
 after the scaffold phase completes. The project structure already exists —
 packages installed, library files created, pages generated, build passes.
 As an independent Claude Code session, you have full access to project

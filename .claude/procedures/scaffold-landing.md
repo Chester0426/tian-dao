@@ -1,6 +1,6 @@
 # Scaffold: Landing Page
 
-This procedure is executed by an Agent subagent spawned by `/bootstrap`.
+This procedure is executed by the `scaffold-landing` agent spawned by `/bootstrap`.
 As an independent Claude Code session, you have full access to project
 files, tools (LSP if available), and file system.
 

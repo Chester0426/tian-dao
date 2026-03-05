@@ -212,7 +212,7 @@ interact with users or invoke plugin skills).
 ### Init Phase
 
 Spawn a subagent via Agent with:
-- subagent_type: general-purpose
+- subagent_type: scaffold-init
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-init.md` and execute all steps
   2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -232,7 +232,7 @@ Wait for the init subagent to complete before proceeding.
 Spawn three subagents simultaneously using parallel Agent tool calls:
 
 **Libs subagent:**
-- subagent_type: general-purpose
+- subagent_type: scaffold-libs
 - run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
@@ -241,7 +241,7 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
 
 **Pages subagent:**
-- subagent_type: general-purpose
+- subagent_type: scaffold-pages
 - run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
@@ -252,7 +252,7 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
   4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
 **Externals subagent (analysis only):**
-- subagent_type: general-purpose
+- subagent_type: scaffold-externals
 - run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-externals.md` and execute the
@@ -324,7 +324,7 @@ Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`
 If surface resolves to `none`, skip to the Wire Phase.
 
 Spawn a subagent via Agent with:
-- subagent_type: general-purpose
+- subagent_type: scaffold-landing
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
   2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -342,7 +342,7 @@ After the landing-page subagent completes:
 ### Wire Phase
 
 Spawn a subagent via Agent with:
-- subagent_type: general-purpose
+- subagent_type: scaffold-wire
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/wire.md` and execute Steps 5 through 8b ONLY.
      Do NOT run Step 8 (verify.md) or Step 9 (PR).
