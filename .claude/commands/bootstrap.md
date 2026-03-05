@@ -345,7 +345,7 @@ Spawn a subagent via Agent with:
 
 After the wire subagent completes, the lead runs verify.md directly.
 The lead has the Agent tool, which is required to spawn the parallel
-review subagents (visual-scanner, security-defender, security-attacker).
+review subagents (design-critic, security-defender, security-attacker).
 
 Follow the FULL verification procedure in `.claude/patterns/verify.md`:
 1. Build & lint loop (max 3 attempts)

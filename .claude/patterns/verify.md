@@ -53,9 +53,9 @@ in this verification run. Collect the diff and summaries."
 
 If no errors were fixed, pass: "No build errors were fixed."
 
-### visual-scanner
+### design-critic
 
-Spawn the `visual-scanner` agent (`subagent_type: visual-scanner`). No additional context needed.
+Spawn the `design-critic` agent (`subagent_type: design-critic`). No additional context needed.
 
 ### security-defender
 
@@ -79,28 +79,21 @@ Combine security-defender and security-attacker outputs:
 
 ## Parallel Fix Cycles (if needed)
 
-If neither visual-scanner nor security agents reported issues, skip this section.
-
-Spawn fixers **in parallel** — one message, up to two Agent tool calls.
-
-### visual-fixer (if visual-scanner reported issues)
-
-Spawn the `visual-fixer` agent (`subagent_type: visual-fixer`).
-Pass: visual-scanner's findings report.
+If security agents reported no issues, skip this section.
 
 ### security-fixer (if merged security has issues)
 
 Spawn the `security-fixer` agent (`subagent_type: security-fixer`).
 Pass: merged Defender table + Attacker findings.
 
-**Wait for both fixers to complete before continuing.**
+**Wait for the fixer to complete before continuing.**
 
 ## Auto-Observe
 
 If build-info-collector reported "no build fixes" AND no fix cycles ran,
 skip this section.
 
-1. Combine all collected diffs (from build-info-collector + fixers).
+1. Combine all collected diffs (from build-info-collector + design-critic + security-fixer).
 2. Combine all fix summaries.
 3. Get template file list (from build-info-collector, or generate now:
    run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null`
