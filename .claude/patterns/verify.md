@@ -41,8 +41,9 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
 ## Parallel Review (after build passes)
 
-Spawn **three agents simultaneously** using parallel Agent tool calls. All three
-read already-built code and have no data dependencies on each other.
+Spawn **three agents simultaneously** using parallel Agent tool calls (each with
+`subagent_type: general-purpose`). All three read already-built code and have no
+data dependencies on each other.
 
 ### Agent A — Collect Build Fix Info
 
@@ -73,33 +74,55 @@ This agent only collects information — it never modifies code or files issues.
 
 **Wait for all three agents to complete before continuing.**
 
-## Sequential Fix Cycles (if needed)
+## Parallel Fix Cycles (if needed)
 
-If Agent B reported visual issues:
-1. Follow `.claude/patterns/visual-review.md` Step 5 (Fix Cycle, max 2 cycles):
-   fix code, rebuild, re-screenshot, re-review.
-2. Follow `.claude/patterns/visual-review.md` Step 6 (Cleanup).
+If neither Agent B nor Agent C reported issues, skip this section.
 
-If Agent C reported security issues:
-1. Follow `.claude/patterns/security-review.md` Step 3 (Fix Cycle, max 2 cycles):
-   fix code, rebuild, re-check.
-2. Follow `.claude/patterns/security-review.md` Step 4 (Report).
+Spawn fixer teammates **in parallel** — one message, up to two Agent tool calls.
+Each teammate is a short-lived `subagent_type: general-purpose` agent (no team
+needed). Both can read and edit project files concurrently because they touch
+non-overlapping domains (visual ↔ security).
 
-If neither agent reported issues, skip this section.
+### Visual Fixer teammate (if Agent B reported issues)
 
-After all fix cycles complete, if any code was changed in this section:
-1. Collect the `git diff` of changes made during visual and security fix cycles.
-2. Write a one-line summary for each issue that was fixed (e.g., "Fixed missing alt text on hero image", "Added RLS policy to profiles table").
+Spawn via Agent with `subagent_type: general-purpose`. Prompt:
+
+> You are a visual fixer. Agent B's scan found these issues: **{paste Agent B's
+> report}**.
+>
+> 1. Follow `.claude/patterns/visual-review.md` Step 5 (Fix Cycle, max 2 cycles):
+>    fix code, rebuild, re-screenshot, re-review. You may invoke the
+>    `frontend-design` skill for design-quality fixes.
+> 2. Follow `.claude/patterns/visual-review.md` Step 6 (Cleanup).
+> 3. Collect the `git diff` of all changes you made and write a one-line summary
+>    for each issue fixed (e.g., "Fixed missing alt text on hero image").
+> 4. Return: the diff, fix summaries, and final status (all fixed / partial / none).
+
+### Security Fixer teammate (if Agent C reported issues)
+
+Spawn via Agent with `subagent_type: general-purpose`. Prompt:
+
+> You are a security fixer. Agent C's scan found these issues: **{paste Agent C's
+> report}**.
+>
+> 1. Follow `.claude/patterns/security-review.md` Step 3 (Fix Cycle, max 2 cycles):
+>    fix code, rebuild, re-check.
+> 2. Follow `.claude/patterns/security-review.md` Step 4 (Report).
+> 3. Collect the `git diff` of all changes you made and write a one-line summary
+>    for each issue fixed (e.g., "Added RLS policy to profiles table").
+> 4. Return: the diff, fix summaries, and final report.
+
+**Wait for both fixer teammates to complete before continuing.**
 
 ## Auto-Observe
 
-If Agent A returned build fix info, OR if Sequential Fix Cycles produced fixes:
+If Agent A returned build fix info, OR if Parallel Fix Cycles produced fixes:
 
 1. Combine all collected diffs into one unified diff.
 2. Combine all fix summaries into one list.
 3. Use the template file list from Agent A (if Agent A reported "no build fixes",
    generate it now: run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null` and add `Makefile` and `CLAUDE.md`).
-4. Spawn an **Observer Agent** (sub-agent) with **only** the following inputs — do
+4. Spawn an **Observer Agent** (`subagent_type: general-purpose`) with **only** the following inputs — do
    **not** include idea.yaml content, project name, or feature descriptions:
    - The combined diff from step 1
    - The combined fix summaries from step 2

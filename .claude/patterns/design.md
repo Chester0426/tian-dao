@@ -82,9 +82,11 @@ fonts via Google Fonts `<link>`, animations via CSS keyframes. Same creative
 authority as for web-app — unique visual identity per experiment, not a
 generic template.
 
-Skills decide when and how to invoke `frontend-design`. If the skill is not
-available in a given context (e.g., inside a subagent), the creative brief
-and constraints provide sufficient direction.
+Skills decide when and how to invoke `frontend-design`. Scan-only subagents
+(e.g., verify.md's Agent B) cannot invoke skills, but fixer teammates
+(general-purpose agents spawned for fix cycles) can. When `frontend-design`
+is unavailable, the creative brief and constraints provide sufficient
+direction.
 
 ### Theme contract
 

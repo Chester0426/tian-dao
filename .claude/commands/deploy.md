@@ -163,7 +163,8 @@ Assemble the shared context block (read-only inputs for all agents):
 - idea.yaml contents (name, title, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
 - CLI statuses from Step 0
 
-Determine which agents to launch based on idea.yaml stack:
+Determine which agents to launch based on idea.yaml stack (all use
+`subagent_type: general-purpose`):
 - **Agent A** (Supabase Auth): spawn if `stack.auth: supabase` AND `stack.database: supabase`
 - **Agent B** (Stripe Webhook): spawn if `stack.payment: stripe` AND Stripe CLI is available
 - **Agent C** (Analytics Dashboard): spawn if `stack.analytics: posthog`
