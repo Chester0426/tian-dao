@@ -201,13 +201,8 @@ Before spawning any subagents, the lead performs user-interactive checks:
    re-check with `which typescript-language-server`. Record `tsp_status`
    as `"available"` or `"skipped"`.
 
-2. **frontend-design SKILL.md check**: Resolve the glob
-   `~/.claude/plugins/cache/claude-plugins-official/frontend-design/*/skills/frontend-design/SKILL.md`.
-   If exactly one match, record `skill_md_path: "<absolute path>"`.
-   If zero or multiple matches, record `skill_md_path: "unavailable"`.
-
-These values are passed to subagents in their prompts (subagents cannot
-interact with users or invoke plugin skills).
+This value is passed to subagents in their prompts (subagents cannot
+interact with users).
 
 ### Init Phase
 
@@ -221,8 +216,7 @@ Spawn a subagent via Agent with:
      `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred),
      `.claude/patterns/design.md`
   3. TSP-LSP status: `<tsp_status from preamble>`
-  4. frontend-design SKILL.md path: `<skill_md_path from preamble>`
-  5. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 12
+  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 12
 
 The subagent returns its completion report directly as the result.
 Wait for the init subagent to complete before proceeding.
@@ -248,8 +242,7 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, archetype file,
      framework/UI stack files, `.claude/patterns/design.md`
-  3. frontend-design SKILL.md path: `<skill_md_path from preamble>`
-  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
 **Externals subagent (analysis only):**
 - subagent_type: scaffold-externals
@@ -332,8 +325,7 @@ Spawn a subagent via Agent with:
      framework/UI/surface stack files,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
      `src/app/globals.css` (theme tokens from init phase)
-  3. frontend-design SKILL.md path: `<skill_md_path from preamble>`
-  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
 After the landing-page subagent completes:
 - Run `npm run build` to verify landing page compiles (web-app only)

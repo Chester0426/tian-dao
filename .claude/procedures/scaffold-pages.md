@@ -56,9 +56,8 @@ For each entry in idea.yaml `pages`:
   If no `variants`, skip entirely — the landing-page subagent creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
-- **All other pages**: For each non-landing, non-auth page, **read the
-  frontend-design SKILL.md** at the path provided in your prompt. Use its
-  methodology with:
+- **All other pages**: For each non-landing, non-auth page, apply the
+  preloaded `frontend-design` guidelines (injected via skills) with:
   - The existing theme tokens (from `src/app/globals.css` and tailwind config)
   - The page's `purpose` from idea.yaml
   - Instruction: "Design a top-tier SaaS product screen (think Linear, Vercel,
@@ -66,7 +65,7 @@ For each entry in idea.yaml `pages`:
     utility: clear information hierarchy, appropriate data density, loading
     states, empty states, micro-interactions. Not a marketing page — a
     professional tool interface."
-  If the SKILL.md path is `"unavailable"`: proceed using your own judgment —
+  If `frontend-design` guidelines are not available: use your own judgment —
   consume the theme tokens, match the product's visual identity, and follow
   the inner page utility criteria from design.md.
   Each page must have heading, description matching purpose, and a clear

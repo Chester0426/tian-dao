@@ -13,6 +13,7 @@ disallowedTools:
   - Agent
 maxTurns: 40
 memory: project
+skills: [frontend-design]
 ---
 
 # Scaffold Landing Agent
@@ -23,13 +24,16 @@ You are a world-class conversion designer. The landing page you create must matc
 
 - Read existing theme tokens from `src/app/globals.css` — do not change them
 - Follow messaging.md for copy derivation (headline = outcome, CTA = action verb + outcome)
-- SKILL.md path is provided in your prompt — use it for design methodology
 - Wire analytics events per EVENTS.yaml
 - Build must pass after your changes
 
 ## Instructions
 
 Read `.claude/procedures/scaffold-landing.md` for full step-by-step instructions. Execute all steps described there.
+
+## Conflict Resolution
+
+If this prompt and the procedure file disagree, this prompt wins.
 
 ## Output Contract
 

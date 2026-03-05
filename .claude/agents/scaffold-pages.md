@@ -13,6 +13,7 @@ disallowedTools:
   - Agent
 maxTurns: 50
 memory: project
+skills: [frontend-design]
 ---
 
 # Scaffold Pages Agent
@@ -25,11 +26,20 @@ You are a product designer and frontend engineer. Each page you create is a craf
 - Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`
 - Import from `src/lib/events.ts` using function signatures derived from EVENTS.yaml (file created by libs subagent in parallel)
 - If `stack.analytics` is present: every page MUST fire its EVENTS.yaml events — no deferring
-- SKILL.md path is provided in your prompt — use it for design methodology
+
+## Failure Handling
+
+- If a lib import is missing at write time: write the import anyway (libs agent runs concurrently — the file will exist at build time). Only report if the function signature in EVENTS.yaml is ambiguous.
+- If a shadcn component is not installed: stop and report. Do not substitute with raw HTML.
+- Never improvise patterns not in the stack files — stop and report clearly.
 
 ## Instructions
 
 Read `.claude/procedures/scaffold-pages.md` for full step-by-step instructions. Execute all steps for the appropriate archetype.
+
+## Conflict Resolution
+
+If this prompt and the procedure file disagree, this prompt wins.
 
 ## Output Contract
 

@@ -29,8 +29,7 @@ tailwind config (already set in Step 1).
 
 ### 2. Apply frontend-design methodology
 
-**Read the frontend-design SKILL.md** at the path provided in your prompt.
-Apply its methodology with:
+Apply the preloaded `frontend-design` guidelines (injected via skills) with:
 - The three derived constraints
 - The quality bar from design.md: "Create a world-class, conversion-optimized
   landing page. The visual quality must match a $50K agency page — not
@@ -40,7 +39,7 @@ Apply its methodology with:
   target_user, CTA = action verb + outcome)
 - Content inventory from messaging.md Section B (raw material, not structure)
 
-If the SKILL.md path is `"unavailable"`: proceed using your own judgment —
+If `frontend-design` guidelines are not available: use your own judgment —
 match the product's personality, follow design.md quality bar, and apply
 messaging.md content derivation rules. Do not stop or wait.
 
