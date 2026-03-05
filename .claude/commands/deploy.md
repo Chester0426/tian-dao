@@ -166,7 +166,7 @@ Assemble the shared context block (read-only inputs for all agents):
 Determine which agents to launch based on idea.yaml stack:
 - **Agent A** (Supabase Auth): spawn if `stack.auth: supabase` AND `stack.database: supabase`
 - **Agent B** (Stripe Webhook): spawn if `stack.payment: stripe` AND Stripe CLI is available
-- **Agent C** (PostHog Dashboard): spawn if `stack.analytics: posthog`
+- **Agent C** (Analytics Dashboard): spawn if `stack.analytics: posthog`
 - **Agent D** (External Services): spawn if any external stack files exist (Step 0.8 found services)
 
 Launch all applicable agents **simultaneously** using parallel Agent tool calls. Each agent returns a result object: `{status, message, env_vars_added, ...}`.
@@ -211,7 +211,7 @@ If webhook creation fails, return `{status: "failed", message: "<error details>"
 
 ---
 
-#### Agent C — PostHog Dashboard
+#### Agent C — Analytics Dashboard
 
 **Spawn condition:** `stack.analytics: posthog`
 **Receives:** `canonical_url`, idea.yaml `name`/`title`/`variants`, archetype `funnel_template`, `EVENTS.yaml` content, `stack.payment` presence
