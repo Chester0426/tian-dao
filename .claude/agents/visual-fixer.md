@@ -29,7 +29,7 @@ You receive the visual-scanner's findings report with per-page verdicts and spec
 
 ### 1. Fix Code
 
-Address each reported gap. For design-quality issues (needs-polish or fail verdicts), you may invoke the `frontend-design` skill for guidance.
+Address each reported gap. For design-quality issues (needs-polish or fail verdicts), apply the preloaded `frontend-design` guidelines.
 
 ### 2. Rebuild
 

@@ -46,7 +46,7 @@ read already-built code and have no data dependencies on each other.
 
 ### build-info-collector
 
-Spawn with `subagent_type: build-info-collector`.
+Spawn the `build-info-collector` agent (`subagent_type: build-info-collector`).
 
 If build/lint errors were fixed above, pass: "Build errors were fixed
 in this verification run. Collect the diff and summaries."
@@ -55,15 +55,15 @@ If no errors were fixed, pass: "No build errors were fixed."
 
 ### visual-scanner
 
-Spawn with `subagent_type: visual-scanner`. No additional context needed.
+Spawn the `visual-scanner` agent (`subagent_type: visual-scanner`). No additional context needed.
 
 ### security-defender
 
-Spawn with `subagent_type: security-defender`. No additional context needed.
+Spawn the `security-defender` agent (`subagent_type: security-defender`). No additional context needed.
 
 ### security-attacker
 
-Spawn with `subagent_type: security-attacker`. No additional context needed.
+Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No additional context needed.
 
 **Wait for all four agents to complete before continuing.**
 
@@ -85,12 +85,12 @@ Spawn fixers **in parallel** — one message, up to two Agent tool calls.
 
 ### visual-fixer (if visual-scanner reported issues)
 
-Spawn with `subagent_type: visual-fixer`.
+Spawn the `visual-fixer` agent (`subagent_type: visual-fixer`).
 Pass: visual-scanner's findings report.
 
 ### security-fixer (if merged security has issues)
 
-Spawn with `subagent_type: security-fixer`.
+Spawn the `security-fixer` agent (`subagent_type: security-fixer`).
 Pass: merged Defender table + Attacker findings.
 
 **Wait for both fixers to complete before continuing.**
@@ -105,7 +105,7 @@ skip this section.
 3. Get template file list (from build-info-collector, or generate now:
    run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null`
    and add `Makefile` and `CLAUDE.md`).
-4. Spawn with `subagent_type: observer`.
+4. Spawn the `observer` agent (`subagent_type: observer`).
    Pass ONLY: combined diff, combined summaries, template file list.
    Do NOT include idea.yaml content, project name, or feature descriptions.
 5. Report the observer's result.

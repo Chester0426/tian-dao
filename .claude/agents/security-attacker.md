@@ -13,7 +13,6 @@ disallowedTools:
   - NotebookEdit
   - Agent
 maxTurns: 25
-memory: user
 ---
 
 # Security Attacker
@@ -56,12 +55,6 @@ Each finding **must** include a `curl` command or concrete exploit steps that de
 - Framework-handled protections (Next.js CSRF, React XSS escaping, Supabase auth defaults)
 - Theoretical attacks requiring key compromise or physical access
 - Vulnerabilities in dependencies with no exploitable path in this codebase
-
-## Memory Instructions
-
-After completing your scan, save to your memory:
-- Stack-specific attack patterns that were productive (e.g., "Supabase projects: always check for `USING (true)` RLS policies")
-- False positive patterns to skip in future scans (e.g., "Next.js `cookies()` is httpOnly by default — not A5")
 
 ## Output Contract
 

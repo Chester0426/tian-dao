@@ -13,7 +13,6 @@ disallowedTools:
   - NotebookEdit
   - Agent
 maxTurns: 30
-memory: project
 ---
 
 # Visual Scanner
