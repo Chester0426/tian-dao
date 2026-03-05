@@ -272,9 +272,10 @@ Commit, push, and open a PR with:
 - **What Changed**: files modified (landing page UTM capture, EVENTS.yaml, ads.yaml, FeedbackWidget)
 - The full `ads.yaml` content in the PR body for easy review
 
-## Step 9: Post-merge campaign creation
+## Step 9: Campaign creation
 
-After the PR is merged, attempt automated campaign creation if the channel supports it.
+After opening the PR, attempt automated campaign creation if the channel supports it.
+Campaign metadata (`campaign_id`, `campaign_url`) is committed to the feature branch and included in the PR.
 
 ### 9a: Check API support
 
@@ -299,7 +300,7 @@ After the PR is merged, attempt automated campaign creation if the channel suppo
    3. Walk the user through each setup step interactively
    4. As each credential is provided, save it: `mkdir -p <dir> && echo "$VALUE" > <path>`
    5. After all credentials are saved → proceed to **9d**
-   6. If the user cannot set up credentials now, offer: "Type **skip** to open the PR without campaign creation. You can re-run `/distribute` later — Step 9b checks for `campaign_id` and picks up where you left off." If skipped, jump to Step 9f (manual fallback).
+   6. If the user cannot set up credentials now, offer: "Type **skip** to skip campaign creation. You can create the campaign manually after merging the PR — see the channel's stack file 'Setup Instructions'. Or re-run `/distribute` later — Step 9b checks for `campaign_id` and picks up where you left off." If skipped, jump to Step 9f (manual fallback).
 
 ### 9d: STOP for approval
 
@@ -325,7 +326,7 @@ Show a campaign creation preview:
 4. On success:
    - Extract the campaign ID and dashboard URL from the response (see "Response Handling" subsection)
    - Add `campaign_id: <id>` and `campaign_url: <url>` to `idea/ads.yaml`
-   - Commit the updated `idea/ads.yaml` to `main`
+   - Commit the updated `idea/ads.yaml` to the current feature branch and push (updates the open PR)
 5. On failure:
    - Read the "Error Handling" subsection for guidance on the specific error
    - Report the error to the user

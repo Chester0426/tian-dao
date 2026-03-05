@@ -21,6 +21,7 @@ This skill does NOT write code. It helps you decide what action to take, then po
 - If `package.json` does not exist, stop and tell the user: "No app found. Run `/bootstrap` first to create the app, then run `/iterate` to review its progress."
 - Run `npm run build`. If it fails, stop and tell the user: "The app has build errors. Run `/change fix build errors` to repair the codebase first, then return to `/iterate`."
 - Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
+- Check if `stack.analytics` is present in idea.yaml. If not, warn: "No analytics stack configured — skipping auto-query. You can provide funnel numbers manually in Step 2b, or add `analytics: posthog` to idea.yaml `stack` and run `/change add analytics` for automated tracking." Skip Step 2a entirely and proceed to Step 2b.
 - Read `idea/idea.yaml` — understand the hypothesis:
   - What are we building? (`title`, `solution`)
   - For whom? (`target_user`)
