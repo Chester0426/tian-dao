@@ -31,6 +31,14 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
   If any open issues exist, save them as `observation_backlog`. These will be
   used as additional input in Step 2a below. If none exist or the command fails,
   set `observation_backlog` to empty and continue.
+- **Read prior review precision** (if `template_repo` is set):
+  ```bash
+  gh pr list --repo <template_repo> --state merged --search "Automated review-fix" --limit 1 --json number,body
+  ```
+  If found, extract the Precision Summary. Store as `prior_precision`.
+  If a dimension's precision was below 50% in the prior run, instruct that
+  dimension's agent to apply stricter self-filtering (top 3 findings instead of 5).
+  If not found or command fails, set `prior_precision` to empty and continue.
 
 ## Step 1: Run baseline validators
 
@@ -42,14 +50,18 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 
 ## Step 2: Review-Fix Loop
 
-Run **exactly 3 iterations** of the following cycle. The ONLY early exit
-is when step 2b produces 0 remaining findings (all 3 subagents found nothing
-new). Completing fixes does NOT justify exiting early — fixes may introduce
+Run **2 to 5 iterations** of the following cycle, terminating based on
+convergence (see Loop Gate in 2f). Within-iteration early exits:
+- Step 2b produces 0 remaining findings → exit loop
+- Step 2e: no fixes succeeded this iteration → exit loop
+
+Completing fixes does NOT justify exiting early — fixes may introduce
 new issues that only a fresh scan can detect.
 
 Initialize before the first iteration:
 - `seen_findings` = empty set
 - `iteration` = 1
+- `yield_history` = empty list
 
 ---
 
@@ -97,7 +109,11 @@ Files to read:
 - Glob `.claude/stacks/**/*.md` — read each stack file
 - Glob `tests/fixtures/*.yaml` — read each test fixture
 
-After reading: mentally simulate running `/bootstrap` and `/change` with each fixture's configuration.
+After reading: for each potential finding, identify the test fixture(s) whose
+`idea.stack` configuration matches the edge case (e.g., a finding about missing
+`stack.auth` → use fixtures that lack auth). Record the fixture name(s) alongside
+the finding. If no fixture covers the edge case, note "no fixture coverage" —
+this itself may be a finding worth reporting.
 
 **Dimension C: User Journey Completeness**
 
@@ -187,18 +203,42 @@ each filtered finding before committing to fixes. Include in the agent prompt:
 
 - All filtered findings from step 2b (full Finding Format)
 - The `observation_backlog` from Step 0 (if non-empty)
-- Instructions:
-  - For each finding, read the cited file(s) and verify the claimed issue exists
-  - For Dimension A (cross-file) findings: read both sides of the alleged contradiction
-  - For Dimension B (edge case) findings: cross-reference `tests/fixtures/*.yaml`
-  - **Auto-confirm rule**: if a finding matches an open observation's root cause → label "confirmed"
-  - Default stance is skeptical — require positive evidence to dispute; absence of proof is not proof of absence
+- Instructions — **Counterexample Construction**:
+
+  For each finding, attempt to **construct a proof that the finding is false**.
+  The default label is "confirmed" — you must produce positive evidence to dispute.
+
+  **Dimension A (cross-file) findings:**
+  1. Read both cited files
+  2. Quote the exact lines alleged to contradict (with line numbers)
+  3. Check: do these lines apply in the same context? (e.g., one may be inside
+     a conditional that excludes the other's scenario)
+  4. If no real contradiction when context is considered → "disputed"
+
+  **Dimension B (edge case) findings:**
+  1. Identify which fixture(s) match the claimed configuration (use fixture names
+     from the dimension agent's report)
+  2. Read the fixture's `assertions` section — does it expect this behavior?
+  3. Read the specific conditional branch in the cited skill/stack file
+  4. If the conditional already handles the case → "disputed", quoting the code
+  5. If no fixture covers this config → note "no fixture coverage" (stays "confirmed")
+
+  **Dimension C (user journey) findings:**
+  1. Trace the specific journey step claimed to be a dead-end
+  2. Read the skill file at the cited step
+  3. Check: is there a recovery path, error message, or next-step instruction
+     the dimension agent missed?
+  4. If a recovery path exists → "disputed", quoting the path
+
+  **Auto-confirm rule** (unchanged): finding matching an open observation's
+  root cause → "confirmed" without counterexample construction.
 
 Output format — one entry per finding:
 ```
 ### Finding N: <title>
 - **Label**: confirmed | disputed | needs-evidence
-- **Rationale**: ... (why confirmed/disputed, cite specific lines or logic)
+- **Counterexample**: <what you tried to prove and whether it succeeded>
+- **Evidence**: <exact quotes with file:line references>
 - **Observation match**: #<number> | none
 ```
 
@@ -225,6 +265,8 @@ For each finding in priority order (confirmed first, then needs-evidence):
    `git checkout -- <modified files>`, log as "reverted", move to next
 5. If error count same or decreased → keep the fix
    (do NOT commit per-fix; accumulate changes for a single commit)
+6. Record the finding's fate: `fixed`, `reverted`, or `skipped` (if not attempted).
+   Carry fates forward in the compact state.
 
 The validator scripts serve as this skill's quality gate, analogous to the
 build verification in `.claude/patterns/verify.md`.
@@ -244,21 +286,40 @@ Emit a compact state summary and discard prior detail:
 - checks_added: [list of new validator checks, or "none"]
 - adversarial_validation: confirmed: N, disputed: M, needs-evidence: K
 - disputed_findings: [list of disputed finding signatures + one-line rationale]
+- finding_fates: [{signature, dimension, adversarial_label, fate}]
+- yield_rate: <fixed_count / (confirmed + needs-evidence count)>
 ```
 
 This summary is the only carry-forward state needed. Prior subagent results,
 file reads, and validator outputs from this iteration are no longer needed and
 can be safely compressed.
 
-**MANDATORY LOOP GATE — answer before proceeding:**
+**MANDATORY LOOP GATE — evaluate before proceeding:**
 
-> Is `iteration` ≥ 3?
-> - **YES** → proceed to Step 3.
-> - **NO** → increment `iteration`, **go to 2a NOW**. Do NOT proceed to Step 3.
->
-> You MUST re-scan with fresh subagents. Fixes from this iteration may have
-> introduced new issues, and reviewers may find things they missed when the
-> old text was still present. Proceeding to Step 3 early wastes review coverage.
+Compute this iteration's yield rate:
+- `yield` = (findings fixed this iteration) / (findings reported by subagents this iteration)
+- If no findings were reported, yield = 0
+- Append yield to `yield_history`
+
+Termination decision (evaluate in order — first match wins):
+
+1. **Minimum floor**: `iteration` < 2 → increment `iteration`, go to 2a NOW.
+   (A single scan is never sufficient — fixes may introduce new issues.)
+
+2. **Zero yield**: yield = 0 and no findings were fixed → proceed to Step 3.
+
+3. **Diminishing returns**: `iteration` ≥ 3 and yield < 0.25 → proceed to Step 3.
+   (Fewer than 1 in 4 reported findings actually got fixed — mostly noise.)
+
+4. **All disputed**: every finding this iteration was disputed by adversarial
+   agent → proceed to Step 3.
+
+5. **Hard cap**: `iteration` ≥ 5 → proceed to Step 3.
+
+6. **Continue**: increment `iteration`, **go to 2a NOW**. Fixes from this
+   iteration may have introduced new issues.
+
+State which condition triggered your decision before proceeding.
 
 ## Step 3: Update check-inventory.md
 
@@ -292,6 +353,18 @@ If branch exists with changes:
 - **Disputed findings section**: Under a `### Disputed Findings` heading,
   list all disputed findings across all iterations with adversarial rationale.
   Format as a table: Finding | Dimension | Rationale. Omit section if none.
+- **Finding Fate Log section**: Under a `### Finding Fate Log` heading, include
+  a table of ALL findings across all iterations:
+
+  | Finding | Dimension | Adversarial Label | Fate | Notes |
+  |---------|-----------|------------------|------|-------|
+
+  Fate values: `fixed`, `reverted`, `disputed`, `skipped`.
+
+- **Precision Summary section**: Under a `### Precision Summary` heading, include:
+  - Per-dimension precision: (fixed) / (confirmed + needs-evidence) for A, B, C
+  - Per-label accuracy: fraction of "confirmed" that were fixed and kept
+  - Overall yield: total fixed / total reported across all iterations
 - **Close resolved observations**: For each observation issue whose root cause
   was fixed in this review PR, close it with a comment:
   ```bash
@@ -305,7 +378,8 @@ If branch exists with changes:
 - Add new features or pages
 - Propose checks that regex-match natural-language prose
 - Fix findings that overlap with check-inventory.md
-- Run more than 3 iterations
+- Run more than 5 iterations
+- Exit before completing iteration 2 (minimum 2 required)
 - Skip running validators after each fix
 - Commit fixes that cause validator regressions
 - Install or remove packages
