@@ -70,6 +70,9 @@ app.get("/api/health", (c) => {
   return c.json({ status: "ok" });
 });
 
+// When surface is co-located: add root route returning HTML marketing page
+// Example: app.get("/", (c) => c.html("<!DOCTYPE html>..."));
+
 // Register route modules here (one per idea.yaml endpoint)
 // Example: app.route("/api/convert", convertRoute);
 

@@ -311,7 +311,10 @@ Run combined verification after all four parallel subagents complete — these c
      `src/commands/<command-name>.ts` exists
 3. **Analytics wiring** (if `stack.analytics` is present): for each
    standard_funnel event in EVENTS.yaml, grep for the event name in `src/`
-   to confirm a tracking call exists
+   to confirm a tracking call exists. Also verify analytics constants:
+   grep `src/lib/analytics*.ts` for `PROJECT_NAME` and `PROJECT_OWNER` —
+   both must equal the actual idea.yaml `name` and `owner` values, not
+   `"TODO"` strings
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
 
