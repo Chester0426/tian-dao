@@ -42,7 +42,7 @@ For each entry in idea.yaml `pages`:
   - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
   - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page**: Do NOT generate the landing page content here — it is
-  created by a dedicated agent in Step 4c for higher creative quality. If
+  created by the landing-page teammate (see `scaffold-landing.md`). If
   idea.yaml has `variants`, create only the structural routing files here:
   - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline,
     subheadline, cta, pain_points, isDefault) and `getVariant(slug)` helper
@@ -51,7 +51,7 @@ For each entry in idea.yaml `pages`:
   - `src/app/v/[variant]/page.tsx` — dynamic route, imports `LandingContent`,
     fires `visit_landing` with `variant` property. `generateStaticParams()`
     for all variant routes. Returns `notFound()` for unknown slugs.
-  If no `variants`, skip entirely — Step 4c creates `src/app/page.tsx`.
+  If no `variants`, skip entirely — the landing-page teammate creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
 - **All other pages**: functional layout following `.claude/patterns/design.md`, with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real product screen
