@@ -50,6 +50,20 @@ Not a template. Not adequate. Exceptional — a unique page that makes the
 founder proud to share the URL. This standard applies to ALL archetypes:
 web-app (React component), service (HTML route), and CLI (HTML file).
 
+**Inner pages** (dashboard, settings, etc.) — must be **polished and
+cohesive**. They consume the same theme tokens (palette, typography,
+spacing) as the landing page. The bar is not "$50K agency" but "clearly
+part of the same product":
+- Consistent color palette and typography (no unstyled defaults)
+- Proper spacing rhythm (consistent padding, margins, gap)
+- Purposeful layout (clear hierarchy, not just stacked elements)
+- shadcn/ui components styled within the theme
+- Not template-like — each page should feel intentional
+
+When `frontend-design` is available, invoke it for inner pages too
+(with the existing theme as input). When unavailable, follow the theme
+tokens and these cohesion criteria.
+
 ### Recommended executor
 
 The `frontend-design` skill is the recommended executor for all visual

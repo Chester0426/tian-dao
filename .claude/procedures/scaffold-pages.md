@@ -1,8 +1,10 @@
-# Scaffold: App Shell & Pages (Agent B)
+# Scaffold: App Shell & Pages
 
-This procedure is executed as a parallel agent spawned by scaffold.md.
-You share the codebase with Agent A (libraries) and Agent C (externals), running
-concurrently. **Your exclusive write territory depends on the archetype:**
+This procedure is executed by a team teammate spawned by `/bootstrap`.
+As an independent Claude Code session, you have full access to project
+files, plugins (frontend-design, typescript-lsp), and tools. You run
+concurrently with the libs and externals teammates.
+**Your exclusive write territory depends on the archetype:**
 
 - **web-app**: `src/app/` and `src/components/`
 - **service**: `src/app/api/` directory structure only
@@ -18,7 +20,7 @@ Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`.
 
 ## Concurrent dependency note
 
-Pages import from `src/lib/events.ts` (created by Agent A running in parallel).
+Pages import from `src/lib/events.ts` (created by the libs teammate running in parallel).
 Write import statements using function signatures derived from EVENTS.yaml — the
 file will exist at build time when the merged checkpoint runs `npm run build`.
 
@@ -54,7 +56,17 @@ For each entry in idea.yaml `pages`:
   If no `variants`, skip entirely — the landing-page teammate creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
-- **All other pages**: functional layout following `.claude/patterns/design.md`, with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real product screen
+- **All other pages**: For each non-landing, non-auth page, **invoke the
+  `frontend-design` skill** (via the Skill tool) with:
+  - The existing theme tokens (from `src/app/globals.css` and tailwind config)
+  - The page's `purpose` from idea.yaml
+  - Instruction: "Design a polished inner page within the established theme.
+    Consistent with the landing page's visual identity — same palette, fonts,
+    spacing rhythm. Not a blank template — a cohesive product screen."
+  If the `frontend-design` skill is not available: proceed using your own
+  judgment — consume the theme tokens, match the product's visual identity.
+  Each page must have heading, description matching purpose, and a clear
+  next-action CTA
 
 > **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
 

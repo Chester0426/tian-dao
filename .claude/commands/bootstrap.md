@@ -13,7 +13,10 @@ references:
   - .claude/patterns/observe.md
   - .claude/patterns/messaging.md
   - .claude/patterns/design.md
-  - .claude/procedures/scaffold.md
+  - .claude/procedures/scaffold-init.md
+  - .claude/procedures/scaffold-libs.md
+  - .claude/procedures/scaffold-pages.md
+  - .claude/procedures/scaffold-externals.md
   - .claude/procedures/scaffold-landing.md
   - .claude/procedures/wire.md
 branch_prefix: feat
@@ -182,55 +185,104 @@ DO NOT write any code, create any files, or run any install commands during this
 
 Create a team via TeamCreate with team_name: `<idea.yaml name>-bootstrap`.
 
-### Scaffold Phase
-
-Create a scaffold task via TaskCreate:
-- subject: "Scaffold: project init, parallel lib+page+external agents (Steps 1-4b)"
-- description: Full scaffold instructions from `.claude/procedures/scaffold.md`
-
-Spawn a teammate via Agent with:
-- subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "scaffold"
-- prompt: Tell the teammate to:
-  1. Read `.claude/procedures/scaffold.md` and execute all steps
-  2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
-     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
-     all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
-     `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred),
-     `.claude/procedures/scaffold-libs.md`,
-     `.claude/procedures/scaffold-pages.md`,
-     `.claude/procedures/scaffold-externals.md`,
-     `.claude/patterns/design.md`, `.claude/patterns/messaging.md`
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 10, 12
-  4. On completion: mark the scaffold task completed via TaskUpdate, then send
-     the completion report (as defined in scaffold.md) to the lead via SendMessage
-
 **Do NOT assemble file contents into the prompt.** Teammates are independent
 Claude Code sessions with full file access — they read files themselves. The
 prompt tells them WHICH files to read and WHAT to do.
 
-**After the scaffold teammate reports completion:**
+### Init Phase
 
-Run semantic validation — these checks catch issues that `npm run build` misses:
+Spawn a teammate via Agent with:
+- subagent_type: general-purpose
+- team_name: `<team name>`
+- name: "init"
+- prompt: Tell the teammate to:
+  1. Read `.claude/procedures/scaffold-init.md` and execute all steps
+  2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
+     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
+     all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
+     `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred),
+     `.claude/patterns/design.md`
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 12
+  4. On completion: send the completion report (as defined in scaffold-init.md)
+     to the lead via SendMessage
 
-1. **Page/endpoint/command existence:**
+Wait for the init teammate to complete before proceeding.
+
+### Parallel Scaffold Phase
+
+Spawn three teammates simultaneously using parallel Agent tool calls:
+
+**Libs teammate:**
+- subagent_type: general-purpose
+- team_name: `<team name>`
+- name: "libs"
+- prompt: Tell the teammate to:
+  1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
+  2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
+     `.claude/current-plan.md`, all stack files
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7
+  4. On completion: send the completion report to the lead via SendMessage
+
+**Pages teammate:**
+- subagent_type: general-purpose
+- team_name: `<team name>`
+- name: "pages"
+- prompt: Tell the teammate to:
+  1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
+  2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
+     `.claude/current-plan.md`, archetype file,
+     framework/UI stack files, `.claude/patterns/design.md`
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+  4. On completion: send the completion report to the lead via SendMessage
+
+**Externals teammate:**
+- subagent_type: general-purpose
+- team_name: `<team name>`
+- name: "externals"
+- prompt: Tell the teammate to:
+  1. Read `.claude/procedures/scaffold-externals.md` and execute all steps
+  2. Read context files: `idea/idea.yaml`, `.claude/current-plan.md`,
+     `.claude/stacks/TEMPLATE.md`, existing stack files
+  3. Follow CLAUDE.md Rules 3, 4, 6
+  4. On completion: send the completion report to the lead via SendMessage
+
+Wait for all three teammates to complete before proceeding.
+
+### Fake Door Integration
+
+If the externals teammate reported Fake Door features, the bootstrap lead
+creates them directly:
+
+For each Fake Door feature, generate a component in the page folder where the
+feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
+- Real, polished UI using shadcn components (Card + Button + Dialog), following `.claude/patterns/design.md`
+- On button click: `track("activate", { action: "[feature-name]", fake_door: true })`
+- Shows a Dialog: "[Feature Name] is coming soon — we're building this now."
+- Import and render the Fake Door component in the parent page where the feature would naturally live
+- The component should look like a real feature entry point — not a placeholder or disabled button
+
+### Merged Checkpoint + Semantic Validation
+
+Run combined verification — these checks catch compilation and semantic issues:
+
+1. **Build**: run `npm run build` — the project must compile
+2. **Page/endpoint/command existence:**
    - If archetype is `web-app`: for each page in idea.yaml `pages`, verify
      `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
    - If archetype is `service`: for each endpoint in idea.yaml `endpoints`,
      verify the handler file exists at the path defined by the framework stack file
    - If archetype is `cli`: for each command in idea.yaml `commands`, verify
      `src/commands/<command-name>.ts` exists
-2. **Analytics wiring** (if `stack.analytics` is present): for each
+3. **Analytics wiring** (if `stack.analytics` is present): for each
    standard_funnel event in EVENTS.yaml, grep for the event name in `src/`
    to confirm a tracking call exists
-3. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
+4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
-4. **Build**: run `npm run build` — the project must compile
-5. If any check fails: send a message to the scaffold teammate with the specific
-   failures and ask it to fix them. Re-validate after the fix.
 
-If validation passes, proceed to the landing page phase.
+If any check fails: the bootstrap lead fixes directly (it has full file access
+as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.
+If still failing after 2 attempts: defer to the wire phase (verify.md 3-attempt
+retry).
 
 ### Landing Page Phase (if surface ≠ none)
 
@@ -248,7 +300,7 @@ Spawn a teammate via Agent with:
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      framework/UI/surface stack files,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
-     `src/app/globals.css` (theme tokens from Step 1)
+     `src/app/globals.css` (theme tokens from init phase)
   3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
   4. On completion: send the result to the lead via SendMessage
 
@@ -274,8 +326,9 @@ Spawn a teammate via Agent with:
      `.claude/patterns/verify.md`, `.claude/patterns/visual-review.md`,
      `.claude/patterns/security-review.md`, `.claude/patterns/observe.md`,
      `.github/PULL_REQUEST_TEMPLATE.md`
-  3. Include the scaffold teammate's completion report (external dep decisions,
-     generated files, env vars) in the prompt so the wire teammate has context
+  3. Include the completion reports from init, libs, pages, and externals
+     teammates (external dep decisions, generated files, env vars) in the
+     prompt so the wire teammate has context
   4. Follow CLAUDE.md Rules 1, 4, 5, 6, 7, 8, 10, 12
   5. On completion: mark the wire task completed via TaskUpdate, then send
      the PR URL to the lead via SendMessage
@@ -283,7 +336,11 @@ Spawn a teammate via Agent with:
 ### Teardown
 
 After the wire teammate returns the PR URL:
-1. Send shutdown_request to the scaffold teammate
-2. Send shutdown_request to the wire teammate
-3. Call TeamDelete to clean up the team
-4. Report the PR URL to the user
+1. Send shutdown_request to the init teammate
+2. Send shutdown_request to the libs teammate
+3. Send shutdown_request to the pages teammate
+4. Send shutdown_request to the externals teammate
+5. Send shutdown_request to the landing-page teammate
+6. Send shutdown_request to the wire teammate
+7. Call TeamDelete to clean up the team
+8. Report the PR URL to the user

@@ -64,10 +64,11 @@ Use the Read tool to view each screenshot image. For every page, check:
 - **Above-the-fold quality** — the visible area looks polished, not
   obviously broken or template-like
 
-## 4b. Design Quality Gate (landing page only)
+## 4b. Design Quality Gate (all pages)
 
-For the landing page screenshot (`/` route), evaluate design quality against
-the three constraints from `.claude/patterns/design.md`:
+### Landing page (`/` route)
+
+Evaluate design quality against the three constraints from `.claude/patterns/design.md`:
 
 1. **Color direction** — Does the palette match the derived direction (dark/light/neutral)?
 2. **Design philosophy** — Does the density and ornamentation match (minimalist/rich/playful)?
@@ -87,7 +88,23 @@ Additionally, evaluate the $50K quality bar:
 - **fail** — fundamentally broken design (wrong direction entirely). Report
   and enter Fix Cycle.
 
-Skip this step for non-landing pages — they only need the functional checks in Step 4.
+### Inner pages (all non-landing pages)
+
+Evaluate cohesion quality against `.claude/patterns/design.md` inner page bar:
+
+1. **Palette consistency** — same custom palette as landing page (no default grays)?
+2. **Typography consistency** — same font family and hierarchy?
+3. **Spacing rhythm** — consistent padding, margins, gaps (not random)?
+4. **Component styling** — shadcn/ui components styled within the theme?
+5. **Layout purpose** — clear hierarchy, not just stacked elements?
+
+**Verdict:**
+- **pass** — cohesive with the landing page, no action needed
+- **needs-polish** — inconsistent with theme (e.g., "dashboard uses default
+  gray while landing uses custom blue palette", "spacing is inconsistent with
+  landing page rhythm"). Enter the Fix Cycle in Step 5.
+- **fail** — completely unstyled or visually disconnected from the product
+  theme. Enter Fix Cycle.
 
 ## 5. Fix Cycle (max 2 cycles)
 

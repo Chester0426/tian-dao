@@ -1,12 +1,13 @@
-# Scaffold: External Dependencies (Agent C)
+# Scaffold: External Dependencies
 
-This procedure is executed as a parallel agent spawned by scaffold.md.
-You share the codebase with Agent A (libraries) and Agent B (pages), running
-concurrently. **Your exclusive write territory is `.claude/stacks/external/`,
-`.env.local`, and `.env.example`.**
+This procedure is executed by a team teammate spawned by `/bootstrap`.
+As an independent Claude Code session, you have full access to project
+files, plugins (typescript-lsp), and tools. You run concurrently with the
+libs and pages teammates. **Your exclusive write territory is
+`.claude/stacks/external/`, `.env.local`, and `.env.example`.**
 
-Do NOT write to `src/` — Fake Door components are handled by the orchestrator
-after all parallel agents complete.
+Do NOT write to `src/` — Fake Door components are handled by the bootstrap
+lead after all parallel teammates complete.
 
 You may interact with the user (classification confirmation, credential collection).
 
@@ -103,7 +104,7 @@ For each non-core feature choosing Fake Door, include in your output a structure
 
 Do NOT create the Fake Door components — they are created by the orchestrator
 after all parallel agents complete (they live in `src/app/<page>/`, which is
-Agent B's territory).
+the pages teammate's territory).
 
 ## Output
 
