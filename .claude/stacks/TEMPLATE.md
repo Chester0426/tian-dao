@@ -70,6 +70,32 @@ VARIABLE_NAME=description-or-example
 - [Access control requirements]
 - [Client vs server boundaries]
 
+## Demo Mode
+<!-- Add demo mode guards to all client factory functions so pages render
+     during visual review (no real credentials at bootstrap time).
+
+     Server-side: check `process.env.DEMO_MODE === "true"` and return a
+     mock/noop client before touching real credentials.
+
+     Client-side: check `process.env.NEXT_PUBLIC_DEMO_MODE === "true"` and
+     return a mock client. NEXT_PUBLIC_ is required because Next.js inlines
+     client env vars at build time.
+
+     For Supabase-style chainable APIs, use a Proxy-based mock:
+       const chainable = (terminal) => new Proxy(() => terminal, {
+         get: (_, prop) => prop === "then" ? undefined : chainable(terminal),
+         apply: () => chainable(terminal),
+       });
+     The `then` trap returning `undefined` prevents `await` from treating
+     the Proxy as a thenable (which causes infinite loops).
+
+     For simpler clients (Stripe, Resend), a plain object mock or early
+     return is sufficient.
+
+     DEMO_MODE is never added to env frontmatter or .env.example — it is
+     only set by the visual scanner (visual-review.md), never by /verify
+     or production deployments. -->
+
 ## Analytics Integration
 - [Which EVENTS.yaml events this stack interacts with]
 - [Where to fire them]
