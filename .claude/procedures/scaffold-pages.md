@@ -1,0 +1,76 @@
+# Scaffold: App Shell & Pages (Agent B)
+
+This procedure is executed as a parallel agent spawned by scaffold.md.
+You share the codebase with Agent A (libraries) and Agent C (externals), running
+concurrently. **Your exclusive write territory depends on the archetype:**
+
+- **web-app**: `src/app/` and `src/components/`
+- **service**: `src/app/api/` directory structure only
+- **cli**: `src/index.ts` and `src/commands/`
+
+Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`.
+
+## Prerequisites
+- Packages installed and UI setup complete (Step 1 finished)
+- Stack files and archetype file on disk
+- `.claude/current-plan.md` exists
+- `design.md` choices recorded in globals.css and tailwind config
+
+## Concurrent dependency note
+
+Pages import from `src/lib/events.ts` (created by Agent A running in parallel).
+Write import statements using function signatures derived from EVENTS.yaml — the
+file will exist at build time when the merged checkpoint runs `npm run build`.
+
+## Instructions by archetype
+
+### web-app
+
+#### App shell (Step 3)
+- Follow the framework stack file's file structure and page conventions
+- **Root layout**: metadata from idea.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (chosen font via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
+- **404 page**: simple not-found page with link back to `/`
+- **Error boundary**: user-friendly message and retry button
+
+#### Pages (Step 4)
+For each entry in idea.yaml `pages`:
+- If `name` is `landing` → create the root page
+- Otherwise → create a page at the appropriate route
+- Every page file must:
+  - Follow page conventions from the framework stack file
+  - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate EVENTS.yaml event(s) on the correct trigger
+  - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
+  - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
+- **Landing page**: Do NOT generate the landing page content here — it is
+  created by a dedicated agent in Step 4c for higher creative quality. If
+  idea.yaml has `variants`, create only the structural routing files here:
+  - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline,
+    subheadline, cta, pain_points, isDefault) and `getVariant(slug)` helper
+  - Root `src/app/page.tsx` — imports and renders `LandingContent` with the
+    default variant's props. Fires `visit_landing` with `variant` property.
+  - `src/app/v/[variant]/page.tsx` — dynamic route, imports `LandingContent`,
+    fires `visit_landing` with `variant` property. `generateStaticParams()`
+    for all variant routes. Returns `notFound()` for unknown slugs.
+  If no `variants`, skip entirely — Step 4c creates `src/app/page.tsx`.
+- **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
+- If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
+- **All other pages**: functional layout following `.claude/patterns/design.md`, with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real product screen
+
+> **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
+
+### service
+
+Skip shell and pages. Create API directory structure only:
+- `src/app/api/` directory with placeholder route folders for each endpoint in idea.yaml
+- Follow the framework stack file's route handler conventions
+
+### cli
+
+Skip shell and pages. Create CLI entry point and command modules:
+- `src/index.ts` — CLI entry point with bin config
+- `src/commands/` — one module per idea.yaml command
+- Follow the framework stack file's conventions
+
+## Output
+
+Report the list of files created and any issues encountered.

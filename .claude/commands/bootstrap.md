@@ -184,7 +184,7 @@ Create a team via TeamCreate with team_name: `<idea.yaml name>-bootstrap`.
 ### Scaffold Phase
 
 Create a scaffold task via TaskCreate:
-- subject: "Scaffold: project init, libraries, pages, landing page (Steps 1-4c)"
+- subject: "Scaffold: project init, parallel lib+page+external agents, landing page (Steps 1-4c)"
 - description: Full scaffold instructions from `.claude/procedures/scaffold.md`
 
 Spawn a teammate via Agent with:
@@ -197,6 +197,9 @@ Spawn a teammate via Agent with:
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
      `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred),
+     `.claude/procedures/scaffold-libs.md`,
+     `.claude/procedures/scaffold-pages.md`,
+     `.claude/procedures/scaffold-externals.md`,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`
   3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 10, 12
   4. On completion: mark the scaffold task completed via TaskUpdate, then send

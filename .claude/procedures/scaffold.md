@@ -33,146 +33,49 @@ by the wire teammate.
   4. Record choices in globals.css custom properties and tailwind config per the theme contract in design.md. Font setup applies in Step 3 when layout.tsx is created.
 - If any install command fails: stop, show the error, and ask the user to fix the environment issue. After fixing, tell Claude: "Continue the bootstrap on this branch from the install step." Claude will re-run the failed install and any subsequent install commands, then continue with Step 2. Do NOT re-run `/bootstrap` (that would create a duplicate branch). If you close this conversation: either (1) commit partial files on this branch (`git add -A && git commit -m "WIP: partial install"`), then tell Claude "Continue the bootstrap on this branch from the install step"; or (2) switch to main (`git checkout main`), run `make clean`, and start `/bootstrap` fresh.
 
-### Step 2: Core library files
-- Create the library files specified in each stack file's "Files to Create" section:
-  - If `stack.analytics` is present: analytics library (from the analytics stack file)
-  - If `stack.database` is present: database clients (from the database stack file)
-- If `stack.auth` is present, create auth files from the auth stack file using the correct conditional path:
-  - If `stack.database` matches the auth provider (e.g., both `supabase`): auth shares the database client files — only create auth-specific pages (signup, login)
-  - If `stack.database` is absent or a different provider: create standalone auth library files from the "Standalone Client" section (e.g., `supabase-auth.ts` instead of `supabase.ts`)
-- If both `stack.auth` and `stack.payment` are present, create auth library files and pages first — payment templates reference `user.id` which requires auth.
-- If `stack.payment` is present, create the payment library files from the payment stack file's "Files to Create" section. Note: the payment stack file's checkout route template intentionally references `user.id` which is undefined until auth is integrated — this will cause a build error at Checkpoint B that you must fix by adding the auth check (see the auth stack file's "Server-Side Auth Check" section). The webhook route template also contains a `// TODO: Update user's payment status in database` — unlike the auth check, this TODO compiles silently, so you must resolve it using the database schema planned in Phase 1.
-- If `stack.analytics` is present: replace placeholder constants in the analytics library files created by the analytics stack file — replace `PROJECT_NAME = "TODO"` with the `name` from idea.yaml and `PROJECT_OWNER = "TODO"` with the `owner` from idea.yaml. For web-app: replace in both client (`src/lib/analytics.ts`) and server (`src/lib/analytics-server.ts`) files. For service/cli: replace in the server analytics file only (no client-side analytics). These constants auto-attach to every event — if left as TODO, experiment filtering will fail.
-- If `stack.analytics` is present: generate `src/lib/events.ts` with typed track wrapper functions from EVENTS.yaml. For each event, create a function like `trackVisitLanding(props: { referrer?: string; utm_source?: string })` that calls `track("visit_landing", props)`. Only generate wrappers for standard_funnel events and (if stack.payment is present) payment_funnel events. Pages should import from `events.ts` instead of calling `track()` directly with string event names.
-- If `stack.email` is present, add to EVENTS.yaml `custom_events`:
-  - `email_welcome_sent` (trigger: Welcome email sent after signup, properties: `recipient` string required)
-  - `email_nudge_sent` (trigger: Activation nudge email sent by cron, properties: `recipient` string required, `days_since_signup` integer required)
+### Steps 2-4b: Parallel scaffold agents
 
-### Checkpoint A — verify library layer
-- Re-read `.claude/current-plan.md` to confirm implementation aligns with the approved plan.
-- Run `npm run build` to verify all library files compile correctly
-- If the build fails: fix the errors in the library files before proceeding. These files are imported by every page — errors here cascade into everything downstream. After fixing, re-run `npm run build` to confirm.
-- If the build still fails after 2 fix attempts, proceed to the next step without retrying further at this checkpoint — Step 8 (final verification in `.claude/patterns/verify.md`) has its own 3-attempt retry budget that will catch any remaining issues.
+After Step 1 completes, spawn three agents simultaneously using parallel
+Agent tool calls (same pattern as verify.md Parallel Review).
 
-### Step 3: App shell
-- Follow the framework stack file's file structure and page conventions
-- **Root layout**: metadata from idea.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (chosen font via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
-- **404 page**: simple not-found page with link back to `/`
-- **Error boundary**: user-friendly message and retry button
+#### Agent A — Library files
+Spawn Agent (general-purpose):
+- Read `.claude/procedures/scaffold-libs.md` and execute
+- Context: idea.yaml, EVENTS.yaml, `.claude/current-plan.md`, all stack files
+- Rules: CLAUDE.md 3, 4, 6, 7
 
-### Step 4: Pages from idea.yaml
-For each entry in idea.yaml `pages`:
-- If `name` is `landing` → create the root page
-- Otherwise → create a page at the appropriate route
-- Every page file must:
-  - Follow page conventions from the framework stack file
-  - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate EVENTS.yaml event(s) on the correct trigger
-  - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
-  - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
-- **Landing page**: Do NOT generate the landing page content here — it is
-  created by a dedicated agent in Step 4c for higher creative quality. If
-  idea.yaml has `variants`, create only the structural routing files here:
-  - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline,
-    subheadline, cta, pain_points, isDefault) and `getVariant(slug)` helper
-  - Root `src/app/page.tsx` — imports and renders `LandingContent` with the
-    default variant's props. Fires `visit_landing` with `variant` property.
-  - `src/app/v/[variant]/page.tsx` — dynamic route, imports `LandingContent`,
-    fires `visit_landing` with `variant` property. `generateStaticParams()`
-    for all variant routes. Returns `notFound()` for unknown slugs.
-  If no `variants`, skip entirely — Step 4c creates `src/app/page.tsx`.
-- **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
-- If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
-- **All other pages**: functional layout following `.claude/patterns/design.md`, with heading, description matching the page's `purpose` from idea.yaml, and a clear next-action CTA. Not blank placeholders — each page should feel like a real product screen
+#### Agent B — App shell & pages
+Spawn Agent (general-purpose):
+- Read `.claude/procedures/scaffold-pages.md` and execute
+- Context: idea.yaml, EVENTS.yaml, `.claude/current-plan.md`, archetype file,
+  framework/UI stack files, `design.md`
+- Rules: CLAUDE.md 3, 4, 6, 7, 9
 
-> **STOP** — if `stack.analytics` is present, verify analytics before proceeding. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. Do not move to Checkpoint B until each event is wired. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
+#### Agent C — External dependencies
+Spawn Agent (general-purpose):
+- Read `.claude/procedures/scaffold-externals.md` and execute
+- Context: idea.yaml, `.claude/current-plan.md`, `.claude/stacks/TEMPLATE.md`, existing stack files
+- Rules: CLAUDE.md 3, 4, 6
 
-### Checkpoint B — verify pages layer
-- Re-read `.claude/current-plan.md` to confirm implementation aligns with the approved plan.
-- Run `npm run build` to verify all pages compile and their imports from the library files resolve correctly
-- If the build fails: fix the errors in the page files (or in the library files they import from) before proceeding. After fixing, re-run `npm run build` to confirm.
-- If the build still fails after 2 fix attempts, proceed to the next step without retrying further at this checkpoint — Step 8 (final verification in `.claude/patterns/verify.md`) has its own 3-attempt retry budget that will catch any remaining issues.
+Wait for all three agents to complete before continuing.
 
-### Step 4b: Evaluate external dependencies
+### Fake Door integration (if Agent C reported Fake Door features)
 
-Before generating API routes, assess whether idea.yaml features require external services not covered by `stack`:
-
-1. Read idea.yaml `features`. For each feature, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
-   - Examples: "Connect Xero and import invoices" → Xero OAuth, "Send SMS via Twilio" → Twilio API key, "Sync with Google Sheets" → Google OAuth
-   - Stack-handled services don't count: Supabase, Stripe, Resend, PostHog are already managed by their stack files
-
-2. If NO external dependencies detected → skip to Step 4c.
-
-3. **Classify each dependency as core or non-core.** For each external dependency, ask: "If this feature were entirely absent, could users still complete `primary_metric`?" If no → **core**. If yes → **non-core**. Present the classification to the user for confirmation or override:
-
-   > These features require external service credentials not covered by your stack:
-   >
-   > | Feature | Service | Credentials needed | Classification |
-   > |---------|---------|-------------------|----------------|
-   > | ... | ... | ... | **core** / **non-core** |
-   >
-   > Core = removing it prevents users from completing primary_metric ("[value]").
-   >
-   > Does this classification look right? If so, choose an option for each:
-
-4. **Core features — two options** (no Skip, no Fake Door — core features must have a complete experience):
-   - **Provide now** — user gives credentials during bootstrap, Step 5 builds full integration
-   - **Provision at deploy** — Step 5 builds full integration code referencing env vars; credentials are obtained during `/deploy` Step 5b. Code must compile without real credentials (guard with runtime check → 503 `{ error: "Service not configured", service: "[name]", setup: "Run /deploy to provision credentials" }`).
-
-5. **Non-core features — three options:**
-   - **Fake Door** (default) — real UI + `activate` event with `fake_door: true` + "Coming soon" dialog. Collects intent data from paid traffic. See Step 4 Fake Door integration below.
-   - **Skip** — omit the feature from the UI entirely (not a 501 stub — the feature is simply not built)
-   - **Full Integration** — same as core "Provide now" (user gives credentials, Step 5 builds it)
-
-6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration" / "Provide now"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it using the same procedure as Step 2 above for missing stack files:
-   - Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema
-   - Read existing stack files as structural reference
-   - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details, and a `## CLI Provisioning` section
-   - Set `ci_placeholders: {}` — external service env vars are runtime-only
-     (guarded by 503 when missing) and must not appear in CI
-   - Run `python3 scripts/validate-frontmatter.py` to verify (max 2 attempts)
-   - After generating the external stack file, search the web for the service's
-     current official API/OAuth documentation to verify:
-     - OAuth scope names and format
-     - Authorization and token endpoint URLs
-     - Required request parameters and headers
-     If any generated value conflicts with the official documentation, update the
-     stack file before proceeding.
-   - Tell the user: "Generated `.claude/stacks/external/<service-slug>.md` — auto-generated from Claude's knowledge. Review after bootstrap."
-   - File an observation per `.claude/patterns/observe.md`
-
-   The generated external stack file must include a `## CLI Provisioning` section. If the service has a CLI that can create credentials:
-   ```
-   ## CLI Provisioning
-   cli: <command-name>
-   install: <install-command>
-   auth: <auth-check-command>
-   provision: <provisioning-command-template>
-   ```
-   If the service has no CLI, write: "No CLI available — credentials must be obtained via the web dashboard."
-   This section is read by `/deploy` to check CLI availability and attempt auto-provisioning.
-
-7. For each service where the user chooses "Provide now" or "Full Integration":
-   - Provide brief setup instructions for obtaining the credentials:
-     - Where to sign up or access the developer console (include URL)
-     - How to create the app/key (3–5 concrete steps)
-     - Which credential values to copy (Client ID, API Key, Secret, etc.)
-     - Note if a free tier or sandbox is available for MVP testing
-   - Then ask the user for the credential values
-   - Add env vars to `.env.local` (real values) and `.env.example` (placeholder values only — never real credentials)
-   - Step 5 implements the full integration using the credentials (OAuth flow, API calls, etc.)
-
-8. For "Provision at deploy" services:
-   - Add env vars to `.env.example` with placeholder values and a comment: `# Provisioned by /deploy`
-   - Step 5 builds full integration code referencing these env vars (see Step 5 provision-at-deploy routes below)
-
-#### Fake Door integration (for non-core features choosing Fake Door)
-
-For each Fake Door feature, generate a component in the page folder where the feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
+For each Fake Door feature reported by Agent C, generate a component in the page
+folder where the feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
 - Real, polished UI using shadcn components (Card + Button + Dialog), following `.claude/patterns/design.md`
 - On button click: `track("activate", { action: "[feature-name]", fake_door: true })`
 - Shows a Dialog: "[Feature Name] is coming soon — we're building this now."
 - Import and render the Fake Door component in the parent page where the feature would naturally live
 - The component should look like a real feature entry point — not a placeholder or disabled button
+
+### Merged Checkpoint — verify combined output
+
+- Re-read `.claude/current-plan.md` to confirm alignment
+- Run `npm run build` to verify all library files, pages, and Fake Door
+  components compile correctly
+- If build fails: fix errors, re-run (2 attempt budget)
+- If still fails after 2 attempts: defer to Step 8 (verify.md 3-attempt retry)
 
 ### Step 4c: Landing page generation (if surface ≠ none)
 
@@ -234,10 +137,9 @@ After the agent returns, verify the output:
 ## Completion Report
 
 When all steps are complete, report:
-1. Checkpoint A result (pass/fail, attempt count)
-2. Checkpoint B result (pass/fail, attempt count)
-3. External dependencies: [service] → [core/non-core] → [chosen option]
-4. User decisions made during Step 4b (credentials provided, fake doors chosen)
-5. Template observations (if any template files were modified to fix errors)
-6. Generated external stack files (paths)
-7. Env vars added to .env.local (if any)
+1. Build Checkpoint result (pass/fail, attempt count)
+2. External dependencies: [service] → [core/non-core] → [chosen option]
+3. User decisions made during external evaluation
+4. Template observations (if any)
+5. Generated external stack files (paths)
+6. Env vars added to .env.local (if any)

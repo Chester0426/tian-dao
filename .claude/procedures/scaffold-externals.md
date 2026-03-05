@@ -1,0 +1,115 @@
+# Scaffold: External Dependencies (Agent C)
+
+This procedure is executed as a parallel agent spawned by scaffold.md.
+You share the codebase with Agent A (libraries) and Agent B (pages), running
+concurrently. **Your exclusive write territory is `.claude/stacks/external/`,
+`.env.local`, and `.env.example`.**
+
+Do NOT write to `src/` — Fake Door components are handled by the orchestrator
+after all parallel agents complete.
+
+You may interact with the user (classification confirmation, credential collection).
+
+## Prerequisites
+- Packages installed (Step 1 finished)
+- Stack files and `.claude/stacks/TEMPLATE.md` on disk
+- `.claude/current-plan.md` exists
+
+## Instructions
+
+### Evaluate external dependencies
+
+Before API routes are generated, assess whether idea.yaml features require external services not covered by `stack`:
+
+1. Read idea.yaml `features`. For each feature, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
+   - Examples: "Connect Xero and import invoices" → Xero OAuth, "Send SMS via Twilio" → Twilio API key, "Sync with Google Sheets" → Google OAuth
+   - Stack-handled services don't count: Supabase, Stripe, Resend, PostHog are already managed by their stack files
+
+2. If NO external dependencies detected → report "No external dependencies" and finish.
+
+3. **Classify each dependency as core or non-core.** For each external dependency, ask: "If this feature were entirely absent, could users still complete `primary_metric`?" If no → **core**. If yes → **non-core**. Present the classification to the user for confirmation or override:
+
+   > These features require external service credentials not covered by your stack:
+   >
+   > | Feature | Service | Credentials needed | Classification |
+   > |---------|---------|-------------------|----------------|
+   > | ... | ... | ... | **core** / **non-core** |
+   >
+   > Core = removing it prevents users from completing primary_metric ("[value]").
+   >
+   > Does this classification look right? If so, choose an option for each:
+
+4. **Core features — two options** (no Skip, no Fake Door — core features must have a complete experience):
+   - **Provide now** — user gives credentials during bootstrap, Step 5 builds full integration
+   - **Provision at deploy** — Step 5 builds full integration code referencing env vars; credentials are obtained during `/deploy` Step 5b. Code must compile without real credentials (guard with runtime check → 503 `{ error: "Service not configured", service: "[name]", setup: "Run /deploy to provision credentials" }`).
+
+5. **Non-core features — three options:**
+   - **Fake Door** (default) — real UI + `activate` event with `fake_door: true` + "Coming soon" dialog. Collects intent data from paid traffic. See Fake Door output format below.
+   - **Skip** — omit the feature from the UI entirely (not a 501 stub — the feature is simply not built)
+   - **Full Integration** — same as core "Provide now" (user gives credentials, Step 5 builds it)
+
+6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration" / "Provide now"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it:
+   - Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema
+   - Read existing stack files as structural reference
+   - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details, and a `## CLI Provisioning` section
+   - Set `ci_placeholders: {}` — external service env vars are runtime-only
+     (guarded by 503 when missing) and must not appear in CI
+   - Run `python3 scripts/validate-frontmatter.py` to verify (max 2 attempts)
+   - After generating the external stack file, search the web for the service's
+     current official API/OAuth documentation to verify:
+     - OAuth scope names and format
+     - Authorization and token endpoint URLs
+     - Required request parameters and headers
+     If any generated value conflicts with the official documentation, update the
+     stack file before proceeding.
+   - Tell the user: "Generated `.claude/stacks/external/<service-slug>.md` — auto-generated from Claude's knowledge. Review after bootstrap."
+   - File an observation per `.claude/patterns/observe.md`
+
+   The generated external stack file must include a `## CLI Provisioning` section. If the service has a CLI that can create credentials:
+   ```
+   ## CLI Provisioning
+   cli: <command-name>
+   install: <install-command>
+   auth: <auth-check-command>
+   provision: <provisioning-command-template>
+   ```
+   If the service has no CLI, write: "No CLI available — credentials must be obtained via the web dashboard."
+   This section is read by `/deploy` to check CLI availability and attempt auto-provisioning.
+
+7. For each service where the user chooses "Provide now" or "Full Integration":
+   - Provide brief setup instructions for obtaining the credentials:
+     - Where to sign up or access the developer console (include URL)
+     - How to create the app/key (3-5 concrete steps)
+     - Which credential values to copy (Client ID, API Key, Secret, etc.)
+     - Note if a free tier or sandbox is available for MVP testing
+   - Then ask the user for the credential values
+   - Add env vars to `.env.local` (real values) and `.env.example` (placeholder values only — never real credentials)
+   - Step 5 implements the full integration using the credentials (OAuth flow, API calls, etc.)
+
+8. For "Provision at deploy" services:
+   - Add env vars to `.env.example` with placeholder values and a comment: `# Provisioned by /deploy`
+   - Step 5 builds full integration code referencing these env vars (see Step 5 provision-at-deploy routes below)
+
+### Fake Door output format
+
+For each non-core feature choosing Fake Door, include in your output a structured entry:
+```
+- feature: [feature name]
+  service: [external service]
+  target_page: [page where the feature would naturally appear]
+  component_name: [kebab-case component file name, e.g., sms-fake-door.tsx]
+  action_label: [feature-name for the activate event action]
+```
+
+Do NOT create the Fake Door components — they are created by the orchestrator
+after all parallel agents complete (they live in `src/app/<page>/`, which is
+Agent B's territory).
+
+## Output
+
+Report:
+1. Classification decisions (core/non-core per service)
+2. Generated external stack files (paths)
+3. Env vars added to `.env.local` and `.env.example`
+4. Fake Door list (structured entries as above, or "none")
+5. Any issues encountered
