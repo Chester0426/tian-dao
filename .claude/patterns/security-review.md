@@ -41,6 +41,11 @@ Scope applies to both Defender and Attacker agents below:
 
 ### Parallel Agents
 
+> **When invoked by verify.md:** These checks are executed by the
+> `security-defender` and `security-attacker` custom subagents directly.
+> The parallel spawn below applies only to direct invocations of this
+> procedure (e.g., from deploy.md or ad-hoc).
+
 Spawn **two agents simultaneously** using parallel Agent tool calls. Both scan
 all files in `src/` but from different perspectives.
 

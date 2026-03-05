@@ -83,10 +83,10 @@ authority as for web-app — unique visual identity per experiment, not a
 generic template.
 
 Skills decide when and how to invoke `frontend-design`. Scan-only subagents
-(e.g., verify.md's Agent B) cannot invoke skills, but fixer teammates
-(general-purpose agents spawned for fix cycles) can. When `frontend-design`
-is unavailable, the creative brief and constraints provide sufficient
-direction.
+(e.g., `visual-scanner`) cannot invoke skills, but fixer subagents
+(e.g., `visual-fixer`) can — `visual-fixer` has `frontend-design` preloaded
+via its `skills` field. When `frontend-design` is unavailable, the creative
+brief and constraints provide sufficient direction.
 
 ### Theme contract
 

@@ -41,97 +41,74 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
 ## Parallel Review (after build passes)
 
-Spawn **three agents simultaneously** using parallel Agent tool calls (each with
-`subagent_type: general-purpose`). All three read already-built code and have no
-data dependencies on each other.
+Spawn **four agents simultaneously** using parallel Agent tool calls. All four
+read already-built code and have no data dependencies on each other.
 
-### Agent A — Collect Build Fix Info
+### build-info-collector
 
-> If build/lint errors were fixed above:
->
-> 1. Collect the `git diff` of all changes made during the Build & Lint Loop.
-> 2. Write a one-line summary for each error that was fixed.
-> 3. List template files: run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null` and add `Makefile` and `CLAUDE.md`.
-> 4. Return the diff, summaries, and template file list.
->
-> If no errors were fixed, report "no build fixes".
+Spawn with `subagent_type: build-info-collector`.
 
-This agent only collects information — it never modifies code or files issues.
+If build/lint errors were fixed above, pass: "Build errors were fixed
+in this verification run. Collect the diff and summaries."
 
-### Agent B — Visual Review (scan only)
+If no errors were fixed, pass: "No build errors were fixed."
 
-> Follow `.claude/patterns/visual-review.md` **Steps 1 through 4 only**. Start the
-> production server, screenshot all pages, review screenshots. **Do NOT fix any
-> issues** (skip Step 5). Report your findings: list of issues per page, or "all
-> pages pass". **Clean up:** kill the server on port 3099 and remove screenshots
-> when done.
+### visual-scanner
 
-### Agent C — Security Review (scan only)
+Spawn with `subagent_type: visual-scanner`. No additional context needed.
 
-> Follow `.claude/patterns/security-review.md` **Steps 1 and 2 only**. Run the
-> plugin check or manual fallback checklist. **Do NOT fix any issues** (skip
-> Step 3). Report your findings: pass/FAIL per check, with details for any FAIL.
+### security-defender
 
-**Wait for all three agents to complete before continuing.**
+Spawn with `subagent_type: security-defender`. No additional context needed.
+
+### security-attacker
+
+Spawn with `subagent_type: security-attacker`. No additional context needed.
+
+**Wait for all four agents to complete before continuing.**
+
+## Merge Security Results
+
+Combine security-defender and security-attacker outputs:
+
+1. Collect all Defender FAILs and all Attacker findings.
+2. If both flag the same file and issue, keep the more specific Attacker
+   finding and mark the Defender check as subsumed (still counts as FAIL
+   in the Defender table, but the Attacker finding drives the fix).
+3. The merged list is the input to security-fixer.
 
 ## Parallel Fix Cycles (if needed)
 
-If neither Agent B nor Agent C reported issues, skip this section.
+If neither visual-scanner nor security agents reported issues, skip this section.
 
-Spawn fixer teammates **in parallel** — one message, up to two Agent tool calls.
-Each teammate is a short-lived `subagent_type: general-purpose` agent (no team
-needed). Both can read and edit project files concurrently because they touch
-non-overlapping domains (visual ↔ security).
+Spawn fixers **in parallel** — one message, up to two Agent tool calls.
 
-### Visual Fixer teammate (if Agent B reported issues)
+### visual-fixer (if visual-scanner reported issues)
 
-Spawn via Agent with `subagent_type: general-purpose`. Prompt:
+Spawn with `subagent_type: visual-fixer`.
+Pass: visual-scanner's findings report.
 
-> You are a visual fixer. Agent B's scan found these issues: **{paste Agent B's
-> report}**.
->
-> 1. Follow `.claude/patterns/visual-review.md` Step 5 (Fix Cycle, max 2 cycles):
->    fix code, rebuild, re-screenshot, re-review. You may invoke the
->    `frontend-design` skill for design-quality fixes.
-> 2. Follow `.claude/patterns/visual-review.md` Step 6 (Cleanup).
-> 3. Collect the `git diff` of all changes you made and write a one-line summary
->    for each issue fixed (e.g., "Fixed missing alt text on hero image").
-> 4. Return: the diff, fix summaries, and final status (all fixed / partial / none).
+### security-fixer (if merged security has issues)
 
-### Security Fixer teammate (if Agent C reported issues)
+Spawn with `subagent_type: security-fixer`.
+Pass: merged Defender table + Attacker findings.
 
-Spawn via Agent with `subagent_type: general-purpose`. Prompt:
-
-> You are a security fixer. Agent C's scan found these issues: **{paste Agent C's
-> report}**.
->
-> 1. Follow `.claude/patterns/security-review.md` Step 3 (Fix Cycle, max 2 cycles):
->    fix code, rebuild, re-check.
-> 2. Follow `.claude/patterns/security-review.md` Step 4 (Report).
-> 3. Collect the `git diff` of all changes you made and write a one-line summary
->    for each issue fixed (e.g., "Added RLS policy to profiles table").
-> 4. Return: the diff, fix summaries, and final report.
-
-**Wait for both fixer teammates to complete before continuing.**
+**Wait for both fixers to complete before continuing.**
 
 ## Auto-Observe
 
-If Agent A returned build fix info, OR if Parallel Fix Cycles produced fixes:
+If build-info-collector reported "no build fixes" AND no fix cycles ran,
+skip this section.
 
-1. Combine all collected diffs into one unified diff.
-2. Combine all fix summaries into one list.
-3. Use the template file list from Agent A (if Agent A reported "no build fixes",
-   generate it now: run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null` and add `Makefile` and `CLAUDE.md`).
-4. Spawn an **Observer Agent** (`subagent_type: general-purpose`) with **only** the following inputs — do
-   **not** include idea.yaml content, project name, or feature descriptions:
-   - The combined diff from step 1
-   - The combined fix summaries from step 2
-   - The template file list from step 3
-   - Instruction: "Follow `.claude/patterns/observe.md` Path 1 to evaluate
-     these fixes and file template observations if any qualify."
-5. Report the Observer Agent's result.
-
-If no fixes were made anywhere in this verification run, skip this section.
+1. Combine all collected diffs (from build-info-collector + fixers).
+2. Combine all fix summaries.
+3. Get template file list (from build-info-collector, or generate now:
+   run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null`
+   and add `Makefile` and `CLAUDE.md`).
+4. Spawn with `subagent_type: observer`.
+   Pass ONLY: combined diff, combined summaries, template file list.
+   Do NOT include idea.yaml content, project name, or feature descriptions.
+5. Report the observer's result.
 
 ## Save Notable Patterns (if you fixed any errors above)
 
