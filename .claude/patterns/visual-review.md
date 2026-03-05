@@ -66,45 +66,38 @@ Use the Read tool to view each screenshot image. For every page, check:
 
 ## 4b. Design Quality Gate (all pages)
 
-### Landing page (`/` route)
+Every page is evaluated against the professional design standard from
+`.claude/patterns/design.md`. The checklist differs by page purpose, but
+the rigor and verdict scale are identical.
 
-Evaluate design quality against the three constraints from `.claude/patterns/design.md`:
+### Landing page (`/` route) — persuasion checklist
 
 1. **Color direction** — Does the palette match the derived direction (dark/light/neutral)?
 2. **Design philosophy** — Does the density and ornamentation match (minimalist/rich/playful)?
 3. **Optimization target** — Is the layout optimized for the right goal (conversion/documentation/demonstration)?
+4. **Custom palette** — not default shadcn/tailwind colors?
+5. **Typography** — display + body font, clear hierarchy?
+6. **Visual depth** — meaningful animations, gradients, shadows, transitions?
+7. **Above-the-fold** — polished composition that invites engagement?
 
-Additionally, evaluate the $50K quality bar:
-- Custom color palette (not default shadcn/tailwind colors)?
-- Considered typography (display + body font, clear hierarchy)?
-- Meaningful animations or visual depth (gradients, shadows, transitions)?
-- Polished above-the-fold composition?
+### Inner pages (all non-landing) — utility checklist
 
-**Verdict:**
-- **pass** — meets quality bar, no action needed
-- **needs-polish** — functional but below the $50K bar. Report specific gaps
-  (e.g., "using default gray palette", "no visual depth or animations").
-  These are treated as visual issues and enter the Fix Cycle in Step 5.
-- **fail** — fundamentally broken design (wrong direction entirely). Report
-  and enter Fix Cycle.
+1. **Visual coherence** — same custom palette and typography as landing page?
+2. **Spacing rhythm** — consistent padding, margins, gaps (not random)?
+3. **Information hierarchy** — scannable layout, appropriate data density for page purpose?
+4. **Interaction quality** — loading states, empty states, hover/focus feedback present?
+5. **Component completeness** — shadcn/ui components, no raw HTML, proper form validation?
+6. **Functional animations** — skeleton loaders, state transitions (not static jumps)?
+7. **Layout purpose** — clear hierarchy, intentional composition (not just stacked elements)?
 
-### Inner pages (all non-landing pages)
+### Verdicts (same scale for both)
 
-Evaluate cohesion quality against `.claude/patterns/design.md` inner page bar:
-
-1. **Palette consistency** — same custom palette as landing page (no default grays)?
-2. **Typography consistency** — same font family and hierarchy?
-3. **Spacing rhythm** — consistent padding, margins, gaps (not random)?
-4. **Component styling** — shadcn/ui components styled within the theme?
-5. **Layout purpose** — clear hierarchy, not just stacked elements?
-
-**Verdict:**
-- **pass** — cohesive with the landing page, no action needed
-- **needs-polish** — inconsistent with theme (e.g., "dashboard uses default
-  gray while landing uses custom blue palette", "spacing is inconsistent with
-  landing page rhythm"). Enter the Fix Cycle in Step 5.
-- **fail** — completely unstyled or visually disconnected from the product
-  theme. Enter Fix Cycle.
+- **pass** — meets the professional standard for its page type, no action needed
+- **needs-polish** — below the professional standard. Report specific gaps
+  (e.g., landing: "no visual depth or animations"; inner: "no loading states,
+  raw HTML inputs"). Enter Fix Cycle in Step 5.
+- **fail** — fundamentally broken design (wrong direction entirely, or
+  completely unstyled). Enter Fix Cycle.
 
 ## 5. Fix Cycle (max 2 cycles)
 

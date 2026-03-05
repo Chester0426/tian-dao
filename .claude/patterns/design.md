@@ -38,31 +38,36 @@ executor.
 
 ### Quality bar
 
-The landing page is the first thing a potential user sees. It must be
-**world-class** — visually equivalent to a $50K agency landing page.
+Every page must look **professionally designed** — visually equivalent to
+a funded startup's production UI. Not a template. Not "adequate." Each page
+should make the founder proud. This standard applies equally to all pages,
+but expresses differently based on page purpose.
 
-The expectation is not "use nice colors." The expectation is: custom color
-palette, considered typography, meaningful animations (scroll-triggered
-reveals, staggered transitions), textured depth (subtle gradients, noise
-overlays, backdrop effects), responsive layout, dark/light mode.
+**Landing page** (marketing surface) — optimized for **persuasion**.
+The benchmark is a $50K agency landing page:
+- Custom color palette (not default shadcn/tailwind colors)
+- Considered typography (display + body font, clear hierarchy)
+- Meaningful animations (scroll-triggered reveals, staggered transitions)
+- Textured depth (subtle gradients, noise overlays, backdrop effects)
+- Responsive layout, dark/light mode
+- The goal: "I want to share this URL"
 
-Not a template. Not adequate. Exceptional — a unique page that makes the
-founder proud to share the URL. This standard applies to ALL archetypes:
-web-app (React component), service (HTML route), and CLI (HTML file).
-
-**Inner pages** (dashboard, settings, etc.) — must be **polished and
-cohesive**. They consume the same theme tokens (palette, typography,
-spacing) as the landing page. The bar is not "$50K agency" but "clearly
-part of the same product":
-- Consistent color palette and typography (no unstyled defaults)
+**Inner pages** (product surface) — optimized for **utility**.
+The benchmark is a top-tier SaaS product (Linear, Vercel, Raycast):
+- Same custom palette and typography as landing (visual coherence)
 - Proper spacing rhythm (consistent padding, margins, gap)
-- Purposeful layout (clear hierarchy, not just stacked elements)
-- shadcn/ui components styled within the theme
-- Not template-like — each page should feel intentional
+- Information hierarchy (scannable layout, appropriate data density)
+- Interaction quality (loading states, empty states, hover/focus feedback)
+- Component completeness (all shadcn/ui, no raw HTML, proper form validation)
+- Functional animations (skeleton loaders, micro-interactions, state transitions)
+- The goal: "I want to use this tool every day"
 
-When `frontend-design` is available, invoke it for inner pages too
-(with the existing theme as input). When unavailable, follow the theme
-tokens and these cohesion criteria.
+Both expressions share the same theme tokens. Neither is a lower bar —
+they are different axes of the same professional standard.
+
+When `frontend-design` is available, invoke it for all pages (with
+context-appropriate creative brief). When unavailable, follow the theme
+tokens and the relevant expression criteria.
 
 ### Recommended executor
 

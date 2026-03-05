@@ -60,11 +60,14 @@ For each entry in idea.yaml `pages`:
   `frontend-design` skill** (via the Skill tool) with:
   - The existing theme tokens (from `src/app/globals.css` and tailwind config)
   - The page's `purpose` from idea.yaml
-  - Instruction: "Design a polished inner page within the established theme.
-    Consistent with the landing page's visual identity — same palette, fonts,
-    spacing rhythm. Not a blank template — a cohesive product screen."
+  - Instruction: "Design a top-tier SaaS product screen (think Linear, Vercel,
+    Raycast). Same palette and typography as the landing page. Optimized for
+    utility: clear information hierarchy, appropriate data density, loading
+    states, empty states, micro-interactions. Not a marketing page — a
+    professional tool interface."
   If the `frontend-design` skill is not available: proceed using your own
-  judgment — consume the theme tokens, match the product's visual identity.
+  judgment — consume the theme tokens, match the product's visual identity,
+  and follow the inner page utility criteria from design.md.
   Each page must have heading, description matching purpose, and a clear
   next-action CTA
 
