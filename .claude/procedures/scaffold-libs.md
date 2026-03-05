@@ -1,12 +1,5 @@
 # Scaffold: Library Files
 
-This procedure is executed by the `scaffold-libs` agent spawned by `/bootstrap`.
-As an independent Claude Code session, you have full access to project
-files, tools (LSP if available), and file system. You run concurrently
-with the pages and externals subagents. **Your exclusive write territory is `src/lib/`.**
-
-Do NOT write to `src/app/`, `src/components/`, `.env*`, or `.claude/stacks/external/`.
-
 ## Prerequisites
 - Packages installed and UI setup complete (Step 1 finished)
 - Stack files on disk for all categories in idea.yaml `stack`
@@ -36,6 +29,3 @@ Create the library files specified in each stack file's "Files to Create" sectio
    - `email_welcome_sent` (trigger: Welcome email sent after signup, properties: `recipient` string required)
    - `email_nudge_sent` (trigger: Activation nudge email sent by cron, properties: `recipient` string required, `days_since_signup` integer required)
 
-## Output
-
-Report the list of files created and any issues encountered.

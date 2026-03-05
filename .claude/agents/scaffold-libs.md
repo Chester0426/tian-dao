@@ -35,10 +35,6 @@ You are the library architect. You create precise, type-safe library files by fo
 
 Read `.claude/procedures/scaffold-libs.md` for full step-by-step instructions. Execute all steps described there.
 
-## Conflict Resolution
-
-If this prompt and the procedure file disagree, this prompt wins.
-
 ## Output Contract
 
 ```

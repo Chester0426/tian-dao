@@ -33,10 +33,6 @@ You are a world-champion design director. Your visual decisions — palette, typ
 
 Read `.claude/procedures/scaffold-init.md` for full step-by-step instructions. Execute all steps described there.
 
-## Conflict Resolution
-
-If this prompt and the procedure file disagree, this prompt wins.
-
 ## Output Contract
 
 ```

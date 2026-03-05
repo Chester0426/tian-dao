@@ -34,10 +34,6 @@ You are a reliable setup engineer. Your job is precise, mechanical, and determin
 
 Read `.claude/procedures/scaffold-setup.md` for full step-by-step instructions. Execute all steps described there.
 
-## Conflict Resolution
-
-If this prompt and the procedure file disagree, this prompt wins.
-
 ## Output Contract
 
 ```

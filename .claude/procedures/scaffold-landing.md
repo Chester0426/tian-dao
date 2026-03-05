@@ -1,9 +1,5 @@
 # Scaffold: Landing Page
 
-This procedure is executed by the `scaffold-landing` agent spawned by `/bootstrap`.
-As an independent Claude Code session, you have full access to project
-files, tools (LSP if available), and file system.
-
 ## Prerequisites
 - Branch already created (by bootstrap Step 0)
 - Step 1 complete (theme tokens in `src/app/globals.css`, visual brief at `.claude/current-visual-brief.md`)
@@ -89,10 +85,3 @@ If `stack.analytics` is present and not already included:
 - Run `npm run build` to verify the landing page compiles (web-app only)
 - If build fails: fix errors, re-run (1 attempt budget)
 
-## Output
-
-Report:
-1. Surface type resolved
-2. Landing page file(s) created
-3. Analytics wiring status
-4. Build result (pass/fail)
