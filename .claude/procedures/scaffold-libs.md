@@ -1,8 +1,9 @@
-# Scaffold: Library Files (Agent A)
+# Scaffold: Library Files
 
-This procedure is executed as a parallel agent spawned by scaffold.md.
-You share the codebase with Agent B (pages) and Agent C (externals), running
-concurrently. **Your exclusive write territory is `src/lib/`.**
+This procedure is executed by a team teammate spawned by `/bootstrap`.
+As an independent Claude Code session, you have full access to project
+files, plugins (typescript-lsp), and tools. You run concurrently with the
+pages and externals teammates. **Your exclusive write territory is `src/lib/`.**
 
 Do NOT write to `src/app/`, `src/components/`, `.env*`, or `.claude/stacks/external/`.
 
