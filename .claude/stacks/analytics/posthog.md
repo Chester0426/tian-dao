@@ -219,10 +219,15 @@ Automated funnel data retrieval via PostHog's HogQL Query API. This eliminates t
 
 ### Constants
 ```
-POSTHOG_PROJECT_ID = 321343
 POSTHOG_API_HOST = https://us.i.posthog.com
 ```
-Hardcoded like `POSTHOG_KEY` — all experiments share one PostHog project.
+
+**Project ID discovery** — do NOT hardcode a project ID. Discover it dynamically at runtime:
+```bash
+POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
+  -H "Authorization: Bearer $POSTHOG_API_KEY" | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+```
+This returns the first project in the organization. All experiments share one PostHog project.
 
 ### Credential
 - Path: `~/.posthog/personal-api-key`
@@ -243,7 +248,7 @@ Missing → fall back to manual input + show setup instructions.
 4. Single HogQL query via curl:
 
 ```bash
-curl -s -X POST "https://us.i.posthog.com/api/projects/321343/query/" \
+curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/query/" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -d '{

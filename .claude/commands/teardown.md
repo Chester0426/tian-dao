@@ -82,9 +82,14 @@ Delete in reverse order of creation. Each step is independent — continue on fa
 
 ### 3a: Analytics dashboard (if present in manifest)
 
-Read `~/.posthog/personal-api-key`. If available:
+Read `~/.posthog/personal-api-key`. If available, first discover the project ID:
 ```bash
-curl -s -X DELETE "https://us.i.posthog.com/api/projects/321343/dashboards/<dashboard_id>/" \
+POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
+  -H "Authorization: Bearer <api_key>" | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+```
+Then delete the dashboard:
+```bash
+curl -s -X DELETE "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashboards/<dashboard_id>/" \
   -H "Authorization: Bearer <api_key>"
 ```
 If key not available or API fails: report "PostHog dashboard #<id> — delete manually
