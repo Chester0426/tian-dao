@@ -183,74 +183,107 @@ DO NOT write any code, create any files, or run any install commands during this
 
 ## Phase 2: Implement (only after the user has approved)
 
-Create a team via TeamCreate with team_name: `<idea.yaml name>-bootstrap`.
-
-**Do NOT assemble file contents into the prompt.** Teammates are independent
+**Do NOT assemble file contents into the prompt.** Subagents are independent
 Claude Code sessions with full file access — they read files themselves. The
 prompt tells them WHICH files to read and WHAT to do.
 
+### Preamble: Pre-flight checks
+
+Before spawning any subagents, the lead performs user-interactive checks:
+
+1. **TSP-LSP check**: Run `which typescript-language-server`. If found, record
+   `tsp_status: "available"`. If not found, tell the user:
+   > `typescript-language-server` is not installed globally. It gives subagents
+   > real-time type checking during code generation. Install with:
+   > `npm install -g typescript-language-server typescript`
+   > Say "skip" to proceed without it.
+   Wait for the user to confirm installation or say "skip". If confirmed,
+   re-check with `which typescript-language-server`. Record `tsp_status`
+   as `"available"` or `"skipped"`.
+
+2. **frontend-design SKILL.md check**: Resolve the glob
+   `~/.claude/plugins/cache/claude-plugins-official/frontend-design/*/skills/frontend-design/SKILL.md`.
+   If exactly one match, record `skill_md_path: "<absolute path>"`.
+   If zero or multiple matches, record `skill_md_path: "unavailable"`.
+
+These values are passed to subagents in their prompts (subagents cannot
+interact with users or invoke plugin skills).
+
 ### Init Phase
 
-Spawn a teammate via Agent with:
+Spawn a subagent via Agent with:
 - subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "init"
-- prompt: Tell the teammate to:
+- prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-init.md` and execute all steps
   2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
      `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred),
      `.claude/patterns/design.md`
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 12
-  4. On completion: send the completion report (as defined in scaffold-init.md)
-     to the lead via SendMessage
+  3. TSP-LSP status: `<tsp_status from preamble>`
+  4. frontend-design SKILL.md path: `<skill_md_path from preamble>`
+  5. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 12
 
-Wait for the init teammate to complete before proceeding.
+The subagent returns its completion report directly as the result.
+Wait for the init subagent to complete before proceeding.
 
 ### Parallel Scaffold Phase
 
-Spawn three teammates simultaneously using parallel Agent tool calls:
+Spawn three subagents simultaneously using parallel Agent tool calls:
 
-**Libs teammate:**
+**Libs subagent:**
 - subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "libs"
-- prompt: Tell the teammate to:
+- run_in_background: true
+- prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, all stack files
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
-  4. On completion: send the completion report to the lead via SendMessage
 
-**Pages teammate:**
+**Pages subagent:**
 - subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "pages"
-- prompt: Tell the teammate to:
+- run_in_background: true
+- prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, archetype file,
      framework/UI stack files, `.claude/patterns/design.md`
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
-  4. On completion: send the completion report to the lead via SendMessage
+  3. frontend-design SKILL.md path: `<skill_md_path from preamble>`
+  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
-**Externals teammate:**
+**Externals subagent (analysis only):**
 - subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "externals"
-- prompt: Tell the teammate to:
-  1. Read `.claude/procedures/scaffold-externals.md` and execute all steps
+- run_in_background: true
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/scaffold-externals.md` and execute the
+     analysis steps (evaluate dependencies, classify core/non-core)
   2. Read context files: `idea/idea.yaml`, `.claude/current-plan.md`,
      `.claude/stacks/TEMPLATE.md`, existing stack files
   3. Follow CLAUDE.md Rules 3, 4, 6
-  4. On completion: send the completion report to the lead via SendMessage
+  4. Return the classification table and Fake Door list — do NOT collect
+     credentials or write env vars (the lead handles those)
 
-Wait for all three teammates to complete before proceeding.
+Wait for all three subagents to complete.
+
+### Externals: User Decisions + Execution
+
+After the externals subagent returns its classification table:
+
+1. **Present classification to user**: show the core/non-core table and
+   collect decisions (Fake Door / Skip / Full Integration / Provide now /
+   Provision at deploy) for each dependency.
+2. **Collect credentials**: for "Provide now" choices, ask the user for
+   credential values.
+3. **Execute remaining work**: generate external stack files (per
+   scaffold-externals.md Steps 6-8), write env vars to `.env.local` and
+   `.env.example`, create Fake Door entries.
+
+If the externals subagent reported "No external dependencies", skip this
+section entirely.
 
 ### Fake Door Integration
 
-If the externals teammate reported Fake Door features, the bootstrap lead
+If the externals analysis reported Fake Door features, the bootstrap lead
 creates them directly:
 
 For each Fake Door feature, generate a component in the page folder where the
@@ -281,8 +314,8 @@ Run combined verification — these checks catch compilation and semantic issues
 
 If any check fails: the bootstrap lead fixes directly (it has full file access
 as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.
-If still failing after 2 attempts: defer to the wire phase (verify.md 3-attempt
-retry).
+If still failing after 2 attempts: defer to lead's verify phase after wire
+completes.
 
 ### Landing Page Phase (if surface ≠ none)
 
@@ -290,57 +323,56 @@ Resolve the surface type: if `stack.surface` is set in idea.yaml, use it.
 Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
 If surface resolves to `none`, skip to the Wire Phase.
 
-Spawn a teammate via Agent with:
+Spawn a subagent via Agent with:
 - subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "landing-page"
-- prompt: Tell the teammate to:
+- prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
   2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      framework/UI/surface stack files,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
      `src/app/globals.css` (theme tokens from init phase)
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
-  4. On completion: send the result to the lead via SendMessage
+  3. frontend-design SKILL.md path: `<skill_md_path from preamble>`
+  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
-After the landing-page teammate completes:
+After the landing-page subagent completes:
 - Run `npm run build` to verify landing page compiles (web-app only)
-- If build fails, send the errors to the landing-page teammate for fix (1 attempt)
+- If build fails, the lead fixes directly (1 attempt)
 
 ### Wire Phase
 
-Create a wire task via TaskCreate:
-- subject: "Wire: API routes, DB schema, tests, verify, PR (Steps 5-9)"
-- description: Full wire instructions from `.claude/procedures/wire.md`
-
-Spawn a teammate via Agent with:
+Spawn a subagent via Agent with:
 - subagent_type: general-purpose
-- team_name: `<team name>`
-- name: "wire"
-- prompt: Tell the teammate to:
-  1. Read `.claude/procedures/wire.md` and execute all steps
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/wire.md` and execute Steps 5 through 8b ONLY.
+     Do NOT run Step 8 (verify.md) or Step 9 (PR).
   2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
-     `.claude/patterns/verify.md`, `.claude/patterns/visual-review.md`,
-     `.claude/patterns/security-review.md`, `.claude/patterns/observe.md`,
+     `.claude/patterns/visual-review.md`,
+     `.claude/patterns/security-review.md`,
      `.github/PULL_REQUEST_TEMPLATE.md`
   3. Include the completion reports from init, libs, pages, and externals
-     teammates (external dep decisions, generated files, env vars) in the
-     prompt so the wire teammate has context
+     subagents (external dep decisions, generated files, env vars) in the
+     prompt so the wire subagent has context
   4. Follow CLAUDE.md Rules 1, 4, 5, 6, 7, 8, 10, 12
-  5. On completion: mark the wire task completed via TaskUpdate, then send
-     the PR URL to the lead via SendMessage
 
-### Teardown
+### Verify Phase
 
-After the wire teammate returns the PR URL:
-1. Send shutdown_request to the init teammate
-2. Send shutdown_request to the libs teammate
-3. Send shutdown_request to the pages teammate
-4. Send shutdown_request to the externals teammate
-5. Send shutdown_request to the landing-page teammate
-6. Send shutdown_request to the wire teammate
-7. Call TeamDelete to clean up the team
-8. Report the PR URL to the user
+After the wire subagent completes, the lead runs verify.md directly.
+The lead has the Agent tool, which is required to spawn the parallel
+review subagents (visual-scanner, security-defender, security-attacker).
+
+Follow the FULL verification procedure in `.claude/patterns/verify.md`:
+1. Build & lint loop (max 3 attempts)
+2. Save notable patterns (if you fixed errors)
+3. Template observation review (ALWAYS — even if no errors were fixed)
+
+### Commit, Push, Open PR
+
+The lead executes wire.md Step 9 directly:
+- Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
+- Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format
+- Include completion reports from all subagents for PR body context
+- Delete `.claude/current-plan.md`
+- Report the PR URL to the user
