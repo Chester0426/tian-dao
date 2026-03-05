@@ -64,6 +64,31 @@ Use the Read tool to view each screenshot image. For every page, check:
 - **Above-the-fold quality** — the visible area looks polished, not
   obviously broken or template-like
 
+## 4b. Design Quality Gate (landing page only)
+
+For the landing page screenshot (`/` route), evaluate design quality against
+the three constraints from `.claude/patterns/design.md`:
+
+1. **Color direction** — Does the palette match the derived direction (dark/light/neutral)?
+2. **Design philosophy** — Does the density and ornamentation match (minimalist/rich/playful)?
+3. **Optimization target** — Is the layout optimized for the right goal (conversion/documentation/demonstration)?
+
+Additionally, evaluate the $50K quality bar:
+- Custom color palette (not default shadcn/tailwind colors)?
+- Considered typography (display + body font, clear hierarchy)?
+- Meaningful animations or visual depth (gradients, shadows, transitions)?
+- Polished above-the-fold composition?
+
+**Verdict:**
+- **pass** — meets quality bar, no action needed
+- **needs-polish** — functional but below the $50K bar. Report specific gaps
+  (e.g., "using default gray palette", "no visual depth or animations").
+  These are treated as visual issues and enter the Fix Cycle in Step 5.
+- **fail** — fundamentally broken design (wrong direction entirely). Report
+  and enter Fix Cycle.
+
+Skip this step for non-landing pages — they only need the functional checks in Step 4.
+
 ## 5. Fix Cycle (max 2 cycles)
 
 If visual issues are found:

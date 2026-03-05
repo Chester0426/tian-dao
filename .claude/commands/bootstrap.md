@@ -14,6 +14,7 @@ references:
   - .claude/patterns/messaging.md
   - .claude/patterns/design.md
   - .claude/procedures/scaffold.md
+  - .claude/procedures/scaffold-landing.md
   - .claude/procedures/wire.md
 branch_prefix: feat
 modifies_specs: false
@@ -184,7 +185,7 @@ Create a team via TeamCreate with team_name: `<idea.yaml name>-bootstrap`.
 ### Scaffold Phase
 
 Create a scaffold task via TaskCreate:
-- subject: "Scaffold: project init, parallel lib+page+external agents, landing page (Steps 1-4c)"
+- subject: "Scaffold: project init, parallel lib+page+external agents (Steps 1-4b)"
 - description: Full scaffold instructions from `.claude/procedures/scaffold.md`
 
 Spawn a teammate via Agent with:
@@ -229,7 +230,31 @@ Run semantic validation — these checks catch issues that `npm run build` misse
 5. If any check fails: send a message to the scaffold teammate with the specific
    failures and ask it to fix them. Re-validate after the fix.
 
-If validation passes, proceed to the wire phase.
+If validation passes, proceed to the landing page phase.
+
+### Landing Page Phase (if surface ≠ none)
+
+Resolve the surface type: if `stack.surface` is set in idea.yaml, use it.
+Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
+If surface resolves to `none`, skip to the Wire Phase.
+
+Spawn a teammate via Agent with:
+- subagent_type: general-purpose
+- team_name: `<team name>`
+- name: "landing-page"
+- prompt: Tell the teammate to:
+  1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
+  2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
+     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
+     framework/UI/surface stack files,
+     `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
+     `src/app/globals.css` (theme tokens from Step 1)
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+  4. On completion: send the result to the lead via SendMessage
+
+After the landing-page teammate completes:
+- Run `npm run build` to verify landing page compiles (web-app only)
+- If build fails, send the errors to the landing-page teammate for fix (1 attempt)
 
 ### Wire Phase
 
