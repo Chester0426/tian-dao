@@ -223,7 +223,7 @@ Wait for the init subagent to complete before proceeding.
 
 ### Parallel Scaffold Phase
 
-Spawn three subagents simultaneously using parallel Agent tool calls:
+Spawn four subagents simultaneously using parallel Agent tool calls (three if surface = none):
 
 **Libs subagent:**
 - subagent_type: scaffold-libs
@@ -241,7 +241,8 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, archetype file,
-     framework/UI stack files, `.claude/patterns/design.md`
+     framework/UI stack files, `.claude/patterns/design.md`,
+     `.claude/current-visual-brief.md`
   3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
 **Externals subagent (analysis only):**
@@ -256,7 +257,20 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
   4. Return the classification table and Fake Door list — do NOT collect
      credentials or write env vars (the lead handles those)
 
-Wait for all three subagents to complete.
+**Landing subagent (if surface ≠ none):**
+- subagent_type: scaffold-landing
+- run_in_background: true
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
+  2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
+     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
+     framework/UI/surface stack files,
+     `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
+     `.claude/current-visual-brief.md`,
+     `src/app/globals.css` (theme tokens from init phase)
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+
+Wait for all four subagents to complete (three if surface = none).
 
 ### Externals: User Decisions + Execution
 
@@ -289,12 +303,14 @@ feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
 
 ### Merged Checkpoint + Semantic Validation
 
-Run combined verification — these checks catch compilation and semantic issues:
+Run combined verification after all four parallel subagents complete — these checks catch compilation and semantic issues:
 
 1. **Build**: run `npm run build` — the project must compile
 2. **Page/endpoint/command existence:**
    - If archetype is `web-app`: for each page in idea.yaml `pages`, verify
-     `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
+     `src/app/<page-name>/page.tsx` exists (or root page for `landing`).
+     If surface ≠ none: verify landing page file exists (`src/app/page.tsx`
+     or `src/components/landing-content.tsx` for variants)
    - If archetype is `service`: for each endpoint in idea.yaml `endpoints`,
      verify the handler file exists at the path defined by the framework stack file
    - If archetype is `cli`: for each command in idea.yaml `commands`, verify
@@ -310,27 +326,6 @@ as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.
 If still failing after 2 attempts: defer to lead's verify phase after wire
 completes.
 
-### Landing Page Phase (if surface ≠ none)
-
-Resolve the surface type: if `stack.surface` is set in idea.yaml, use it.
-Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
-If surface resolves to `none`, skip to the Wire Phase.
-
-Spawn a subagent via Agent with:
-- subagent_type: scaffold-landing
-- prompt: Tell the subagent to:
-  1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
-  2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
-     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
-     framework/UI/surface stack files,
-     `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
-     `src/app/globals.css` (theme tokens from init phase)
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
-
-After the landing-page subagent completes:
-- Run `npm run build` to verify landing page compiles (web-app only)
-- If build fails, the lead fixes directly (1 attempt)
-
 ### Wire Phase
 
 Spawn a subagent via Agent with:
@@ -344,9 +339,9 @@ Spawn a subagent via Agent with:
      `.claude/patterns/visual-review.md`,
      `.claude/patterns/security-review.md`,
      `.github/PULL_REQUEST_TEMPLATE.md`
-  3. Include the completion reports from init, libs, pages, and externals
-     subagents (external dep decisions, generated files, env vars) in the
-     prompt so the wire subagent has context
+  3. Include the completion reports from init, libs, pages, landing, and
+     externals subagents (external dep decisions, generated files, env vars)
+     in the prompt so the wire subagent has context
   4. Follow CLAUDE.md Rules 1, 4, 5, 6, 7, 8, 10, 12
 
 ### Verify Phase
@@ -366,5 +361,5 @@ The lead executes wire.md Step 9 directly:
 - Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format
 - Include completion reports from all subagents for PR body context
-- Delete `.claude/current-plan.md`
+- Delete `.claude/current-plan.md` and `.claude/current-visual-brief.md`
 - Report the PR URL to the user
