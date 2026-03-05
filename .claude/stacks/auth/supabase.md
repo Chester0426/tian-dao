@@ -54,6 +54,7 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+  if (process.env.DEMO_MODE === "true") return NextResponse.redirect(`${origin}/`);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
 
@@ -531,7 +532,45 @@ If `stack.database` is NOT supabase, the shared client files don't exist. Create
 ```ts
 import { createBrowserClient } from "@supabase/ssr";
 
+function createDemoClient() {
+  const chainable = (terminal: unknown): any =>
+    new Proxy(() => terminal, {
+      get: (_, prop) => (prop === "then" ? undefined : chainable(terminal)),
+      apply: () => chainable(terminal),
+    });
+  return {
+    auth: {
+      getUser: () =>
+        Promise.resolve({
+          data: {
+            user: {
+              id: "demo-user-id",
+              email: "demo@example.com",
+              app_metadata: {},
+              user_metadata: {},
+              aud: "authenticated",
+              created_at: new Date().toISOString(),
+            },
+          },
+          error: null,
+        }),
+      getSession: () =>
+        Promise.resolve({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({
+        data: { subscription: { unsubscribe: () => {} } },
+      }),
+      signOut: () => Promise.resolve({ error: null }),
+      signUp: () => Promise.resolve({ data: {}, error: null }),
+      signInWithPassword: () => Promise.resolve({ data: {}, error: null }),
+      exchangeCodeForSession: () => Promise.resolve({ data: {}, error: null }),
+      resetPasswordForEmail: () => Promise.resolve({ data: {}, error: null }),
+      updateUser: () => Promise.resolve({ data: {}, error: null }),
+    },
+  } as unknown as ReturnType<typeof createBrowserClient>;
+}
+
 export function createAuthClient() {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return createDemoClient();
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co",
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-anon-key"
@@ -544,7 +583,38 @@ export function createAuthClient() {
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+function createDemoClient() {
+  const chainable = (terminal: unknown): any =>
+    new Proxy(() => terminal, {
+      get: (_, prop) => (prop === "then" ? undefined : chainable(terminal)),
+      apply: () => chainable(terminal),
+    });
+  return {
+    auth: {
+      getUser: () =>
+        Promise.resolve({
+          data: {
+            user: {
+              id: "demo-user-id",
+              email: "demo@example.com",
+              app_metadata: {},
+              user_metadata: {},
+              aud: "authenticated",
+              created_at: new Date().toISOString(),
+            },
+          },
+          error: null,
+        }),
+      getSession: () =>
+        Promise.resolve({ data: { session: null }, error: null }),
+      signOut: () => Promise.resolve({ error: null }),
+      exchangeCodeForSession: () => Promise.resolve({ data: {}, error: null }),
+    },
+  } as unknown as ReturnType<typeof createServerClient>;
+}
+
 export async function createServerAuthClient() {
+  if (process.env.DEMO_MODE === "true") return createDemoClient();
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co",

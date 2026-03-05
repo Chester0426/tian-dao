@@ -12,21 +12,20 @@ entire procedure with the message:
 
 > Skipping visual review — Playwright not installed.
 
-## 1b. Ensure client env vars for rendering
+## 1b. Rebuild with demo mode
 
-If `.env.example` contains `NEXT_PUBLIC_*` variables and `.env.local`
-does not exist, the build has inlined `undefined` values — pages will
-crash at runtime. Rebuild with safe placeholder values:
+Rebuild with `NEXT_PUBLIC_DEMO_MODE=true` so all external service clients
+(Supabase, Stripe, Resend) return mock responses instead of crashing on
+placeholder credentials. This rebuild is for visual review only — it is
+not committed.
 
 ```bash
-if grep -q 'NEXT_PUBLIC_' .env.example 2>/dev/null && [ ! -f .env.local ]; then
-  grep 'NEXT_PUBLIC_' .env.example | sed 's/=.*/=placeholder/' > /tmp/.env.visual-review
-  set -a && . /tmp/.env.visual-review && set +a && npm run build
-  rm /tmp/.env.visual-review
-fi
+env_file=/tmp/.env.visual-review
+echo 'NEXT_PUBLIC_DEMO_MODE=true' > "$env_file"
+grep 'NEXT_PUBLIC_' .env.example 2>/dev/null | sed 's/=.*/=placeholder/' >> "$env_file" || true
+set -a && . "$env_file" && set +a && npm run build
+rm "$env_file"
 ```
-
-This rebuild is for visual review only — it is not committed.
 
 ## 2. Start Production Server
 
@@ -34,7 +33,7 @@ The build has already passed at this point. Start a production server on a
 non-conflicting port:
 
 ```bash
-npm run start -- -p 3099 &
+DEMO_MODE=true NEXT_PUBLIC_DEMO_MODE=true npm run start -- -p 3099 &
 ```
 
 Poll `http://localhost:3099` until it responds (max 15 seconds, then abort).

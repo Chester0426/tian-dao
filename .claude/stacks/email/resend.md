@@ -56,6 +56,7 @@ function getResend(): Resend {
 const FROM_ADDRESS = "onboarding@resend.dev";
 
 export async function sendWelcomeEmail(to: string, name: string, ctaUrl: string) {
+  if (process.env.DEMO_MODE === "true") return;
   const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
@@ -70,6 +71,7 @@ export async function sendWelcomeEmail(to: string, name: string, ctaUrl: string)
 }
 
 export async function sendActivationNudge(to: string, name: string, activationAction: string, ctaUrl: string) {
+  if (process.env.DEMO_MODE === "true") return;
   const { error } = await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
