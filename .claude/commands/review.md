@@ -180,15 +180,43 @@ After all 3 return: collect up to 15 findings, deduplicate.
 - If 0 remaining findings → **exit loop**, proceed to Step 3
 - Add new signatures to `seen_findings`
 
-#### 2c: Branch setup (first iteration only)
+#### 2c: Adversarial Validation
+
+Launch a single serial Explore subagent ("Adversarial Agent D") to challenge
+each filtered finding before committing to fixes. Include in the agent prompt:
+
+- All filtered findings from step 2b (full Finding Format)
+- The `observation_backlog` from Step 0 (if non-empty)
+- Instructions:
+  - For each finding, read the cited file(s) and verify the claimed issue exists
+  - For Dimension A (cross-file) findings: read both sides of the alleged contradiction
+  - For Dimension B (edge case) findings: cross-reference `tests/fixtures/*.yaml`
+  - **Auto-confirm rule**: if a finding matches an open observation's root cause → label "confirmed"
+  - Default stance is skeptical — require positive evidence to dispute; absence of proof is not proof of absence
+
+Output format — one entry per finding:
+```
+### Finding N: <title>
+- **Label**: confirmed | disputed | needs-evidence
+- **Rationale**: ... (why confirmed/disputed, cite specific lines or logic)
+- **Observation match**: #<number> | none
+```
+
+After the agent returns, partition findings:
+- **confirmed**: full priority in fix phase
+- **needs-evidence**: lower priority (sorted after confirmed in fix queue)
+- **disputed**: removed from fix queue; record finding signature + one-line rationale for the PR body
+- If 0 findings remain after removing disputed → continue to 2d (the existing 2b exit handles the zero-findings case)
+
+#### 2d: Branch setup (first iteration only)
 
 Follow `.claude/patterns/branch.md` with prefix `chore` and name `chore/review-fixes`.
 
 If branch already exists from prior iteration, continue on it.
 
-#### 2d: Fix findings
+#### 2e: Fix findings
 
-For each finding in priority order:
+For each finding in priority order (confirmed first, then needs-evidence):
 
 1. Implement the fix
 2. If finding has a Proposed Check → implement it in the target validator
@@ -203,7 +231,7 @@ build verification in `.claude/patterns/verify.md`.
 
 If no fixes succeeded this iteration → **exit loop**, proceed to Step 3.
 
-#### 2e: Compact state and loop gate
+#### 2f: Compact state and loop gate
 
 Emit a compact state summary and discard prior detail:
 
@@ -214,6 +242,8 @@ Emit a compact state summary and discard prior detail:
 - files_modified: [list of files changed so far]
 - fixes_applied: N, reverted: M, skipped: K
 - checks_added: [list of new validator checks, or "none"]
+- adversarial_validation: confirmed: N, disputed: M, needs-evidence: K
+- disputed_findings: [list of disputed finding signatures + one-line rationale]
 ```
 
 This summary is the only carry-forward state needed. Prior subagent results,
@@ -232,7 +262,7 @@ can be safely compressed.
 
 ## Step 3: Update check-inventory.md
 
-If new validator checks were implemented in Step 2d:
+If new validator checks were implemented in Step 2e:
 
 - Add each to the appropriate table in `scripts/check-inventory.md`
 - Update the total counts in the header
@@ -259,6 +289,9 @@ If branch exists with changes:
   - **Why**: "Template quality — fixes found by 3-dimension LLM review"
 - Include in PR body: review summary, fixed findings, skipped/reverted
   findings, new checks added, remaining unfixable findings
+- **Disputed findings section**: Under a `### Disputed Findings` heading,
+  list all disputed findings across all iterations with adversarial rationale.
+  Format as a table: Finding | Dimension | Rationale. Omit section if none.
 - **Close resolved observations**: For each observation issue whose root cause
   was fixed in this review PR, close it with a comment:
   ```bash
