@@ -1,20 +1,21 @@
 # Wire Procedure
 
-This procedure is executed by a team teammate spawned by `/bootstrap`
+This procedure is executed by an Agent subagent spawned by `/bootstrap`
 after the scaffold phase completes. The project structure already exists —
 packages installed, library files created, pages generated, build passes.
 As an independent Claude Code session, you have full access to project
-files, plugins (security-guidance, typescript-lsp), and tools.
+files, tools (LSP if available), and file system.
 
 ## Scope
-Execute Steps 5 through 9. Do NOT recreate packages, library files, or
-pages. Only create API routes, database schema, environment config, test
-scaffolding, run verification, and open the PR.
+Execute Steps 5 through 8b ONLY. Do NOT recreate packages, library files,
+or pages. Only create API routes, database schema, environment config, and
+test scaffolding. Step 8 (verify.md) and Step 9 (PR) are executed by the
+bootstrap lead, not this subagent.
 
 ## Prerequisites
 - Scaffold phase completed (project structure exists, Merged Checkpoint passed)
 - `.claude/current-plan.md` exists
-- Scaffold teammate's completion report (external dep decisions) provided in your prompt
+- Scaffold subagent's completion report (external dep decisions) provided in your prompt
 - Read all context files listed in your task assignment before starting
 
 ## Steps
@@ -140,6 +141,10 @@ NOTE: Tests are NOT run during bootstrap — only created
 If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
 
 ### Step 8: Verify before shipping
+> **Note:** This step is executed by the bootstrap lead, not this subagent.
+> The lead has the Agent tool required to spawn parallel review subagents
+> (visual-scanner, security-defender, security-attacker).
+
 - Follow the FULL verification procedure in `.claude/patterns/verify.md`:
   1. Build & lint loop (max 3 attempts)
   2. Save notable patterns (if you fixed errors)
@@ -173,6 +178,7 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - If anything is missing, implement it now. Do not proceed with gaps.
 
 ### Step 9: Commit, push, open PR
+> **Note:** This step is executed by the bootstrap lead, not this subagent.
 - You are already on a feature branch (created in Step 0). Do not create another branch.
 - Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
 - Push and open PR using the `.github/PULL_REQUEST_TEMPLATE.md` format:

@@ -1,15 +1,13 @@
 # Scaffold: External Dependencies
 
-This procedure is executed by a team teammate spawned by `/bootstrap`.
+This procedure is executed by an Agent subagent spawned by `/bootstrap`.
 As an independent Claude Code session, you have full access to project
-files, plugins (typescript-lsp), and tools. You run concurrently with the
-libs and pages teammates. **Your exclusive write territory is
+files, tools (LSP if available), and file system. You run concurrently
+with the libs and pages subagents. **Your exclusive write territory is
 `.claude/stacks/external/`, `.env.local`, and `.env.example`.**
 
 Do NOT write to `src/` — Fake Door components are handled by the bootstrap
-lead after all parallel teammates complete.
-
-You may interact with the user (classification confirmation, credential collection).
+lead after all parallel subagents complete.
 
 ## Prerequisites
 - Packages installed (Step 1 finished)
@@ -48,6 +46,9 @@ Before API routes are generated, assess whether idea.yaml features require exter
    - **Fake Door** (default) — real UI + `activate` event with `fake_door: true` + "Coming soon" dialog. Collects intent data from paid traffic. See Fake Door output format below.
    - **Skip** — omit the feature from the UI entirely (not a 501 stub — the feature is simply not built)
    - **Full Integration** — same as core "Provide now" (user gives credentials, Step 5 builds it)
+
+**Steps 6-8 below are executed by the bootstrap lead** after reviewing your
+classification. Include them here for reference so the lead knows what to do.
 
 6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration" / "Provide now"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it:
    - Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema
@@ -104,13 +105,14 @@ For each non-core feature choosing Fake Door, include in your output a structure
 
 Do NOT create the Fake Door components — they are created by the orchestrator
 after all parallel agents complete (they live in `src/app/<page>/`, which is
-the pages teammate's territory).
+the pages subagent's territory).
 
 ## Output
 
-Report:
-1. Classification decisions (core/non-core per service)
-2. Generated external stack files (paths)
-3. Env vars added to `.env.local` and `.env.example`
-4. Fake Door list (structured entries as above, or "none")
-5. Any issues encountered
+Return:
+1. Classification table (core/non-core per service, with credentials needed)
+2. Fake Door list (structured entries as above, or "none")
+3. Any issues encountered
+
+Note: Generated stack files, env vars, and credential collection are handled
+by the bootstrap lead after reviewing this classification.

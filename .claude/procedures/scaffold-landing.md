@@ -1,8 +1,8 @@
 # Scaffold: Landing Page
 
-This procedure is executed by a team teammate spawned by `/bootstrap`.
+This procedure is executed by an Agent subagent spawned by `/bootstrap`.
 As an independent Claude Code session, you have full access to project
-files, plugins (frontend-design, typescript-lsp), and tools.
+files, tools (LSP if available), and file system.
 
 ## Prerequisites
 - Branch already created (by bootstrap Step 0)
@@ -27,9 +27,10 @@ Derive the three design constraints per `.claude/patterns/design.md`
 product domain. Read the theme tokens from `src/app/globals.css` and
 tailwind config (already set in Step 1).
 
-### 2. Invoke frontend-design
+### 2. Apply frontend-design methodology
 
-**Invoke the `frontend-design` skill** (via the Skill tool) with:
+**Read the frontend-design SKILL.md** at the path provided in your prompt.
+Apply its methodology with:
 - The three derived constraints
 - The quality bar from design.md: "Create a world-class, conversion-optimized
   landing page. The visual quality must match a $50K agency page — not
@@ -39,15 +40,9 @@ tailwind config (already set in Step 1).
   target_user, CTA = action verb + outcome)
 - Content inventory from messaging.md Section B (raw material, not structure)
 
-If the `frontend-design` skill is not available (not listed in available
-skills): stop and tell the user:
-
-> The `frontend-design` plugin is enabled in `.claude/settings.json` but
-> did not load in this session. Restart Claude Code to reload plugins.
-> If the issue persists, verify `"frontend-design@claude-plugins-official": true`
-> is set in `.claude/settings.json`.
-
-Then **stop and wait** — do not proceed with a fallback.
+If the SKILL.md path is `"unavailable"`: proceed using your own judgment —
+match the product's personality, follow design.md quality bar, and apply
+messaging.md content derivation rules. Do not stop or wait.
 
 ### 3. Generate the page
 

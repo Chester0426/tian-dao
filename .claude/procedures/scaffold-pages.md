@@ -1,9 +1,9 @@
 # Scaffold: App Shell & Pages
 
-This procedure is executed by a team teammate spawned by `/bootstrap`.
+This procedure is executed by an Agent subagent spawned by `/bootstrap`.
 As an independent Claude Code session, you have full access to project
-files, plugins (frontend-design, typescript-lsp), and tools. You run
-concurrently with the libs and externals teammates.
+files, tools (LSP if available), and file system. You run concurrently
+with the libs and externals subagents.
 **Your exclusive write territory depends on the archetype:**
 
 - **web-app**: `src/app/` and `src/components/`
@@ -20,7 +20,7 @@ Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`.
 
 ## Concurrent dependency note
 
-Pages import from `src/lib/events.ts` (created by the libs teammate running in parallel).
+Pages import from `src/lib/events.ts` (created by the libs subagent running in parallel).
 Write import statements using function signatures derived from EVENTS.yaml — the
 file will exist at build time when the merged checkpoint runs `npm run build`.
 
@@ -44,7 +44,7 @@ For each entry in idea.yaml `pages`:
   - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
   - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page**: Do NOT generate the landing page content here — it is
-  created by the landing-page teammate (see `scaffold-landing.md`). If
+  created by the landing-page subagent (see `scaffold-landing.md`). If
   idea.yaml has `variants`, create only the structural routing files here:
   - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline,
     subheadline, cta, pain_points, isDefault) and `getVariant(slug)` helper
@@ -53,11 +53,12 @@ For each entry in idea.yaml `pages`:
   - `src/app/v/[variant]/page.tsx` — dynamic route, imports `LandingContent`,
     fires `visit_landing` with `variant` property. `generateStaticParams()`
     for all variant routes. Returns `notFound()` for unknown slugs.
-  If no `variants`, skip entirely — the landing-page teammate creates `src/app/page.tsx`.
+  If no `variants`, skip entirely — the landing-page subagent creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
-- **All other pages**: For each non-landing, non-auth page, **invoke the
-  `frontend-design` skill** (via the Skill tool) with:
+- **All other pages**: For each non-landing, non-auth page, **read the
+  frontend-design SKILL.md** at the path provided in your prompt. Use its
+  methodology with:
   - The existing theme tokens (from `src/app/globals.css` and tailwind config)
   - The page's `purpose` from idea.yaml
   - Instruction: "Design a top-tier SaaS product screen (think Linear, Vercel,
@@ -65,9 +66,9 @@ For each entry in idea.yaml `pages`:
     utility: clear information hierarchy, appropriate data density, loading
     states, empty states, micro-interactions. Not a marketing page — a
     professional tool interface."
-  If the `frontend-design` skill is not available: proceed using your own
-  judgment — consume the theme tokens, match the product's visual identity,
-  and follow the inner page utility criteria from design.md.
+  If the SKILL.md path is `"unavailable"`: proceed using your own judgment —
+  consume the theme tokens, match the product's visual identity, and follow
+  the inner page utility criteria from design.md.
   Each page must have heading, description matching purpose, and a clear
   next-action CTA
 

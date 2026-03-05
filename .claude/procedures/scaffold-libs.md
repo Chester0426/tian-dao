@@ -1,9 +1,9 @@
 # Scaffold: Library Files
 
-This procedure is executed by a team teammate spawned by `/bootstrap`.
+This procedure is executed by an Agent subagent spawned by `/bootstrap`.
 As an independent Claude Code session, you have full access to project
-files, plugins (typescript-lsp), and tools. You run concurrently with the
-pages and externals teammates. **Your exclusive write territory is `src/lib/`.**
+files, tools (LSP if available), and file system. You run concurrently
+with the pages and externals subagents. **Your exclusive write territory is `src/lib/`.**
 
 Do NOT write to `src/app/`, `src/components/`, `.env*`, or `.claude/stacks/external/`.
 
