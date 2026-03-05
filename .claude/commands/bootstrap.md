@@ -13,6 +13,7 @@ references:
   - .claude/patterns/observe.md
   - .claude/patterns/messaging.md
   - .claude/patterns/design.md
+  - .claude/procedures/scaffold-setup.md
   - .claude/procedures/scaffold-init.md
   - .claude/procedures/scaffold-libs.md
   - .claude/procedures/scaffold-pages.md
@@ -204,22 +205,32 @@ Before spawning any subagents, the lead performs user-interactive checks:
 This value is passed to subagents in their prompts (subagents cannot
 interact with users).
 
-### Init Phase
+### Setup Phase
+
+Spawn a subagent via Agent with:
+- subagent_type: scaffold-setup
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/scaffold-setup.md` and execute all steps
+  2. Read context files: `idea/idea.yaml`, all `.claude/stacks/<category>/<value>.md`
+     for categories in idea.yaml `stack`, `.claude/archetypes/<type>.md`
+  3. TSP-LSP status: `<tsp_status from preamble>`
+  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+
+Wait for setup to complete before proceeding.
+
+### Design Phase
 
 Spawn a subagent via Agent with:
 - subagent_type: scaffold-init
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-init.md` and execute all steps
-  2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
-     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
-     all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
-     `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred),
-     `.claude/patterns/design.md`
-  3. TSP-LSP status: `<tsp_status from preamble>`
-  4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9, 12
+  2. Read context files: `idea/idea.yaml`, `.claude/current-plan.md`,
+     `.claude/patterns/design.md`, `.claude/archetypes/<type>.md`,
+     `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred)
+  3. Follow CLAUDE.md Rules 3, 4, 7
 
 The subagent returns its completion report directly as the result.
-Wait for the init subagent to complete before proceeding.
+Wait for design to complete before proceeding.
 
 ### Parallel Scaffold Phase
 
