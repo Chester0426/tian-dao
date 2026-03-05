@@ -260,7 +260,7 @@ Extract the dashboard `id` from the response. Then create funnel insight. **Choo
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+  -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
 ```
 
 If idea.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
@@ -268,7 +268,7 @@ If idea.yaml has `variants` (web-app only): create a second funnel insight named
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+  -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
 ```
 Include `pay_start` and `pay_success` in the series if `stack.payment` is present. This lets the user compare conversion rates between variant landing pages — the core purpose of the variants feature.
 
