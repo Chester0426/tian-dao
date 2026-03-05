@@ -343,6 +343,16 @@ After all fixable issues are addressed:
 
 If still failing after 1 fix round → report precise per-service diagnosis with actionable next steps.
 
+### 5d.5: Provision scan (independent verification)
+
+Spawn the `provision-scanner` agent (`subagent_type: provision-scanner`).
+Pass context:
+
+> Mode: deploy
+> Manifest path: .claude/deploy-manifest.json
+
+Wait for the agent to complete. Include the scanner's output table in the Step 6 summary under a **Provision Scan** heading. If any check FAILs, list them as action items — the health check + auto-fix (5c–5d) already attempted remediation, so these are residual issues for the user to address.
+
 ### 5e: File template observations
 
 If any fix during the deploy flow (Steps 3–5d) required working around a
