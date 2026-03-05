@@ -280,9 +280,15 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 
    If the key exists (or was just created), auto-create a dashboard via PostHog API:
 
+   First, discover the PostHog project ID:
+   ```bash
+   POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
+     -H "Authorization: Bearer $POSTHOG_API_KEY" | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+   ```
+
    ```bash
    # Create dashboard
-   curl -s -X POST "https://us.i.posthog.com/api/projects/321343/dashboards/" \
+   curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashboards/" \
      -H "Authorization: Bearer $POSTHOG_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.title>"}'
@@ -295,7 +301,7 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 
    ```bash
    # Create funnel insight and add to dashboard
-   curl -s -X POST "https://us.i.posthog.com/api/projects/321343/insights/" \
+   curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
      -H "Authorization: Bearer $POSTHOG_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
@@ -303,7 +309,7 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 
    If idea.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
    ```bash
-   curl -s -X POST "https://us.i.posthog.com/api/projects/321343/insights/" \
+   curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
      -H "Authorization: Bearer $POSTHOG_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "funnelWindowInterval": 14, "funnelWindowIntervalUnit": "day", "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'

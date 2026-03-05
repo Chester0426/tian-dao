@@ -54,7 +54,7 @@ export function getStripe(): Stripe {
 import { loadStripe } from "@stripe/stripe-js";
 
 export const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "placeholder-stripe-publishable"
 );
 ```
 - Use this in client components to redirect to Stripe Checkout
