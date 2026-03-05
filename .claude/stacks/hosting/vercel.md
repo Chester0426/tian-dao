@@ -142,3 +142,114 @@ For auth and payment API routes:
 ## PR Instructions
 - After merging: run `/deploy` in Claude Code to set up Vercel + Supabase automatically. Or manually: import your repo at [vercel.com/new](https://vercel.com/new) and add the Supabase Vercel Integration ([vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)) to auto-inject Supabase env vars. For other env vars (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
 - Vercel auto-deploys on every merge to `main`
+
+## Deploy Interface
+
+Standardized subsections referenced by deploy.md and teardown.md. Each subsection is a self-contained recipe — deploy.md reads them by name and executes the instructions.
+
+### Prerequisites
+
+- **install_check:** `which vercel`
+- **install_fix:** `npm i -g vercel`
+- **auth_check:** `vercel whoami`
+- **auth_fix:** `vercel login`
+
+### Config Gathering
+
+- **CLI command:** `vercel teams list` — lists available teams (or personal account)
+- **idea.yaml field:** `deploy.vercel_team` — if set, skip the prompt
+
+### Project Setup
+
+1. Link or create the project (idempotent):
+   ```bash
+   vercel link --yes --project <name> [--scope "<team>"]
+   ```
+2. Connect GitHub repo for auto-deploy:
+   ```bash
+   vercel git connect --yes
+   ```
+   Prerequisite: Vercel GitHub App installed on the GitHub org/account.
+   - "Login Connection" error → user needs to connect GitHub at https://vercel.com/account/settings/authentication
+   - "Failed to connect" → user needs to install Vercel GitHub App on their org
+
+### Domain Setup
+
+1. Construct domain: `<name>.<domain>` (default parent domain: `draftlabs.org`; override with `deploy.domain` in idea.yaml)
+2. Add domain:
+   ```bash
+   vercel domains add <name>.<domain> --scope "<team>"
+   ```
+3. **On success:** `canonical_url` = `<name>.<domain>`, `domain_added` = true
+4. **On failure:** Warn "Could not add custom domain. Verify wildcard DNS (CNAME `*` → `cname.vercel-dns.com`, DNS Only)." Set `canonical_url` = null (finalized after deploy), `domain_added` = false
+
+### Environment Variables
+
+**Primary method — REST API (batch, all environments):**
+```bash
+curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
+  -H "Authorization: Bearer <vercel_token>" \
+  -H "Content-Type: application/json" \
+  -d '[{"key":"KEY","value":"VAL","type":"encrypted","target":["production","preview","development"]}]'
+```
+- `upsert=true` overwrites existing values (idempotent)
+- Omit `&slug=<team>` for personal accounts
+
+**Auth token location:**
+- macOS: `~/Library/Application Support/com.vercel.cli/auth.json` → parse JSON, extract `token`
+- Linux: `~/.local/share/com.vercel.cli/auth.json` → parse JSON, extract `token`
+- If missing or parse fails → set `vercel_token = null` (use fallback)
+
+**Fallback — CLI (production only, per-variable):**
+```bash
+echo $VALUE | vercel env add KEY production --force
+```
+
+**Verify:** `vercel env ls`
+
+### Deploy
+
+- **Command:** `vercel --prod --yes`
+- **Extract URL:** from command output
+
+### Health Check
+
+```bash
+curl -s <canonical_url>/api/health
+```
+Returns JSON `{ status: "ok", ... }` with per-service checks.
+
+### Auto-Fix
+
+| Check | Diagnosis | Fix |
+|-------|-----------|-----|
+| Env vars | `vercel env ls` — compare with expected | Re-set via REST API or CLI fallback, then redeploy |
+| Redeploy | — | `vercel --prod --yes` |
+
+### Teardown
+
+1. Remove custom domain:
+   ```bash
+   vercel domains rm <domain> --scope "<team>" --yes
+   ```
+2. Remove project:
+   ```bash
+   vercel project rm <project> --scope "<team>" --yes
+   ```
+3. **Dashboard URL (manual fallback):** `https://vercel.com/<team>/<project>/settings`
+
+### Manifest Keys
+
+```json
+{
+  "provider": "vercel",
+  "project": "<name>",
+  "team": "<team>",
+  "domain": "<domain or null>"
+}
+```
+
+### Compatibility
+
+- **incompatible_databases:** `[sqlite]`
+- **reason:** Serverless functions have no persistent filesystem — SQLite database files are lost between invocations
