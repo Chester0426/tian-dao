@@ -1,17 +1,5 @@
 # Scaffold: App Shell & Pages
 
-This procedure is executed by the `scaffold-pages` agent spawned by `/bootstrap`.
-As an independent Claude Code session, you have full access to project
-files, tools (LSP if available), and file system. You run concurrently
-with the libs and externals subagents.
-**Your exclusive write territory depends on the archetype:**
-
-- **web-app**: `src/app/` and `src/components/`
-- **service**: `src/app/api/` directory structure only
-- **cli**: `src/index.ts` and `src/commands/`
-
-Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`.
-
 ## Prerequisites
 - Packages installed and UI setup complete (Step 1 finished)
 - Stack files and archetype file on disk
@@ -96,6 +84,3 @@ Skip shell and pages. Create CLI entry point and command modules:
 - `src/commands/` — one module per idea.yaml command
 - Follow the framework stack file's conventions
 
-## Output
-
-Report the list of files created and any issues encountered.

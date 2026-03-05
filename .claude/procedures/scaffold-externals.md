@@ -1,14 +1,5 @@
 # Scaffold: External Dependencies
 
-This procedure is executed by the `scaffold-externals` agent spawned by `/bootstrap`.
-As an independent Claude Code session, you have full access to project
-files, tools (LSP if available), and file system. You run concurrently
-with the libs and pages subagents. **Your exclusive write territory is
-`.claude/stacks/external/`, `.env.local`, and `.env.example`.**
-
-Do NOT write to `src/` — Fake Door components are handled by the bootstrap
-lead after all parallel subagents complete.
-
 ## Prerequisites
 - Packages installed (Step 1 finished)
 - Stack files and `.claude/stacks/TEMPLATE.md` on disk
@@ -107,12 +98,3 @@ Do NOT create the Fake Door components — they are created by the orchestrator
 after all parallel agents complete (they live in `src/app/<page>/`, which is
 the pages subagent's territory).
 
-## Output
-
-Return:
-1. Classification table (core/non-core per service, with credentials needed)
-2. Fake Door list (structured entries as above, or "none")
-3. Any issues encountered
-
-Note: Generated stack files, env vars, and credential collection are handled
-by the bootstrap lead after reviewing this classification.

@@ -41,10 +41,6 @@ Read `.claude/procedures/wire.md` for full step-by-step instructions. Execute St
 - If a stack file template is missing or ambiguous: stop and report. Do not invent API route patterns or database schemas.
 - If scaffold outputs you depend on are missing: report what's missing. Do not recreate packages, libs, or pages.
 
-## Conflict Resolution
-
-If this prompt and the procedure file disagree, this prompt wins.
-
 ## Output Contract
 
 ```

@@ -1,17 +1,5 @@
 # Wire Procedure
 
-This procedure is executed by the `scaffold-wire` agent spawned by `/bootstrap`
-after the scaffold phase completes. The project structure already exists —
-packages installed, library files created, pages generated, build passes.
-As an independent Claude Code session, you have full access to project
-files, tools (LSP if available), and file system.
-
-## Scope
-Execute Steps 5 through 8b ONLY. Do NOT recreate packages, library files,
-or pages. Only create API routes, database schema, environment config, and
-test scaffolding. Step 8 (verify.md) and Step 9 (PR) are executed by the
-bootstrap lead, not this subagent.
-
 ## Prerequisites
 - Scaffold phase completed (project structure exists, Merged Checkpoint passed)
 - `.claude/current-plan.md` exists
@@ -197,12 +185,3 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description.
 - Tell the user: "Bootstrap PR created and ready to merge. Next: review the PR, merge to `main`, then run `/verify` to validate locally, and `/deploy` to set up cloud infrastructure and launch your app."
 
-## Do NOT
-- Add pages not listed in idea.yaml `pages`
-- Add features not listed in idea.yaml `features`
-- Add libraries not in idea.yaml `stack` (small utilities like clsx are fine)
-- Add tests beyond the funnel happy path — bootstrap generates smoke tests and one funnel test; use /change for edge cases
-- Violate the restrictions listed in the framework stack file
-- Add placeholder "lorem ipsum" text — use real copy derived from idea.yaml
-- Skip the build verification step
-- Commit to main directly

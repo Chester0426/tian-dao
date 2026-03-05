@@ -1,17 +1,5 @@
 # Scaffold: Visual Design Foundation
 
-This procedure is executed by the `scaffold-init` agent spawned by `/bootstrap`.
-As an independent Claude Code session, you have full access to project
-files, tools (LSP if available), and file system.
-
-## Scope
-
-Execute design decisions only — set the visual tone, theme tokens, and
-visual brief. Package installation, framework config, and UI setup are
-already complete (handled by the `scaffold-setup` agent). Library files,
-pages, external dependencies, landing page, and wiring are handled by
-separate subagents.
-
 ## Prerequisites
 - Branch already created (by bootstrap Step 0)
 - Plan approved and saved to `.claude/current-plan.md`
@@ -35,10 +23,3 @@ separate subagents.
    - **Component Style**: border radius, shadows, borders, button style
    - **Visual Texture**: decorative elements, background patterns, depth technique
 
-## Completion Report
-
-When done, report:
-1. Design decisions: color direction, design philosophy, optimization target
-2. Theme tokens written (globals.css custom properties, tailwind config)
-3. Visual language brief written to `.claude/current-visual-brief.md`
-4. Issues encountered (if any)

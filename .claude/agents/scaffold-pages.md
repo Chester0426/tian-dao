@@ -39,10 +39,6 @@ You are a world-champion of utility. Every page you create should make users fee
 
 Read `.claude/procedures/scaffold-pages.md` for full step-by-step instructions. Execute all steps for the appropriate archetype.
 
-## Conflict Resolution
-
-If this prompt and the procedure file disagree, this prompt wins.
-
 ## Output Contract
 
 ```
