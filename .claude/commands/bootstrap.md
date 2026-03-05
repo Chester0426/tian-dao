@@ -227,7 +227,6 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
 
 **Libs subagent:**
 - subagent_type: scaffold-libs
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -236,7 +235,6 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
 
 **Pages subagent:**
 - subagent_type: scaffold-pages
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
   2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
@@ -246,7 +244,6 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
 
 **Externals subagent (analysis only):**
 - subagent_type: scaffold-externals
-- run_in_background: true
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-externals.md` and execute the
      analysis steps (evaluate dependencies, classify core/non-core)
@@ -255,8 +252,6 @@ Spawn three subagents simultaneously using parallel Agent tool calls:
   3. Follow CLAUDE.md Rules 3, 4, 6
   4. Return the classification table and Fake Door list — do NOT collect
      credentials or write env vars (the lead handles those)
-
-Wait for all three subagents to complete.
 
 ### Externals: User Decisions + Execution
 
