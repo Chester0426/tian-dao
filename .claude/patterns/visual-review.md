@@ -90,6 +90,18 @@ the rigor and verdict scale are identical.
 6. **Functional animations** — skeleton loaders, state transitions (not static jumps)?
 7. **Layout purpose** — clear hierarchy, intentional composition (not just stacked elements)?
 
+### Layer 3: Anti-pattern Rejection
+
+Any of these triggers automatic `needs-polish` verdict:
+- Landing page's only animation technique is fade-in / slide-up
+- All sections use the same centered-column layout pattern
+- Hero is plain text + button with no interactive element
+- All Card, Button, Badge components use unmodified shadcn default styling (no project-specific shadows, borders, gradients, or animation)
+- Page scroll produces no visual events (no color shifts, layout changes, or animations between sections)
+
+> These catch the most common mediocrity patterns. A page can pass Layer 2
+> checks individually but still fail Layer 3 if the overall impression is generic.
+
 ### Verdicts (same scale for both)
 
 - **pass** — meets the professional standard for its page type, no action needed

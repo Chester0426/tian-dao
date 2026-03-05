@@ -71,6 +71,10 @@ effects), responsive layout, dark/light mode (`prefers-color-scheme`).
 Not a template. Not adequate. Exceptional — a unique page that makes the
 founder proud to share the URL.
 
+See `design.md` Quality mechanics for checkable structural constraints
+(typography tension, layout diversity, depth layers, interactive hero,
+section differentiation).
+
 > _Mirrors `.claude/patterns/design.md` Quality bar — keep in sync._
 
 ## Analytics wiring

@@ -90,6 +90,18 @@ For every page, check:
 6. Functional animations — skeleton loaders, state transitions?
 7. Layout purpose — clear hierarchy, intentional composition?
 
+#### Layer 3: Anti-pattern Rejection
+
+Any of these triggers automatic `needs-polish` verdict:
+- Landing page's only animation technique is fade-in / slide-up
+- All sections use the same centered-column layout pattern
+- Hero is plain text + button with no interactive element
+- All Card, Button, Badge components use unmodified shadcn default styling (no project-specific shadows, borders, gradients, or animation)
+- Page scroll produces no visual events (no color shifts, layout changes, or animations between sections)
+
+> These catch the most common mediocrity patterns. A page can pass Layer 2
+> checks individually but still fail Layer 3 if the overall impression is generic.
+
 ### 6. Cleanup
 
 ```bash
@@ -125,6 +137,10 @@ Per-page results:
 
 ### Layer 2: Design Quality
 - <checklist item>: pass/gap — <detail>
+...
+
+### Layer 3: Anti-pattern Rejection
+- <anti-pattern>: pass/triggered — <detail>
 ...
 
 **Verdict:** pass / needs-polish / fail

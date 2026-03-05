@@ -65,6 +65,25 @@ The benchmark is a top-tier SaaS product (Linear, Vercel, Raycast):
 Both expressions share the same theme tokens. Neither is a lower bar —
 they are different axes of the same professional standard.
 
+### Quality mechanics
+
+Checkable structural constraints that give `frontend-design` precise targets.
+
+**Landing page (5 constraints):**
+1. **Typography tension** — display heading >= 6:1 size ratio vs body text
+2. **Layout diversity** — at least one section must break the centered-column pattern (asymmetric grid, full-bleed + inset alternation, overlapping elements)
+3. **Depth layers** — minimum 3 z-layers visible simultaneously (background texture/gradient, content, decorative elements)
+4. **Interactive hero** — hero section must contain a functioning micro-interaction, not static content
+5. **Section differentiation** — each section transition must have a visual event (color temperature shift, layout pattern change, or animation). No two adjacent sections may look structurally identical.
+
+**Inner pages (3 constraints):**
+1. **Loading choreography** — skeleton-to-content transition must stagger elements, not pop everything at once
+2. **Empty state as design moment** — empty tables/lists show illustration + clear CTA, not "No data found"
+3. **Hover vocabulary** — every interactive element responds to hover within 50ms (cards lift, buttons glow, links underline-animate)
+
+> These mechanics are structural constraints, not technique prescriptions.
+> `frontend-design` decides HOW to satisfy each one.
+
 When `frontend-design` is available, invoke it for all pages (with
 context-appropriate creative brief). When unavailable, follow the theme
 tokens and the relevant expression criteria.
