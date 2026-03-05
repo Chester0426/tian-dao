@@ -12,7 +12,7 @@ pages. Only create API routes, database schema, environment config, test
 scaffolding, run verification, and open the PR.
 
 ## Prerequisites
-- Scaffold phase completed (project structure exists, Checkpoint B passed)
+- Scaffold phase completed (project structure exists, Merged Checkpoint passed)
 - `.claude/current-plan.md` exists
 - Scaffold teammate's completion report (external dep decisions) provided in your prompt
 - Read all context files listed in your task assignment before starting
