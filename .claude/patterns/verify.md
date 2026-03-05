@@ -18,7 +18,7 @@ For each attempt:
    Warnings are OK; errors are not.
 4. If lint fails: note the errors (mentally log: "Attempt N — lint: [error summary]").
    Fix the errors, then start the next attempt.
-5. If both pass: build and lint verification passed. Continue to Visual Review below — do NOT skip the remaining verification steps.
+5. If both pass: build and lint verification passed. Continue to Parallel Review below — do NOT skip the remaining verification steps.
 6. **Prove it.** Quote the last 3–5 lines of the build output in your response. State facts: "Build completed with 0 errors. Lint passed with 0 warnings." Never say "should work", "probably passes", or "seems fine."
 
 **If all 3 attempts fail**, stop and report to the user:
@@ -39,48 +39,48 @@ For each attempt:
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
-## Auto-Observe (after build passes, before visual review)
+## Parallel Review (after build passes)
 
-If you fixed any build or lint errors above, check for template-rooted issues:
+Spawn **three agents simultaneously** using parallel Agent tool calls. All three
+read already-built code and have no data dependencies on each other.
 
-### Step 1: Deterministic scan
+### Agent A — Auto-Observe
 
-Run:
-```bash
-git diff --name-only | grep -E '^\.(claude/(stacks|commands|patterns)/|scripts/|Makefile$|CLAUDE\.md$)' || true
-```
+> If build/lint errors were fixed above, follow `.claude/patterns/observe.md` to
+> evaluate and file template observations. Use the build-error context from the
+> Build & Lint Loop above. If no errors were fixed, report "nothing to observe".
 
-If any template files appear in the diff:
-- You directly modified a template file to fix a build error → this IS a template observation
-- Proceed to Step 3
+This agent only files GitHub issues — it never modifies code.
 
-### Step 2: LLM evaluation (only if Step 1 found nothing)
+### Agent B — Visual Review (scan only)
 
-If Step 1 found no template files in the diff, but you fixed project code:
-ask yourself — "Would another developer using this template with a different
-idea.yaml hit this same problem?" If the root cause is incorrect template
-guidance (not the template file itself), this still qualifies.
+> Follow `.claude/patterns/visual-review.md` **Steps 1 through 4 only**. Start the
+> production server, screenshot all pages, review screenshots. **Do NOT fix any
+> issues** (skip Step 5). Report your findings: list of issues per page, or "all
+> pages pass". **Clean up:** kill the server on port 3099 and remove screenshots
+> when done.
 
-If yes → proceed to Step 3. If no → skip to Save Notable Patterns.
+### Agent C — Security Review (scan only)
 
-### Step 3: File observation
+> Follow `.claude/patterns/security-review.md` **Steps 1 and 2 only**. Run the
+> plugin check or manual fallback checklist. **Do NOT fix any issues** (skip
+> Step 3). Report your findings: pass/FAIL per check, with details for any FAIL.
 
-Follow `.claude/patterns/observe.md` to file a GitHub issue.
-Pass the specific template file and error context.
+**Wait for all three agents to complete before continuing.**
 
-## Visual Review (after Auto-Observe)
+## Sequential Fix Cycles (if needed)
 
-Follow the visual review procedure in `.claude/patterns/visual-review.md`.
-This screenshots all pages and checks for visual issues that compile-time
-checks miss (broken layout, missing fonts, wrong colors, empty pages).
-Requires Playwright — skips automatically when not installed.
+If Agent B reported visual issues:
+1. Follow `.claude/patterns/visual-review.md` Step 5 (Fix Cycle, max 2 cycles):
+   fix code, rebuild, re-screenshot, re-review.
+2. Follow `.claude/patterns/visual-review.md` Step 6 (Cleanup).
 
-## Security Review (after visual review passes)
+If Agent C reported security issues:
+1. Follow `.claude/patterns/security-review.md` Step 3 (Fix Cycle, max 2 cycles):
+   fix code, rebuild, re-check.
+2. Follow `.claude/patterns/security-review.md` Step 4 (Report).
 
-Follow the security review procedure in `.claude/patterns/security-review.md`.
-This scans for security issues that compile-time checks miss: hardcoded secrets,
-missing input validation, absent RLS policies, and client/server boundary violations.
-The security-guidance plugin augments this review when enabled.
+If neither agent reported issues, skip this section.
 
 ## Save Notable Patterns (if you fixed any errors above)
 
