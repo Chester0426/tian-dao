@@ -13,15 +13,19 @@ modifies_specs: false
 ---
 Tear down the cloud infrastructure created by `/deploy`.
 
+This skill is hosting-agnostic: it reads `hosting.provider` and `database.provider` from the deploy manifest, loads the corresponding stack files, and executes teardown commands from their `## Deploy Interface > Teardown` sections.
+
 ## Step 0: Validate preconditions
 
 1. Read `.claude/deploy-manifest.json`. If missing, stop: "No deploy manifest found.
    Run `/deploy` first, or delete resources manually via each provider's dashboard."
 2. Read `idea/idea.yaml` — extract `name` for confirmation prompt.
-3. Check CLI installation and auth (same checks as /deploy Step 0.6, but only for
-   services present in the manifest):
-   - If `supabase` in manifest: `which supabase` + `supabase projects list`
-   - If `vercel` in manifest: `which vercel` + `vercel whoami`
+3. Read `hosting.provider` and `database.provider` from the manifest. Load the corresponding
+   stack files at `.claude/stacks/hosting/<provider>.md` and `.claude/stacks/database/<provider>.md`.
+4. Check CLI installation and auth — read each stack file's `## Deploy Interface > Prerequisites`
+   and run the checks (only for services present in the manifest):
+   - If `hosting` in manifest: run hosting stack file's `install_check` + `auth_check`
+   - If `database` in manifest: run database stack file's `install_check` + `auth_check` (skip if no Prerequisites section)
    - If `posthog` in manifest: check `~/.posthog/personal-api-key` exists
    - If `stripe` in manifest: `which stripe` + `stripe whoami` (soft — webhook
      deletion is nice-to-have)
@@ -38,43 +42,33 @@ Present a summary:
 **Resources to delete (in reverse order of creation):**
 1. [If posthog] PostHog dashboard: #<dashboard_id>
 2. [If stripe] Stripe webhook endpoint: <url>
-3. [If domain] Vercel domain: <domain>
-4. [If vercel] Vercel project: <project> (team: <team>) — unlinks integrations
-5. [If supabase] Supabase project: <ref> (org: <org_id>) — permanent data loss
+3. [If hosting.domain] Custom domain: <domain>
+4. [If hosting] Hosting project (<provider>): <project> — unlinks integrations
+5. [If database] Database project (<provider>): <ref/id> — permanent data loss
 6. [If external_services] External services (manual): <list>
 
-⚠️  This action is irreversible. All data in the Supabase database will be
-permanently deleted.
+This action is irreversible. All data in the database will be permanently deleted.
 
 To confirm, type the project name: **<name>**
 ```
 
 Do not proceed until the user types the exact project name.
 
-## Step 2: Pre-delete safety check (if Supabase present)
+## Step 2: Pre-delete safety check (if database present)
 
-If `supabase` is in the manifest:
+If `database` is in the manifest and the database stack file has a `## Deploy Interface > Teardown` section with a pre-delete safety check:
 
-1. Read the Supabase access token (same procedure as /deploy Step 5b.1).
-2. Query for user-facing table row counts:
-   ```bash
-   curl -s "https://<ref>.supabase.co/rest/v1/<table>?select=count" \
-     -H "Authorization: Bearer <service_role_key>" \
-     -H "apikey: <anon_key>" \
-     -H "Prefer: count=exact"
-   ```
-   Check tables from `supabase/migrations/` (parse CREATE TABLE statements).
-3. If any table has rows > 0, warn:
+Follow the stack file's Teardown instructions for the safety check (e.g., query row counts). If any table has rows > 0, warn:
 
-   ```
-   ⚠️  Database contains live data:
-   - <table>: <N> rows
-   - <table>: <N> rows
+```
+Database contains live data:
+- <table>: <N> rows
+- <table>: <N> rows
 
-   Type **delete** to confirm permanent data deletion, or **cancel** to abort.
-   ```
+Type **delete** to confirm permanent data deletion, or **cancel** to abort.
+```
 
-   If the user types "cancel", stop.
+If the user types "cancel", stop.
 
 ## Step 3: Delete resources (reverse order of /deploy creation)
 
@@ -110,28 +104,23 @@ Note: manifest stores the URL, not the endpoint ID. List endpoints to find the I
 If CLI not available or fails: report "Stripe webhook — delete manually at
 https://dashboard.stripe.com/webhooks"
 
-### 3c: Vercel domain (if present in manifest)
+### 3c: Custom domain (if present in manifest)
 
-```bash
-vercel domains rm <domain> --scope "<team>" --yes
-```
+Read the hosting stack file's `## Deploy Interface > Teardown`. Execute the remove-domain command with the domain from the manifest.
+
 If fails: report and continue.
 
-### 3d: Vercel project
+### 3d: Hosting project
 
-```bash
-vercel project rm <project> --scope "<team>" --yes
-```
-If fails: report "Vercel project — delete manually at https://vercel.com/<team>/<project>/settings"
+Read the hosting stack file's `## Deploy Interface > Teardown`. Execute the remove-project command.
 
-### 3e: Supabase project (if present in manifest)
+If fails: report with the dashboard URL from the stack file's Teardown section for manual fallback.
 
-```bash
-supabase projects delete --project-ref <ref>
-```
-The CLI will prompt for confirmation — this is expected.
+### 3e: Database project (if present in manifest)
 
-If fails: report "Supabase project — delete manually at https://supabase.com/dashboard/project/<ref>/settings/general"
+Read the database stack file's `## Deploy Interface > Teardown`. Execute the delete command.
+
+If fails: report with the dashboard URL from the stack file's Teardown section for manual fallback.
 
 ### 3f: External services (manual)
 
@@ -152,25 +141,23 @@ For each service in `external_services`:
 ## Teardown Complete
 
 **Deleted:**
-- ✅ Supabase project <ref>
-- ✅ Vercel project <project>
-- ✅ Vercel domain <domain>
-- ✅ PostHog dashboard #<id>
+- [For each successfully deleted resource] <provider> <resource type> <id>
+- PostHog dashboard #<id>
 
 **Failed (manual cleanup needed):**
-- ❌ <resource> — <dashboard URL>
+- <resource> — <dashboard URL from stack file's Teardown section>
 
 **External services (manual cleanup):**
 - <service> — <dashboard URL>
 
 **Local cleanup:**
-- ✅ .claude/deploy-manifest.json deleted
-- [✅ .env.local deleted / ⏭️ .env.local kept]
+- .claude/deploy-manifest.json deleted
+- [.env.local deleted / .env.local kept]
 
 **What's preserved:**
 - All source code on main branch
 - idea.yaml, EVENTS.yaml (experiment definition)
-- supabase/migrations/ (can re-deploy with /deploy)
+- Migration files (can re-deploy with /deploy)
 
 To re-deploy this experiment: run `/deploy` again.
 ```

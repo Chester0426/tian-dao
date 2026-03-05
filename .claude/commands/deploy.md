@@ -1,5 +1,5 @@
 ---
-description: "Deploy the app to Vercel + Supabase. Run once after /bootstrap PR is merged."
+description: "Deploy the app. Run once after /bootstrap PR is merged."
 type: analysis-only
 reads:
   - idea/idea.yaml
@@ -15,7 +15,9 @@ modifies_specs: false
 ---
 Deploy the app to production by creating cloud infrastructure and deploying via CLI.
 
-This skill automates first-time deployment: creates a Supabase project, creates a Vercel project, sets all environment variables, applies migrations, and deploys. No git branch or PR — this is infrastructure-only.
+This skill automates first-time deployment: provisions the database, creates the hosting project, sets all environment variables, applies migrations, and deploys. No git branch or PR — this is infrastructure-only.
+
+The skill is hosting-agnostic: it reads provider-specific commands from stack file `## Deploy Interface` sections. Adding a new hosting or database provider = adding a stack file with a Deploy Interface. Zero changes to this file.
 
 ## Step 0: Validate preconditions
 
@@ -28,14 +30,16 @@ This skill automates first-time deployment: creates a Supabase project, creates 
    - If surface is `detached`: proceed with surface-only deployment (skip Steps 3-4, go directly to Step 5 surface deployment).
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
-6. Verify `stack.hosting` is `vercel`. If not, stop: "Only Vercel hosting is automated by /deploy. For your hosting provider, read `.claude/stacks/hosting/<value>.md` for CLI setup and deployment steps."
-7. Check CLI installation and auth (check install first, then auth — they are different failures with different fixes):
-   - `which vercel` — if not found, stop: "Vercel CLI not installed. Install: `npm i -g vercel`"
-   - `vercel whoami` — if fails, stop: "Run `vercel login` first (one-time per machine)."
-   - If `stack.database: supabase`: `which supabase` — if not found, stop: "Supabase CLI not installed. Install: `brew install supabase/tap/supabase` (macOS/Linux) or see https://supabase.com/docs/guides/cli/getting-started"
-   - If `stack.database: supabase`: `supabase projects list` — if fails, stop: "Run `supabase login` first (one-time per machine)."
-   - If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
-8. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
+6. **Hosting prerequisites:** Read the hosting stack file at `.claude/stacks/hosting/<stack.hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
+   - Run `install_check` — if not found, stop with `install_fix` instructions
+   - Run `auth_check` — if fails, stop with `auth_fix` instructions
+7. **Database prerequisites** (if `stack.database` is present): Read the database stack file at `.claude/stacks/database/<stack.database>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
+   - Run `install_check` — if not found, stop with `install_fix` instructions
+   - Run `auth_check` — if fails, stop with `auth_fix` instructions
+   - If the database has no Prerequisites section (e.g., sqlite), skip
+8. **Payment prerequisites:** If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
+9. **Compatibility check:** Read the database stack file's `## Deploy Interface > Hosting Requirements > incompatible_hosting`. If the current `stack.hosting` value appears in the list, stop with the reason from the stack file (e.g., "SQLite is incompatible with Vercel: serverless has no persistent filesystem").
+10. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
    - `which <cli>` — record `cli_status: not_installed` (with install command) if not found
    - If found, run auth check — record `cli_status: not_authed` if fails
    - If both pass — record `cli_status: ready`
@@ -44,10 +48,9 @@ This skill automates first-time deployment: creates a Supabase project, creates 
 
 ## Step 1: Gather configuration
 
-1. **Vercel team**: Read `deploy.vercel_team` from idea.yaml. If not set, run `vercel teams list` and ask the user to pick one (or use personal account).
-2. **Supabase org** (if `stack.database: supabase`): Read `deploy.supabase_org` from idea.yaml. If not set, run `supabase orgs list -o json` and ask the user to pick one.
-3. **Supabase region**: Read `deploy.supabase_region` from idea.yaml, or default to `us-east-1`.
-4. **DB password**: Generate with `openssl rand -base64 24`.
+1. **Hosting config**: Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the idea.yaml field listed in the stack file — if set, skip the prompt.
+2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the idea.yaml fields listed — if set, skip the prompts.
+3. **DB password** (if applicable): Generate with `openssl rand -base64 24`.
 5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
 6. **External service credentials**: Read `.env.example`, collect env vars not handled by stack categories. For each external service, use CLI status from Step 0.7:
    - **Auto via CLI** — installed + authenticated → will auto-provision in Step 5b
@@ -62,10 +65,10 @@ Present a summary of what will be created:
 ```
 ## Deployment Plan
 
-**Vercel project:** <name> (team: <team>)
-**Supabase project:** <name> (org: <org>, region: <region>)
+**Hosting (<provider>):** <name> (<team/account info from Config Gathering>)
+**Database (<provider>):** <name> (<org/account info from Config Gathering>)
 **Environment variables:** <list of env vars to be set>
-**Migrations:** <N files in supabase/migrations/ will be applied>
+**Migrations:** <N migration files will be applied>
 
 **External service credentials (post-deploy):**
 - [service] — auto via CLI (`<cli>` installed + authed)
@@ -78,107 +81,40 @@ Reply **approve** to proceed, or tell me what to change.
 
 **Do not proceed until the user approves.**
 
-## Step 3: Create Supabase project
+## Step 3: Provision database
 
-Skip this step if `stack.database` is not `supabase`.
+Skip this step if `stack.database` is absent or if the database stack file's `## Deploy Interface > Provisioning` says "none" (e.g., SQLite — auto-created on startup).
 
-1. Check if a Supabase project with this name already exists in the org (`supabase projects list -o json`). If it does, ask the user whether to reuse it or create a new one.
-2. Create the project:
-   ```bash
-   supabase projects create <name> --org-id <org-id> --region <region> --db-password <password>
-   ```
-3. Extract the project ref from the creation output.
-4. Poll for readiness — the project takes ~60s to initialize:
-   ```bash
-   supabase projects api-keys --project-ref <ref> -o json
-   ```
-   Poll every 5s, max 12 attempts (60s total). If it times out, tell the user to wait and retry.
-5. Extract keys from the API response:
-   - `anon` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
-6. Construct URLs:
-   - `NEXT_PUBLIC_SUPABASE_URL` = `https://<ref>.supabase.co`
-   - `POSTGRES_URL_NON_POOLING`: query the pooler config to get the correct hostname. **Important:** query this AFTER Step 3.4 confirms the project is ACTIVE_HEALTHY. The pooler API may lag behind the project status API by several seconds.
-     ```bash
-     curl -s "https://api.supabase.com/v1/projects/<ref>/config/database/pooler" \
-       -H "Authorization: Bearer <token>"
-     ```
-     If the response is empty (`[]`), wait 5s and retry (max 3 attempts). If still empty after 3 attempts, stop: "Pooler config not available yet. Wait a minute and re-run `/deploy`."
-     Use the `host` from the response with port `5432` (session mode = direct connection):
-     `postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres`
-7. Link the local project:
-   ```bash
-   supabase link --project-ref <ref>
-   ```
-8. Apply migrations (if `supabase/migrations/` has files):
-   ```bash
-   supabase db push --yes
-   ```
+Read the database stack file's `## Deploy Interface > Provisioning` and follow each substep in order. The stack file specifies the exact CLI commands, polling logic, key extraction, and migration commands for the configured database provider.
 
-## Step 4: Create Vercel project and set env vars
+## Step 4: Create hosting project and set env vars
 
-1. Link/create the Vercel project:
-   ```bash
-   vercel link --yes --project <name> --scope "<team>"
-   ```
-   If the project already exists, `vercel link` will connect to it (idempotent).
+### 4.1: Project setup
 
-2. **Resolve canonical URL**:
+Read the hosting stack file's `## Deploy Interface > Project Setup`. Follow the instructions to create/link the project and connect GitHub for auto-deploy. If the GitHub connection fails, **pause and help the user fix it** — do not skip auto-deploy silently. If unresolvable, set `git_connect_failed=true` (reported in Step 6 summary).
 
-   The default parent domain is `draftlabs.org`. If `deploy.domain` is set in idea.yaml, use that instead.
-   Construct the full domain: `<idea.yaml name>.<domain>` (e.g., `quickbill.draftlabs.org`).
+### 4.2: Domain setup
 
-   Attempt to add the domain to the Vercel project (requires only the project to exist, not a deployment):
-   ```bash
-   vercel domains add <name>.<domain> --scope "<team>"
-   ```
+Read the hosting stack file's `## Deploy Interface > Domain Setup`. Follow the instructions to add a custom domain. The default parent domain is `draftlabs.org`; override with `deploy.domain` in idea.yaml.
+- **On success:** `canonical_url` = the custom domain, `domain_added` = true
+- **On failure:** warn with the stack file's fallback message, set `canonical_url` = null (finalized after Step 5a deploy), `domain_added` = false
 
-   - If this succeeds: `canonical_url` = `<name>.<domain>`, `domain_added` = true. The custom domain is live (wildcard DNS is pre-configured).
-   - If this fails: warn "Could not add custom domain. Verify that wildcard DNS is configured for <domain> (CNAME `*` → `cname.vercel-dns.com`, DNS Only). Will use Vercel deployment URL instead." Set `canonical_url` = null, `domain_added` = false.
+### 4.3: Volume setup (if needed)
 
-   `canonical_url` is finalized after Step 5a deploy if still null.
+Read the database stack file's `## Deploy Interface > Hosting Requirements > volume_config`. If `needed: true`:
+1. Read the hosting stack file's `## Deploy Interface > Volume Setup`
+2. Follow the instructions to create a persistent volume with the specified mount path
+3. Set the env vars from `volume_config.env_vars` using the hosting stack file's env var method
 
-3. Connect GitHub repo for auto-deploy:
-   ```bash
-   vercel git connect --yes
-   ```
-   If this fails, **pause and help the user fix it** — do not skip auto-deploy silently. Diagnose the error:
-   - "Login Connection" error → Tell the user: "Go to https://vercel.com/account/settings/authentication → Connect GitHub. Tell me when done." Wait for user confirmation, then retry `vercel git connect --yes`.
-   - "Failed to connect" / access error → Tell the user: "Install the Vercel GitHub App on your GitHub org: go to your Vercel team dashboard → Settings → Integrations → GitHub. Tell me when done." Wait for user confirmation, then retry.
-   - Other errors → Show the error. Ask the user: "Want me to retry, or skip auto-deploy and continue?" If skip, set `git_connect_failed=true` (reported in Step 6 summary).
+If the hosting stack file has no `Volume Setup` section, stop: "Hosting provider <provider> does not support persistent volumes, which are required by <database>."
 
-4. **Read Vercel auth token:**
-   Read the Vercel CLI auth token from the local filesystem:
-   - macOS: `~/Library/Application Support/com.vercel.cli/auth.json`
-   - Linux: `~/.local/share/com.vercel.cli/auth.json`
+### 4.4: Set environment variables
 
-   Parse JSON and extract the `token` field → `vercel_token`.
-   If the file is missing or JSON parsing fails → set `vercel_token = null` (will use CLI fallback in point 5).
+Read the hosting stack file's `## Deploy Interface > Environment Variables` for the method (API, CLI, auth token location, fallback).
 
-5. **Set environment variables via REST API:**
+Collect all env vars and set them using the hosting provider's method:
 
-   Collect all env vars into a single JSON array, then send one batch request:
-   ```bash
-   curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
-     -H "Authorization: Bearer <vercel_token>" \
-     -H "Content-Type: application/json" \
-     -d '[{"key":"KEY","value":"VAL","type":"encrypted","target":["production","preview","development"]}, ...]'
-   ```
-   If personal account (no team): omit `&slug=<team>`.
-
-   Parse the response: `created` array (success) + `failed` array (errors). Warn per failed var, continue.
-
-   **Fallback** — if `vercel_token` is null or the API returns non-2xx: fall back to per-variable CLI:
-   ```bash
-   echo "<value>" | vercel env add <KEY> production --force
-   ```
-   CLI fallback sets production only (no preview) — preview env vars can be added manually in Vercel Dashboard.
-
-   Variables to set (when `stack.database: supabase`):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `POSTGRES_URL_NON_POOLING`
+   Variables from database provisioning (Step 3) — the database stack file's Provisioning substep specifies which env vars and their values.
 
    Additional variables (when `stack.auth: supabase` AND `stack.database` is NOT `supabase`):
    The auth stack needs a Supabase project even without the database stack. Ask the user for their existing Supabase project URL and anon key:
@@ -196,29 +132,23 @@ Skip this step if `stack.database` is not `supabase`.
 
    Additional variables (external service credentials from bootstrap):
    - Read `.env.example` and collect all env var keys
-   - Exclude keys already handled by stack categories above (Supabase, Stripe, email, PostHog)
-   - For each remaining key: read the value from `.env.local`. If found, set it on Vercel. If `.env.local` is missing or the key is absent, ask the user for the production value.
+   - Exclude keys already handled by stack categories above (database, Stripe, email, PostHog)
+   - For each remaining key: read the value from `.env.local`. If found, set it on the hosting provider. If `.env.local` is missing or the key is absent, ask the user for the production value.
 
 ## Step 5: Deploy, configure services, and verify
 
 ### 5a: Initial deploy
-1. Deploy to production:
-   ```bash
-   vercel --prod --yes
-   ```
-2. Get the deployment URL from the output.
-3. If `canonical_url` is null (domain add failed or no `deploy.domain`): set `canonical_url` = the Vercel deployment URL.
+1. Read the hosting stack file's `## Deploy Interface > Deploy`. Execute the deploy command.
+2. Extract the deployment URL per the stack file's instructions.
+3. If `canonical_url` is null (domain add failed or no `deploy.domain`): set `canonical_url` = the deployment URL.
 
 ### 5a.1: Surface deployment (if archetype is `cli` and surface is `detached`)
 
 1. Verify `site/index.html` exists. If not, stop: "Surface page not found. Run `/bootstrap` to generate it."
-2. Deploy the surface to Vercel:
-   ```bash
-   cd site && vercel --prod --yes && cd ..
-   ```
-3. Get the deployment URL from the output.
-4. If `deploy.domain` is set in idea.yaml: add custom domain to the Vercel surface project.
-5. Set `surface_url` = custom domain URL or Vercel deployment URL.
+2. Deploy the surface using the hosting stack file's `## Deploy Interface > Deploy` command, run from the `site/` directory.
+3. Extract the deployment URL per the stack file's instructions.
+4. If `deploy.domain` is set in idea.yaml: add custom domain using the hosting stack file's `## Deploy Interface > Domain Setup`.
+5. Set `surface_url` = custom domain URL or deployment URL.
 6. For CLI archetype: `canonical_url` = `surface_url` (the surface IS the canonical web presence).
 
 ### 5b: Post-deploy service configuration (parallel)
@@ -228,7 +158,8 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 #### 5b preamble: determine which agents to spawn
 
 Assemble the shared context block (read-only inputs for all agents):
-- `canonical_url`, `vercel_token`, Supabase `ref` (from Step 3), Vercel project `name` and `team` (from Step 4)
+- `canonical_url`, hosting env var method (from hosting stack file's `## Deploy Interface > Environment Variables`), database refs/keys (from Step 3), hosting project `name` and team/account (from Step 4)
+- Hosting and database stack file paths (so agents can read provider-specific instructions)
 - idea.yaml contents (name, title, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
 - CLI statuses from Step 0
 
@@ -242,40 +173,26 @@ Launch all applicable agents **simultaneously** using parallel Agent tool calls.
 
 ---
 
-#### Agent A — Supabase Auth config
+#### Agent A — Database Auth config
 
 **Spawn condition:** `stack.auth: supabase` AND `stack.database: supabase`
-**Receives:** `canonical_url`, Supabase `ref`, idea.yaml `title`/`name`
+**Receives:** `canonical_url`, database refs/keys (from Step 3), idea.yaml `title`/`name`, database stack file path
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: []}`
 
 Instructions for Agent A:
 
-If `stack.database` is not `supabase` (no Supabase project was created in Step 3), return `{status: "skipped", message: "Auth redirect URLs must be configured manually in the Supabase Dashboard since no Supabase project was created during deploy.", env_vars_added: []}`.
+Read the database stack file's `## Deploy Interface > Auth Config`. If the section is absent (database provider has no auth config), return `{status: "skipped", message: "Database provider has no auth config section.", env_vars_added: []}`.
 
-Read the Supabase access token. Try these locations in order:
-1. File: `~/.supabase/access-token`
-2. macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — if found, strip the `go-keyring-base64:` prefix and base64-decode the remainder
-3. If neither found, ask the user: "Supabase Management API requires an access token. Generate one at supabase.com/dashboard/account/tokens and paste it here, or type **skip** to configure auth redirect URLs manually later."
-   If the user provides a token: persist it with `mkdir -p ~/.supabase && echo "$TOKEN" > ~/.supabase/access-token` and proceed with auth config.
-   If the user types "skip": return `{status: "skipped", message: "Auth redirect URLs not configured — set site_url and redirect allowlist manually in Supabase Dashboard → Authentication → URL Configuration.", env_vars_added: []}`.
+If `stack.database` does not match `stack.auth`'s expected database (e.g., auth is supabase but no supabase project was created in Step 3), return `{status: "skipped", message: "Auth redirect URLs must be configured manually since no matching database project was created during deploy.", env_vars_added: []}`.
 
-Extract `<short-title>` from idea.yaml: take the `title` field up to the first ` — `, ` - `, or ` | ` delimiter. If no delimiter is found, use the full `title`. If `title` is absent, capitalize the `name` field.
-
-```bash
-curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"site_url": "https://<canonical_url>", "uri_allow_list": "https://<canonical_url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
-```
-If the PATCH fails, return `{status: "failed", message: "Auth config PATCH failed — configure manually in Supabase Dashboard → Authentication → URL Configuration and Email Templates.", env_vars_added: []}`.
-If the PATCH succeeds, return `{status: "ok", message: "Auth redirect URLs and email subjects configured.", env_vars_added: []}`.
+Follow the Auth Config section's instructions step by step — it specifies how to discover the access token, what API call to make, and what fields to set using `canonical_url`.
 
 ---
 
 #### Agent B — Stripe Webhook
 
 **Spawn condition:** `stack.payment: stripe` AND Stripe CLI is available
-**Receives:** `canonical_url`, `vercel_token`, Vercel `name`/`team`
+**Receives:** `canonical_url`, hosting env var method (from hosting stack file), hosting project `name`/team, hosting stack file path
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: ["STRIPE_WEBHOOK_SECRET"]|[]}`
 
 Instructions for Agent B:
@@ -287,14 +204,7 @@ stripe webhook_endpoints create \
   --url "https://<canonical_url>/api/webhooks/stripe" \
   --events checkout.session.completed
 ```
-Extract the webhook signing secret (`whsec_...`) from the output. Set it in Vercel using the REST API (Step 4.5 pattern):
-```bash
-curl -s -X POST "https://api.vercel.com/v10/projects/<name>/env?upsert=true&slug=<team>" \
-  -H "Authorization: Bearer <vercel_token>" \
-  -H "Content-Type: application/json" \
-  -d '[{"key":"STRIPE_WEBHOOK_SECRET","value":"<whsec_secret>","type":"encrypted","target":["production","preview","development"]}]'
-```
-If `vercel_token` is null or the API fails, fall back to CLI: `echo "<whsec_secret>" | vercel env add STRIPE_WEBHOOK_SECRET production --force`
+Extract the webhook signing secret (`whsec_...`) from the output. Set it using the hosting stack file's `## Deploy Interface > Environment Variables` method (primary method with fallback).
 
 Return `{status: "ok", message: "Stripe webhook created and secret set.", env_vars_added: ["STRIPE_WEBHOOK_SECRET"]}`.
 If webhook creation fails, return `{status: "failed", message: "<error details>", env_vars_added: []}`.
@@ -369,14 +279,14 @@ If all API calls succeed, return `{status: "ok", message: "Dashboard and funnel 
 #### Agent D — External Services
 
 **Spawn condition:** any external stack files exist (Step 0.8 found services)
-**Receives:** `canonical_url`, `vercel_token`, Vercel `name`/`team`, external CLI statuses from Step 0.8, external stack file paths
+**Receives:** `canonical_url`, hosting env var method (from hosting stack file), hosting project `name`/team, hosting stack file path, external CLI statuses from Step 0.10, external stack file paths
 **Returns:** `{status: "ok"|"partial"|"failed"|"skipped", message: "<details>", env_vars_added: ["KEY1", ...], per_service: [{name, status, message}]}`
 
 Instructions for Agent D:
 
-For each external service (using CLI status from Step 0.8):
+For each external service (using CLI status from Step 0.10):
 
-**Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with canonical URL → extract credentials → set Vercel env vars. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
+**Auto via CLI** (ready): Read `## CLI Provisioning` from external stack file → execute provision command with canonical URL → extract credentials → set env vars using the hosting stack file's `## Deploy Interface > Environment Variables` method. If provisioning fails: tell user "[service] CLI provisioning failed: [error]. Falling back to manual setup." Then proceed to Manual setup.
 
 **Manual (CLI available)** (not_installed/not_authed): Tell user: "[service] has CLI `<cli>` for auto-provisioning. Install: `<install-cmd>`. Or provide credentials manually now." Then proceed to Manual setup.
 
@@ -384,8 +294,8 @@ For each external service (using CLI status from Step 0.8):
 - Where to create credentials (include URL)
 - Canonical URL for redirect URIs (e.g., `https://<canonical_url>/api/auth/callback/<service>`)
 - Which values to copy
-- Ask for credentials, or offer **skip** — feature returns 503 until configured via `vercel env add`
-- Set Vercel env vars
+- Ask for credentials, or offer **skip** — feature returns 503 until configured via the hosting provider's env var CLI
+- Set env vars using the hosting stack file's env var method
 
 Collect all env vars added across all services. Return `{status, message, env_vars_added: [...all keys set...], per_service: [{name, status, message}, ...]}`.
 
@@ -401,9 +311,9 @@ Collect all env vars added across all services. Return `{status, message, env_va
 4. Collect `per_service` from Agent D result (for Step 6 external services section).
 
 #### 5b.5: Redeploy (only if any agent reported non-empty `env_vars_added`)
-```bash
-vercel --prod --yes
-```
+
+Read the hosting stack file's `## Deploy Interface > Deploy` and execute the deploy command.
+
 Note: projects with Stripe require two production deploys during first-time setup (one to get the URL, one after webhook secret is configured). Subsequent deploys via git push need only one.
 
 ### 5c: Health check
@@ -421,13 +331,13 @@ If any health check fails, diagnose and attempt to fix:
 
 | Check | Diagnosis | Auto-fix |
 |-------|-----------|----------|
-| `database` | Re-extract keys: `supabase projects api-keys --project-ref <ref> -o json`. Compare with `vercel env ls`. | If mismatch: use REST API (Step 4.5 pattern) or CLI fallback to re-set each key, then redeploy |
-| `auth` | Re-check Supabase auth config via Management API GET endpoint | Re-PATCH site_url and uri_allow_list |
+| `database` | Re-extract keys using database stack file's Provisioning steps. Compare with hosting stack file's `## Deploy Interface > Auto-Fix` verify command. | If mismatch: re-set env vars using hosting stack file's env var method, then redeploy |
+| `auth` | Re-check auth config via database stack file's `## Deploy Interface > Auth Config` | Re-run the auth config step |
 | `analytics` | Code integration issue — cannot fix via CLI | Report: "Analytics health check failed. This is likely a code issue — merge the current PR to `main`, pull (`git checkout main && git pull`), then run `/change fix analytics integration`." |
-| `payment` | Verify webhook: `stripe webhook_endpoints list`. Check env var: `vercel env ls \| grep STRIPE` | Re-set env vars if missing/wrong, redeploy |
+| `payment` | Verify webhook: `stripe webhook_endpoints list`. Check env var using hosting stack file's Auto-Fix verify command. | Re-set env vars if missing/wrong, redeploy |
 
 After all fixable issues are addressed:
-- If any env vars were changed → batch into a single redeploy: `vercel --prod --yes`
+- If any env vars were changed → batch into a single redeploy using the hosting stack file's `## Deploy Interface > Deploy` command
 - Re-run health check: `curl -s <canonical_url>/api/health`
 
 If still failing after 1 fix round → report precise per-service diagnosis with actionable next steps.
@@ -452,17 +362,17 @@ Print a deployment summary:
 ## Deployment Complete
 
 **Live URL:** https://<canonical_url>
-**Supabase Dashboard:** https://supabase.com/dashboard/project/<ref>
-**Vercel Dashboard:** https://vercel.com/<team>/<name>
+**Database Dashboard:** <URL from database stack file's `## Deploy Interface > Teardown` dashboard URL>
+**Hosting Dashboard:** <URL from hosting stack file's `## Deploy Interface > Teardown` dashboard URL>
 
 **Surface URL:** https://<surface_url>
 **Health check:** [show per-service results — e.g., database: ok, auth: ok, analytics: ok, payment: ok]
 
-**Auto-deploy:** [If git_connect_failed] Not configured — run `vercel git connect --yes` after fixing the issue above, or connect manually in Vercel Dashboard → Project Settings → Git. [Else] Active — merges to main auto-deploy to production.
-**Auto-migrate:** Active — POSTGRES_URL_NON_POOLING is set, prebuild script applies migrations.
+**Auto-deploy:** [If git_connect_failed] Not configured — see hosting stack file's Project Setup for GitHub connection instructions. [Else] Active — merges to main auto-deploy to production.
+**Auto-migrate:** [If database has migrations] Active — migrations are applied per the database stack file's conventions.
 
 [If domain add succeeded] **Custom domain:** https://<name>.<domain>
-[If domain add failed] **Custom domain (manual):** Run `vercel domains add <name>.<domain>` after verifying wildcard DNS (CNAME `*` → `cname.vercel-dns.com`, DNS Only).
+[If domain add failed] **Custom domain (manual):** See hosting stack file's `## Deploy Interface > Domain Setup` for the add-domain command and DNS requirements.
 
 [If auth] **Auth redirect URLs:** Configured — site_url set to https://<canonical_url>
 [If auth] **Email subjects:** Configured — confirmation, recovery, and magic link emails use app name
@@ -473,7 +383,7 @@ Print a deployment summary:
 [If any health check failed] **Action needed:** [list failing services with fix commands]
 
 [If external services] **External services:**
-- [service]: ✅ auto-provisioned via CLI / ✅ manually configured / ❌ not configured — `vercel env add <KEY> production`
+- [service]: ✅ auto-provisioned via CLI / ✅ manually configured / ❌ not configured — set via hosting provider's env var CLI
 [If none] **External services:** None
 
 [If PostHog dashboard was auto-created] **Analytics dashboard:** <dashboard_url>
@@ -509,14 +419,13 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
 {
   "name": "<idea.yaml name>",
   "canonical_url": "<canonical_url>",
-  "supabase": {
-    "ref": "<ref>",
-    "org_id": "<org-id>"
+  "hosting": {
+    "provider": "<stack.hosting value>",
+    ...provider-specific keys from hosting stack file's `## Deploy Interface > Manifest Keys`
   },
-  "vercel": {
-    "project": "<name>",
-    "team": "<team>",
-    "domain": "<domain or null>"
+  "database": {
+    "provider": "<stack.database value>",
+    ...provider-specific keys from database stack file's `## Deploy Interface > Manifest Keys`
   },
   "posthog": {
     "dashboard_id": "<id or null>"
@@ -530,21 +439,21 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
 }
 ```
 
-Omit sections for inactive stack categories (e.g., no `supabase` key if `stack.database` is absent). This manifest is consumed by `/teardown` to identify what to delete.
+Omit sections for inactive stack categories (e.g., no `database` key if `stack.database` is absent). The `hosting.provider` and `database.provider` fields tell `/teardown` which stack file to load for teardown commands. This manifest is consumed by `/teardown` to identify what to delete.
 
 If the write fails, warn but continue — the manifest is for convenience, not correctness.
 
 ## Idempotency
 
 This skill handles re-runs gracefully:
-- `vercel link` reuses existing projects
-- `upsert=true` on the env var REST API overwrites existing values; CLI fallback uses `--force`
-- `supabase db push` skips already-applied migrations
-- Checks for existing Supabase projects before creating
-- Supabase auth config PATCH is idempotent — overwrites existing values
+- Hosting project setup is idempotent (stack file commands reuse existing projects)
+- Environment variable methods use upsert/overwrite semantics (per hosting stack file)
+- Database provisioning checks for existing projects before creating
+- Database migrations skip already-applied migrations
+- Auth config is idempotent — overwrites existing values
 - Stripe webhook creation checks for existing endpoint before creating
 - Stripe CLI is a soft dependency — falls back to manual setup if not installed
-- `vercel domains add` is idempotent — adding an already-configured domain is a no-op
+- Domain add commands are idempotent — adding an already-configured domain is a no-op
 - Re-running `/deploy` overwrites `.claude/deploy-manifest.json` with current resource state
 - Post-deploy service configuration (5b) runs agents in parallel — each agent operates on a different external API with no cross-agent state, preserving all idempotency guarantees
 
