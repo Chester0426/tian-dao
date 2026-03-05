@@ -29,6 +29,48 @@ input, never block on filing.
 
 ## Trigger Evaluation
 
+Evaluate whether fixes qualify as template observations. Use **Path 1** or
+**Path 2** depending on how you were invoked.
+
+**Decision rule:** If you were spawned as an Observer Agent with a diff, fix
+summaries, and template file list provided to you, use **Path 1**. Otherwise
+(deploy.md, ad-hoc fix, or any other direct invocation), use **Path 2**.
+
+---
+
+### Path 1 — Observer Agent (used by verify.md Agent A)
+
+You are a fresh agent with no project context. You received:
+- A `git diff` of fixes made during the Build & Lint Loop
+- One-line summaries of each error fixed
+- A template file list
+
+For each fix, evaluate whether **all three** conditions are true:
+
+**A. Template file is the root cause.** The fix required changing — or would ideally
+change — a file that appears in the template file list you were given.
+
+  OR: project code was fixed, but the root cause is incorrect guidance in a template
+  file (e.g., a code template produces a build error, a skill's instructions lead to
+  a missing import).
+
+**B. Not an environment issue.** NOT caused by: missing CLI tools, network failures,
+Node version mismatches, missing env vars (.env not populated), or auth failures.
+
+**C. Not a user code issue.** NOT caused by: business logic bugs, project-specific
+dependency conflicts, or code that simply doesn't follow template guidance.
+
+**Heuristic:** "Would another developer using this template with a different project
+hit this same problem?" If yes → file it.
+
+If no fixes qualify → return "No template observations" and stop.
+
+If any qualify → proceed to Prerequisites below.
+
+---
+
+### Path 2 — Direct evaluation (deploy.md, ad-hoc)
+
 For each code change or error fix made during the current session, evaluate
 whether it qualifies as a template observation. A change qualifies when **all
 three** conditions are true:

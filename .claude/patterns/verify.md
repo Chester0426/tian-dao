@@ -46,9 +46,19 @@ read already-built code and have no data dependencies on each other.
 
 ### Agent A — Auto-Observe
 
-> If build/lint errors were fixed above, follow `.claude/patterns/observe.md` to
-> evaluate and file template observations. Use the build-error context from the
-> Build & Lint Loop above. If no errors were fixed, report "nothing to observe".
+> If build/lint errors were fixed above:
+>
+> 1. Collect the `git diff` of all changes made during the Build & Lint Loop.
+> 2. Write a one-line summary for each error that was fixed.
+> 3. List template files: run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null` and add `Makefile` and `CLAUDE.md`.
+> 4. Spawn an **Observer Agent** (sub-agent) with **only** the following inputs — do **not** include idea.yaml content, project name, or feature descriptions:
+>    - The git diff from step 1
+>    - The fix summaries from step 2
+>    - The template file list from step 3
+>    - Instruction: "Follow `.claude/patterns/observe.md` Path 1 to evaluate these fixes and file template observations if any qualify."
+> 5. Report the Observer Agent's result.
+>
+> If no errors were fixed, report "nothing to observe".
 
 This agent only files GitHub issues — it never modifies code.
 
