@@ -94,3 +94,18 @@ brief and constraints provide sufficient direction.
   tailwind config, font setup in layout.tsx)
 - All pages consume these tokens — no per-page color/font overrides
 - `/change` must preserve these choices unless explicitly asked to restyle
+
+### Visual language brief
+
+The visual language brief (`.claude/current-visual-brief.md`) is a structured
+artifact produced by the Init subagent during bootstrap. It extends the theme
+contract with non-CSS decisions that affect visual coherence across pages:
+animation philosophy, spacing density, component styling, visual texture, etc.
+
+All page-generating subagents (landing, pages) read the same brief so they
+produce visually coherent output without needing to see each other's work.
+This enables landing and inner pages to be generated in parallel.
+
+The brief is **ephemeral** — it is deleted after the bootstrap PR is committed.
+`/change` reads the generated code (globals.css, existing components) to infer
+the established visual language rather than referencing the brief.

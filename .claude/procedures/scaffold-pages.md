@@ -17,6 +17,7 @@ Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`.
 - Stack files and archetype file on disk
 - `.claude/current-plan.md` exists
 - `design.md` choices recorded in globals.css and tailwind config
+- `.claude/current-visual-brief.md` exists (visual language brief from init)
 
 ## Concurrent dependency note
 
@@ -60,11 +61,14 @@ For each entry in idea.yaml `pages`:
   preloaded `frontend-design` guidelines (injected via skills) with:
   - The existing theme tokens (from `src/app/globals.css` and tailwind config)
   - The page's `purpose` from idea.yaml
+  - The visual language brief from `.claude/current-visual-brief.md` (palette,
+    typography, animation, spacing, component style, and texture decisions)
   - Instruction: "Design a top-tier SaaS product screen (think Linear, Vercel,
-    Raycast). Same palette and typography as the landing page. Optimized for
-    utility: clear information hierarchy, appropriate data density, loading
-    states, empty states, micro-interactions. Not a marketing page — a
-    professional tool interface."
+    Raycast). Follow the visual language brief for palette, typography,
+    animation, spacing, and component styling. Optimized for utility: clear
+    information hierarchy, appropriate data density, loading states, empty
+    states, micro-interactions. Not a marketing page — a professional tool
+    interface."
   If `frontend-design` guidelines are not available: use your own judgment —
   consume the theme tokens, match the product's visual identity, and follow
   the inner page utility criteria from design.md.

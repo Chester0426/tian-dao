@@ -6,8 +6,7 @@ files, tools (LSP if available), and file system.
 
 ## Prerequisites
 - Branch already created (by bootstrap Step 0)
-- Step 1 complete (theme tokens exist in `src/app/globals.css`)
-- Steps 2-4b complete (lib files, pages, and externals exist)
+- Step 1 complete (theme tokens in `src/app/globals.css`, visual brief at `.claude/current-visual-brief.md`)
 - `.claude/current-plan.md` exists
 
 ## Instructions
@@ -22,10 +21,11 @@ Read the surface stack file at `.claude/stacks/surface/<value>.md`.
 
 ### 1. Design decisions
 
-Derive the three design constraints per `.claude/patterns/design.md`
-(color direction, design philosophy, optimization target) from idea.yaml's
-product domain. Read the theme tokens from `src/app/globals.css` and
-tailwind config (already set in Step 1).
+Read the visual language brief from `.claude/current-visual-brief.md`. Do NOT
+re-derive constraints — the brief contains the canonical design decisions
+(color direction, philosophy, optimization target, palette, typography,
+animation, spacing, component style, and texture). Also read the theme tokens
+from `src/app/globals.css` and tailwind config (already set in Step 1).
 
 ### 2. Apply frontend-design methodology
 
@@ -50,15 +50,18 @@ varies by archetype:
 
 **web-app + co-located** (React component):
 - Include: theme tokens (globals.css custom properties, tailwind config from
-  Step 1), available shadcn/ui components, analytics function signatures from
-  `src/lib/events.ts`, framework page conventions from framework stack file
+  Step 1), available shadcn/ui components, framework page conventions from
+  framework stack file. Derive analytics function signatures from EVENTS.yaml —
+  the `src/lib/events.ts` file will exist at build time (created by the libs
+  subagent running in parallel)
 - If no `variants`: write `src/app/page.tsx` — a complete React landing
   page component. Must fire `visit_landing` on mount with EVENTS.yaml properties.
 - If `variants`: write `src/components/landing-content.tsx` — a shared
   `LandingContent` component that accepts variant props (headline, subheadline,
   cta, pain_points). Features section is shared across variants (from idea.yaml
   `features`). The structural routing files (variants.ts, root page, dynamic
-  route) were already created in Step 4.
+  route) are created by the pages subagent running in parallel — they will
+  exist at build time.
 
 **service + co-located** (self-contained HTML):
 - Include: surface stack file content (route path, analytics wiring, CSS approach)
