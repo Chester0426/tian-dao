@@ -78,6 +78,12 @@ If `stack.analytics` is present and not already included:
 - For web-app: verify event imports and tracking calls exist
 - For service/cli: add inline snippet per surface stack file's analytics section
 
+### 4b. Self-review
+
+- Screenshot the landing page you just generated (follow `.claude/patterns/visual-review.md` for server setup)
+- Review per-section: is there ANY section you'd rate below 8/10?
+- If yes, rewrite it now — don't leave it for the verify phase
+
 ### 5. Build verification
 
 - Run `npm run build` to verify the landing page compiles (web-app only)

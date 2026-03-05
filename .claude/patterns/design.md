@@ -38,10 +38,14 @@ executor.
 
 ### Quality bar
 
-Every page must look **professionally designed** — visually equivalent to
-a funded startup's production UI. Not a template. Not "adequate." Each page
+Every page must look **world-champion level** — the absolute limit of your
+ability. Not adequate, not good — the best you've ever seen. Each page
 should make the founder proud. This standard applies equally to all pages,
 but expresses differently based on page purpose.
+
+**Per-section rule:** Evaluate per-section. Each section scores independently.
+Weakest section determines overall quality. A page cannot hide mediocre social
+proof behind a great hero.
 
 **Landing page** (marketing surface) — optimized for **persuasion**.
 The benchmark is a $50K agency landing page:
@@ -52,7 +56,7 @@ The benchmark is a $50K agency landing page:
 - Responsive layout, dark/light mode
 - The goal: "I want to share this URL"
 
-**Inner pages** (product surface) — optimized for **utility**.
+**Inner pages** (product surface) — world champion of **utility**.
 The benchmark is a top-tier SaaS product (Linear, Vercel, Raycast):
 - Same custom palette and typography as landing (visual coherence)
 - Proper spacing rhythm (consistent padding, margins, gap)
@@ -60,14 +64,17 @@ The benchmark is a top-tier SaaS product (Linear, Vercel, Raycast):
 - Interaction quality (loading states, empty states, hover/focus feedback)
 - Component completeness (all shadcn/ui, no raw HTML, proper form validation)
 - Functional animations (skeleton loaders, micro-interactions, state transitions)
-- The goal: "I want to use this tool every day"
+- The goal: "When users open this page, they should feel surprise — this is far better than I expected"
 
 Both expressions share the same theme tokens. Neither is a lower bar —
 they are different axes of the same professional standard.
 
 ### Quality mechanics
 
-Checkable structural constraints that give `frontend-design` precise targets.
+These 5 constraints are the minimum floor (passing does not equal good, just not
+bad). The real standard is taste judgment — constraints prevent disaster, taste
+drives excellence. Checkable structural constraints that give `frontend-design`
+precise targets.
 
 **Landing page (5 constraints):**
 1. **Typography tension** — display heading >= 6:1 size ratio vs body text
@@ -101,11 +108,10 @@ fonts via Google Fonts `<link>`, animations via CSS keyframes. Same creative
 authority as for web-app — unique visual identity per experiment, not a
 generic template.
 
-Skills decide when and how to invoke `frontend-design`. Scan-only subagents
-(e.g., `visual-scanner`) cannot invoke skills, but fixer subagents
-(e.g., `visual-fixer`) can — `visual-fixer` has `frontend-design` preloaded
-via its `skills` field. When `frontend-design` is unavailable, the creative
-brief and constraints provide sufficient direction.
+Skills decide when and how to invoke `frontend-design`. The `design-critic`
+agent has `frontend-design` preloaded and full read-write access. When
+`frontend-design` is unavailable, the creative brief and constraints provide
+sufficient direction.
 
 ### Theme contract
 

@@ -77,6 +77,12 @@ For each entry in idea.yaml `pages`:
 
 > **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
 
+#### Self-review (web-app only)
+
+- Screenshot each generated page (follow `.claude/patterns/visual-review.md` for server setup)
+- Review per-section: any section below 8/10?
+- If yes, rewrite now
+
 ### service
 
 Skip shell and pages. Create API directory structure only:

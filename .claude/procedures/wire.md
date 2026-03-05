@@ -143,7 +143,7 @@ If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
 ### Step 8: Verify before shipping
 > **Note:** This step is executed by the bootstrap lead, not this subagent.
 > The lead has the Agent tool required to spawn parallel review subagents
-> (visual-scanner, security-defender, security-attacker).
+> (design-critic, security-defender, security-attacker).
 
 - Follow the FULL verification procedure in `.claude/patterns/verify.md`:
   1. Build & lint loop (max 3 attempts)
