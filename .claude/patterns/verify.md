@@ -44,23 +44,18 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 Spawn **three agents simultaneously** using parallel Agent tool calls. All three
 read already-built code and have no data dependencies on each other.
 
-### Agent A — Auto-Observe
+### Agent A — Collect Build Fix Info
 
 > If build/lint errors were fixed above:
 >
 > 1. Collect the `git diff` of all changes made during the Build & Lint Loop.
 > 2. Write a one-line summary for each error that was fixed.
 > 3. List template files: run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null` and add `Makefile` and `CLAUDE.md`.
-> 4. Spawn an **Observer Agent** (sub-agent) with **only** the following inputs — do **not** include idea.yaml content, project name, or feature descriptions:
->    - The git diff from step 1
->    - The fix summaries from step 2
->    - The template file list from step 3
->    - Instruction: "Follow `.claude/patterns/observe.md` Path 1 to evaluate these fixes and file template observations if any qualify."
-> 5. Report the Observer Agent's result.
+> 4. Return the diff, summaries, and template file list.
 >
-> If no errors were fixed, report "nothing to observe".
+> If no errors were fixed, report "no build fixes".
 
-This agent only files GitHub issues — it never modifies code.
+This agent only collects information — it never modifies code or files issues.
 
 ### Agent B — Visual Review (scan only)
 
@@ -92,9 +87,32 @@ If Agent C reported security issues:
 
 If neither agent reported issues, skip this section.
 
+After all fix cycles complete, if any code was changed in this section:
+1. Collect the `git diff` of changes made during visual and security fix cycles.
+2. Write a one-line summary for each issue that was fixed (e.g., "Fixed missing alt text on hero image", "Added RLS policy to profiles table").
+
+## Auto-Observe
+
+If Agent A returned build fix info, OR if Sequential Fix Cycles produced fixes:
+
+1. Combine all collected diffs into one unified diff.
+2. Combine all fix summaries into one list.
+3. Use the template file list from Agent A (if Agent A reported "no build fixes",
+   generate it now: run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null` and add `Makefile` and `CLAUDE.md`).
+4. Spawn an **Observer Agent** (sub-agent) with **only** the following inputs — do
+   **not** include idea.yaml content, project name, or feature descriptions:
+   - The combined diff from step 1
+   - The combined fix summaries from step 2
+   - The template file list from step 3
+   - Instruction: "Follow `.claude/patterns/observe.md` Path 1 to evaluate
+     these fixes and file template observations if any qualify."
+5. Report the Observer Agent's result.
+
+If no fixes were made anywhere in this verification run, skip this section.
+
 ## Save Notable Patterns (if you fixed any errors above)
 
-After a successful verification where you fixed build or lint errors:
+After a successful verification where you fixed any errors (build, lint, visual, or security):
 
 1. For each error you fixed, decide: is this **universal** or **project-specific**?
    - **Universal** (applies to any project with this stack): add the pattern to the relevant

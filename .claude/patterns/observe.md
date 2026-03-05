@@ -6,7 +6,7 @@ issues on the template repo.
 ## Entry Point
 
 This procedure is called:
-1. By verify.md's "Auto-Observe" section — after build fixes are identified
+1. By verify.md's "Auto-Observe" section — after all fixes (build, visual, security) are complete
 2. By deploy.md Step 5e — after deployment fixes
 3. Manually — for ad-hoc fixes outside of skills
 
@@ -38,10 +38,10 @@ summaries, and template file list provided to you, use **Path 1**. Otherwise
 
 ---
 
-### Path 1 — Observer Agent (used by verify.md Agent A)
+### Path 1 — Observer Agent (used by verify.md Auto-Observe)
 
 You are a fresh agent with no project context. You received:
-- A `git diff` of fixes made during the Build & Lint Loop
+- A `git diff` of fixes made during verification (build, lint, visual, and/or security)
 - One-line summaries of each error fixed
 - A template file list
 
