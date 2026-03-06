@@ -59,8 +59,10 @@ inline Node.js script using Playwright API to:
 - Launch Chromium (headless)
 - Visit each route at `http://localhost:3099`
 - Wait for network idle
-- Take a full-page screenshot at 1280x800 viewport
+- Take a full-page screenshot at **1280x800** viewport (desktop)
 - Save to `/tmp/visual-review/<page-name>.png`
+- Take a second full-page screenshot at **375x812** viewport (mobile)
+- Save to `/tmp/visual-review/<page-name>-mobile.png`
 
 ### 5. Review Each Screenshot
 
@@ -74,6 +76,10 @@ For every page, check:
 - **Layout intact** — no overlapping elements, no blank areas
 - **Content renders** — real content or plausible placeholder, not error state
 - **Above-the-fold quality** — polished, not broken or template-like
+- **Mobile: touch targets** — interactive elements ≥ 44px
+- **Mobile: text legibility** — body font size ≥ 14px
+- **Mobile: no horizontal overflow** — no content wider than viewport
+- **Mobile: navigation usable** — hamburger menu or equivalent on small screens
 
 Any Layer 1 failure → fix immediately before continuing to Layer 2.
 

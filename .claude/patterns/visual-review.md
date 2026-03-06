@@ -46,8 +46,10 @@ small inline Node.js script that uses the Playwright API to:
 - Launch a Chromium browser (headless)
 - Visit each route at `http://localhost:3099`
 - Wait for network idle
-- Take a full-page screenshot at 1280x800 viewport
-- Save each screenshot to `/tmp/visual-review/<page-name>.png`
+- Take a full-page screenshot at **1280x800** viewport (desktop)
+- Save to `/tmp/visual-review/<page-name>.png`
+- Take a second full-page screenshot at **375x812** viewport (mobile)
+- Save to `/tmp/visual-review/<page-name>-mobile.png`
 
 Run the script with `node`.
 
