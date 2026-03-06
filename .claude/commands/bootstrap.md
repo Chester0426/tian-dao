@@ -167,6 +167,14 @@ DO NOT write any code, create any files, or run any install commands during this
    If idea.yaml has no `golden_path` field: derive one from pages + EVENTS.yaml standard_funnel,
    present it in the plan, and write it back to idea.yaml after approval (Step 7).
 
+   **Critical Flows (from idea.yaml):**
+   | Flow | Trigger | Actor | Steps | Verify |
+   |------|---------|-------|-------|--------|
+   | [name] | [trigger] | [actor] | [steps summary] | [verify] |
+
+   If idea.yaml has no `critical_flows`: "None defined — operational chains will be tested manually.
+   Use `/change` to add critical_flows after the first webhook, admin, or cron feature."
+
    **Activation mapping:**
    - idea.yaml primary_metric: [metric]
    - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all features are descriptive, activate will be omitted" if no feature involves an interactive user action
@@ -189,7 +197,7 @@ DO NOT write any code, create any files, or run any install commands during this
    DO NOT proceed to Phase 2 until the user explicitly replies with approval.
    If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in idea.yaml), write it back to `idea/idea.yaml` after approval.
+7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in idea.yaml), write it back to `idea/idea.yaml` after approval. If `critical_flows` was identified during planning but not in idea.yaml, write it back to `idea/idea.yaml` after approval.
 
 ## Phase 2: Implement (only after the user has approved)
 

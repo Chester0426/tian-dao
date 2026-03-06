@@ -88,6 +88,18 @@ golden_path:
     value_moment: true
 target_clicks: 3
 
+# --- Critical Flows (optional) ---
+# Operational chains beyond the customer funnel. Drives integration tests.
+# Each flow: a triggered chain (webhook, admin action, cron) that must work for value delivery.
+# critical_flows:
+#   - name: TODO
+#     trigger: "TODO: What starts this flow? (e.g., stripe webhook checkout.session.completed)"
+#     actor: system           # system | admin | cron
+#     steps:
+#       - "TODO: First thing that happens"
+#       - "TODO: Second thing that happens"
+#     verify: "TODO: What should be true at the end?"
+
 # --- Features ---
 # List up to ~5 features. Each is a short description of one capability.
 features:
