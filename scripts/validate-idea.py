@@ -135,6 +135,59 @@ if variants is not None:
         print("Error: at most one variant may have default: true")
         sys.exit(1)
 
+# --- Golden path validation (optional field) ---
+golden_path = data.get("golden_path")
+if golden_path is not None:
+    if not isinstance(golden_path, list):
+        print("Error: golden_path must be a list")
+        sys.exit(1)
+    if len(golden_path) < 2:
+        print("Error: golden_path must have at least 2 entries")
+        sys.exit(1)
+
+    page_names = {p.get("name") for p in pages if isinstance(p, dict)}
+    implicit_auth_pages = {"signup", "login"}
+    has_value_moment = False
+
+    for i, step in enumerate(golden_path):
+        if not isinstance(step, dict):
+            print(f"Error: golden_path[{i}] must be a mapping")
+            sys.exit(1)
+
+        step_page = step.get("page")
+        step_action = step.get("action")
+        if not step_page or not isinstance(step_page, str):
+            print(f"Error: golden_path[{i}].page is missing or empty")
+            sys.exit(1)
+        if not step_action or not isinstance(step_action, str):
+            print(f"Error: golden_path[{i}].action is missing or empty")
+            sys.exit(1)
+
+        if step_page not in page_names and step_page not in implicit_auth_pages:
+            print(
+                f"Error: golden_path[{i}].page '{step_page}' "
+                "is not in the pages list and is not an implicit auth page"
+            )
+            sys.exit(1)
+
+        if step.get("value_moment"):
+            has_value_moment = True
+
+    if not has_value_moment:
+        print("Error: golden_path must have at least one entry with value_moment: true")
+        sys.exit(1)
+
+    if golden_path[0].get("page") != "landing":
+        print("Error: golden_path first entry's page must be 'landing'")
+        sys.exit(1)
+
+# --- Target clicks validation (optional field) ---
+target_clicks = data.get("target_clicks")
+if target_clicks is not None:
+    if not isinstance(target_clicks, int) or target_clicks < 1:
+        print("Error: target_clicks must be a positive integer")
+        sys.exit(1)
+
 if not data.get("template_repo"):
     print(
         "  Warning: template_repo not set. "
