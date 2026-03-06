@@ -38,3 +38,8 @@ Events added/modified:
 - [ ] `npm run build` passes with zero errors
 - [ ] No hardcoded secrets (all in env vars)
 - [ ] `.env.example` updated if new env vars were added
+
+### Verification
+- [ ] `verify.md` ran in full (build loop + parallel review)
+- [ ] design-critic verdict: <!-- e.g., "all pass" / "all fixed" / "skipped — Playwright not installed" -->
+- [ ] security verdict: <!-- e.g., "no issues" / "2 issues fixed" / "skipped — no API routes" -->

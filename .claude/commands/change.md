@@ -260,6 +260,13 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - If `stack.payment` is present, uncomment payment-related env vars in the testing CI template when generating the CI job.
 - If using the No-Auth Fallback path and `stack.database` is present, uncomment database-related env vars (e.g., `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in the testing CI template when generating the CI job.
 
+> **CHECKPOINT — VERIFICATION GATE**
+> Implementation is complete. You MUST now execute Step 7 in full.
+> Re-read `.claude/patterns/verify.md` and follow every section:
+> build loop, parallel review (4 agents), security fix cycle, auto-observe.
+> **Step 8 is BLOCKED until Step 7 completes.**
+> Do NOT commit, push, or open a PR before verification finishes.
+
 ### Step 7: Verify
 - Follow the FULL verification procedure in `.claude/patterns/verify.md`:
   1. Build & lint loop (max 3 attempts)
@@ -289,6 +296,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - **Checklist — Scope**: check all boxes. For features: confirm idea.yaml was updated.
   - **Checklist — Analytics**: list all new/modified events and which pages fire them. For fixes/polish: confirm no events were removed or broken.
   - **Checklist — Build**: confirm build passes, no hardcoded secrets
+  - **Checklist — Verification**: fill in design-critic and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description.
@@ -304,5 +312,5 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - Add custom analytics events without user approval
 - Add error-state tests — funnel happy path only (Rule 4)
 - Mock services in tests — the whole point is testing real integrations
-- Skip the build verification step
+- Skip Step 7 verification (verify.md must run in full — build, design-critic, security, auto-observe)
 - Commit to main directly
