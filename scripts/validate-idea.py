@@ -188,6 +188,57 @@ if target_clicks is not None:
         print("Error: target_clicks must be a positive integer")
         sys.exit(1)
 
+# --- Critical flows validation (optional field) ---
+critical_flows = data.get("critical_flows")
+if critical_flows is not None:
+    if not isinstance(critical_flows, list):
+        print("Error: critical_flows must be a list")
+        sys.exit(1)
+    if len(critical_flows) < 1:
+        print("Error: critical_flows must have at least 1 entry")
+        sys.exit(1)
+
+    valid_actors = {"system", "admin", "cron"}
+    flow_names_seen = set()
+
+    for i, flow in enumerate(critical_flows):
+        if not isinstance(flow, dict):
+            print(f"Error: critical_flows[{i}] must be a mapping")
+            sys.exit(1)
+
+        flow_name = flow.get("name")
+        if not flow_name or not isinstance(flow_name, str):
+            print(f"Error: critical_flows[{i}].name is missing or empty")
+            sys.exit(1)
+
+        if flow_name in flow_names_seen:
+            print(f"Error: duplicate critical_flows name: {flow_name}")
+            sys.exit(1)
+        flow_names_seen.add(flow_name)
+
+        flow_trigger = flow.get("trigger")
+        if not flow_trigger or not isinstance(flow_trigger, str):
+            print(f"Error: critical_flows[{i}].trigger is missing or empty")
+            sys.exit(1)
+
+        flow_actor = flow.get("actor", "system")
+        if flow_actor not in valid_actors:
+            print(
+                f'Error: critical_flows[{i}].actor "{flow_actor}" '
+                f"must be one of: {', '.join(sorted(valid_actors))}"
+            )
+            sys.exit(1)
+
+        flow_steps = flow.get("steps")
+        if not isinstance(flow_steps, list) or len(flow_steps) < 1:
+            print(f"Error: critical_flows[{i}].steps must be a list with at least 1 entry")
+            sys.exit(1)
+
+        flow_verify = flow.get("verify")
+        if not flow_verify or not isinstance(flow_verify, str):
+            print(f"Error: critical_flows[{i}].verify is missing or empty")
+            sys.exit(1)
+
 if not data.get("template_repo"):
     print(
         "  Warning: template_repo not set. "
