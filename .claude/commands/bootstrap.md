@@ -158,6 +158,10 @@ DO NOT write any code, create any files, or run any install commands during this
    - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
    - [For each payment_funnel event if stack.payment present, show: event_name on page/route]
 
+   **Golden Path (clicks-to-value):**
+   Landing -> [step] -> [step] -> [value moment]
+   Target: ≤ 3 clicks
+
    **Activation mapping:**
    - idea.yaml primary_metric: [metric]
    - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all features are descriptive, activate will be omitted" if no feature involves an interactive user action

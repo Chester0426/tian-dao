@@ -90,6 +90,10 @@ Present the plan using the format for the classified type:
 **New analytics events (if any):**
 - [event_name] — fires when [trigger]
 
+**Golden Path (clicks-to-value):**
+Landing -> [step] -> [step] -> [value moment]
+Target: ≤ 3 clicks
+
 **Questions:**
 - [any ambiguities, or "None"]
 - [if new library needed: "This feature needs [library]. Should I add it?"]
@@ -263,7 +267,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 > **CHECKPOINT — VERIFICATION GATE**
 > Implementation is complete. You MUST now execute Step 7 in full.
 > Re-read `.claude/patterns/verify.md` and follow every section:
-> build loop, parallel review (4 agents), security fix cycle, auto-observe.
+> build loop, parallel review (5 agents), security fix cycle, auto-observe.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
 
@@ -296,7 +300,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - **Checklist — Scope**: check all boxes. For features: confirm idea.yaml was updated.
   - **Checklist — Analytics**: list all new/modified events and which pages fire them. For fixes/polish: confirm no events were removed or broken.
   - **Checklist — Build**: confirm build passes, no hardcoded secrets
-  - **Checklist — Verification**: fill in design-critic and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
+  - **Checklist — Verification**: fill in design-critic, ux-journeyer, and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description.

@@ -42,4 +42,5 @@ Events added/modified:
 ### Verification
 - [ ] `verify.md` ran in full (build loop + parallel review)
 - [ ] design-critic verdict: <!-- e.g., "all pass" / "all fixed" / "skipped — Playwright not installed" -->
+- [ ] ux-journeyer verdict: <!-- e.g., "all pass, 2 clicks to value" / "fixed dead-end on /dashboard" / "skipped — Playwright not installed" -->
 - [ ] security verdict: <!-- e.g., "no issues" / "2 issues fixed" / "skipped — no API routes" -->

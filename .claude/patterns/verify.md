@@ -41,7 +41,7 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
 ## Parallel Review (after build passes)
 
-Spawn **four agents simultaneously** using parallel Agent tool calls. All four
+Spawn **five agents simultaneously** using parallel Agent tool calls. All five
 read already-built code and have no data dependencies on each other.
 
 ### build-info-collector
@@ -65,7 +65,11 @@ Spawn the `security-defender` agent (`subagent_type: security-defender`). No add
 
 Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No additional context needed.
 
-**Wait for all four agents to complete before continuing.**
+### ux-journeyer
+
+Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). No additional context needed.
+
+**Wait for all five agents to complete before continuing.**
 
 ## Merge Security Results
 
@@ -93,7 +97,7 @@ Pass: merged Defender table + Attacker findings.
 If build-info-collector reported "no build fixes" AND no fix cycles ran,
 skip this section.
 
-1. Combine all collected diffs (from build-info-collector + design-critic + security-fixer).
+1. Combine all collected diffs (from build-info-collector + design-critic + ux-journeyer + security-fixer).
 2. Combine all fix summaries.
 3. Get template file list (from build-info-collector, or generate now:
    run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null`
