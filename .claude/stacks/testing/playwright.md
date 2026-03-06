@@ -344,6 +344,48 @@ Notes:
 - **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B content inventory), so selectors targeting CTAs will match 2+ elements. For **form submit** actions (waitlist, signup), use `input.press("Enter")` instead of clicking the submit button — this binds to user intent and avoids ambiguous button selectors entirely. For **navigation CTAs** (links), use `.first()` on these selectors (e.g., `page.getByRole("link", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
 - **CTA selector role**: Landing page CTAs that navigate to another page use `<Button asChild><Link>`, which renders as `<a>` (role `"link"`). Use `getByRole("link")` for navigation CTAs. Use `getByRole("button")` only for CTAs that trigger actions (form submits, dialogs). Bootstrap determines the correct role by reading the actual page source.
 
+## Critical Flow Integration Tests
+
+When idea.yaml has `critical_flows`, bootstrap generates `tests/flows.test.ts` using vitest
+(installed alongside Playwright). These test operational chains at the API level — no browser needed.
+
+### `tests/flows.test.ts` — Integration tests for operational chains
+```ts
+import { describe, it, expect, beforeAll } from "vitest";
+
+// Bootstrap generates one describe block per critical_flow entry:
+
+// Example for a webhook flow:
+// describe("payment-fulfillment", () => {
+//   it("webhook updates invoice status and sends emails", async () => {
+//     // Setup: create a test invoice in database
+//     // Act: POST /api/webhooks/stripe with test payload
+//     // Assert: invoice status is 'paid' in database
+//     // Assert: email API was called (or queue has entries)
+//   });
+// });
+//
+// Example for a cron flow:
+// describe("overdue-reminder", () => {
+//   it("sends reminders for overdue invoices", async () => {
+//     // Setup: create overdue invoice in database
+//     // Act: GET /api/cron/reminders (or POST with cron secret)
+//     // Assert: nudge_sent_at is set
+//     // Assert: reminder email queued
+//   });
+// });
+```
+
+Notes:
+- Uses vitest, not Playwright — these are API-level integration tests
+- Each flow is independent — sets up its own test data, cleans up after
+- Webhook tests POST realistic payloads to the webhook endpoint
+- Cron tests call the cron endpoint directly
+- Admin tests call admin API endpoints (no browser, no login flow)
+- Skip tests when required env vars are missing (e.g., Stripe webhook secret)
+- These complement funnel tests: golden_path tests the customer journey (browser),
+  critical_flows tests the delivery chain (API)
+
 ## Environment Variables
 ```
 E2E_BASE_URL=http://localhost:3000  # Optional, defaults to localhost:3000

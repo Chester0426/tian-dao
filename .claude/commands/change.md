@@ -94,6 +94,10 @@ Present the plan using the format for the classified type:
 - Current: [show current golden_path from idea.yaml, or "not defined"]
 - After this change: [updated path if flow changes, or "unchanged"]
 
+**Critical Flows impact:**
+- Current: [show current critical_flows from idea.yaml, or "none defined"]
+- After this change: [new flow if adding webhook/admin/cron, or "unchanged"]
+
 **Questions:**
 - [any ambiguities, or "None"]
 - [if new library needed: "This feature needs [library]. Should I add it?"]
@@ -191,7 +195,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 
 ### Step 5: Update specs (type-specific)
 
-- **Feature**: add the new feature to idea.yaml `features` list. Add any new pages to `pages` list. If the new feature changes the user journey (adds a page to the main flow, changes a CTA destination, or moves the value moment), update `golden_path` in idea.yaml accordingly. Do NOT remove or modify existing features or pages.
+- **Feature**: add the new feature to idea.yaml `features` list. Add any new pages to `pages` list. If the new feature changes the user journey (adds a page to the main flow, changes a CTA destination, or moves the value moment), update `golden_path` in idea.yaml accordingly. If the new feature adds a webhook handler, admin action, or background job, add a corresponding entry to `critical_flows` in idea.yaml. Do NOT remove or modify existing features or pages.
 - **Upgrade**: do NOT modify idea.yaml `features` (the feature already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
 - **Analytics**: if the user approved custom events, add them to `custom_events` in EVENTS.yaml following the `<object>_<action>` naming convention with all properties.
 - **Fix / Polish**: do NOT modify idea.yaml or EVENTS.yaml.
@@ -203,6 +207,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - If adding `payment` to idea.yaml `stack`: verify both `stack.auth` and `stack.database` are also present. If `stack.auth` is missing, stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
 - If the change requires a stack category whose library files don't exist yet (e.g., `payment: stripe` was just added to idea.yaml but `src/lib/stripe.ts` is missing): install the packages listed in the stack file's "Packages" section, create the library files from its "Files to Create" section, and add its environment variables to `.env.example` — before proceeding to routes and pages. If any install command fails, stop and show the error — the user must fix the environment issue, then retry the failed install command on this branch (do NOT re-run `/change`).
 - If `golden_path` was updated in Step 5 and `e2e/funnel.spec.ts` exists: update the funnel test to match the new golden_path. Read the new/modified page source for selectors. Do not rewrite unaffected test steps.
+- If `critical_flows` was updated in Step 5 and `tests/flows.test.ts` exists: add a new test case for the new flow. Read the API route source for the endpoint path and expected behavior. If `tests/flows.test.ts` does not exist and vitest is not installed, install vitest and create the file with the new test case. Do not modify existing test cases.
 - Wire analytics: every user action in the new feature must fire a tracked event
 - Create new pages following the framework stack file's file structure
 - Every new page: follow page conventions from the framework stack file, import tracking functions per the analytics stack file, fire appropriate EVENTS.yaml events

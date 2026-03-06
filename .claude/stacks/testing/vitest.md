@@ -236,6 +236,49 @@ describe("CLI smoke tests", () => {
 - Per-command tests run `<command> --help` and assert exit code 0 + command name in output
 - **Requires `npm run build` first** — tests run against compiled output in `dist/`. CI runs build before test.
 
+## Critical Flow Integration Tests
+
+When idea.yaml has `critical_flows`, bootstrap generates `tests/flows.test.ts` with one test per
+critical flow entry. These test operational chains at the API level.
+
+### `tests/flows.test.ts` — Integration tests for operational chains
+```ts
+import { describe, it, expect, beforeAll } from "vitest";
+
+// Bootstrap generates one describe block per critical_flow entry:
+
+// Example for a webhook flow:
+// describe("payment-fulfillment", () => {
+//   it("webhook updates invoice status and sends emails", async () => {
+//     // Setup: create a test invoice in database
+//     // Act: POST /api/webhooks/stripe with test payload
+//     // Assert: invoice status is 'paid' in database
+//     // Assert: email API was called (or queue has entries)
+//   });
+// });
+//
+// Example for a cron flow:
+// describe("overdue-reminder", () => {
+//   it("sends reminders for overdue invoices", async () => {
+//     // Setup: create overdue invoice in database
+//     // Act: GET /api/cron/reminders (or POST with cron secret)
+//     // Assert: nudge_sent_at is set
+//     // Assert: reminder email queued
+//   });
+// });
+```
+
+Notes:
+- Uses vitest — these are API-level integration tests (no browser needed)
+- Each flow is independent — sets up its own test data, cleans up after
+- Webhook tests POST realistic payloads to the webhook endpoint
+- Cron tests call the cron endpoint directly
+- Admin tests call admin API endpoints (no browser, no login flow)
+- Skip tests when required env vars are missing (e.g., Stripe webhook secret)
+- These complement golden_path funnel tests: golden_path tests the customer journey,
+  critical_flows tests the delivery chain
+- Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
+
 ## Patterns
 - **Colocate tests**: place `*.test.ts` files next to the code they test (e.g., `src/routes/health.test.ts`)
 - **Use framework test client**: prefer `app.request()` (Hono) or equivalent over `supertest` when available

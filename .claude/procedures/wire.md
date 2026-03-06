@@ -125,6 +125,23 @@ If `stack.testing` is present in idea.yaml:
 - Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
 - Add CI step per the testing stack file's "CI Integration" section
 
+### Step 7c: Critical flow integration tests (if critical_flows present in idea.yaml)
+
+If idea.yaml has `critical_flows`:
+- If vitest is not already installed (check `package.json` devDependencies): install `vitest`
+- Create `tests/flows.test.ts` with one test per critical_flow:
+  - Each test calls the relevant API endpoint(s) with test payloads
+  - Asserts the `verify` condition (database state, email queued, status updated)
+  - Tests are independent — each sets up its own state and cleans up
+- For webhook flows: POST to the webhook endpoint with a realistic test payload.
+  Guard the test with a check for required env vars (skip if missing).
+- For admin flows: call the admin API endpoint directly (no browser).
+- For cron flows: call the cron API endpoint directly.
+- Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
+- These tests are NOT run during bootstrap — only created (same as funnel tests)
+
+If idea.yaml has no `critical_flows`: skip this step entirely.
+
 NOTE: Tests are NOT run during bootstrap — only created
 
 If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
