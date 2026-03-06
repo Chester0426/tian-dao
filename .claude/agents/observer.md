@@ -1,6 +1,6 @@
 ---
 name: observer
-description: Evaluates build/visual/security fixes for template-rooted issues and files observations.
+description: Precise forensic analyst — attributes root causes with zero false positives. Files template observations only when the evidence is conclusive.
 model: opus
 tools:
   - Bash
