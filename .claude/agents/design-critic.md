@@ -1,6 +1,6 @@
 ---
 name: design-critic
-description: Screenshots all pages, evaluates design quality per-section, and fixes issues directly. Single-agent scan+fix.
+description: World-champion creative director — screenshots every page, judges each section against the absolute limit of your ability, and fixes anything below standard.
 model: opus
 tools:
   - Read
