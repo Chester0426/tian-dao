@@ -87,7 +87,8 @@ If `stack.testing` is present in idea.yaml:
   ```
 - If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
   - Read the funnel test template from the testing stack file
-  - Read idea.yaml pages and EVENTS.yaml to determine funnel sequence
+  - If idea.yaml has `golden_path`: use it as the funnel sequence. Each step with an `action` becomes a test step. Read actual page source files for selectors. Steps with `value_moment: true` get an additional assertion that the action produces a visible result (not just page load).
+  - If idea.yaml has no `golden_path`: fall back to reading idea.yaml pages and EVENTS.yaml to determine funnel sequence
   - Read actual page source files (created in Step 4) to extract real selectors
   - Generate tests: landing content → activate action (if applicable) → login → core value pages
   - For landing page CTA and success-message selectors, use `.first()` — the CTA appears at least twice on landing pages (messaging.md Section B), so selectors will match 2+ elements. Other pages have unique selectors and don't need `.first()`.

@@ -158,9 +158,14 @@ DO NOT write any code, create any files, or run any install commands during this
    - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
    - [For each payment_funnel event if stack.payment present, show: event_name on page/route]
 
-   **Golden Path (clicks-to-value):**
-   Landing -> [step] -> [step] -> [value moment]
-   Target: ≤ 3 clicks
+   **Golden Path (from idea.yaml):**
+   | Step | Page | Action | Event | Value Moment |
+   |------|------|--------|-------|--------------|
+   | 1 | [page] | [action] | [event] | [yes/no] |
+   Target: [target_clicks] clicks
+
+   If idea.yaml has no `golden_path` field: derive one from pages + EVENTS.yaml standard_funnel,
+   present it in the plan, and write it back to idea.yaml after approval (Step 7).
 
    **Activation mapping:**
    - idea.yaml primary_metric: [metric]
@@ -184,7 +189,7 @@ DO NOT write any code, create any files, or run any install commands during this
    DO NOT proceed to Phase 2 until the user explicitly replies with approval.
    If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification.
+7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in idea.yaml), write it back to `idea/idea.yaml` after approval.
 
 ## Phase 2: Implement (only after the user has approved)
 

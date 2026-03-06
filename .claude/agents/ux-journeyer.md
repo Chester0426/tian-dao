@@ -38,15 +38,15 @@ Run `npx playwright --version`. If it fails, return:
 - Read `EVENTS.yaml` — standard_funnel events (these define the expected journey steps)
 - Read `.claude/current-plan.md` if it exists — check for an explicit Golden Path field
 
-### 3. Derive Golden Path
+### 3. Read or Derive Golden Path
 
-From idea.yaml `pages` + EVENTS.yaml `standard_funnel`, construct the expected
-journey:
+If idea.yaml has a `golden_path` field: use it directly. Record the steps as the expected journey.
 
-**Landing** -> [signup if auth] -> [core page] -> [value moment]
+If idea.yaml has no `golden_path` field: derive from `pages` + EVENTS.yaml `standard_funnel`:
+Landing -> [signup if auth] -> [core page] -> [value moment].
 
-If `.claude/current-plan.md` has an explicit **Golden Path** field, use that
-instead of deriving one.
+If `.claude/current-plan.md` exists and has a Golden Path section that differs from idea.yaml,
+prefer idea.yaml (it's the persistent source of truth).
 
 Record the expected path as an ordered list of steps with expected routes.
 
@@ -69,7 +69,8 @@ Write an inline Playwright script that:
 1. Launches Chromium (headless)
 2. Starts at `/` (landing)
 3. At each step: finds the primary CTA, clicks it, records where it goes
-4. Tracks for each step:
+4. Compares actual navigation against golden_path steps — report deviations (e.g., "golden_path says landing -> signup, but CTA goes to /pricing")
+5. Tracks for each step:
    - Step number
    - Action taken (e.g., "Click 'Get Started'")
    - Source route

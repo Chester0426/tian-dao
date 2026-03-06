@@ -75,8 +75,18 @@ pages:
 
 
 
-
-
+# --- Golden Path ---
+# The user journey from landing to value moment. Drives ux-journeyer, funnel tests, and plan reviews.
+# Each step: page name (from pages list), user action, analytics event (from EVENTS.yaml), and whether it's the value moment.
+golden_path:
+  - page: landing
+    action: "TODO: What does the user click? (e.g., Click 'Get Started')"
+    event: visit_landing
+  - page: TODO
+    action: "TODO: What action delivers value?"
+    event: activate
+    value_moment: true
+target_clicks: 3
 
 # --- Features ---
 # List up to ~5 features. Each is a short description of one capability.
