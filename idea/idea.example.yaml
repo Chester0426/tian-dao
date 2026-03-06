@@ -64,6 +64,24 @@ pages:
   - name: settings
     purpose: Profile, business details, Stripe connection, account settings
 
+# --- Golden Path ---
+# The user journey from landing to value moment. Drives ux-journeyer, funnel tests, and plan reviews.
+golden_path:
+  - page: landing
+    action: Click "Start Invoicing Free"
+    event: visit_landing
+  - page: signup
+    action: Fill email + password, submit
+    event: signup_start
+  - page: dashboard
+    action: Click "New Invoice"
+    event: activate
+  - page: invoice-create
+    action: Fill line items, click "Send Invoice"
+    event: null
+    value_moment: true
+target_clicks: 4
+
 # --- Features ---
 features:
   - Create invoices with line items, tax, and due date
