@@ -82,6 +82,26 @@ golden_path:
     value_moment: true
 target_clicks: 4
 
+# --- Critical Flows (optional) ---
+# Operational chains beyond the customer funnel. Drives integration tests.
+critical_flows:
+  - name: payment-fulfillment
+    trigger: stripe webhook checkout.session.completed
+    actor: system
+    steps:
+      - "Update invoice status to paid in database"
+      - "Send payment confirmation email to freelancer"
+      - "Send receipt email to client"
+    verify: "invoices table has status='paid' AND 2 emails queued"
+  - name: overdue-reminder
+    trigger: cron daily
+    actor: cron
+    steps:
+      - "Query invoices past due date with status='sent'"
+      - "Send reminder email to client for each overdue invoice"
+      - "Update invoice nudge_sent_at timestamp"
+    verify: "overdue invoices have nudge_sent_at set AND reminder emails queued"
+
 # --- Features ---
 features:
   - Create invoices with line items, tax, and due date
