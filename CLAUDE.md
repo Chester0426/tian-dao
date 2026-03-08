@@ -62,6 +62,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Secrets go in environment variables, never in code
 - Validate and sanitize all user input with zod or similar
 - Add rate limiting to auth and payment API routes. See hosting stack file for deployment-specific constraints (e.g., serverless rate-limiting limitations).
+- Run `npm audit` before deploying — critical vulnerabilities must be acknowledged before going to production
 - Use database-level access control (e.g., RLS) for all data access — never trust the client. See database stack file for details.
 - Never expose database admin/service keys to the client
 - These rules are enforced by `.claude/patterns/security-review.md` during verification

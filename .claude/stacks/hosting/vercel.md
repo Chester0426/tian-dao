@@ -130,6 +130,28 @@ For auth and payment API routes:
 - If idea.yaml `stack` includes a rate-limiting service (e.g., Upstash), use that instead
 - Mention this limitation in the PR body so the user knows to address it before production
 
+## Security Headers
+
+Add a `vercel.json` with baseline security headers. These apply to all responses automatically.
+
+```json
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
+```
+
+- **CSP intentionally omitted** for MVPs — Content-Security-Policy breaks inline styles from UI libraries (shadcn, Tailwind) and analytics scripts (PostHog). Add CSP only when hardening for production with `/harden`.
+- Bootstrap should create `vercel.json` with these headers if it doesn't already exist. If `vercel.json` exists (e.g., for rewrites), merge the `headers` array.
+
 ## Patterns
 - Vercel auto-deploys to production when PRs are merged to `main` (requires GitHub integration)
 - Deploy with `npx vercel deploy --prod` for manual production deployments

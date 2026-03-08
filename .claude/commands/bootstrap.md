@@ -244,6 +244,10 @@ Spawn a subagent via Agent with:
 
 Wait for setup to complete before proceeding.
 
+Run `npm audit --audit-level=critical`. If critical vulnerabilities are found, warn:
+> "Critical npm vulnerabilities detected. Run `npm audit fix` after bootstrap completes."
+Continue regardless — this is non-blocking during bootstrap.
+
 ### Design Phase
 
 Spawn a subagent via Agent with:

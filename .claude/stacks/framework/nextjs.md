@@ -81,6 +81,28 @@ src/
 - Return `{ error: string }` with appropriate HTTP status codes on failure
 - Use try/catch, return user-friendly error messages
 
+## CORS Policy
+
+API routes use same-origin by default (no CORS headers needed for same-domain requests). When cross-origin access is required:
+
+- Set `ALLOWED_ORIGIN` env var to the specific origin (e.g., `https://app.example.com`)
+- Never use `Access-Control-Allow-Origin: *` on routes that require authentication
+- Apply CORS headers in the route handler:
+```ts
+const allowedOrigin = process.env.ALLOWED_ORIGIN;
+
+export async function OPTIONS() {
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": allowedOrigin ?? "",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+```
+- For MVP experiments, same-origin is almost always sufficient — add CORS only when a separate frontend or mobile app calls the API
+
 ## Data Fetching
 - Client-side: `fetch` in useEffect or SWR
 - Server-side (API routes): direct database calls via server client
