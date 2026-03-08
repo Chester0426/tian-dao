@@ -631,6 +631,159 @@ echo "hello"
 
 
 # ---------------------------------------------------------------------------
+# Check 54: Procedure Production Branch
+# ---------------------------------------------------------------------------
+
+
+class TestCheck54ProcedureProductionBranch:
+    def test_passes_with_production_branch(self):
+        files = {
+            "change-feature.md": "## Production\nWhen quality: production is set, use TDD.",
+            "change-upgrade.md": "## Production\nIf quality.*production, spawn agents.",
+            "change-fix.md": "## Production\nWhen quality: production, write regression test.",
+        }
+        errors = vs.check_54_procedure_production_branch(files)
+        assert errors == []
+
+    def test_fails_without_production_branch(self):
+        files = {
+            "change-feature.md": "## Steps\nBuild the feature.",
+        }
+        errors = vs.check_54_procedure_production_branch(files)
+        assert len(errors) == 1
+        assert "change-feature.md" in errors[0]
+
+    def test_skips_non_target_procedures(self):
+        files = {
+            "change-other.md": "No production branch here.",
+        }
+        errors = vs.check_54_procedure_production_branch(files)
+        assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Check 55: Production References TDD
+# ---------------------------------------------------------------------------
+
+
+class TestCheck55ProductionReferencesTdd:
+    def test_passes_with_tdd_reference(self):
+        files = {
+            "change-feature.md": "When quality: production, follow patterns/tdd.md.",
+        }
+        errors = vs.check_55_production_references_tdd(files)
+        assert errors == []
+
+    def test_fails_without_tdd_reference(self):
+        files = {
+            "change-feature.md": "When quality: production, write some tests.",
+        }
+        errors = vs.check_55_production_references_tdd(files)
+        assert len(errors) == 1
+        assert "tdd.md" in errors[0]
+
+    def test_skips_without_production_section(self):
+        files = {
+            "change-feature.md": "Build the feature normally.",
+        }
+        errors = vs.check_55_production_references_tdd(files)
+        assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Check 56: Production References Implementer
+# ---------------------------------------------------------------------------
+
+
+class TestCheck56ProductionReferencesImplementer:
+    def test_passes_with_implementer_reference(self):
+        files = {
+            "change-feature.md": "When quality: production, use agents/implementer.md.",
+        }
+        errors = vs.check_56_production_references_implementer(files)
+        assert errors == []
+
+    def test_passes_with_implementer_agent_text(self):
+        files = {
+            "change-upgrade.md": "When quality: production, spawn implementer agents.",
+        }
+        errors = vs.check_56_production_references_implementer(files)
+        assert errors == []
+
+    def test_fails_without_implementer_reference(self):
+        files = {
+            "change-feature.md": "When quality: production, build things.",
+        }
+        errors = vs.check_56_production_references_implementer(files)
+        assert len(errors) == 1
+        assert "implementer" in errors[0]
+
+    def test_skips_fix_procedure(self):
+        files = {
+            "change-fix.md": "When quality: production, write regression test.",
+        }
+        errors = vs.check_56_production_references_implementer(files)
+        assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Check 57: Change Production Precondition
+# ---------------------------------------------------------------------------
+
+
+class TestCheck57ChangeProductionPrecondition:
+    def test_passes_with_testing_validation(self):
+        content = "If quality: production is set, verify stack.testing is present."
+        errors = vs.check_57_change_production_precondition(content)
+        assert errors == []
+
+    def test_fails_without_testing_validation(self):
+        content = "If quality: production is set, spawn implementer agents."
+        errors = vs.check_57_change_production_precondition(content)
+        assert len(errors) == 1
+        assert "stack.testing" in errors[0]
+
+    def test_skips_without_production_block(self):
+        content = "Build the feature normally."
+        errors = vs.check_57_change_production_precondition(content)
+        assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Check 58: Agent Tool Consistency
+# ---------------------------------------------------------------------------
+
+
+class TestCheck58AgentToolConsistency:
+    def test_passes_with_correct_tools(self):
+        implementer = "---\ntools:\n  - Read\n  - Edit\n  - Write\n  - Bash\n  - Glob\n  - Grep\ndisallowedTools: []\n---\nContent."
+        reviewer = "---\ntools:\n  - Read\n  - Glob\n  - Grep\ndisallowedTools:\n  - Edit\n  - Write\n  - NotebookEdit\n---\nContent."
+        files = {
+            "implementer.md": implementer,
+            "spec-reviewer.md": reviewer,
+        }
+        errors = vs.check_58_agent_tool_consistency(files)
+        assert errors == []
+
+    def test_fails_implementer_missing_tool(self):
+        content = "---\ntools:\n  - Read\n  - Glob\ndisallowedTools: []\n---\nContent."
+        errors = vs.check_58_agent_tool_consistency({"implementer.md": content})
+        assert len(errors) >= 1
+        assert any("Edit" in e or "Write" in e or "Bash" in e for e in errors)
+
+    def test_fails_reviewer_has_write_tool(self):
+        content = "---\ntools:\n  - Read\n  - Edit\n  - Glob\ndisallowedTools: []\n---\nContent."
+        errors = vs.check_58_agent_tool_consistency({"spec-reviewer.md": content})
+        assert len(errors) >= 1
+        assert any("spec-reviewer" in e for e in errors)
+
+    def test_skips_unknown_agents(self):
+        content = "---\ntools:\n  - Read\ndisallowedTools: []\n---\nContent."
+        errors = vs.check_58_agent_tool_consistency({"other-agent.md": content})
+        assert errors == []
+
+
+# ---------------------------------------------------------------------------
 # Subprocess integration test — runs the full validator
 # ---------------------------------------------------------------------------
 

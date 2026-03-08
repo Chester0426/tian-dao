@@ -919,6 +919,113 @@ def check_53_supabase_delete_flag(file_contents: dict[str, str]) -> list[str]:
     return errors
 
 
+def check_54_procedure_production_branch(procedure_files: dict[str, str]) -> list[str]:
+    """Check 54: Procedure files for Feature/Upgrade/Fix have production branches."""
+    errors: list[str] = []
+    target_procedures = {"change-feature.md", "change-upgrade.md", "change-fix.md"}
+    for path, content in procedure_files.items():
+        basename = os.path.basename(path)
+        if basename not in target_procedures:
+            continue
+        if not re.search(r"quality:\s*production|quality.*production", content):
+            errors.append(
+                f"[54] {path}: procedure file missing production branch "
+                f"(expected 'quality: production' or 'quality.*production')"
+            )
+    return errors
+
+
+def check_55_production_references_tdd(procedure_files: dict[str, str]) -> list[str]:
+    """Check 55: Production sections in procedure files reference TDD."""
+    errors: list[str] = []
+    target_procedures = {"change-feature.md", "change-upgrade.md", "change-fix.md"}
+    for path, content in procedure_files.items():
+        basename = os.path.basename(path)
+        if basename not in target_procedures:
+            continue
+        # Find production sections (content after quality: production mention)
+        prod_match = re.search(r"quality.*production", content, re.IGNORECASE)
+        if not prod_match:
+            continue
+        prod_content = content[prod_match.start():]
+        if not re.search(r"tdd\.md|patterns/tdd", prod_content):
+            errors.append(
+                f"[55] {path}: production section does not reference tdd.md"
+            )
+    return errors
+
+
+def check_56_production_references_implementer(procedure_files: dict[str, str]) -> list[str]:
+    """Check 56: Production sections reference implementer agent.
+
+    Only checks feature and upgrade procedures — fix uses a simpler single-task
+    TDD path (regression test + minimal fix) without implementer agents.
+    """
+    errors: list[str] = []
+    target_procedures = {"change-feature.md", "change-upgrade.md"}
+    for path, content in procedure_files.items():
+        basename = os.path.basename(path)
+        if basename not in target_procedures:
+            continue
+        prod_match = re.search(r"quality.*production", content, re.IGNORECASE)
+        if not prod_match:
+            continue
+        prod_content = content[prod_match.start():]
+        if not re.search(r"implementer\.md|agents/implementer|implementer agent", prod_content):
+            errors.append(
+                f"[56] {path}: production section does not reference implementer agent"
+            )
+    return errors
+
+
+def check_57_change_production_precondition(change_content: str) -> list[str]:
+    """Check 57: change.md production block validates stack.testing."""
+    errors: list[str] = []
+    # Find production quality block
+    prod_match = re.search(r"quality.*production", change_content, re.IGNORECASE)
+    if not prod_match:
+        return errors  # No production block — check doesn't apply
+    # Check that stack.testing is validated near the production block
+    prod_context = change_content[max(0, prod_match.start() - 200):prod_match.end() + 500]
+    if not re.search(r"stack\.testing", prod_context):
+        errors.append(
+            "[57] change.md: quality:production block does not validate stack.testing"
+        )
+    return errors
+
+
+def check_58_agent_tool_consistency(agent_files: dict[str, str]) -> list[str]:
+    """Check 58: Agent tool declarations are consistent with their roles."""
+    errors: list[str] = []
+    for path, content in agent_files.items():
+        basename = os.path.basename(path)
+        fm = parse_frontmatter_from_content(content)
+        if not fm:
+            continue
+        tools = fm.get("tools", []) or []
+        disallowed = fm.get("disallowedTools", []) or []
+
+        if basename == "implementer.md":
+            for required in ["Edit", "Write", "Bash"]:
+                if required not in tools:
+                    errors.append(
+                        f"[58] {path}: implementer agent missing required tool '{required}'"
+                    )
+
+        if basename == "spec-reviewer.md":
+            for forbidden in ["Edit", "Write"]:
+                if forbidden in tools:
+                    errors.append(
+                        f"[58] {path}: spec-reviewer agent has write tool '{forbidden}' "
+                        f"but should be read-only"
+                    )
+                if forbidden not in disallowed:
+                    errors.append(
+                        f"[58] {path}: spec-reviewer agent should disallow '{forbidden}'"
+                    )
+    return errors
+
+
 def main() -> int:
     """Run all semantic checks. Returns exit code (0=pass, 1=fail)."""
     global ERRORS
@@ -2782,6 +2889,49 @@ def main() -> int:
             all_file_contents_53[sf] = f.read()
     for e in check_53_supabase_delete_flag(all_file_contents_53):
         error(e)
+
+    # ---------------------------------------------------------------------------
+    # Check 54-56: Production Path Consistency in Procedure Files
+    # ---------------------------------------------------------------------------
+
+    procedure_contents: dict[str, str] = {}
+    for pf in glob.glob(".claude/procedures/*.md"):
+        if os.path.isfile(pf):
+            with open(pf) as f:
+                procedure_contents[pf] = f.read()
+
+    if procedure_contents:
+        for e in check_54_procedure_production_branch(procedure_contents):
+            error(e)
+        for e in check_55_production_references_tdd(procedure_contents):
+            error(e)
+        for e in check_56_production_references_implementer(procedure_contents):
+            error(e)
+
+    # ---------------------------------------------------------------------------
+    # Check 57: change.md Production Precondition Checks Testing
+    # ---------------------------------------------------------------------------
+
+    change_path_57 = ".claude/commands/change.md"
+    if os.path.isfile(change_path_57):
+        with open(change_path_57) as f:
+            change_content_57 = f.read()
+        for e in check_57_change_production_precondition(change_content_57):
+            error(e)
+
+    # ---------------------------------------------------------------------------
+    # Check 58: Agent Tool Consistency
+    # ---------------------------------------------------------------------------
+
+    agent_contents: dict[str, str] = {}
+    for af in glob.glob(".claude/agents/*.md"):
+        if os.path.isfile(af):
+            with open(af) as f:
+                agent_contents[af] = f.read()
+
+    if agent_contents:
+        for e in check_58_agent_tool_consistency(agent_contents):
+            error(e)
 
     # ---------------------------------------------------------------------------
     # Summary

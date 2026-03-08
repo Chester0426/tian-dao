@@ -2,16 +2,15 @@
 
 Improvements identified by 5-agent first-principles analysis (2026-03-08) but deferred from the world-champion PR. Each item is independent and can be implemented as a standalone PR.
 
-## 1. Dimension D: Production Path Consistency
-**Priority:** HIGH | **Effort:** Medium | **Trigger:** After quality:production sees real usage
+## 1. ~~Dimension D: Production Path Consistency~~ — COMPLETED
+**Status:** Implemented as validator checks 54-58 (not LLM dimension) — structural invariants are better caught by regex than LLM.
 
-Add a 4th review dimension focused on detecting drift between MVP and production execution paths in /change. The two paths (quality absent vs quality: production) are tightly coupled but reviewed independently. Dimension D would:
-- Read change.md MVP + production branches
-- Read procedure files (change-feature.md, change-upgrade.md, change-fix.md)
-- Read agent definitions (implementer.md, spec-reviewer.md)
-- Find: preconditions present in MVP but missing in production (or vice versa), agent spawn parameters inconsistent with skill expectations, TDD path missing coverage for a change type
-
-**Why deferred:** Would push review.md past 450 lines. Better as a separate procedure file (`.claude/procedures/review-dimension-d.md`) referenced by review.md — follows the same decomposition pattern used for /change.
+Checks added to `validate-semantics.py`:
+- **Check 54:** Procedure files have production branch
+- **Check 55:** Production sections reference TDD
+- **Check 56:** Production sections reference implementer (feature/upgrade only — fix uses simpler single-task TDD)
+- **Check 57:** change.md production block validates `stack.testing`
+- **Check 58:** Agent tool declarations match roles (implementer has write tools, spec-reviewer is read-only)
 
 ## 2. Validator Self-Tests
 **Priority:** HIGH | **Effort:** Medium
