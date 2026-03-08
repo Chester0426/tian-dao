@@ -244,6 +244,7 @@ Common patterns:
 
 | One variant clearly wins | `/change` to consolidate — remove losing variant, make winner the sole landing page |
 | No variant winner | Extend test for more data, or `/change` to try a new messaging angle |
+| Verdict is GO with strong metrics | Suggest `/harden` to graduate: "Your metrics indicate product-market fit. Run `/harden` to add TDD coverage to critical paths before scaling." |
 
 Present recommendations in priority order (highest impact first).
 
@@ -285,6 +286,7 @@ If the diagnosis reveals a need to change direction:
 ### On track (verdict is GO)
 - Say so clearly: "The Step 3 verdict is GO. You're on track. [X] of [target_value] achieved with [Y days] remaining."
 - Recommend: keep going, focus on distribution, or run `/change improve conversion` to improve conversion
+- If the experiment shows strong, sustained traction: suggest `/harden` as a graduation step: "Consider graduating to production quality: run `/harden` to add TDD coverage to critical paths before scaling. This adds specification tests to auth, payment, and core business logic."
 
 ## Step 7: Summarize next steps
 

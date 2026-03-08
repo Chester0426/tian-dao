@@ -60,6 +60,9 @@ State the classification before proceeding: "I'm treating this as a **[type]** c
 - If `$ARGUMENTS` mentions payment or the change will add `payment` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Payment requires authentication. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Payment requires a database. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
 - If `$ARGUMENTS` mentions email or the change will add `email` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Email requires a database to track user activation status. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
 - If `testing` is present in idea.yaml `stack` and the classified type is NOT Test: read the testing stack file's `assumes` list and verify each `category/value` pair against idea.yaml `stack`. If any assumption is unmet, stop: "Your testing setup assumes [unmet dependencies]. Tests will break. Run '/change fix test configuration' first, or remove 'testing' from idea.yaml 'stack'."
+- If `quality: production` is set in idea.yaml AND change type is Feature, Fix, or Upgrade:
+  * Verify `stack.testing` is present in idea.yaml
+  * If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to idea.yaml `stack`, or remove `quality: production` for MVP mode."
 - If classified as Test type: check archetype compatibility first — if archetype is `service` or `cli` and `stack.testing` is `playwright`, stop: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` instead." Then read the testing stack file's `assumes` list and check each `category/value` against idea.yaml `stack` (per bootstrap's validation approach: the value must match, not just the category). Record the result — this determines the template path reported in the plan.
 - If classified as Upgrade: scan for a Fake Door or stub related to the feature described in `$ARGUMENTS`. Where to scan depends on the archetype: web-app → scan `src/app/` for a Fake Door component (`fake_door: true` in a `track()` call) or a stub route (501/503); service → scan route handlers (path per framework stack file) for a stub route (501/503 with `"Service not configured"`); cli → scan `src/commands/` for a stub command (prints "Coming soon" or exits with error). If neither a Fake Door nor a stub is found, reclassify as Feature and tell the user: "No Fake Door or stub found for this feature — treating as a new Feature instead."
 
@@ -204,6 +207,15 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 ### Step 6: Make changes (type-specific)
 
 #### Feature constraints
+- If `quality: production` is set in idea.yaml:
+  1. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity
+  2. Analyze task dependency graph per `patterns/tdd.md` § Task Dependency Ordering:
+     - Independent tasks → spawn implementer agents in parallel (isolation: "worktree")
+     - Dependent tasks (B imports A) → sequential execution
+     - Tell user: "N tasks, M parallel / K sequential"
+  3. For each task: spawn implementer agent (`agents/implementer.md`, isolation: "worktree") → specification test (RED) → minimal code (GREEN) → refactor → commit
+  4. Merge worktree changes, continue to Step 7
+- If `quality` is absent or `mvp` (default):
 - If adding `payment` to idea.yaml `stack`: verify both `stack.auth` and `stack.database` are also present. If `stack.auth` is missing, stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
 - If the change requires a stack category whose library files don't exist yet (e.g., `payment: stripe` was just added to idea.yaml but `src/lib/stripe.ts` is missing): install the packages listed in the stack file's "Packages" section, create the library files from its "Files to Create" section, and add its environment variables to `.env.example` — before proceeding to routes and pages. If any install command fails, stop and show the error — the user must fix the environment issue, then retry the failed install command on this branch (do NOT re-run `/change`).
 - If `golden_path` was updated in Step 5 and `e2e/funnel.spec.ts` exists: update the funnel test to match the new golden_path. Read the new/modified page source for selectors. Do not rewrite unaffected test steps.
@@ -223,6 +235,15 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - Sub-step 6b — Client/output layer (pages/endpoints/commands, components if applicable, analytics wiring)
 
 #### Upgrade constraints
+- If `quality: production` is set in idea.yaml:
+  1. Generate TDD tasks for the integration per `patterns/tdd.md`:
+     - Credential storage/retrieval
+     - Webhook signature validation (if applicable)
+     - Error recovery (timeout, rate limit, invalid response)
+     - Happy path end-to-end
+  2. Spawn implementer agents (same procedure as Feature production path)
+  3. Continue to Step 7
+- If `quality` is absent or `mvp` (default):
 - Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as described in `.claude/procedures/scaffold-externals.md` (Step 6)
 - Replace the Fake Door component with real UI that calls the actual API route
 - Replace any stub route (501/503) with the full integration logic using the service's API
@@ -232,6 +253,12 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - Verify the end-to-end user flow after the upgrade: UI → API route → external service
 
 #### Fix constraints
+- If `quality: production` is set in idea.yaml:
+  1. Write regression test demonstrating the bug (fails on current code) per `patterns/tdd.md` § Regression Tests
+  2. Fix root cause (minimal change)
+  3. Verify test passes
+  4. Continue to Step 7
+- If `quality` is absent or `mvp` (default):
 - Make the minimal change needed — smaller diffs are easier to review
 - Fix only the root cause, no refactoring of surrounding code
 - If the fix touches auth or payment code: add or update a test (per CLAUDE.md Rule 4)
@@ -288,6 +315,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - **Fix**: trace the bug report's user flow through code to confirm it's fixed.
   - **Polish**: open each changed file and confirm analytics imports and event calls are intact.
   - **Analytics**: re-trace each standard funnel event through the code to confirm it now fires correctly.
+  - **Production quality (if `quality: production`)**: verify.md spawns all agents (existing 5 + spec-reviewer). Pass idea.yaml + `.claude/current-plan.md` to spec-reviewer.
   - **Test**: verify test discovery works by running the testing stack file's test command in dry-run/list mode (e.g., `npx playwright test --list` for Playwright, `npx vitest run --reporter=verbose` for Vitest). If test discovery fails, treat it as a build error — fix the test files and re-run. If still failing after the verify.md retry budget, report to the user with the error output.
   - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `idea/idea.yaml`. Verify implementation matches the archetype's primary units:
     - If archetype requires `pages`: confirm `src/app/<page-name>/page.tsx` exists for each page in idea.yaml `pages`
@@ -309,7 +337,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
   - **Checklist — Verification**: fill in design-critic, ux-journeyer, and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
-- Delete `.claude/current-plan.md` — the plan is now captured in the PR description.
+- Delete `.claude/current-plan.md` — the plan is now captured in the PR description. Note: this deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
 - Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."
 
 ## Do NOT

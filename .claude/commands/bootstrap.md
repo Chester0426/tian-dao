@@ -66,6 +66,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
    - If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
+   - If `quality: production` is set in idea.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to idea.yaml `stack`."
    - If `variants` is present in idea.yaml, validate the variants list:
      - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
      - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
@@ -209,7 +210,13 @@ prompt tells them WHICH files to read and WHAT to do.
 
 Before spawning any subagents, the lead performs user-interactive checks:
 
-1. **TSP-LSP check**: Run `which typescript-language-server`. If found, record
+1. **Production quality check**: If `quality: production` is set in idea.yaml, pass this flag to each scaffold-* agent prompt: "quality: production is set. Generate tests alongside each file you create." Agent test ownership:
+   - scaffold-setup: create testing config (playwright.config.ts or vitest.config.ts)
+   - scaffold-libs: generate unit tests for utility functions alongside library code
+   - scaffold-pages: generate page-load smoke tests (same as MVP, but more thorough)
+   - scaffold-wire: run test discovery checkpoint (`npx playwright test --list` or vitest equivalent)
+
+2. **TSP-LSP check**: Run `which typescript-language-server`. If found, record
    `tsp_status: "available"`. If not found, tell the user:
    > `typescript-language-server` is not installed globally. It gives subagents
    > real-time type checking during code generation. Install with:
@@ -388,3 +395,6 @@ The lead executes wire.md Step 9 directly:
 - Include completion reports from all subagents for PR body context
 - Delete `.claude/current-plan.md` and `.claude/current-visual-brief.md`
 - Report the PR URL to the user
+
+If `quality: production` is set in idea.yaml, add to the user message:
+> "Bootstrap complete with production quality mode. Run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."

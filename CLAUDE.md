@@ -10,7 +10,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - If a page isn't listed in `pages` (web-app) or an endpoint isn't listed in `endpoints` (service), don't create it
 - If you're unsure whether something is in scope, it isn't
 - To add a new feature, use the /change skill — it updates idea.yaml first, then implements
-- When asked to do something outside a defined skill (/bootstrap, /change, /deploy, /distribute, /iterate, /retro, /review, /teardown, /verify), ask the user to clarify before proceeding
+- When asked to do something outside a defined skill (/bootstrap, /change, /deploy, /distribute, /harden, /iterate, /retro, /review, /teardown, /verify), ask the user to clarify before proceeding
 
 ## Rule 1: PR-First Workflow
 - Never commit directly to `main`
@@ -42,6 +42,11 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 ## Rule 4: Keep It Minimal
 - Prefer well-known libraries over custom code
 - Bootstrap creates page-load smoke tests when `stack.testing` is present. Use `/change` for full funnel tests and `/verify` to run tests and fix failures. No additional tests except for auth and payment flows. Exception: if a feature contains non-trivial business logic (calculations, state machines, multi-step workflows), add unit tests for that logic. This is rare in first MVPs — if you're writing complex algorithms, consider whether you're overbuilding.
+- When `quality: production` is set in idea.yaml:
+  - Business logic (calculations, state machines, data mutations, auth, payment) MUST have specification tests (see `patterns/tdd.md`)
+  - Every /change Feature, Fix, or Upgrade spawns implementer agents (see `agents/implementer.md`) with task dependency ordering
+  - /verify adds spec-reviewer as 6th parallel agent (see `agents/spec-reviewer.md`)
+  - `quality: production` requires `stack.testing` — /change and /bootstrap will stop if testing stack is absent
 - No abstraction layers unless there's concrete duplication (3+ copies)
 - Ship the simplest thing that works
 - No premature optimization — no caching, no memoization, no lazy loading unless there's a measured problem

@@ -69,7 +69,14 @@ Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No add
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). No additional context needed.
 
-**Wait for all five agents to complete before continuing.**
+### spec-reviewer (if `quality: production` in idea.yaml)
+
+Read `idea/idea.yaml`. If `quality` field is set to `production`:
+Spawn a `general-purpose` agent. Pass: "Read `.claude/agents/spec-reviewer.md` and execute all checks. Read `idea/idea.yaml` and `.claude/current-plan.md` (if it exists) as input. Return the output contract table and verdict."
+
+If `quality` is absent or not `production`, skip this agent.
+
+**Wait for all agents to complete before continuing.**
 
 ## Merge Security Results
 
