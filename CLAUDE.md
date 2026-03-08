@@ -65,6 +65,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Use database-level access control (e.g., RLS) for all data access — never trust the client. See database stack file for details.
 - Never expose database admin/service keys to the client
 - These rules are enforced by `.claude/patterns/security-review.md` during verification
+- Follow `.claude/patterns/incident-response.md` for production incidents and secret rotation
 
 ## Rule 7: File Conventions
 ```

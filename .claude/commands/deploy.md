@@ -420,6 +420,10 @@ Print a deployment summary:
 1. The surface is now deployed, but the CLI binary is NOT published yet. Publish via `npm publish` (to npm registry) or create a GitHub Release for binary distribution. See `.claude/archetypes/cli.md` for details.
 2. After publishing and collecting usage data, run `/iterate` to analyze metrics and decide what to change
 3. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources (surface infrastructure)
+
+**If something goes wrong after deploy:**
+- Run `/rollback` to revert to the previous deployment (hosting only — does not affect database)
+- For data issues: see `.claude/patterns/incident-response.md`
 ```
 
 ### Write deploy manifest
