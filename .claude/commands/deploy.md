@@ -29,6 +29,11 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
     `/deploy` is idempotent — re-running will reuse existing resources and update configuration.
     Reply **continue** to proceed, or run `/teardown` first to start fresh."
     Wait for user confirmation.
+3c. **Dependency audit:** Run `npm audit --audit-level=critical`. If critical vulnerabilities are found:
+    "Critical npm vulnerabilities detected:
+    <npm audit output>
+    Reply **continue** to deploy anyway, or fix vulnerabilities first with `npm audit fix`."
+    Wait for user confirmation. If no critical vulnerabilities, proceed silently.
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`:
    - Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
@@ -426,6 +431,16 @@ Print a deployment summary:
   3. Add a Trend insight: all standard_funnel events, daily, last 14 days, filtered by project_name.
 
 **Scheduled digest (recommended):** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
+
+**Monitoring setup** (recommended):
+- **Health check alerts:** Set up uptime monitoring for `https://<canonical_url>/api/health` using a free service (e.g., UptimeRobot, Better Stack). Alert on non-200 responses. Check interval: 5 minutes.
+- **Analytics digest:** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → every 3 days → add your email.
+- **Free tier quotas** (typical usage for MVPs with <1000 MAU):
+  - Vercel: 100GB bandwidth/month (free tier) — typical MVP uses <1GB
+  - Supabase: 500MB database, 1GB file storage, 50K monthly active users (free tier)
+  - PostHog: 1M events/month (free tier) — typical MVP generates <10K/month
+  - Stripe: no monthly fee, 2.9% + 30¢ per transaction
+  Monitor usage in each provider's dashboard. You'll receive email warnings before hitting limits.
 
 **Next steps** (all optional — pick what fits your experiment):
 [If web-app archetype]
