@@ -29,6 +29,18 @@ You are a world-champion of utility. Every page you create should make users fee
 - Import from `src/lib/events.ts` using function signatures derived from EVENTS.yaml (file created by libs subagent in parallel)
 - If `stack.analytics` is present: every page MUST fire its EVENTS.yaml events — no deferring
 
+## Utility Self-Check (verify before shipping each page)
+
+Before declaring a page done, self-score each section 1-10 on these dimensions.
+Any section below 8 on ANY dimension → rework before shipping.
+
+1. **Visual coherence** — same custom palette and typography as landing; 0 default unstyled components
+2. **Information hierarchy** — primary content is visually dominant; secondary content recedes; ≥2 distinct heading levels per page
+3. **Interaction completeness** — every async operation has loading state, every list has empty state, every interactive element has hover/focus feedback
+4. **Layout purpose** — no section is filler; each has a clear user task it serves
+5. **Component quality** — 0 raw HTML elements where a shadcn/ui component exists; all components use project theme tokens
+6. **Functional animation** — skeleton loaders for data, state transitions for toggles/modals; no static jumps between states
+
 ## Failure Handling
 
 - If a lib import is missing at write time: write the import anyway (libs agent runs concurrently — the file will exist at build time). Only report if the function signature in EVENTS.yaml is ambiguous.

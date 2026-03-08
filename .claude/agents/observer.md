@@ -92,7 +92,7 @@ If label "observation" doesn't exist, retry without `--label "observation"`.
 
 ## Constraints
 
-- **Best-effort.** Any failure -> skip silently. Never block.
+- **Best-effort.** Any failure in issue filing -> report findings for manual escalation (see output contract). Never block the parent workflow.
 - **Max 1 issue per session.** Multiple fixes -> combine into one issue.
 
 ## Output Contract
@@ -101,3 +101,4 @@ Return one of:
 - `"No template observations"`
 - `"Filed template observation: <issue-url>"`
 - `"Added comment to existing observation: <issue-url>"`
+- `"Cannot file observation (prerequisite unavailable): <one-line summary of finding>"` — use when the decision framework identified a template issue but `gh` auth, repo access, or another prerequisite failed. Include the template file name and symptom so the lead can manually file it.

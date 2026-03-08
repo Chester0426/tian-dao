@@ -89,37 +89,31 @@ Any Layer 1 failure → fix immediately before continuing to Layer 2.
 1-10 scale. The weakest section determines the page verdict. A page cannot hide
 mediocre social proof behind a great hero.
 
-**Landing page** — every section is judged as world champion of **persuasion**:
-1. Color direction — palette matches derived direction?
-2. Design philosophy — density/ornamentation matches?
-3. Optimization target — layout optimized for right goal?
-4. Custom palette — not default shadcn/tailwind colors?
-5. Typography — display + body font, clear hierarchy?
-6. Visual depth — meaningful animations, gradients, shadows, transitions?
-7. Composition — polished, invites engagement?
+**Universal criteria** (all pages, all sections):
+1. Custom palette — not default shadcn/tailwind colors, matches derived direction?
+2. Typography — display + body font pairing, clear size/weight hierarchy?
+3. Visual depth — meaningful animations, gradients, shadows, or transitions (not bare flat)?
+4. Spacing rhythm — consistent padding, margins, gaps across sections?
+5. Component quality — shadcn/ui components with project theming, no raw HTML?
+6. Composition — intentional layout hierarchy, polished arrangement?
 
-**Inner pages** — every section is judged as world champion of **utility**.
-When users open this page, they should feel surprise — "this is far better
-than I expected."
-1. Visual coherence — same custom palette and typography as landing?
-2. Spacing rhythm — consistent padding, margins, gaps?
-3. Information hierarchy — scannable layout, appropriate data density?
-4. Interaction quality — loading states, empty states, hover/focus feedback?
-5. Component completeness — shadcn/ui components, no raw HTML?
-6. Functional animations — skeleton loaders, state transitions?
-7. Layout purpose — clear hierarchy, intentional composition?
+**Landing page bonus criterion** — each section is also judged on **persuasion**:
+7. Conversion pull — does this section actively advance the visitor toward the CTA? (emotional hook, objection handling, urgency, social proof)
+
+**Inner page bonus criterion** — each section is also judged on **utility**:
+7. Task efficiency — does the layout minimize cognitive load for the user's goal? (scannable hierarchy, loading/empty states, hover/focus feedback)
 
 **All pages same standard.** Landing = world champion of persuasion, inner
 pages = world champion of utility. Neither is a lower bar.
 
 #### Layer 3: Anti-pattern Rejection (floor check)
 
-Any of these triggers automatic fix:
-- Landing page's only animation technique is fade-in / slide-up
-- All sections use the same centered-column layout pattern
-- Hero is plain text + button with no interactive element
-- All Card, Button, Badge components use unmodified shadcn default styling
-- Page scroll produces no visual events
+Any of these triggers automatic fix — each has a measurable threshold:
+- **Animation monotony** — ≥3 sections use the same animation technique (e.g., all fade-in/slide-up) → diversify animation types
+- **Layout monotony** — ≥3 sections share identical layout structure (e.g., all centered single-column) → introduce layout variation (grid, asymmetric, split, offset)
+- **Hero passivity** — hero contains 0 interactive or dynamic elements beyond a static button (no animation, no illustration, no gradient shift, no particle/shape) → add visual dynamism
+- **Default component styling** — ≥50% of Card/Button/Badge instances use unmodified shadcn defaults (no custom colors, borders, shadows, or size overrides) → apply project theme
+- **Scroll inertness** — page has 0 scroll-triggered visual events across all sections (no reveals, parallax, counters, sticky transforms) → add scroll interaction to ≥2 sections
 
 ### 6. Fix Below-Standard Sections
 

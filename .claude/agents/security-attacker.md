@@ -48,7 +48,13 @@ Look for tokens stored in `localStorage` (instead of httpOnly cookies), missing 
 
 ## Proof Requirement
 
-Each finding **must** include a `curl` command or concrete exploit steps that demonstrate the vulnerability. If you cannot construct a proof-of-concept, the finding is theoretical — downgrade to info severity or omit.
+Each finding **must** include one of the following proof types:
+
+1. **Curl exploit** — A runnable `curl` command (or sequence) that demonstrates the vulnerability against API routes or endpoints. Preferred for A1-A4 server-side findings.
+2. **Code inspection + logic proof** — Cite the exact file:line, quote the vulnerable code, and explain the logical chain from that code to exploitability. Valid for architectural issues where no single HTTP request triggers the flaw (e.g., A5 tokens in `localStorage`, missing `httpOnly` flags, overly permissive RLS policies visible only in migration files).
+3. **Step-by-step reproduction** — Numbered steps a human or automated tool would follow to exploit a multi-step attack (e.g., "1. Sign up as user A, 2. Copy session token, 3. Call /api/admin with that token, 4. Observe 200 response with admin data").
+
+**Guardrail:** If you cannot construct any of the three proof types above, the finding is theoretical — downgrade to **info** severity or omit entirely. A code smell without a demonstrable exploit path is not a finding.
 
 ## Anti-patterns (do NOT report)
 
