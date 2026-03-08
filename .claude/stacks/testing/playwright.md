@@ -10,6 +10,7 @@ files:
   - e2e/helpers.ts
   - e2e/smoke.spec.ts
   - e2e/funnel.spec.ts  # conditional: only when all assumes are met
+  - tests/flows.test.ts      # conditional: only when idea.yaml has critical_flows
 env:
   server: []
   client: []
@@ -359,7 +360,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 // describe("payment-fulfillment", () => {
 //   it("webhook updates invoice status and sends emails", async () => {
 //     // Setup: create a test invoice in database
-//     // Act: POST /api/webhooks/stripe with test payload
+//     // Act: POST /api/webhooks/payment with test payload
 //     // Assert: invoice status is 'paid' in database
 //     // Assert: email API was called (or queue has entries)
 //   });

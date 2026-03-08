@@ -7,6 +7,7 @@ files:
   - vitest.config.ts
   - tests/smoke.test.ts       # conditional: service archetype bootstrap smoke tests
   - tests/commands.test.ts    # conditional: cli archetype bootstrap smoke tests
+  - tests/flows.test.ts      # conditional: only when idea.yaml has critical_flows
 env:
   server: []
   client: []
@@ -251,7 +252,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 // describe("payment-fulfillment", () => {
 //   it("webhook updates invoice status and sends emails", async () => {
 //     // Setup: create a test invoice in database
-//     // Act: POST /api/webhooks/stripe with test payload
+//     // Act: POST /api/webhooks/payment with test payload
 //     // Assert: invoice status is 'paid' in database
 //     // Assert: email API was called (or queue has entries)
 //   });

@@ -88,7 +88,7 @@ API routes use same-origin by default (no CORS headers needed for same-domain re
 - Set `ALLOWED_ORIGIN` env var to the specific origin (e.g., `https://app.example.com`)
 - Never use `Access-Control-Allow-Origin: *` on routes that require authentication
 - Apply CORS headers in the route handler:
-```ts
+```typescript
 const allowedOrigin = process.env.ALLOWED_ORIGIN;
 
 export async function OPTIONS() {

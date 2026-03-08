@@ -318,6 +318,17 @@ When adding payment stack, verify that stack.database is also present.
         errors = vs.check_18_change_payment_database(content, "change.md")
         assert errors == []
 
+    def test_passes_with_database_check_in_preconditions(self):
+        content = """
+#### Feature constraints
+Follow the procedure.
+
+## Step 4: Check type-specific preconditions
+- If payment: verify stack.database is also present.
+"""
+        errors = vs.check_18_change_payment_database(content, "change.md")
+        assert errors == []
+
     def test_fails_without_database_check(self):
         content = """
 #### Feature constraints
