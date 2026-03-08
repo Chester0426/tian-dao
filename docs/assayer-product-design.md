@@ -237,7 +237,7 @@ Platform stack matches template stack — one framework, one mental model, one s
 
 | Category | Choice | Packages |
 |----------|--------|----------|
-| AI Model | Claude (Sonnet 4.6 daily, Opus 4.6 decisions) | `@anthropic-ai/sdk` |
+| AI Model | Claude Opus 4.6 (default for all calls) | `@anthropic-ai/sdk` |
 
 ### Layer 2b: Deferred (add when pain emerges)
 
@@ -476,11 +476,11 @@ Trigger: first experiment goes live with paid ads.
 | 2 | ~$75-115 | Vercel $20 + Cloud Run ~$10-50 + Sentry $26 + Supabase Pro $25 |
 | 3 | ~$200-500 | + Inngest $25 + Langfuse + Cloudflare $20 + more Cloud Run |
 
-Per-experiment AI cost: ~$3-15 (Sonnet for most calls, Opus only for final KILL/SCALE decisions — verify current pricing at anthropic.com/pricing).
+Per-experiment AI cost: ~$5-20 (Opus 4.6 default — verify current pricing at anthropic.com/pricing).
 
 ### AI Cost Management
 
-- Default all skill AI calls to Sonnet 4.6. Use Opus 4.6 only for `/iterate` final verdicts.
+- Default all skill AI calls to Opus 4.6.
 - Add per-experiment and per-user daily cost caps (tracked via `ai_usage` table in Phase 2).
 - Monitor: if AI costs exceed 60% of revenue, re-evaluate pricing or model selection.
 
