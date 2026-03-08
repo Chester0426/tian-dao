@@ -45,8 +45,8 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
 ## Parallel Review (after build passes)
 
-Spawn **five agents simultaneously** using parallel Agent tool calls. All five
-read already-built code and have no data dependencies on each other.
+Spawn **up to seven agents simultaneously** using parallel Agent tool calls. All
+agents read already-built code and have no data dependencies on each other.
 
 ### build-info-collector
 
@@ -72,6 +72,14 @@ Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No add
 ### ux-journeyer
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). No additional context needed.
+
+### performance-reporter (if archetype is `web-app`)
+
+Spawn the `performance-reporter` agent (`subagent_type: performance-reporter`). No additional context needed.
+
+### accessibility-scanner (if archetype is `web-app`)
+
+Spawn the `accessibility-scanner` agent (`subagent_type: accessibility-scanner`). No additional context needed.
 
 ### spec-reviewer (if `quality: production` in idea.yaml)
 
