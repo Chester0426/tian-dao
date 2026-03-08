@@ -14,10 +14,11 @@
 ## Implementation
 
 - If `quality: production` is set in idea.yaml:
-  1. Write regression test demonstrating the bug (fails on current code) per `patterns/tdd.md` § Regression Tests
-  2. Fix root cause (minimal change)
-  3. Verify test passes
-  4. Continue to Step 7
+  1. **ON-TOUCH check**: If `idea/on-touch.yaml` exists, check if any files affected by the fix are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing the fix. Remove the entry from `idea/on-touch.yaml` after tests are added.
+  2. Write regression test demonstrating the bug (fails on current code) per `patterns/tdd.md` § Regression Tests
+  3. Fix root cause (minimal change)
+  4. Verify test passes
+  5. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - Make the minimal change needed — smaller diffs are easier to review
 - Fix only the root cause, no refactoring of surrounding code

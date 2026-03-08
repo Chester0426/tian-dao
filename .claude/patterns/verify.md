@@ -84,7 +84,7 @@ Spawn the `accessibility-scanner` agent (`subagent_type: accessibility-scanner`)
 ### spec-reviewer (if `quality: production` in idea.yaml)
 
 Read `idea/idea.yaml`. If `quality` field is set to `production`:
-Spawn a `general-purpose` agent. Pass: "Read `.claude/agents/spec-reviewer.md` and execute all checks. Read `idea/idea.yaml` and `.claude/current-plan.md` (if it exists) as input. Return the output contract table and verdict."
+Spawn the `spec-reviewer` agent (`subagent_type: spec-reviewer`). Pass: "Read `.claude/agents/spec-reviewer.md` and execute all checks. Read `idea/idea.yaml` and `.claude/current-plan.md` (if it exists) as input. Return the output contract table and verdict."
 
 If `quality` is absent or not `production`, skip this agent.
 

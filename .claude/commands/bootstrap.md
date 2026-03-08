@@ -64,10 +64,12 @@ DO NOT write any code, create any files, or run any install commands during this
    - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
    - If the archetype requires `commands` (cli): verify `commands` is a non-empty list
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
+   - For each category in the archetype's `excluded_stacks` list: if that category is present in idea.yaml `stack`, stop and tell the user: "The `<archetype>` archetype excludes `<category>`. Remove `<category>: <value>` from your idea.yaml `stack` section, or switch to a different archetype."
    - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
    - If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
    - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
+   - If `stack.testing` is `playwright` and archetype is `service` or `cli`: stop and tell the user: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` (or another server-side test runner) instead."
    - If `quality: production` is set in idea.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to idea.yaml `stack`."
    - If `variants` is present in idea.yaml, validate the variants list:
      - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)

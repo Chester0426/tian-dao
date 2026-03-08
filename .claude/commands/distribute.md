@@ -342,6 +342,7 @@ Only reached when:
 
 > Create the campaign manually using the config in `idea/ads.yaml`.
 > See the channel's stack file "Setup Instructions" section for step-by-step guidance.
+> The PR from Step 8 is ready to merge — it contains the distribution code (UTM capture, feedback widget, ads.yaml) independent of campaign creation. Merge it now, then create the campaign manually.
 
 ### 9g: Next steps
 

@@ -14,13 +14,14 @@
 ## Implementation
 
 - If `quality: production` is set in idea.yaml:
-  1. Generate TDD tasks for the integration per `patterns/tdd.md`:
+  1. **ON-TOUCH check**: If `idea/on-touch.yaml` exists, check if any files in the upgrade plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing upgrade code. Remove the entry from `idea/on-touch.yaml` after tests are added.
+  2. Generate TDD tasks for the integration per `patterns/tdd.md`:
      - Credential storage/retrieval
      - Webhook signature validation (if applicable)
      - Error recovery (timeout, rate limit, invalid response)
      - Happy path end-to-end
-  2. Spawn implementer agents (same procedure as Feature production path)
-  3. Continue to Step 7
+  3. Spawn implementer agents (same procedure as Feature production path)
+  4. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as described in `.claude/procedures/scaffold-externals.md` (Step 6)
 - Replace the Fake Door component with real UI that calls the actual API route
