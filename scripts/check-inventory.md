@@ -104,6 +104,13 @@ Two checks appear in both `validate-frontmatter.py` and `consistency-check.sh`:
 
 These overlaps are intentional — they catch different failure modes (metadata vs. content) and provide redundancy.
 
+## Self-Tests
+
+Validators are self-tested via `pytest scripts/`. Tests run in CI before validators execute.
+- `test_validate_frontmatter.py` — unit tests for all 11 frontmatter checks
+- `test_validate_semantics.py` — unit tests for 15 extracted check functions + subprocess integration test
+- `test_consistency_check.py` — subprocess tests for 6 consolidated consistency checks
+
 ## Pending
 
 | Name | Dimension | Target validator | Status |
