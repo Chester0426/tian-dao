@@ -77,117 +77,7 @@ State the classification before proceeding: "I'm treating this as a **[type]** c
 
 DO NOT write any code, create any files, or run any install commands during this phase.
 
-Present the plan using the format for the classified type:
-
-### Feature plan
-```
-## What I'll Add
-
-**Feature:** [description from $ARGUMENTS]
-**Complexity:** Simple (single layer) | Multi-layer (spans pages + API + DB)
-
-**New pages (if any):**
-- [Page Name] (/route) — [purpose]
-
-**Files I'll create or modify:**
-- [file] — [what changes]
-
-**New database tables (if any):**
-- [table] — stores [what]
-
-**New analytics events (if any):**
-- [event_name] — fires when [trigger]
-
-**Golden Path impact:**
-- Current: [show current golden_path from idea.yaml, or "not defined"]
-- After this change: [updated path if flow changes, or "unchanged"]
-
-**Critical Flows impact:**
-- Current: [show current critical_flows from idea.yaml, or "none defined"]
-- After this change: [new flow if adding webhook/admin/cron, or "unchanged"]
-
-**Questions:**
-- [any ambiguities, or "None"]
-- [if new library needed: "This feature needs [library]. Should I add it?"]
-```
-
-### Upgrade plan
-```
-## Upgrade: [feature name]
-
-**Current state:** Fake Door / Stub
-**Target state:** Full integration with [service name]
-**Credentials needed:** [env vars + how to obtain]
-
-**Files to modify:**
-- [file] — [what changes]
-
-**Analytics changes:** Remove `fake_door: true` from activate event (now fires as real activation)
-
-**Questions:**
-- [any ambiguities, or "None"]
-```
-
-### Fix plan
-```
-## Bug Diagnosis
-
-**Bug:** [description from $ARGUMENTS]
-**Root cause:** [why this happens]
-
-**Files affected:**
-- [file] — [what's wrong]
-
-**Fix approach:** [what you'll change, minimal diff]
-**Risk:** [what else could be affected, or "Low — isolated change"]
-```
-
-### Polish plan
-```
-## Planned Changes
-
-1. **[Page/Component]**: [what you'll change] — [why this improves things for target_user]
-2. ...
-```
-
-### Analytics plan
-```
-## Audit Report
-
-### Standard Funnel Events
-| Event | Expected Location | Status | Issue |
-|-------|-------------------|--------|-------|
-| [event from EVENTS.yaml] | [page] | ✅/❌/⚠️ | [issue or —] |
-
-### Custom Events
-| Event | Expected Location | Status | Issue |
-|-------|-------------------|--------|-------|
-| (from EVENTS.yaml custom_events) | ... | ... | ... |
-
-### Suggested Custom Events (if any)
-- [event_name] — fires when [trigger]
-```
-
-### Test plan
-```
-## Smoke Test Plan
-
-**Funnel Steps:**
-| # | Event | Route | Browser Actions | Selectors |
-|---|-------|-------|-----------------|-----------|
-| 1 | [event] | [route] | [actions] | [selectors from app code] |
-
-**Skipped:** retain_return (requires 24h delay)
-
-**Activation Detail:**
-- primary_metric: [from idea.yaml]
-- Activation test: [what the test will do]
-
-**Files to Create/Modify:**
-- [list of files]
-
-**Template path:** Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list unmet category/value pairs])
-```
+Present the plan using the template for the classified type from `.claude/procedures/change-plans.md`.
 
 ### STOP. End your response here. Say:
 > Does this plan look right? Reply **approve** to proceed, or tell me what to change.
@@ -212,64 +102,13 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 ### Step 6: Make changes (type-specific)
 
 #### Feature constraints
-- If `quality: production` is set in idea.yaml:
-  1. **ON-TOUCH check**: If `idea/on-touch.yaml` exists, check if any files in the implementation plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing new feature code. Remove the entry from `idea/on-touch.yaml` after tests are added.
-  2. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity
-  3. Analyze task dependency graph per `patterns/tdd.md` § Task Dependency Ordering:
-     - Independent tasks → spawn implementer agents in parallel (isolation: "worktree")
-     - Dependent tasks (B imports A) → sequential execution
-     - Tell user: "N tasks, M parallel / K sequential"
-  4. For each task: spawn implementer agent (`agents/implementer.md`, isolation: "worktree") → specification test (RED) → minimal code (GREEN) → refactor → commit
-  5. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
-  6. Continue to Step 7
-- If `quality` is absent or `mvp` (default):
-- If adding `payment` to idea.yaml `stack`: verify both `stack.auth` and `stack.database` are also present. If `stack.auth` is missing, stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
-- If the change requires a stack category whose library files don't exist yet (e.g., `payment: stripe` was just added to idea.yaml but `src/lib/stripe.ts` is missing): install the packages listed in the stack file's "Packages" section, create the library files from its "Files to Create" section, and add its environment variables to `.env.example` — before proceeding to routes and pages. If any install command fails, stop and show the error — the user must fix the environment issue, then retry the failed install command on this branch (do NOT re-run `/change`).
-- If `golden_path` was updated in Step 5 and `e2e/funnel.spec.ts` exists: update the funnel test to match the new golden_path. Read the new/modified page source for selectors. Do not rewrite unaffected test steps.
-- If `critical_flows` was updated in Step 5 and `tests/flows.test.ts` exists: add a new test case for the new flow. Read the API route source for the endpoint path and expected behavior. If `tests/flows.test.ts` does not exist and vitest is not installed, install vitest and create the file with the new test case. Do not modify existing test cases.
-- Wire analytics: every user action in the new feature must fire a tracked event
-- Create new pages following the framework stack file's file structure
-- Every new page: follow page conventions from the framework stack file, import tracking functions per the analytics stack file, fire appropriate EVENTS.yaml events
-
-> **STOP** — verify analytics before proceeding. Every new page must fire its events from EVENTS.yaml. Every user action in the new feature must have a tracking call. Do not proceed until confirmed. "I'll add analytics later" is not acceptable.
-
-- Create or modify API routes for any new mutations (see framework stack file for route conventions). Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
-- If database tables are needed: create a migration following the database stack file (next sequential number, `IF NOT EXISTS`), add TypeScript types, add post-merge instructions to PR body (CI auto-applies migrations on merge; otherwise `make migrate` or Supabase Dashboard). Note: concurrent branches may create conflicting migration numbers — resolve by renumbering the later-merged migration at merge time.
-- **If Multi-layer**: implement in two sub-steps with an intermediate build check:
-  - Sub-step 6a — Data and server layer (migrations, types, API routes)
-  - Re-read `.claude/current-plan.md` to confirm sub-step 6a output aligns with the approved plan.
-  - Checkpoint: run `npm run build`. Fix errors before proceeding. If still broken after 2 attempts, proceed to Sub-step 6b without retrying — Step 7 (verification) has its own 3-attempt retry budget.
-  - Sub-step 6b — Client/output layer (pages/endpoints/commands, components if applicable, analytics wiring)
+Follow the procedure in `.claude/procedures/change-feature.md`.
 
 #### Upgrade constraints
-- If `quality: production` is set in idea.yaml:
-  1. Generate TDD tasks for the integration per `patterns/tdd.md`:
-     - Credential storage/retrieval
-     - Webhook signature validation (if applicable)
-     - Error recovery (timeout, rate limit, invalid response)
-     - Happy path end-to-end
-  2. Spawn implementer agents (same procedure as Feature production path)
-  3. Continue to Step 7
-- If `quality` is absent or `mvp` (default):
-- Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as described in `.claude/procedures/scaffold-externals.md` (Step 6)
-- Replace the Fake Door component with real UI that calls the actual API route
-- Replace any stub route (501/503) with the full integration logic using the service's API
-- Remove `fake_door: true` from the `activate` event call — keep the same event name (`activate`) and `action` value for analytics continuity
-- Add the service's env vars to `.env.example`
-- Ask the user for credential values and add to `.env.local`
-- Verify the end-to-end user flow after the upgrade: UI → API route → external service
+Follow the procedure in `.claude/procedures/change-upgrade.md`.
 
 #### Fix constraints
-- If `quality: production` is set in idea.yaml:
-  1. Write regression test demonstrating the bug (fails on current code) per `patterns/tdd.md` § Regression Tests
-  2. Fix root cause (minimal change)
-  3. Verify test passes
-  4. Continue to Step 7
-- If `quality` is absent or `mvp` (default):
-- Make the minimal change needed — smaller diffs are easier to review
-- Fix only the root cause, no refactoring of surrounding code
-- If the fix touches auth or payment code: add or update a test (per CLAUDE.md Rule 4)
-- Check that analytics events on modified pages are still intact
+Follow the procedure in `.claude/procedures/change-fix.md`.
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
@@ -289,20 +128,7 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - Only add custom events the user explicitly approved
 
 #### Test constraints
-- If the testing stack file's configuration file already exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest — from bootstrap): do NOT recreate configuration, helper, or setup/teardown files. Only add or modify test case files. If the configuration file does NOT exist, follow the full setup procedure below.
-- Do NOT modify application code — tests observe the app, they don't change it
-- Install packages per the testing stack file, create config and helpers per the testing stack file templates
-- Test funnel happy path only — skip error states, edge cases, and `retain_return`
-- **If archetype is `web-app` (Playwright):**
-  - Read actual page source code for selectors — never guess
-  - Call `blockAnalytics(page)` in `beforeEach` to prevent analytics pollution. The default `blockAnalytics` route pattern targets PostHog — if the analytics provider is different, adapt the route pattern using the endpoint domain from the analytics stack file.
-  - For payment tests: use Stripe test card `4242424242424242`
-- **If archetype is `service` (vitest):** Generate tests using `app.request()` per the testing stack file's service smoke test template. No `blockAnalytics`, no page selectors, no browser interactions. For frameworks without `app.request()`, test handler functions directly.
-- **If archetype is `cli` (vitest):** Generate tests using `runCli()` per the testing stack file's CLI smoke test template. Test `--help` and each command's help output. No browser interactions.
-- Before applying testing stack file templates: read the testing stack file's `assumes` list. For each `category/value` entry, verify that idea.yaml `stack` has a matching `category: value` pair (e.g., `analytics/posthog` requires `stack.analytics: posthog`, not just that `analytics` is present). If ALL assumed dependencies match → use the full templates (global-setup/teardown, login helper, auth-based tests). If ANY assumed dependency is unmet → use the testing stack file's "No-Auth Fallback" section instead (no global-setup/teardown, no login helper, tests run as anonymous visitors). Document the chosen path in the PR body.
-- Update `.gitignore` and CI workflow per the testing stack file. If using the No-Auth Fallback path, **replace** the existing `e2e:` job in `.github/workflows/ci.yml` with the testing stack file's No-Auth CI Job Template — the pre-baked full-auth `e2e:` job uses local Supabase which is unnecessary for no-auth tests. Add env vars to `.env.example` based on the chosen template path (full or no-auth fallback), not solely from the frontmatter.
-- If `stack.payment` is present, uncomment payment-related env vars in the testing CI template when generating the CI job.
-- If using the No-Auth Fallback path and `stack.database` is present, uncomment database-related env vars (e.g., `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in the testing CI template when generating the CI job.
+Follow the procedure in `.claude/procedures/change-test.md`.
 
 > **CHECKPOINT — VERIFICATION GATE**
 > Implementation is complete. You MUST now execute Step 7 in full.
