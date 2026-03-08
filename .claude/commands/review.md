@@ -36,8 +36,11 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
   gh pr list --repo <template_repo> --state merged --search "Automated review-fix" --limit 1 --json number,body
   ```
   If found, extract the Precision Summary. Store as `prior_precision`.
-  If a dimension's precision was below 50% in the prior run, instruct that
-  dimension's agent to apply stricter self-filtering (top 3 findings instead of 5).
+  Use prior precision to coach each dimension's agent in Step 2a:
+  - If `disputed_rate` > 30%: add to prompt: "Prior review had high dispute rate — only report findings where the contradiction cannot be resolved by reading surrounding context."
+  - If `skipped_rate` > 20%: add to prompt: "Prior review had many unfixable findings — focus on findings directly fixable in a single PR."
+  - If `reverted_rate` > 20%: add to prompt: "Prior review had fixes that caused regressions — be conservative with fixes that touch cross-file invariants."
+  - If overall dimension precision < 50%: also reduce to top 3 findings instead of 5.
   If not found or command fails, set `prior_precision` to empty and continue.
 
 ## Step 1: Run baseline validators
@@ -94,6 +97,11 @@ Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
 - Glob `.claude/patterns/*.md` — read each pattern file
+- Glob `.claude/procedures/*.md` — read each procedure file
+- Glob `.claude/agents/*.md` — read each agent definition
+
+After reading: for each potential finding, identify which archetype and stack
+configuration triggers the contradiction. Record the config alongside the finding.
 
 **Dimension B: Edge Case Robustness**
 
@@ -108,6 +116,8 @@ Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
 - Glob `tests/fixtures/*.yaml` — read each test fixture
+- Glob `.claude/procedures/*.md` — read each procedure file
+- Glob `.claude/agents/*.md` — read each agent definition
 
 After reading: for each potential finding, identify the test fixture(s) whose
 `idea.stack` configuration matches the edge case (e.g., a finding about missing
@@ -128,6 +138,8 @@ Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
 - Glob `.claude/patterns/*.md` — read each pattern file
+- Glob `.claude/procedures/*.md` — read each procedure file
+- Glob `.claude/agents/*.md` — read each agent definition
 - Read `Makefile`
 
 After reading: trace the user journey for each archetype:
@@ -135,12 +147,16 @@ After reading: trace the user journey for each archetype:
 - service: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro` → `/teardown`
 - cli: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` (surface only) → `npm publish` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro`
 
+For each finding, record the archetype and fixture(s) whose config matches the
+dead-end scenario. If no fixture covers it, note "no fixture coverage."
+
 **Finding Format**
 
 Each subagent must use this format for findings:
 
 ```
 ### Finding N: <title>
+- **Severity**: HIGH (breaks execution) | MEDIUM (wrong output, confusing) | LOW (cosmetic, minor inconsistency)
 - **File(s)**: ...
 - **Issue**: ... (be specific — quote the conflicting text)
 - **Impact**: ... (what breaks or confuses the user)
@@ -178,14 +194,7 @@ Include these in each subagent prompt:
 3. **Zero findings is valid.** Say "No findings for this dimension" and summarize what was checked.
 4. **Self-review before presenting.** Merge proposed checks that cover the same invariant. Verify each finding against check-inventory.md one more time.
 5. **Concrete fixes only.** Every fix must be implementable in a single PR.
-
-**Observation backlog** (if `observation_backlog` is non-empty):
-Include the observation issue titles and root cause descriptions as additional
-review context for all three dimension agents. Each agent should check whether
-any of their findings overlap with an open observation. If a dimension agent's
-fix addresses an observation issue's root cause, note the issue number.
-
-On iteration 2+: include the list of seen finding signatures in the subagent prompt so they skip already-reported issues.
+6. **Self-filter by confidence.** For each candidate finding, estimate confidence: HIGH (can quote contradicting lines with file:line), MEDIUM (likely issue but needs adversarial check), LOW (suspicious pattern only). Include HIGH and MEDIUM findings. Drop LOW findings.
 
 After all 3 return: collect up to 15 findings, deduplicate.
 
@@ -256,7 +265,7 @@ If branch already exists from prior iteration, continue on it.
 
 #### 2e: Fix findings
 
-For each finding in priority order (confirmed first, then needs-evidence):
+For each finding in priority order: HIGH-severity confirmed, then MEDIUM confirmed, then LOW confirmed, then needs-evidence (by severity descending):
 
 1. Implement the fix
 2. If finding has a Proposed Check → implement it in the target validator
@@ -288,6 +297,8 @@ Emit a compact state summary and discard prior detail:
 - disputed_findings: [list of disputed finding signatures + one-line rationale]
 - finding_fates: [{signature, dimension, adversarial_label, fate}]
 - yield_rate: <fixed_count / (confirmed + needs-evidence count)>
+- yield_by_dimension: { A: <fixed/actionable>, B: <fixed/actionable>, C: <fixed/actionable> }
+- error_delta: <current error_count - prior iteration error_count>
 ```
 
 This summary is the only carry-forward state needed. Prior subagent results,
@@ -297,22 +308,26 @@ can be safely compressed.
 **MANDATORY LOOP GATE — evaluate before proceeding:**
 
 Compute this iteration's yield rate:
-- `yield` = (findings fixed this iteration) / (findings reported by subagents this iteration)
-- If no findings were reported, yield = 0
+- `yield` = (findings fixed this iteration) / (confirmed + needs-evidence this iteration)
+- Disputed findings are excluded from the denominator — they are adversarial successes, not signal failures
+- If denominator is 0, yield = 0
 - Append yield to `yield_history`
 
 Termination decision (evaluate in order — first match wins):
 
 1. **Minimum floor**: `iteration` < 2 → increment `iteration`, go to 2a NOW.
    (A single scan is never sufficient — fixes may introduce new issues.)
+   Exception: if `iteration` == 1 AND 0 findings were reported → proceed to Step 3.
+   (Template is clean; a second empty scan adds no value.)
 
 2. **Zero yield**: yield = 0 and no findings were fixed → proceed to Step 3.
 
-3. **Diminishing returns**: `iteration` ≥ 3 and yield < 0.25 → proceed to Step 3.
-   (Fewer than 1 in 4 reported findings actually got fixed — mostly noise.)
+3. **Regression trend**: `iteration` ≥ 2 and `error_delta` > 0 for 2 consecutive
+   iterations → proceed to Step 3.
+   (Error count rising across iterations signals cascading fix regressions.)
 
-4. **All disputed**: every finding this iteration was disputed by adversarial
-   agent → proceed to Step 3.
+4. **Diminishing returns**: `iteration` ≥ 3 and yield < 0.25 → proceed to Step 3.
+   (Fewer than 1 in 4 reported findings actually got fixed — mostly noise.)
 
 5. **Hard cap**: `iteration` ≥ 5 → proceed to Step 3.
 
