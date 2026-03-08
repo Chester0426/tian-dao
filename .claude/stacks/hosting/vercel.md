@@ -249,6 +249,12 @@ Returns JSON `{ status: "ok", ... }` with per-service checks.
 }
 ```
 
+### Rollback
+
+- **Command:** `vercel rollback`
+- **Dashboard:** Vercel → Deployments → "..." → "Promote to Production"
+- **Note:** Instant — no rebuild. Does NOT rollback database migrations.
+
 ### Compatibility
 
 - **incompatible_databases:** `[sqlite]`

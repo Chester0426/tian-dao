@@ -221,6 +221,12 @@ Returns JSON `{ status: "ok", ... }` with per-service checks.
 }
 ```
 
+### Rollback
+
+- **Command:** Redeploy previous deployment via dashboard (no single CLI command)
+- **Dashboard:** Railway → Deployments → select previous → "Redeploy"
+- **Note:** Does NOT rollback database or volume changes.
+
 ### Compatibility
 
 - **incompatible_databases:** `[]`

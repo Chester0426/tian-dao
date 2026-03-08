@@ -245,6 +245,7 @@ Common patterns:
 | One variant clearly wins | `/change` to consolidate — remove losing variant, make winner the sole landing page |
 | No variant winner | Extend test for more data, or `/change` to try a new messaging angle |
 | Verdict is GO with strong metrics | Suggest `/harden` to graduate: "Your metrics indicate product-market fit. Run `/harden` to add TDD coverage to critical paths before scaling." |
+| Production incident | `/rollback` to revert deploy, then `/change fix <root cause>` |
 
 Present recommendations in priority order (highest impact first).
 
