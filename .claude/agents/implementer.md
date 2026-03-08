@@ -33,6 +33,8 @@ You receive a task description containing:
 
 Read the target files and any files they import. Understand the current state before changing anything.
 
+Also glob for existing test files (`**/*.test.*`, `**/*.spec.*`). Read 1-2 existing test files to understand the project's testing patterns (assertion style, helper naming, file organization). Note the conventions already established in the codebase: function naming pattern (camelCase verbs: validate*, get*, create*), error handling pattern (throw vs return), import style (@/ alias vs relative). Match these conventions in your new code and tests.
+
 ### 2. Write specification test
 
 Write a test that defines what the code SHOULD do — per `patterns/tdd.md` section Specification Tests. Derive test cases from the task specification, not from current behavior.
