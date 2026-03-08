@@ -12,43 +12,33 @@ Checks added to `validate-semantics.py`:
 - **Check 57:** change.md production block validates `stack.testing`
 - **Check 58:** Agent tool declarations match roles (implementer has write tools, spec-reviewer is read-only)
 
-## 2. Validator Self-Tests
-**Priority:** HIGH | **Effort:** Medium
+## 2. ~~Validator Self-Tests~~ — COMPLETED
+**Status:** Implemented in PR #232 (`chore/review-validator-tests`).
 
-The 3 validator scripts ARE /review's quality gate. If a validator has a bug, /review's baseline is wrong. Create:
-- `scripts/test_validators.py` — unit tests for validate-frontmatter.py and validate-semantics.py
-- `scripts/test_consistency_check.sh` — shell tests for consistency-check.sh
-- Run in CI before /review executes
+- `test_validate_frontmatter.py` — unit tests for all 11 frontmatter checks
+- `test_validate_semantics.py` — unit tests for 20 extracted check functions + subprocess integration test
+- `test_consistency_check.py` — subprocess tests for 6 consolidated consistency checks
+- CI runs `pytest scripts/` before validators execute
 
-**Why deferred:** Infrastructure change (new test files + CI config), not a review.md edit.
+## 3. ~~Pre-Computed Health Card~~ — REDESIGNED as Binary Health Gate
+**Status:** Redesigned as binary health gate (not numeric score). Never skip LLM review — reduced loop parameters when clean.
 
-## 3. Pre-Computed Health Card
-**Priority:** MEDIUM | **Effort:** Medium | **Estimated token savings:** 30-50% per review
+Instead of a separate script with a 0-100 score, review.md Step 1 now computes a boolean `health_clean` check:
+- All validators pass (`baseline_errors == 0`)
+- No pending checks in check-inventory.md
+- No TODO strings in skill or stack files
 
-Create `scripts/health-check.py` that quickly scans template health before launching full review:
-- Count pending/rejected checks in check-inventory.md
-- Scan for TODO strings in skill files
-- Count missing references in frontmatter
-- Tally fixture coverage gaps
-- Return health_score (0-100) + breakdown
+When clean: `max_iterations = 3`, `max_findings_per_dimension = 3` (light review).
+When not clean: `max_iterations = 5`, `max_findings_per_dimension = 5` (full review).
 
-Decision logic in review.md Step 2a:
-- Score ≥ 90 → "Template is clean — no review needed" → exit
-- Score 75-89 → Light review: 1 iteration, max 3 findings per dimension
-- Score < 75 → Full review (current behavior)
+The original design's "skip review entirely" option was rejected — validators can't catch cross-file contradictions that LLM review excels at.
 
-**Why deferred:** Requires new Python script + review.md conditional branching.
+## 4. ~~Parallel Adversaries~~ — SKIPPED
+**Status:** Skipped — single adversary's cross-dimensional context is its main value. No dispute rate data exists to justify splitting.
 
-## 4. Parallel Adversaries (one per dimension)
-**Priority:** LOW | **Effort:** Low | **Trigger:** Only if dispute rate >30% sustained
+Revisit only if `disputed_rate > 30%` is sustained across 3+ review runs, indicating the single adversary is systematically missing context within individual dimensions.
 
-Replace single Adversary D with 3 parallel adversaries, each challenging findings from their own dimension. Same turn count (parallel), better precision from domain specialization.
+## 5. ~~File Category Auto-Discovery~~ — DEFERRED
+**Status:** Deferred — 6 categories is manageable. Revisit when category count exceeds 8.
 
-**Why deferred:** Current single adversary works well enough. Only implement if precision data shows systematic judgment failures.
-
-## 5. File Category Auto-Discovery
-**Priority:** LOW | **Effort:** Low
-
-Create `scripts/file-inventory.md` listing all template file categories and which review dimensions should read them. When new `.claude/X/` directories are added, they appear in the inventory and review.md adapts.
-
-**Why deferred:** Current manual glob expansion is sufficient for 6 categories. Would matter more at 10+ categories.
+Current manual glob expansion in review.md dimensions is sufficient and more transparent than auto-discovery indirection.

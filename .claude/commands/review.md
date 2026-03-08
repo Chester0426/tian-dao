@@ -51,9 +51,22 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
   - `bash scripts/consistency-check.sh`
 - If a script fails to run (missing python3/pyyaml): stop and tell the user
 
+- **Compute `health_clean`** (boolean):
+  - `baseline_errors == 0` (all validators pass)
+  - AND no rows under `## Pending` in `scripts/check-inventory.md` (grep for non-empty rows after that heading)
+  - AND no `TODO` strings in `.claude/commands/*.md` or `.claude/stacks/**/*.md`
+
+  If `health_clean == true`:
+  - Set `max_iterations = 3`, `max_findings_per_dimension = 3`
+  - Log: "Template health: clean — using light review parameters (3 iterations, 3 findings/dimension)"
+
+  If `health_clean == false`:
+  - Set `max_iterations = 5`, `max_findings_per_dimension = 5`
+  - Log: "Template health: needs attention — using full review parameters"
+
 ## Step 2: Review-Fix Loop
 
-Run **2 to 5 iterations** of the following cycle, terminating based on
+Run **2 to `max_iterations`** iterations of the following cycle, terminating based on
 convergence (see Loop Gate in 2f). Within-iteration early exits:
 - Step 2b produces 0 remaining findings → exit loop
 - Step 2e: no fixes succeeded this iteration → exit loop
@@ -189,7 +202,7 @@ Do NOT propose checks that:
 
 Include these in each subagent prompt:
 
-1. **Maximum 5 findings.** Keep only the 5 most impactful.
+1. **Maximum `max_findings_per_dimension` findings.** Keep only the most impactful.
 2. **No overlap with automated checks.** `scripts/check-inventory.md` is authoritative, including the Pending and Rejected sections. If a check is pending, propose extending it instead. If a check was rejected, do not re-propose it unless the rejection reason no longer applies.
 3. **Zero findings is valid.** Say "No findings for this dimension" and summarize what was checked.
 4. **Self-review before presenting.** Merge proposed checks that cover the same invariant. Verify each finding against check-inventory.md one more time.
@@ -329,7 +342,7 @@ Termination decision (evaluate in order — first match wins):
 4. **Diminishing returns**: `iteration` ≥ 3 and yield < 0.25 → proceed to Step 3.
    (Fewer than 1 in 4 reported findings actually got fixed — mostly noise.)
 
-5. **Hard cap**: `iteration` ≥ 5 → proceed to Step 3.
+5. **Hard cap**: `iteration` ≥ `max_iterations` → proceed to Step 3.
 
 6. **Continue**: increment `iteration`, **go to 2a NOW**. Fixes from this
    iteration may have introduced new issues.
@@ -393,7 +406,7 @@ If branch exists with changes:
 - Add new features or pages
 - Propose checks that regex-match natural-language prose
 - Fix findings that overlap with check-inventory.md
-- Run more than 5 iterations
+- Run more than `max_iterations` iterations
 - Exit before completing iteration 2 (minimum 2 required)
 - Skip running validators after each fix
 - Commit fixes that cause validator regressions
