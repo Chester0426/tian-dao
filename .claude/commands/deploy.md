@@ -24,6 +24,11 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 1. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first."
 2. Verify on `main` branch with clean working tree (`git status --porcelain` is empty). If not, stop: "Switch to main with a clean working tree before deploying."
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
+3b. **Recovery check:** If `.claude/deploy-manifest.json` exists, read it and report:
+    "Previous deploy detected (deployed_at: <timestamp>). Resources may already exist.
+    `/deploy` is idempotent — re-running will reuse existing resources and update configuration.
+    Reply **continue** to proceed, or run `/teardown` first to start fresh."
+    Wait for user confirmation.
 4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`:
    - Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
@@ -171,6 +176,16 @@ Determine which agents to launch based on idea.yaml stack (all use
 - **Agent D** (External Services): spawn if any external stack files exist (Step 0.8 found services)
 
 Launch all applicable agents **simultaneously** using parallel Agent tool calls. Each agent returns a result object: `{status, message, env_vars_added, ...}`.
+
+**Timeout policy:** Each agent has a 5-minute timeout. If an agent doesn't complete within 5 minutes:
+- Log: "Agent [name] timed out after 5 minutes"
+- Record: `{status: "timeout", message: "Agent timed out"}`
+- Continue with other agents — do not block
+
+**Partial failure policy:** After all agents complete (or timeout):
+- If ALL succeeded: proceed normally
+- If ANY failed/timed out: list failures in Step 6 summary with manual setup instructions
+- Do NOT retry automatically — the user can re-run `/deploy` to retry failed agents
 
 ---
 
@@ -326,7 +341,7 @@ Parse the JSON response. Each service returns `"ok"` or an error message.
 
 If all checks pass → proceed to Step 6.
 
-### 5d: Auto-fix (max 1 round)
+### 5d: Auto-fix (max 2 rounds)
 
 If any health check fails, diagnose and attempt to fix:
 
@@ -392,6 +407,12 @@ Print a deployment summary:
   Endpoint URL: https://<canonical_url>/api/webhooks/stripe
   Events: checkout.session.completed
 [If any health check failed] **Action needed:** [list failing services with fix commands]
+
+[If any agent returned status: "failed"] **Failed (needs manual setup):**
+- [service]: ❌ failed — [error message]. Set up manually: [instructions from stack file]
+
+[If any agent returned status: "timeout"] **Timed out (retry by re-running /deploy):**
+- [service]: ⏱️ timed out — re-run `/deploy` to retry, or set up manually
 
 [If external services] **External services:**
 - [service]: ✅ auto-provisioned via CLI / ✅ manually configured / ❌ not configured — set via hosting provider's env var CLI
