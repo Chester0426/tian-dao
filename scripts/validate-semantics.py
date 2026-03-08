@@ -623,20 +623,32 @@ def check_17_env_vars_prose_frontmatter_sync(stack_contents: dict[str, str]) -> 
 def check_18_change_payment_database(change_content: str, change_path: str) -> list[str]:
     """Check 18: change.md Feature constraints validate payment requires database."""
     errors: list[str] = []
+    # Search Feature constraints section
     feature_constraints_match = re.search(
         r"(?i)####?\s+Feature constraints\s*\n(.*?)(?=\n####?\s|\Z)",
         change_content,
         re.DOTALL,
     )
+    # Also search preconditions section (payment validation may be there)
+    preconditions_match = re.search(
+        r"(?i)## Step \d+:.*?preconditions\s*\n(.*?)(?=\n## Step \d|\n## Phase|\Z)",
+        change_content,
+        re.DOTALL,
+    )
+    search_text = ""
     if feature_constraints_match:
-        feature_section = feature_constraints_match.group(1)
+        search_text += feature_constraints_match.group(1)
+    if preconditions_match:
+        search_text += "\n" + preconditions_match.group(1)
+
+    if search_text:
         has_db_check = bool(
             re.search(
                 r"(?i)payment.*database.*present|database.*present.*payment|"
                 r"payment\s+requires.*database|"
                 r"stack\.database.*(?:missing|present|also)|"
                 r"both.*stack\.auth.*stack\.database",
-                feature_section,
+                search_text,
             )
         )
         if not has_db_check:
@@ -2264,7 +2276,7 @@ def main() -> int:
 
         # Find preconditions section (by content, not step number)
         preconditions_match = re.search(
-            r"## Step \d+:.*?[Cc]heck preconditions.*?\n(.*?)(?=\n## Step \d|\n## Phase|\Z)",
+            r"## Step \d+:.*?[Cc]heck.*?preconditions.*?\n(.*?)(?=\n## Step \d|\n## Phase|\Z)",
             change_content_31,
             re.DOTALL,
         )
