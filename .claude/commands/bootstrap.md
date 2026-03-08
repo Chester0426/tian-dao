@@ -29,6 +29,8 @@ Bootstrap the MVP from idea.yaml.
 
 Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch prefix `feat` and branch name `feat/bootstrap`.
 
+> **If resuming from a failed bootstrap:** see `.claude/patterns/recovery.md` for recovery options.
+
 ## Phase 1: Plan (BEFORE writing any code)
 
 DO NOT write any code, create any files, or run any install commands during this phase.

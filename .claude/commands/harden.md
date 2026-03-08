@@ -23,6 +23,7 @@ Transition this MVP to production quality mode: $ARGUMENTS
 - `package.json` exists (app is bootstrapped). If not → stop: "No app found. Run `/bootstrap` first."
 - `npm run build` passes. If not → stop: "App has build errors. Run `/change fix build errors` first."
 - If `quality: production` already set in idea.yaml AND no `$ARGUMENTS`: stop — "Already in production mode. Use `/harden <module>` to harden a specific module, or `/change` for new features."
+- If on a `chore/harden-*` branch with existing specification tests: a previous `/harden` may have partially completed. Tell the user: "Found existing hardening work on this branch. Scanning for modules that still need tests..." Then scan for CRITICAL modules without test files and proceed from Step 3.4.
 
 ## Step 1: Scan & classify
 

@@ -17,6 +17,8 @@ modifies_specs: true
 ---
 Generate a distribution campaign configuration from idea.yaml and implement distribution tracking.
 
+> If `idea/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `idea/ads.yaml` to regenerate from scratch.
+
 This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and thresholds, then adds UTM/click ID capture and a feedback widget to the deployed app. The channel is selected at runtime — each channel has a stack file at `.claude/stacks/distribution/<channel>.md` with format constraints, targeting model, policy restrictions, and config schema. Phase 1 is manual — the human creates the campaign in the channel's ad platform using the generated config.
 
 ## Step 0: Archetype check and branch setup
