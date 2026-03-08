@@ -6,6 +6,10 @@ Run this procedure after making code changes and before committing.
 
 ## Build & Lint Loop (max 3 attempts)
 
+> **Budget rationale:** 3 attempts allows iterative refinement with error feedback.
+> Attempt 1 catches the obvious error. Attempt 2 catches cascading effects.
+> Attempt 3 is the safety net. All skills use this budget for consistency.
+
 You have a budget of **3 attempts** to get a clean build and lint. Track each failed
 attempt so you can reference previous errors and avoid repeating them.
 

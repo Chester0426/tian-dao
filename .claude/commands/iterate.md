@@ -266,6 +266,31 @@ If `idea/ads.yaml` exists and the campaign has been running for the full `budget
 
 Read `thresholds.go_signal` and `thresholds.no_go_signal` from `idea/ads.yaml` and use them as the primary decision criteria. The table above provides additional diagnostic detail.
 
+### Save analysis for /change context
+
+Write `.claude/iterate-manifest.json`:
+```json
+{
+  "verdict": "<GO|NO-GO|PIVOT|MONITOR|TOO_EARLY>",
+  "bottleneck": {
+    "stage": "<funnel stage name>",
+    "conversion": "<percentage>",
+    "diagnosis": "<one-line diagnosis>"
+  },
+  "recommendations": [
+    {
+      "action": "<what to do>",
+      "skill": "</change ...>",
+      "expected_impact": "<which metric improves>"
+    }
+  ],
+  "variant_winner": "<slug or null>",
+  "analyzed_at": "<ISO 8601>"
+}
+```
+
+This file is read by `/change` to provide context for the next iteration.
+
 ## Step 6: Update the experiment plan (if needed)
 
 If the diagnosis reveals a need to change direction:

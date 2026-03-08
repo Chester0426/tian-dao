@@ -39,6 +39,23 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - If a feature requires a library not in `stack`, ask the user before adding it
 - Bootstrap installs latest versions of all packages (no version pinning). This is intentional for MVPs — `package-lock.json` locks exact versions for reproducibility
 
+### Archetype-Feature Matrix
+
+| Feature | web-app | service | cli |
+|---------|---------|---------|-----|
+| Pages (src/app/<page>/page.tsx) | ✅ | ❌ | ❌ |
+| API routes (src/app/api/) | ✅ | ✅ | ❌ |
+| Commands (src/commands/) | ❌ | ❌ | ✅ |
+| Landing page | ✅ | surface | surface |
+| Variants (A/B messaging) | ✅ | ❌ | ❌ |
+| Fake Door components | ✅ | stub routes | stub commands |
+| Browser tests (Playwright) | ✅ | ❌ | ❌ |
+| API/unit tests (Vitest) | optional | ✅ | ✅ |
+| /distribute (ad campaigns) | ✅ | ✅ (if surface) | ✅ (if surface) |
+| /deploy | ✅ | ✅ | surface only |
+| Analytics (client-side) | ✅ | ❌ | ❌ |
+| Analytics (server-side) | ✅ | ✅ | ✅ |
+
 ## Rule 4: Keep It Minimal
 - Prefer well-known libraries over custom code
 - Bootstrap creates page-load smoke tests when `stack.testing` is present. Use `/change` for full funnel tests and `/verify` to run tests and fix failures. No additional tests except for auth and payment flows. Exception: if a feature contains non-trivial business logic (calculations, state machines, multi-step workflows), add unit tests for that logic. This is rare in first MVPs — if you're writing complex algorithms, consider whether you're overbuilding.

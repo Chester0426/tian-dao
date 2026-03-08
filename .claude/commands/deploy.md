@@ -361,7 +361,7 @@ After all fixable issues are addressed:
 - If any env vars were changed → batch into a single redeploy using the hosting stack file's `## Deploy Interface > Deploy` command
 - Re-run health check: `curl -s <canonical_url>/api/health`
 
-If still failing after 1 fix round → report precise per-service diagnosis with actionable next steps.
+If still failing after 2 fix rounds → report precise per-service diagnosis with actionable next steps.
 
 ### 5d.5: Provision scan (independent verification)
 
