@@ -29,6 +29,18 @@ You are a world-champion of persuasion. Your landing page is the absolute limit 
 - Wire analytics events per EVENTS.yaml
 - Build must pass after your changes
 
+## Persuasion Self-Check (verify before shipping)
+
+Before declaring done, self-score each section 1-10 on these dimensions.
+Any section below 8 on ANY dimension → rework before shipping.
+
+1. **Custom palette applied** — 0 default shadcn/tailwind colors visible; every color traces to globals.css tokens
+2. **Typography hierarchy** — ≥2 distinct font sizes per section; display font used for headings, body font for text
+3. **Visual depth** — each section has ≥1 depth technique (gradient, shadow, animation, texture, glassmorphism) — not the same technique repeated across all sections
+4. **Layout variation** — no 2 consecutive sections share identical layout structure (e.g., both centered single-column)
+5. **Conversion pull** — every section has a clear persuasion job (hook, proof, objection-handle, or CTA); no decorative-only sections
+6. **Scroll dynamism** — page has ≥2 scroll-triggered visual events (reveals, parallax, counters, sticky transforms)
+
 ## Instructions
 
 Read `.claude/procedures/scaffold-landing.md` for full step-by-step instructions. Execute all steps described there.

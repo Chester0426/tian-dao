@@ -27,9 +27,9 @@ You receive two values as plain text:
 
 ## Procedure
 
-1. Read the manifest file. If it doesn't exist, report all checks as `skip` with detail "manifest not found".
-2. For each check below, determine if the manifest key is present. If absent, `skip`.
-3. For checks that require a CLI tool, verify it's available (`which <tool>`). If unavailable or credentials are missing, `skip` with detail "CLI not available".
+1. Read the manifest file. If it doesn't exist, report all checks as `skip:not-configured` with detail "manifest not found".
+2. For each check below, determine if the manifest key is present. If absent, `skip:not-configured`.
+3. For checks that require a CLI tool, verify it's available (`which <tool>`). If unavailable, `skip:no-cli` with detail naming the missing tool. If the tool exists but credentials are missing or auth fails, `skip:auth-missing` with detail naming the credential (e.g., "POSTHOG_PERSONAL_API_KEY not set", "stripe login required").
 4. Run the provider-specific verification command. Compare actual result against expected result for the current mode.
 
 ## Checks
@@ -53,7 +53,7 @@ Read the manifest's `database` section (provider, project ID). Read the database
 - `teardown` expects: not found
 
 **P4. Custom domain**
-Read `hosting.domain` from the manifest. If absent, `skip`. Run:
+Read `hosting.domain` from the manifest. If absent, `skip:not-configured`. Run:
 ```
 curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://<domain>
 ```
@@ -61,7 +61,7 @@ curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://<domain>
 - `teardown` expects: non-200 or timeout
 
 **P5. Stripe webhook**
-Read `stripe.webhook_endpoint_url` from the manifest. If absent, `skip`. Run:
+Read `stripe.webhook_endpoint_url` from the manifest. If absent, `skip:not-configured`. Run:
 ```
 stripe webhook_endpoints list
 ```
@@ -70,7 +70,7 @@ Grep the output for the webhook URL.
 - `teardown` expects: URL not found in output
 
 **P6. PostHog dashboard**
-Read `posthog.dashboard_id` from the manifest. If absent, `skip`. Read `posthog.project_id` and `posthog.host` (default: `https://us.posthog.com`). Run:
+Read `posthog.dashboard_id` from the manifest. If absent, `skip:not-configured`. Read `posthog.project_id` and `posthog.host` (default: `https://us.posthog.com`). Run:
 ```
 curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -H "Authorization: Bearer $POSTHOG_PERSONAL_API_KEY" <host>/api/projects/<project_id>/dashboards/<dashboard_id>/
 ```
@@ -78,14 +78,14 @@ curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -H "Authorization: Bearer 
 - `teardown` expects: HTTP 404
 
 **P7. External services**
-Read `external_services[]` from the manifest. For each entry, read the corresponding stack file at `.claude/stacks/external/<service-slug>.md` and look for a health-check command. If no health-check command is defined, `skip` that service.
+Read `external_services[]` from the manifest. For each entry, read the corresponding stack file at `.claude/stacks/external/<service-slug>.md` and look for a health-check command. If no health-check command is defined, `skip:not-configured` for that service.
 - `deploy` expects: per-service health check passes
 - `teardown` expects: per-service health check fails
 
 ## Rules
 
 - Use `--max-time 10` on all `curl` calls to handle DNS propagation delays
-- `skip` is always valid — not all projects have all resources
+- `skip:*` is always valid — not all projects have all resources
 - Never run commands that create, modify, or delete resources
 - Read stack files for provider-specific commands — do not hardcode CLI invocations
 
@@ -95,10 +95,10 @@ Return a markdown table in this exact format:
 
 | Check | Status | Detail |
 |-------|--------|--------|
-| P1. Hosting project | pass/FAIL/skip | <detail> |
-| P2. Canonical URL | pass/FAIL/skip | <detail> |
-| P3. Database project | pass/FAIL/skip | <detail> |
-| P4. Custom domain | pass/FAIL/skip | <detail> |
-| P5. Stripe webhook | pass/FAIL/skip | <detail> |
-| P6. PostHog dashboard | pass/FAIL/skip | <detail> |
-| P7. External services | pass/FAIL/skip | <detail per service> |
+| P1. Hosting project | pass / FAIL / skip:not-configured / skip:no-cli / skip:auth-missing | <detail> |
+| P2. Canonical URL | pass / FAIL / skip:not-configured | <detail> |
+| P3. Database project | pass / FAIL / skip:not-configured / skip:no-cli / skip:auth-missing | <detail> |
+| P4. Custom domain | pass / FAIL / skip:not-configured | <detail> |
+| P5. Stripe webhook | pass / FAIL / skip:not-configured / skip:no-cli / skip:auth-missing | <detail> |
+| P6. PostHog dashboard | pass / FAIL / skip:not-configured / skip:auth-missing | <detail> |
+| P7. External services | pass / FAIL / skip:not-configured / skip:no-cli / skip:auth-missing | <detail per service> |

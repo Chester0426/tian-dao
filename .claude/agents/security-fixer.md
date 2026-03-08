@@ -52,9 +52,11 @@ Must pass. If build fails, fix the build error first.
 
 ### 3. Re-check
 
-Re-run the specific checks that failed:
-- For Defender FAILs: re-grep for the patterns
-- For Attacker findings: verify the exploit no longer works
+Re-verify each fixed issue using the method that matches its source:
+
+- **Defender FAILs (D1-D5):** Re-run the exact `grep`/`Grep` search that originally surfaced the finding. The check passes only when the pattern returns zero matches. Example: if D1 failed due to a hardcoded secret found by `grep -rn "sk_live"`, re-run that same search and confirm no results.
+- **Attacker Critical/High findings:** Re-execute the exact `curl` command or exploit POC from the attacker report against the dev server (start it if needed with `npm run dev &`). The fix is confirmed only when the exploit no longer succeeds (e.g., returns 401/403 instead of 200, returns sanitized output instead of injected payload). If the original proof was a code-inspection finding, re-read the cited file:line and confirm the vulnerable pattern is gone.
+- **Info-severity findings:** No re-check needed — these are noted in the report only.
 
 ### 4. Repeat
 
