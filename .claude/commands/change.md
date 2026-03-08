@@ -18,14 +18,17 @@ modifies_specs: true
 ---
 Make a change to the existing app: $ARGUMENTS
 
-## Step 0: Branch Setup
-
-Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch prefix `change` and slugify `$ARGUMENTS` for the branch name.
-
-## Step 1: Validate input
+## Step 0: Pre-flight checks (before branch creation)
 
 - If `$ARGUMENTS` is empty or unclear: stop and ask the user to describe what they want to change
 - If `$ARGUMENTS` contains `#<number>` or is just a number: read the GitHub issue via `gh issue view <number>` and use its content as the change description. If `gh issue view` fails (issue not found, permission denied, or network error), tell the user: "Could not read issue #<number>. Describe the change directly, or check `gh auth status` and retry."
+- Verify `package.json` exists. If not, stop and tell the user: "No app found. Run `/bootstrap` first, or if you already have a bootstrap PR open, merge it before running `/change`."
+- Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
+- Run `npm run build` to confirm the project compiles before making changes (unless `$ARGUMENTS` describes a fix). If the build fails and the change is not a build fix: stop and tell the user: "The app has build errors that need to be fixed first. Run `/change fix build errors` to address them."
+
+## Step 1: Branch Setup
+
+Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch prefix `change` and slugify `$ARGUMENTS` for the branch name.
 
 ## Step 2: Read context
 
@@ -34,6 +37,10 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references. If the archetype is `cli`, new capabilities map to subcommand modules (`src/commands/`), not page folders or API routes. Skip Fake Door, landing page, and API route references.
 - Resolve the stack: read idea.yaml `stack`. For each category, read `.claude/stacks/<category>/<value>.md`. If a stack file doesn't exist for a given value, generate it: read `.claude/stacks/TEMPLATE.md` for the schema, read existing files in the same category as reference, and create `.claude/stacks/<category>/<value>.md` with complete frontmatter and code templates. Run `python3 scripts/validate-frontmatter.py` to verify (max 2 fix attempts). If validation fails, stop: "Could not generate a valid stack file for `<category>/<value>`. Create it manually using TEMPLATE.md as a guide." File an observation per `.claude/patterns/observe.md` for the missing stack file.
 - Scan `src/app/` to understand the current page structure and codebase state
+- If `.claude/iterate-manifest.json` exists, read it for context:
+  - Include the verdict, bottleneck, and recommendations in the plan (Phase 1)
+  - Reference: "This change addresses the [bottleneck.stage] bottleneck identified by /iterate ([bottleneck.diagnosis])"
+  - This provides continuity between analysis and implementation
 
 ## Step 3: Classify the change
 
@@ -50,13 +57,10 @@ Determine the type from `$ARGUMENTS`:
 
 State the classification before proceeding: "I'm treating this as a **[type]** change."
 
-## Step 4: Check preconditions
+## Step 4: Check type-specific preconditions
 
 - If `.claude/current-plan.md` exists and the current branch starts with `change/`: a previous session completed Phase 1 (plan approved) but Phase 2 was not finished. Tell the user: "Found a previously approved plan in `.claude/current-plan.md`. Resuming Phase 2 implementation on this branch. Skipping Phase 1 planning." Then skip the rest of Phase 1 and jump directly to Phase 2: Step 5.
 > **If resuming from a failed /change:** see `.claude/patterns/recovery.md`. The plan in `.claude/current-plan.md` persists across sessions.
-- Verify `package.json` exists. If not, stop and tell the user: "No app found. Run `/bootstrap` first, or if you already have a bootstrap PR open, merge it before running `/change`."
-- Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
-- Run `npm run build` to confirm the project compiles before making changes (unless the change IS about fixing the build or is classified as a Fix). If the build fails and the change is not a build fix or Fix-type change: stop and tell the user: "The app has build errors that need to be fixed first. Run `/change fix build errors` to address them. After that PR is merged, re-run your original change. Note: a branch was already created in Step 0 but will be abandoned — this is expected. Switch to main first (`git checkout main`), then delete the abandoned branch (`git branch -d <branch-name>` using the name created in Step 0). Re-running `/change` creates a new branch (the name may have a numeric suffix like `-2` if the old branch still exists)."
 - For analytics changes: verify the analytics library file exists (see analytics stack file for expected path). If it doesn't, stop and tell the user: "Analytics library not found. Run `/bootstrap` first."
 - If `$ARGUMENTS` mentions payment or the change will add `payment` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Payment requires authentication. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Payment requires a database. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
 - If `$ARGUMENTS` mentions email or the change will add `email` to the stack: verify `stack.auth` and `stack.database` are present in idea.yaml. If `stack.auth` is missing, stop: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to idea.yaml `stack` first." If `stack.database` is missing, stop: "Email requires a database to track user activation status. Add `database: supabase` (or another database provider) to idea.yaml `stack` first."
