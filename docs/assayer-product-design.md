@@ -233,18 +233,25 @@ Platform stack matches template stack — one framework, one mental model, one s
 | UI | shadcn/ui | Source-level customization, built-in charts (Recharts) |
 | Payment | Stripe | PCI handled by Elements |
 
-### Layer 2: Assayer-Specific
+### Layer 2: Assayer-Specific (V1)
 
 | Category | Choice | Packages |
 |----------|--------|----------|
 | AI Model | Claude (Sonnet 4.6 daily, Opus 4.6 decisions) | `@anthropic-ai/sdk` |
-| AI Streaming | Vercel AI SDK | `ai`, `@ai-sdk/anthropic` |
-| Agent Runtime | Google Cloud Run Jobs | Docker image |
-| Error Monitoring | Sentry | `@sentry/nextjs` |
-| Data Fetching | TanStack Query | `@tanstack/react-query` |
-| Rate Limiting | Upstash | `@upstash/ratelimit` |
-| Forms | React Hook Form + Zod | `react-hook-form` |
-| State | Zustand | `zustand` |
+
+### Layer 2b: Deferred (add when pain emerges)
+
+| Category | Choice | Trigger | Packages |
+|----------|--------|---------|----------|
+| AI Streaming | Vercel AI SDK | Build a streaming chat UI | `ai`, `@ai-sdk/anthropic` |
+| Data Fetching | TanStack Query | Complex cache invalidation across 5+ views | `@tanstack/react-query` |
+| State | Zustand | Complex cross-component client state | `zustand` |
+| Forms | React Hook Form + Zod | 5+ complex forms | `react-hook-form` |
+| Error Monitoring | Sentry | External users arrive (Phase 2) | `@sentry/nextjs` |
+| Rate Limiting | Upstash | External API exposure (Phase 2) | `@upstash/ratelimit` |
+| Agent Runtime | Google Cloud Run Jobs | External users (Phase 2) | Docker image |
+
+> **Principle:** For Phase 1 (internal tool), `@anthropic-ai/sdk` is the only Assayer-specific package. The platform is a dashboard — data flows from server to client. Server Components + `fetch` + Zod handle data fetching, forms, and state. Add libraries when you feel pain, not before.
 
 ### Layer 3: Phased (Not V1)
 
@@ -273,11 +280,11 @@ Platform stack matches template stack — one framework, one mental model, one s
 
 | File | Purpose | Priority |
 |------|---------|----------|
-| `stacks/ai/anthropic.md` | Claude SDK + Vercel AI SDK patterns | P0 |
-| `stacks/ads/google.md` | Google Ads API integration | P1 |
-| `stacks/ads/meta.md` | Meta Marketing API integration | P1 |
+| `stacks/ai/anthropic.md` | Claude SDK patterns | P0 (blocks /bootstrap) |
+| `stacks/ads/google.md` | Google Ads API integration | P1 (Phase 1.5) |
+| `stacks/ads/meta.md` | Meta Marketing API integration | P1 (Phase 1.5) |
 
-### idea.yaml Stack
+### idea.yaml Stack (V1)
 
 ```yaml
 stack:
@@ -288,12 +295,14 @@ stack:
   analytics: posthog
   ui: shadcn
   payment: stripe
-  email: resend          # V1.5
   testing: playwright
-  ai: anthropic          # Claude SDK + Vercel AI SDK
-  ads-google: google     # V1.5
-  ads-meta: meta         # V1.5
+  ai: anthropic          # Claude SDK
+  # email: resend        # V1.5
+  # ads-google: google   # V1.5
+  # ads-meta: meta       # V1.5
 ```
+
+> **V1 scope:** 9 stack entries. Payment included because Assayer charges for experiments. Email, ads APIs deferred to V1.5.
 
 ---
 
@@ -329,40 +338,134 @@ When `quality` is absent (default): standard MVP behavior — smoke tests, fast 
 
 ## 8. Execution Plan
 
+> **Premise:** Internal team demand is validated — the team already runs experiments via the template CLI. Assayer-the-platform adds a dashboard, state persistence, structured skills, and benchmark accumulation. No external demand validation needed for Phase 1.
+
 ### Phase 1: Internal Team Tool
 
-| Step | What | Type |
+Three parallel tracks maximize throughput. Track 2 (infrastructure) and Track 4 (skills) run concurrently with the critical path.
+
+#### Track 1: Template (blocks /bootstrap)
+
+| Step | What | Est. |
 |------|------|------|
-| 0 | Production quality patterns + agents (tdd.md, implementer.md, etc.) | Template |
-| 1 | `stacks/ai/anthropic.md` | Template |
-| 2 | `stacks/ads/google.md` | Template |
-| 3 | `stacks/ads/meta.md` | Template |
-| 4 | Write Assayer idea.yaml (`quality: production`) | Product |
-| 5 | Run /bootstrap → complete Assayer V1 (pages, API, DB, auth, analytics) | Product |
-| 5.5 | TDD harden critical paths (auth, payment, persist API, OAuth tokens) | Product |
-| 6 | Write new skills (hypothesize, offer) with `## Persist` sections | Product |
-| 7 | Deploy (Vercel Pro) | Product |
+| 0 | Production quality patterns + agents | **Done** |
+| 1 | `stacks/ai/anthropic.md` — Claude SDK patterns, lib/ai.ts template | 2-4 hrs |
+
+> Steps 2-3 from the original plan (ads stack files) moved to Phase 1.5 — the design doc's own stack table marks them V1.5. They do not block /bootstrap.
+
+#### Track 2: Infrastructure (no code dependencies — start Day 1)
+
+| Step | What | Est. |
+|------|------|------|
+| I-1 | Create Supabase project (platform DB + Auth) | 30 min |
+| I-2 | Register Google OAuth app + GitHub OAuth app (for Supabase Auth) | 30 min |
+| I-3 | Create PostHog project (shared for platform + experiments) | 15 min |
+| I-4 | Create Stripe account + test products | 30 min |
+| I-5 | Purchase/configure assayer.io domain + wildcard DNS → Vercel | 1 hr |
+| I-6 | Set up Vercel Pro account | 15 min |
+| I-7 | Create GitHub repo for Assayer product | 15 min |
+
+#### Track 3: Product (critical path — needs Track 1 Step 1 merged)
+
+| Step | What | Est. |
+|------|------|------|
+| 4 | Write Assayer idea.yaml (`quality: production`) — see V1 Scope below | 2-4 hrs |
+| 5 | /bootstrap → generate full V1 (pages, API, DB, auth, analytics, tests) | 1-2 hrs |
+| 5.1 | Run migrations against Supabase (Track 2 I-1) | 30 min |
+| 5.2 | Configure env vars in Vercel (all keys from Track 2) | 30 min |
+| 6a | /change: persist API routes (experiments CRUD + skill outputs) | 2-4 hrs |
+| 6b | /change: any gaps /bootstrap missed (iterate from actual app state) | 2-4 hrs |
+| H | /harden — scan all code, add specification tests to critical paths | 2-4 hrs |
+| CI | Set up GitHub Actions (build + test + lint) | 1 hr |
+| 7 | /deploy (Vercel Pro) | 1-2 hrs |
+
+> **Key change from original plan:** /harden (Step H) moved AFTER Steps 6a-6b. Running /harden before all code exists misses the persist API — the most critical business logic. One pass after all code exists is better than two passes.
+
+#### Track 4: Skills (parallel with Track 3 — needs API contract from Section 5)
+
+| Step | What | Est. |
+|------|------|------|
+| S-1 | Write `/hypothesize` skill .md with `## Persist` section | 2-4 hrs |
+| S-2 | Write `/offer` skill .md with `## Persist` section | 2-4 hrs |
+| S-3 | Enhance `/distribute`, `/iterate`, `/teardown` with `## Persist` sections | 2-4 hrs |
+
+> Skills use the API contract defined in Section 5 (already specified). Skill .md files are template work — they don't depend on the product codebase being built, only on the API shape.
+
+#### Critical Path
+
+```
+Step 1 (2-4h) → Step 4 (2-4h) → Step 5 (1-2h) → Step 6a (2-4h) → Step 6b (2-4h) → Step H (2-4h) → Step 7 (1-2h)
+```
+
+**Total critical path: ~12-20 hours of Claude Code work.** Infrastructure (Track 2) and skills (Track 4) run in parallel and must finish before Step 7.
+
+#### V1 Scope (idea.yaml boundaries)
+
+**Pages (in V1):**
+
+| Page | Purpose |
+|------|---------|
+| landing | Assayer product intro + signup |
+| dashboard | Experiment list + portfolio overview |
+| new-experiment | Create wizard (idea text → structured experiment) |
+| experiment | Detail view (tabs: overview, variants, data, insights) |
+| settings | Account + billing |
+
+**Pages (deferred):**
+
+| Page | Deferred To | Reason |
+|------|-------------|--------|
+| experiment-edit | V1.1 | /change handles edits via CLI for now |
+| ads-connect | V1.5 | No ads API in V1 |
+| insights | V1.5 | Cross-experiment learnings need volume |
+
+**Tables (in V1):**
+
+`experiments`, `hypotheses`, `variants`, `experiment_decisions`
+
+**Tables (deferred — create when the feature that writes to them ships):**
+
+`ad_campaigns` (V1.5), `oauth_tokens` (V1.5), `feedback_responses` (V1.5), `experiment_learnings` (V1.5), `benchmarks` (V1.5), `generated_assets` (V2), `ai_usage` (V2)
+
+> **Principle:** Schema implies features. Creating 10 tables at bootstrap creates pressure to build 10 features. Start with 4, add as features land.
+
+#### Step 4 Design Review Checkpoint
+
+Step 4 (idea.yaml) is the highest-leverage step. Everything downstream is generated from it. Treat it as a design review:
+
+1. Write idea.yaml with V1 scope (5 pages, 4 tables, core features)
+2. Review against this design doc — does every page, endpoint, and feature trace to a design doc section?
+3. Review against the template's archetype (`web-app`) — does the structure conform?
+4. Only then proceed to Step 5 (/bootstrap)
+
+A 2-4 hour investment here saves 10+ hours of rework downstream.
 
 ### Phase 1.5: Ad Data Integration
 
 Trigger: first experiment goes live with paid ads.
 
+- `stacks/ads/google.md` + `stacks/ads/meta.md` (template work)
 - Google Ads API (read), Meta Marketing API (read)
 - Resend (waitlist emails), cookie consent banner
 - Cron jobs (sync-ads, auto-analyze, budget-monitor)
+- Tables: `ad_campaigns`, `oauth_tokens`
+- Page: `ads-connect`
 
-### Phase 2: External Users (1-2 months)
+### Phase 2: External Users (1-2 months after Phase 1)
 
 - Agent SDK integration + Docker execution environment (Cloud Run)
 - Experiment workspace manager
 - Dashboard UI (reads from persist API)
+- Add: Sentry, Upstash rate limiting (now exposed to strangers)
+- Table: `ai_usage` (cost tracking per user)
 
 ### Phase 3: Scale (3+ months)
 
 - Concurrent bootstrap (multiple Cloud Run sandboxes)
 - Full Google/Meta Ads API write (auto-create campaigns)
 - AI-driven budget optimization, benchmark enrichment
-- Cloudflare WAF, Amazon seller vertical
+- Public "State of Startup Validation" benchmark report (content flywheel / data moat)
+- Cloudflare WAF
 
 ### Cost Projection
 
@@ -373,7 +476,13 @@ Trigger: first experiment goes live with paid ads.
 | 2 | ~$75-115 | Vercel $20 + Cloud Run ~$10-50 + Sentry $26 + Supabase Pro $25 |
 | 3 | ~$200-500 | + Inngest $25 + Langfuse + Cloudflare $20 + more Cloud Run |
 
-Per-experiment AI cost: ~$1-5 (varies by model and task complexity — verify current pricing at anthropic.com/pricing).
+Per-experiment AI cost: ~$3-15 (Sonnet for most calls, Opus only for final KILL/SCALE decisions — verify current pricing at anthropic.com/pricing).
+
+### AI Cost Management
+
+- Default all skill AI calls to Sonnet 4.6. Use Opus 4.6 only for `/iterate` final verdicts.
+- Add per-experiment and per-user daily cost caps (tracked via `ai_usage` table in Phase 2).
+- Monitor: if AI costs exceed 60% of revenue, re-evaluate pricing or model selection.
 
 ---
 
