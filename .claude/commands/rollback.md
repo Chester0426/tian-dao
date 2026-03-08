@@ -10,6 +10,7 @@ stack_categories:
   - hosting
 references:
   - .claude/patterns/incident-response.md
+modifies_specs: false
 ---
 
 # /rollback
