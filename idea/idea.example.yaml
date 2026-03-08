@@ -7,6 +7,9 @@ title: QuickBill — Dead-Simple Invoicing for Freelancers
 owner: sarah
 template_repo: acme/experiment-template  # GitHub repo where retro feedback is filed
 type: web-app                  # Product archetype (web-app | service | cli). Default: web-app.
+# quality: production          # Uncomment for TDD, per-task implementer, spec review.
+                               # Default (absent): MVP mode — smoke tests, fast iteration.
+                               # Use /harden to analyze existing code before upgrading.
 
 # --- Problem & Solution ---
 problem: |

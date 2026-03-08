@@ -14,6 +14,9 @@ title: TODO                 # Human-readable title (e.g., "QuickBill — Fast In
 owner: TODO                 # Your name or handle (e.g., "sarah"). Used in analytics.
 template_repo: magpiexyz-lab/mvp-template  # GitHub repo where retro feedback is filed
 # type: web-app               # Product archetype (default: web-app). See .claude/archetypes/
+# quality: production          # Uncomment for TDD, per-task implementer, spec review.
+                               # Default (absent): MVP mode — smoke tests, fast iteration.
+                               # Use /harden to analyze existing code before upgrading.
 
 # --- Problem & Solution ---
 problem: |
