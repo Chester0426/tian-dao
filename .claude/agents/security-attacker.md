@@ -46,6 +46,17 @@ Look for stack traces in error responses (e.g., `error.stack` returned to client
 **A5. Authentication Weaknesses**
 Look for tokens stored in `localStorage` (instead of httpOnly cookies), missing `httpOnly` or `secure` flags on auth cookies, password reset flows without expiry, session tokens that don't rotate after privilege changes.
 
+### CSRF Considerations
+
+Next.js API routes that parse request bodies via `request.json()` are inherently CSRF-resistant. Browsers do not send `Content-Type: application/json` in cross-origin form submissions, so traditional CSRF attacks cannot reach JSON endpoints.
+
+**Do NOT flag CSRF** unless the application:
+- Uses custom form-action endpoints that bypass Next.js routing
+- Accepts `application/x-www-form-urlencoded` or `multipart/form-data` in mutation endpoints
+- Overrides default Content-Type handling
+
+**For non-JSON endpoints**: Verify that auth cookies use `SameSite=Lax` or `SameSite=Strict` (Supabase sets this by default).
+
 ## Proof Requirement
 
 Each finding **must** include one of the following proof types:

@@ -485,6 +485,14 @@ if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 // Use user.id for database queries and metadata
 ```
 
+## Session Token Lifecycle
+
+- **Access token**: Expires after 1 hour (configurable in Supabase Dashboard → Auth → Settings)
+- **Refresh token**: Expires after 7 days (configurable)
+- **Auto-refresh**: The `supabase-server.ts` client auto-refreshes tokens via cookies on each request. No manual refresh logic needed.
+- **Edge case**: If a user is inactive for >7 days, the refresh token expires and they must re-authenticate. The middleware will redirect them to the login page automatically.
+- **Monitor**: Watch for `AuthApiError: Invalid Refresh Token` in server logs — a spike indicates users hitting the 7-day expiry window. Consider increasing refresh token lifetime if this is frequent.
+
 ## Analytics Integration
 - Fire `signup_start` on form render (include `method` property: `"email"`, `"google"`, `"github"`)
 - Fire `signup_complete` only when `data.session` exists after `signUp()` — when email confirmation is enabled (the default), `signUp()` returns `session: null` and the user must confirm their email before they're logged in. `signup_complete` should only fire for confirmed, logged-in users.
