@@ -110,6 +110,8 @@ jobs:
       STRIPE_SECRET_KEY: placeholder-stripe-secret
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: placeholder-stripe-publishable
       STRIPE_WEBHOOK_SECRET: placeholder-stripe-webhook-secret
+      # AI stack (stack.ai: anthropic) — safe to leave even without AI
+      ANTHROPIC_API_KEY: placeholder-anthropic-api-key
     steps:
       - uses: actions/checkout@v4
 
