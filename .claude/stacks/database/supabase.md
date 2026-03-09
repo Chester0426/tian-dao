@@ -410,6 +410,13 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
      -d '{"site_url": "https://<canonical_url>", "uri_allow_list": "https://<canonical_url>/**", "mailer_subjects_confirmation": "Confirm your <short-title> account", "mailer_subjects_recovery": "Reset your <short-title> password", "mailer_subjects_magic_link": "Your <short-title> login link"}'
    ```
 
+4. **Configure OAuth providers** (if `stack.auth_providers` present and credentials provided):
+   Include in the same PATCH call: `"external_<provider>_enabled": true,
+   "external_<provider>_client_id": "<id>", "external_<provider>_secret": "<secret>"`.
+   Supported slugs: google, github, apple, azure, bitbucket, discord, facebook,
+   figma, gitlab, kakao, keycloak, linkedin_oidc, notion, slack_oidc, spotify,
+   twitch, twitter, workos, zoom.
+
 ### Teardown
 
 1. **Pre-delete safety check** — query user-facing table row counts:

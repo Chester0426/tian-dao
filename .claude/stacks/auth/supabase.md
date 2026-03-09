@@ -564,12 +564,16 @@ When the OAuth flow completes, Supabase redirects to `/auth/callback` with an au
 - Fire `trackSignupStart({ method: "google" })` (or `"github"`) **before** the OAuth call — the redirect leaves the page, so this must fire first
 - `signup_complete` fires automatically when the user lands back in the app with an active session (wire this in the destination page or via `onAuthStateChange`)
 
-### PR instructions for enabling a provider
-1. Go to **Supabase Dashboard → Authentication → Providers**
-2. Enable the desired provider (e.g., Google)
-3. Paste the **Client ID** and **Client Secret** from the provider's developer console (e.g., Google Cloud Console → APIs & Services → Credentials)
-4. Set the authorized redirect URI in the provider's console to: `https://<supabase-ref>.supabase.co/auth/v1/callback`
-5. No new env vars, packages, or deploy changes are needed — the callback route and redirect URL wildcard are already in place
+### Enabling a provider
+
+When `stack.auth_providers` is declared in idea.yaml:
+- `/bootstrap` generates OAuth buttons for each listed provider
+- `/deploy` collects credentials and configures providers via Management API
+
+For providers added after initial deploy, update `auth_providers` and re-run `/deploy`.
+
+**Manual alternative:** Supabase Dashboard → Authentication → Providers → enable +
+paste Client ID/Secret. Set redirect URI to `https://<ref>.supabase.co/auth/v1/callback`.
 
 ## Shared Client Note
 When `stack.auth` matches `stack.database` (both `supabase`), they share the same client files (`supabase.ts` and `supabase-server.ts`). When `stack.database` is absent or a different provider, auth needs its own library file — see "Standalone Client" below.
@@ -721,6 +725,32 @@ curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
 The `/deploy` skill also configures email subject lines in the same PATCH call, using the app's short title from idea.yaml (e.g., "Confirm your MyApp account"). This prevents default Supabase confirmation emails from looking like spam. To customize manually: Supabase Dashboard → Authentication → Email Templates.
 
 The access token is read from `~/.supabase/access-token` (created by `supabase login`). If unavailable, generate one at supabase.com/dashboard/account/tokens.
+
+## OAuth Provider Configuration
+
+When `stack.auth_providers` is declared in idea.yaml, `/deploy` configures each provider
+via the same Management API PATCH call used for redirect URLs and email subjects:
+
+```bash
+curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "external_google_enabled": true,
+    "external_google_client_id": "<client-id>",
+    "external_google_secret": "<client-secret>"
+  }'
+```
+
+Supported provider slugs (use as `external_<slug>_enabled`): google, github, apple, azure,
+bitbucket, discord, facebook, figma, gitlab, kakao, keycloak, linkedin_oidc, notion,
+slack_oidc, spotify, twitch, twitter, workos, zoom.
+
+The callback URL for all providers is: `https://<ref>.supabase.co/auth/v1/callback`
+(already covered by the `uri_allow_list` wildcard set during deploy).
+
+**Manual fallback:** Supabase Dashboard → Authentication → Providers → enable the provider
+→ paste Client ID and Secret from the provider's developer console.
 
 ## PR Instructions
 - Email confirmation is enabled by default in Supabase. The signup form handles this: when `signUp()` returns `session: null`, it shows a "check your email" message instead of redirecting. Users who confirm their email can then log in normally.
