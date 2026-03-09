@@ -226,6 +226,40 @@ import { createAuthClient as createClient } from "@/lib/supabase-auth";
 This aliasing keeps the rest of the component code identical — only the import changes.
 
 - Adapt this pattern for your app — update imports, add fields, and adjust redirects
+
+#### OAuth buttons (conditional: only when `stack.auth_providers` is present)
+
+When generating the signup page and `stack.auth_providers` exists in idea.yaml,
+add these elements below the email/password form:
+
+1. Import the `handleOAuthLogin` function (from the OAuth section below)
+2. Add an "Or continue with" separator
+3. Add one `<Button variant="outline">` per provider in `auth_providers`
+
+Example (for `auth_providers: [google, github]`):
+```tsx
+{/* Add after the email/password </form> closing tag */}
+<div className="relative my-4">
+  <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+  <div className="relative flex justify-center text-xs uppercase">
+    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+  </div>
+</div>
+<div className="flex flex-col gap-2">
+  <Button variant="outline" type="button" onClick={() => handleOAuthLogin("google")}>
+    Continue with Google
+  </Button>
+  <Button variant="outline" type="button" onClick={() => handleOAuthLogin("github")}>
+    Continue with GitHub
+  </Button>
+</div>
+```
+
+The `handleOAuthLogin` function (in the "OAuth / Social Login" section below) and
+`/auth/callback` route (created above) handle the rest — no new routes or packages needed.
+
+When `stack.auth_providers` is absent, do not add OAuth buttons — email/password only.
+
 ### `src/app/login/page.tsx` — Login page (if `login` is in idea.yaml pages)
 
 Follows the same structure as the signup page above, with these differences:
@@ -367,6 +401,14 @@ Replace the import on line 5 of the login page:
 import { createAuthClient as createClient } from "@/lib/supabase-auth";
 ```
 The rest of the component code (Suspense wrapper, confirmed banner, `createClient()` inside handler) remains identical.
+
+#### OAuth buttons (conditional: only when `stack.auth_providers` is present)
+
+When generating the login page and `stack.auth_providers` exists in idea.yaml,
+add the same OAuth button block used in the signup page (see signup OAuth buttons section above)
+below the email/password form. Use the same `handleOAuthLogin` function and separator pattern.
+Fire `trackSignupStart({ method: "<provider>" })` before the OAuth redirect — the analytics
+event is the same regardless of whether the user is signing up or logging in via OAuth.
 
 ### `src/components/nav-bar.tsx` — Auth-aware navigation (always created when `stack.auth: supabase`)
 

@@ -43,7 +43,15 @@ For each entry in idea.yaml `pages`:
     fires `visit_landing` with `variant` property. `generateStaticParams()`
     for all variant routes. Returns `notFound()` for unknown slugs.
   If no `variants`, skip entirely — the landing-page subagent creates `src/app/page.tsx`.
-- **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file). Fire the corresponding EVENTS.yaml events at their specified triggers. Update the post-auth redirect in signup and login pages to navigate to the first non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page exists, keep the redirect to `/`.
+- **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file).
+  Fire the corresponding EVENTS.yaml events at their specified triggers.
+  If `stack.auth_providers` is present in idea.yaml: add OAuth login buttons for each
+  listed provider below the email/password form, using the OAuth button template and
+  `handleOAuthLogin` function from the auth stack file's "OAuth buttons" section.
+  Fire `trackSignupStart({ method: "<provider>" })` before the OAuth redirect.
+  Update the post-auth redirect in signup and login pages to navigate to the first
+  non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page
+  exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
 - **All other pages**: For each non-landing, non-auth page, apply the
   preloaded `frontend-design` guidelines (injected via skills) with:
