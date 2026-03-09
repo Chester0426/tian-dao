@@ -62,6 +62,17 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the idea.yaml fields listed — if set, skip the prompts.
 3. **DB password** (if applicable): Generate with `openssl rand -base64 24`.
 5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
+7. **OAuth provider credentials** (if `stack.auth_providers` present):
+   - If `deploy-manifest.json` exists (re-run): Supabase ref is known → collect credentials now
+   - If first deploy: note that OAuth needs setup after Step 3 creates the Supabase project
+   - For each provider, tell the user:
+     > Create an OAuth app at [provider console URL].
+     > Set redirect URI to: `https://<ref>.supabase.co/auth/v1/callback`
+     > Paste Client ID and Secret here, or type **skip** to configure later.
+   - Provider console URLs: google → console.cloud.google.com/apis/credentials,
+     github → github.com/settings/developers, apple → developer.apple.com/account/resources/authkeys,
+     discord → discord.com/developers/applications, gitlab → gitlab.com/-/user_settings/applications
+   - Store credentials in memory (never in files — secrets go to Management API only)
 6. **External service credentials**: Read `.env.example`, collect env vars not handled by stack categories. For each external service, use CLI status from Step 0.7:
    - **Auto via CLI** — installed + authenticated → will auto-provision in Step 5b
    - **Manual (CLI available)** — CLI exists but not installed/authed → user can install to enable auto
@@ -96,6 +107,14 @@ Reply **approve** to proceed, or tell me what to change.
 Skip this step if `stack.database` is absent or if the database stack file's `## Deploy Interface > Provisioning` says "none" (e.g., SQLite — auto-created on startup).
 
 Read the database stack file's `## Deploy Interface > Provisioning` and follow each substep in order. The stack file specifies the exact CLI commands, polling logic, key extraction, and migration commands for the configured database provider.
+
+## Step 3.5: Collect OAuth credentials (first deploy only)
+
+Skip if `stack.auth_providers` is absent OR credentials already collected in Step 1.
+
+Now that the Supabase ref is known from Step 3, for each provider in `auth_providers`:
+show the callback URL (`https://<ref>.supabase.co/auth/v1/callback`), ask for Client ID
+and Secret (or **skip**). Store as `oauth_credentials: { provider: { client_id, secret } }`.
 
 ## Step 4: Create hosting project and set env vars
 
@@ -197,8 +216,8 @@ Launch all applicable agents **simultaneously** using parallel Agent tool calls.
 #### Agent A — Database Auth config
 
 **Spawn condition:** `stack.auth: supabase` AND `stack.database: supabase`
-**Receives:** `canonical_url`, database refs/keys (from Step 3), idea.yaml `title`/`name`, database stack file path
-**Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: []}`
+**Receives:** `canonical_url`, database refs/keys (from Step 3), idea.yaml `title`/`name`, database stack file path, `oauth_credentials` from Step 1/3.5, `stack.auth_providers`
+**Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: [], oauth_configured: ["google", ...], oauth_skipped: ["github", ...]}`
 
 Instructions for Agent A:
 
@@ -207,6 +226,16 @@ Read the database stack file's `## Deploy Interface > Auth Config`. If the secti
 If `stack.database` does not match `stack.auth`'s expected database (e.g., auth is supabase but no supabase project was created in Step 3), return `{status: "skipped", message: "Auth redirect URLs must be configured manually since no matching database project was created during deploy.", env_vars_added: []}`.
 
 Follow the Auth Config section's instructions step by step — it specifies how to discover the access token, what API call to make, and what fields to set using `canonical_url`.
+
+**OAuth provider configuration** (if `stack.auth_providers` present AND credentials collected):
+Include in the same PATCH call to `/v1/projects/{ref}/config/auth`:
+```json
+"external_<provider>_enabled": true,
+"external_<provider>_client_id": "<id>",
+"external_<provider>_secret": "<secret>"
+```
+For skipped providers (user typed **skip**), do not include them in the PATCH call.
+Record configured providers in `oauth_configured` and skipped providers in `oauth_skipped`.
 
 ---
 
@@ -407,6 +436,9 @@ Print a deployment summary:
 
 [If auth] **Auth redirect URLs:** Configured — site_url set to https://<canonical_url>
 [If auth] **Email subjects:** Configured — confirmation, recovery, and magic link emails use app name
+[If auth_providers] **OAuth providers:**
+[For each configured provider] - <Provider>: ✅ Enabled
+[For each skipped provider] - <Provider>: ⏭️ Skipped — configure at Supabase Dashboard → Authentication → Providers
 [If payment AND Stripe CLI was available] **Stripe webhook:** Configured — endpoint https://<canonical_url>/api/webhooks/stripe, events: checkout.session.completed
 [If payment AND Stripe CLI was NOT available] **Stripe webhook (manual):** Add the webhook URL in Stripe Dashboard → Developers → Webhooks:
   Endpoint URL: https://<canonical_url>/api/webhooks/stripe
@@ -485,6 +517,10 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
     "webhook_endpoint_url": "<url or null>"
   },
   "surface_url": "<url or null>",
+  "oauth_providers": {
+    "configured": ["<provider>", ...],
+    "skipped": ["<provider>", ...]
+  },
   "external_services": ["<service-slug>", ...],
   "deployed_at": "<ISO 8601 timestamp>"
 }
@@ -502,6 +538,7 @@ This skill handles re-runs gracefully:
 - Database provisioning checks for existing projects before creating
 - Database migrations skip already-applied migrations
 - Auth config is idempotent — overwrites existing values
+- OAuth provider configuration is idempotent — re-enabling overwrites existing values
 - Stripe webhook creation checks for existing endpoint before creating
 - Stripe CLI is a soft dependency — falls back to manual setup if not installed
 - Domain add commands are idempotent — adding an already-configured domain is a no-op
