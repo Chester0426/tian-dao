@@ -81,13 +81,22 @@ VARIABLE_NAME=description-or-example
      return a mock client. NEXT_PUBLIC_ is required because Next.js inlines
      client env vars at build time.
 
-     For Supabase-style chainable APIs, use a Proxy-based mock:
+     For Supabase-style chainable APIs (e.g., `from()`), use a Proxy-based mock:
        const chainable = (terminal) => new Proxy(() => terminal, {
          get: (_, prop) => prop === "then" ? undefined : chainable(terminal),
          apply: () => chainable(terminal),
        });
      The `then` trap returning `undefined` prevents `await` from treating
      the Proxy as a thenable (which causes infinite loops).
+
+     For auth-like namespaces with many methods (e.g., `auth`), use a Proxy
+     fallback so unknown methods return a safe default instead of crashing:
+       auth: new Proxy(
+         { getUser: () => ..., getSession: () => ... },  // known methods with specific return shapes
+         { get: (target, prop) => prop in target ? target[prop] : () => Promise.resolve({ data: {}, error: null }) }
+       );
+     This avoids maintaining an explicit allowlist — any new SDK method
+     (e.g., signInWithOAuth) automatically gets a safe no-op response.
 
      For simpler clients (Stripe, Resend), a plain object mock or early
      return is sufficient.

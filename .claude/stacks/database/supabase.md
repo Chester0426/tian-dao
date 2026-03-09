@@ -49,33 +49,35 @@ function createDemoClient() {
       delete: query,
       upsert: query,
     }),
-    auth: {
-      getUser: () =>
-        Promise.resolve({
-          data: {
-            user: {
-              id: "demo-user-id",
-              email: "demo@example.com",
-              app_metadata: {},
-              user_metadata: {},
-              aud: "authenticated",
-              created_at: new Date().toISOString(),
+    auth: new Proxy(
+      {
+        getUser: () =>
+          Promise.resolve({
+            data: {
+              user: {
+                id: "demo-user-id",
+                email: "demo@example.com",
+                app_metadata: {},
+                user_metadata: {},
+                aud: "authenticated",
+                created_at: new Date().toISOString(),
+              },
             },
-          },
-          error: null,
+            error: null,
+          }),
+        getSession: () =>
+          Promise.resolve({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({
+          data: { subscription: { unsubscribe: () => {} } },
         }),
-      getSession: () =>
-        Promise.resolve({ data: { session: null }, error: null }),
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: () => {} } },
-      }),
-      signOut: () => Promise.resolve({ error: null }),
-      signUp: () => Promise.resolve({ data: {}, error: null }),
-      signInWithPassword: () => Promise.resolve({ data: {}, error: null }),
-      exchangeCodeForSession: () => Promise.resolve({ data: {}, error: null }),
-      resetPasswordForEmail: () => Promise.resolve({ data: {}, error: null }),
-      updateUser: () => Promise.resolve({ data: {}, error: null }),
-    },
+      },
+      {
+        get: (target, prop) =>
+          prop in target
+            ? target[prop as keyof typeof target]
+            : () => Promise.resolve({ data: {}, error: null }),
+      }
+    ),
     rpc: () => chainable({ data: null, error: null }),
   } as unknown as ReturnType<typeof createBrowserClient>;
 }
@@ -109,26 +111,32 @@ function createDemoClient() {
       delete: query,
       upsert: query,
     }),
-    auth: {
-      getUser: () =>
-        Promise.resolve({
-          data: {
-            user: {
-              id: "demo-user-id",
-              email: "demo@example.com",
-              app_metadata: {},
-              user_metadata: {},
-              aud: "authenticated",
-              created_at: new Date().toISOString(),
+    auth: new Proxy(
+      {
+        getUser: () =>
+          Promise.resolve({
+            data: {
+              user: {
+                id: "demo-user-id",
+                email: "demo@example.com",
+                app_metadata: {},
+                user_metadata: {},
+                aud: "authenticated",
+                created_at: new Date().toISOString(),
+              },
             },
-          },
-          error: null,
-        }),
-      getSession: () =>
-        Promise.resolve({ data: { session: null }, error: null }),
-      signOut: () => Promise.resolve({ error: null }),
-      exchangeCodeForSession: () => Promise.resolve({ data: {}, error: null }),
-    },
+            error: null,
+          }),
+        getSession: () =>
+          Promise.resolve({ data: { session: null }, error: null }),
+      },
+      {
+        get: (target, prop) =>
+          prop in target
+            ? target[prop as keyof typeof target]
+            : () => Promise.resolve({ data: {}, error: null }),
+      }
+    ),
     rpc: () => chainable({ data: null, error: null }),
   } as unknown as ReturnType<typeof createServerClient>;
 }
