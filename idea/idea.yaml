@@ -127,6 +127,9 @@ stack:
   hosting: vercel           # Where the app is deployed — leave default
   database: supabase        # Database and backend — leave default
   auth: supabase            # Login/signup system — leave default
+  # auth_providers:         # OAuth providers (e.g., [google, github]). Omit for email-only auth.
+  #   - google
+  #   - github
   analytics: posthog        # Usage tracking — leave default
   ui: shadcn                # UI component library — leave default
   # payment: stripe         # Uncomment if your experiment involves payments
