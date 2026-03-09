@@ -71,6 +71,10 @@ DO NOT write any code, create any files, or run any install commands during this
    - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
    - If `stack.testing` is `playwright` and archetype is `service` or `cli`: stop and tell the user: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` (or another server-side test runner) instead."
    - If `quality: production` is set in idea.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to idea.yaml `stack`."
+   - If `stack.auth_providers` is present:
+     - Verify `stack.auth` is also present. If not: stop — "OAuth providers require an auth system. Add `auth: supabase` to your idea.yaml `stack` section."
+     - Verify it is a non-empty list of strings. If empty: stop — "auth_providers is empty. Either add providers (e.g., `[google, github]`) or remove the field."
+     - Warn (don't stop) for unrecognized slugs — Supabase may add new providers.
    - If `variants` is present in idea.yaml, validate the variants list:
      - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
      - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)

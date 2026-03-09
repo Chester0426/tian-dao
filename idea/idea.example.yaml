@@ -127,6 +127,8 @@ stack:
   hosting: vercel
   database: supabase
   auth: supabase
+  auth_providers:            # OAuth login providers — omit for email-only auth
+    - google
   analytics: posthog
   ui: shadcn
   payment: stripe
