@@ -4,23 +4,42 @@
 
 ---
 
-## 1. Core Loop
+## 1. Levels & Archetypes
 
 ```
-Idea → Spec → Asset → Traffic → Behavior → Insight → Decision
-  ^                                                                        |
-  +---------------------------- Next Experiment <--------------------------+
+Idea → Spec → Asset → Traffic → Behavior → Insight → Decision → Next Experiment
 ```
 
-Each experiment has a **level** that determines scope and fidelity:
+### Levels
 
-| Level | Name | What it tests | Stack |
-|-------|------|---------------|-------|
-| L1 | **Pitch** | Is there interest? | Static page + PostHog |
-| L2 | **Prototype** | Will they engage? | + Supabase (signup, fake-door interactions) |
-| L3 | **Product** | Will they use and retain? | Full template stack (auth, functional demo) |
+| Level | Name | Funnel dimensions | Shared stack added |
+|-------|------|-------------------|-------------------|
+| L1 | **Pitch** | REACH + DEMAND | Next.js + hosting + PostHog + shadcn + Playwright |
+| L2 | **Prototype** | + MONETIZE | + Supabase |
+| L3 | **Product** | + RETAIN | + Auth (+ Stripe if monetize) |
 
-Levels are **nested**: L2 includes everything from L1, L3 includes everything from L2. An experiment can be **upgraded** from L1→L2→L3 without rebuilding — each level adds capabilities on top of the previous one. Deployed at `exp-name.assayer.io`.
+Levels are nested: L2 includes L1, L3 includes L2. Upgrade without rebuild.
+
+### Archetype x Level Matrix
+
+| | L1 (Pitch) | L2 (Prototype) | L3 (Product) |
+|--|-----------|----------------|-------------|
+| **web-app** | Landing page + variants + analytics | + functional pages + DB | + auth + payments |
+| **service** | Landing page + API docs + "Get API Key" CTA | + real API routes + DB | + auth + rate limit + billing |
+| **cli** | Landing page + npx stub (opens browser) | + real CLI commands + backend API + DB | + auth token + cloud sync + billing |
+| **agent** | Landing page + agent description | + agent execution route + results page + DB | + auth + usage tracking + billing |
+
+**All archetypes at L1 are the same: a Next.js landing page.** Differentiation starts at L2.
+
+### Stack Principles
+
+- **Runtime is always Next.js.** API routes serve as backend. No Hono/Express during validation.
+- **Hosting varies by need.** Vercel (default) for web-app/service. Railway for agents and real-time (persistent runtime). Determined at `/spec` time from type + behavior analysis.
+- **`type` controls generation, not stack.** All archetypes use the same stack structure. `type` determines what `/bootstrap` creates (pages, routes, artifacts).
+- **Code grows from L1 to production without rewrite.** Same runtime across all levels. Switching hosting (Vercel→Railway) is a config change, not a code change.
+- **`services[]` array from Day 1.** V1 has one service. V3+ can add more. Zero schema migration.
+
+Deployed at `exp-name.assayer.io`.
 
 ---
 
@@ -31,7 +50,7 @@ Levels are **nested**: L2 includes everything from L1, L3 includes everything fr
 ```
 .claude/commands/*.md (single source of logic)
          |
-    ┌────┴────┐
+    +---------+
     v         v
   CLI      Agent SDK
 (internal) (Cloud Run)
@@ -41,52 +60,41 @@ Levels are **nested**: L2 includes everything from L1, L3 includes everything fr
          (assayer.io)
 ```
 
-- Internal team: Claude Code CLI → runs skill directly
-- External users: Web UI → Assayer backend → Agent SDK → runs same skill
-- **Web UI is above Agent SDK, not parallel to it**
+- Internal: Claude Code CLI → skill directly
+- External: Web UI → backend → Agent SDK → same skill
 
 ### Skills are Stateless Transformers
 
-Skills return structured JSON. They do NOT write to databases or call persistence APIs. The **caller** handles persistence.
+Skills return JSON. Caller handles persistence. Exception: `/bootstrap`, `/deploy`, `/distribute`, `/teardown` have side effects.
 
-**Exception:** `/bootstrap`, `/deploy`, `/distribute`, `/teardown` have filesystem/infrastructure side effects.
-
-**Error handling for AI-calling skills:** Every skill that calls Claude (`/spec`, `/iterate`) must: (1) validate output with a zod schema, (2) retry once on parse failure with a more constrained prompt, (3) return a typed error object on second failure — never crash.
+AI-calling skills (`/spec`, `/iterate`): validate with zod, retry once on parse failure, typed error on second failure.
 
 ### experiment.yaml vs idea.yaml
-
-The mvp-template uses `experiment.yaml` as the experiment configuration file. Assayer uses `idea.yaml` for its own platform definition.
 
 | | Assayer platform | Per-experiment |
 |---|---|---|
 | File | `idea/idea.yaml` | `idea/experiment.yaml` |
 | Defines | Dashboard, API, auth (assayer.io) | Landing page / demo (exp-name.assayer.io) |
-| Written by | Us (manually) | `/spec` skill (generated from hypothesis) |
-| Read by | `/bootstrap` for platform code | `/bootstrap` for experiment asset |
+| Written by | Us | `/spec` (generated) |
+| Read by | `/bootstrap` for platform | `/bootstrap` for experiment |
 
-Different file names eliminate collision risk. `/spec` generates `experiment.yaml`; it cannot accidentally overwrite the platform's `idea.yaml`.
+> **Prerequisite:** mvp-template rename `idea.yaml` → `experiment.yaml` must complete first.
 
-> **Prerequisite:** mvp-template global rename `idea.yaml` → `experiment.yaml` (66 files) must complete before implementing new skills.
+### Persistence
 
-### DB is the Persistent Store
+Supabase = single source of truth. Skills return JSON; caller persists. CLI: stateless output; use `ASSAYER_API_KEY` + `ASSAYER_API_URL` for persistence.
 
-- Supabase is the single source of truth for all experiment state
-- Skills return JSON; the caller persists to DB
-- CLI mode: stateless output to console; use API key + `ASSAYER_URL` for persistence
+### Workspace Lifecycle (CLI)
 
-### Workspace Lifecycle (CLI Path)
+1. `mkdir exp-name && cd exp-name && git init`
+2. `/spec` → `idea/experiment.yaml`
+3. `/bootstrap` → project code
+4. `/deploy` → live URL
+5. Failure: workspace is disposable — re-run from failed step
 
-Current phase uses CLI exclusively. The workflow for each experiment:
+Agent SDK path (Cloud Run, Docker, credential injection) documented when external users arrive.
 
-1. **Create workspace:** `mkdir exp-name && cd exp-name && git init`
-2. **Generate config:** `/spec` writes `idea/experiment.yaml` to the workspace
-3. **Scaffold:** `/bootstrap` reads `experiment.yaml`, generates project code, commits
-4. **Deploy:** `/deploy` pushes to GitHub, deploys to Vercel, records `deployed_url`
-5. **Failure:** If any step fails, the workspace is disposable — delete and re-run from the failed step
-
-Agent SDK path (Cloud Run, Docker, credential injection) will be documented when external users arrive.
-
-### Agent SDK Integration
+### Agent SDK
 
 ```typescript
 import { Claude } from "@anthropic-ai/claude-code";
@@ -97,30 +105,29 @@ const result = await claude.sendMessage("/bootstrap", {
 });
 ```
 
-> API shape is illustrative — verify against latest Claude Code SDK docs before implementation.
+> API shape is illustrative — verify against latest SDK docs.
 
-Execution environment: Docker image on Google Cloud Run Jobs (Node.js 20+, npm, git, gh, vercel CLI, supabase CLI, Agent SDK, template files pre-loaded). Scale-to-zero, 5-15min task timeout.
+Runtime: Docker on Cloud Run Jobs (Node.js 20+, all CLIs pre-loaded). Scale-to-zero, 5-15min timeout.
 
 ### Authentication
 
 | Method | Provider | Notes |
 |--------|----------|-------|
 | Email + password | Supabase Auth | TOTP 2FA required |
-| Google OAuth login | Supabase Auth | `openid email profile` scope |
-| GitHub OAuth login | Supabase Auth | Standard |
+| Google OAuth | Supabase Auth | `openid email profile` |
+| GitHub OAuth | Supabase Auth | Standard |
 
-Login OAuth (Supabase Auth) is independent from API OAuth (Google/Meta Ads account connection). API tokens stored encrypted in `oauth_tokens` table via Supabase Vault.
+Login OAuth (Supabase Auth) is independent from API OAuth (Google/Meta Ads). API tokens encrypted via Supabase Vault in `oauth_tokens` table.
 
 ### Hosting Model
 
 ```
-Assayer Platform  →  Vercel (assayer.io) + Supabase
-Experiment A      →  Vercel (exp-a.assayer.io), no DB (landing page)
-Experiment B      →  Vercel (exp-b.assayer.io) + Supabase (signup flow)
-Experiment C      →  Vercel (exp-c.assayer.io) + Supabase (functional demo)
+Assayer Platform   →  Vercel (assayer.io) + Supabase
+Experiment (web)   →  Vercel (exp-name.assayer.io)
+Experiment (agent) →  Railway (exp-name.assayer.io)
 ```
 
-All experiments share one PostHog project. Template `global_properties` distinguishes events by experiment.
+All experiments share one PostHog project. `global_properties` distinguishes by experiment.
 
 ---
 
@@ -128,20 +135,20 @@ All experiments share one PostHog project. Template `global_properties` distingu
 
 ### 10 Experiment Skills
 
-| # | Skill | State Transition | Status |
-|---|-------|-----------------|--------|
-| 1 | `/spec` | Idea text + level → experiment.yaml (hypotheses, behaviors, variants, stack) | **New** |
-| 2 | `/bootstrap` | experiment.yaml → Project code | Existing |
-| 3 | `/change` | Modify experiment code (pivot) | Existing |
-| 4 | `/verify` | Build + test quality gate | Existing |
-| 5 | `/deploy` | Code → Live URL | Existing |
-| 6 | `/distribute` | Live → Traffic (ad copy, UTM, channel rec, budget) | **Enhanced** |
-| 7 | `/iterate` | Traffic data → Insights + scorecard + per-hypothesis verdicts | **Enhanced** |
-| 8 | `/teardown` | Remove infrastructure + archive | **Enhanced** |
-| 9 | `/harden` | MVP → Production quality mode | Existing |
-| 10 | `/retro` | End-of-experiment structured feedback | Existing |
+| # | Skill | Transition | Status |
+|---|-------|-----------|--------|
+| 1 | `/spec` | Idea + level → experiment.yaml | **New** |
+| 2 | `/bootstrap` | experiment.yaml → code | Existing |
+| 3 | `/change` | Modify code | Existing |
+| 4 | `/verify` | Build + test gate | Existing |
+| 5 | `/deploy` | Code → live URL | Existing |
+| 6 | `/distribute` | Live → traffic (ad copy, UTM, budget) | **Enhanced** |
+| 7 | `/iterate` | Data → scorecard + per-hypothesis verdicts | **Enhanced** |
+| 8 | `/teardown` | Remove infra + archive | **Enhanced** |
+| 9 | `/harden` | MVP → production quality | Existing |
+| 10 | `/retro` | End-of-experiment feedback | Existing |
 
-Supporting skills (unchanged): `/review`, `/rollback`
+Supporting (unchanged): `/review`, `/rollback`
 
 ### Flow
 
@@ -156,44 +163,32 @@ Supporting skills (unchanged): `/review`, `/rollback`
                                          |     |      |
                                     (graduate) |      /teardown
                                                |
-                                      ┌────────┴────────┐
-                                      │ Same level:     │
-                                      │  /change        │
-                                      │  → /distribute  │
-                                      │                 │
-                                      │ Upgrade level:  │
-                                      │  /spec (L+1)    │
-                                      │  → /bootstrap   │
-                                      │  → /deploy      │
-                                      └─────────────────┘
+                                      +--------+--------+
+                                      | Same level:     |
+                                      |  /change        |
+                                      |  → /distribute  |
+                                      |                 |
+                                      | Upgrade level:  |
+                                      |  /spec (L+1)    |
+                                      |  → /bootstrap   |
+                                      |  → /deploy      |
+                                      +-----------------+
                       PIVOT = KILL current + new /spec
 ```
 
-### `/spec` — Idea Text + Level → Complete experiment.yaml
+### `/spec` — Idea + Level → experiment.yaml
 
-**Model:** Opus
-
-**Input:**
-```typescript
-{
-  idea: string;           // Free-text idea description
-  level?: 1 | 2 | 3;     // Experiment level (default: 1)
-}
-```
-
-**Output:** Complete `idea/experiment.yaml` content for `/bootstrap` to consume.
+**Model:** Opus | **Input:** `{ idea: string, level?: 1|2|3 }` | **Output:** `idea/experiment.yaml`
 
 **experiment.yaml schema** (7 sections):
 
 ```yaml
 # 1. Identity
 name: ai-invoice-tool                    # kebab-case
-type: web-app                            # web-app | service | cli (determines archetype)
+type: web-app                            # web-app | service | cli | agent
 level: 1                                 # 1 (Pitch), 2 (Prototype), 3 (Product)
 status: draft
-# quality: production                    # Build config (not experiment definition).
-                                         # Toggles TDD, per-task implementer, spec review.
-                                         # Does not affect hypotheses, behaviors, or funnel.
+# quality: production                    # Build config — toggles TDD, implementer, spec review
 
 # 2. Intent
 description: |                           # 2-3 sentences for landing page copy
@@ -202,22 +197,20 @@ description: |                           # 2-3 sentences for landing page copy
 thesis: "Freelancers want AI-generated invoices"
 target_user: "Solo freelancers, US/EU"
 distribution: "Google Ads targeting freelancer invoice keywords"
-hypotheses:                               # inline — no separate manifest
+hypotheses:                               # inline, not in separate manifest
   - id: h-01
     category: demand
     statement: "Freelancers actively search for AI invoice tools"
     success_metric: "Signup conversion rate"
     threshold: "> 5% signup rate from 500+ visitors"
-    priority_score: 90
+    priority_score: 90                   # 0-100
     experiment_level: 1
     depends_on: []
   # ... 5-10 hypotheses
 
-# 3. Behaviors (replaces features — given/when/then with hypothesis traceability)
-#    Unified model: user behaviors (default) and system behaviors (actor: system)
-#    share the same list. This eliminates the need for a separate critical_flows section.
+# 3. Behaviors (unified: user + system actors)
 behaviors:
-  # User behavior (actor: user is the default, can be omitted)
+  # User behavior (actor: user is default, omit)
   - id: b-01
     given: "A freelancer lands on the pitch page"
     when: "They read the headline and subheadline"
@@ -225,31 +218,21 @@ behaviors:
     tests:
       - "Landing page renders without errors"
       - "Headline matches active variant"
-    hypothesis_id: h-01                   # traces back to hypothesis
-    level: 1                              # minimum level needed
-  - id: b-02
-    given: "A freelancer is interested in the product"
-    when: "They click the primary CTA"
-    then: "They enter the signup flow"
-    tests:
-      - "CTA click fires signup_start event"
-      - "Signup form renders after click"
-    hypothesis_id: h-02
+    hypothesis_id: h-01
     level: 1
-  # System behavior (actor: system — for webhooks, crons, background jobs)
+  # System behavior
   - id: b-05
     actor: system                         # system | cron (default: user)
     trigger: "stripe webhook checkout.session.completed"
     given: "A Stripe checkout session completes"
     when: "Webhook is received"
-    then: "Invoice marked paid, freelancer notified, client receipted"
+    then: "Invoice marked paid, freelancer notified"
     tests:
       - "invoices table has status='paid'"
-      - "2 emails queued (freelancer + client)"
     hypothesis_id: h-03
     level: 3
 
-# 4. Journey (golden path with events)
+# 4. Journey
 golden_path:
   - step: "Visit landing page"
     event: visit_landing
@@ -262,7 +245,7 @@ golden_path:
     page: landing
 target_clicks: 3
 
-# 5. Variants (A/B messaging, 3-5 variants)
+# 5. Variants (3-5 A/B messaging angles)
 variants:
   - slug: time-saver
     headline: "Save 5 Hours Every Week on Invoicing"
@@ -272,9 +255,8 @@ variants:
     promise: "Professional invoices in seconds"
     proof: "Used by 500+ freelancers"
     urgency: null
-  # ... 3-5 variants, each testing a different angle
 
-# 6. Funnel (thresholds + decision framework)
+# 6. Funnel
 funnel:
   reach:
     metric: "Ad CTR"
@@ -293,168 +275,139 @@ funnel:
     threshold: "> 30%"
     available_from: L3
 decision_framework:
-  scale: "All tested dimensions ≥ threshold"
-  refine: "Bottleneck ratio ≥ 0.7"
+  scale: "All tested dimensions >= threshold"
+  refine: "Bottleneck ratio >= 0.7"
   pivot: "Bottleneck ratio < 0.7"
   kill: "Top-funnel (REACH or DEMAND) < 0.5"
 
-# 7. Stack (deterministic from level) + Deploy (filled later)
-stack:
-  framework: nextjs
-  hosting: vercel
-  analytics: posthog
-  ui: shadcn
-  # database: supabase       — added at L2+
-  # auth: supabase           — added at L3
-  # auth_providers: [google]  — OAuth providers, nested under auth config
+# 7. Stack + Deploy
+services:
+  - name: app
+    runtime: nextjs                      # always Next.js for validation
+    hosting: vercel                      # or railway (agents, real-time)
+    ui: shadcn
+    testing: playwright
+database: supabase                       # L2+ (shared across services)
+auth: supabase                           # L3 (shared)
+# auth_providers: [google]               # OAuth providers
+analytics: posthog                       # shared
+# payment: stripe                        # L3 if monetize
 deploy:
-  url: null                   # filled by /deploy
+  url: null
   repo: null
-  vercel_project_id: null
 ```
 
-**Schema design decisions (first-principles analysis):**
+**Schema design decisions:**
 
-| Field | In schema? | Where | Rationale |
-|-------|-----------|-------|-----------|
-| `type` | **Yes** | Section 1 Identity | Product archetype (web-app/service/cli/mobile-app) fundamentally changes golden path, funnel shape, behavior types, and variant carriers. A service has no "landing page visit" — its reach hypothesis is tested via API signups. |
-| `quality` | No — build config | Top-level flag alongside Section 1 | Process decision (TDD vs smoke tests), not experiment definition. Two identical experiments with different `quality` test the same thing. |
-| `critical_flows` | **Absorbed** | Section 3 Behaviors (`actor: system`) | System-triggered chains (webhooks, crons) are behaviors with a non-human actor. Unified model: one `behaviors` list with `actor` field eliminates duplicate definitions and works uniformly across archetypes (service = mostly `actor: system`). |
-| `auth_providers` | No — stack config | Section 7 `stack.auth_providers` | Implementation detail of the auth stack. Google OAuth vs email/password doesn't change any hypothesis or funnel metric. |
-| `description` | **Yes** | Section 2 Intent | Landing page copy material. Provides the 2-3 sentence problem/solution summary that `thesis` alone is too terse to convey. Replaces the old `problem` + `solution` pair with a single field. |
+| Field | Placement | Reason |
+|-------|----------|--------|
+| `type` | Section 1 | Archetype changes golden path, funnel shape, behavior types |
+| `quality` | Outside sections (build config) | Process decision, not experiment definition |
+| `critical_flows` | Absorbed into Section 3 | System behaviors use `actor: system` + `trigger` |
+| `auth_providers` | Section 7 under auth | Stack implementation detail |
+| `description` | Section 2 | Landing page copy, replaces old `problem` + `solution` |
+| `services[]` | Section 7 | V1: array of 1. V3+: array of N. Zero schema migration. |
+| `runtime` (not `framework`) | Per-service | Semantically accurate: describes execution model, not library |
 
-**Key behaviors** (6 phases):
+**`/spec` phases:**
 
-1. **Parse input:** Extract idea text from `$ARGUMENTS`. If level not specified, default to 1 (Pitch). Validate idea text is >= 20 characters.
-2. **Pre-flight research:** Analyze the idea across 4 dimensions (market existence, problem validation, competitive landscape, ICP identification). Each produces a research result with finding, sources, confidence, and verdict. Present as "pre-flight checks" summary.
-3. **Hypothesis generation:** Generate 5-10 hypotheses across categories (demand, reach, feasibility, monetize, retain). Each has: id, category, statement, success_metric, threshold, priority_score, experiment_level, depends_on. Mark research-type hypotheses as resolved.
-4. **Behavior derivation:** Convert each experiment-type hypothesis into given/when/then behaviors with `tests[]` array and `level` annotation. User-triggered behaviors omit `actor` (default: user). System-triggered behaviors (webhooks, crons) set `actor: system` and add a `trigger` field. All behaviors live in one unified list — no separate `critical_flows` section.
-5. **Variant generation:** Generate 3-5 offer variants, each testing a meaningfully different angle (>30% word difference in headlines). Include: slug, headline, subheadline, CTA, pain_points, promise, proof, urgency.
-6. **Stack/funnel determination:** Set stack deterministically from level (L1: static, L2: + Supabase, L3: + auth). Set funnel thresholds from highest-priority hypothesis per dimension.
+1. **Parse** — idea text + level (default 1). Validate >= 20 chars.
+2. **Pre-flight research** — 4 dimensions: market, problem, competition, ICP. Verdict per dimension (pass/caution/fail). Stop on 2+ failures.
+3. **Hypotheses** — 5-10 across demand/reach/feasibility/monetize/retain. Filter by level. Priority 0-100. L1: demand+reach required. L2: +feasibility+retain. L3: all five. Monetize at L2+.
+4. **Behaviors** — given/when/then + `tests[]` array. User behaviors default. System behaviors: `actor: system` + `trigger` field.
+5. **Variants** — 3-5 angles, >30% headline word difference. L3 + monetize: add `pricing_amount`, `pricing_model`.
+6. **Stack/funnel** — Stack from level (Section 1 table). Hosting from type + behavior analysis. Funnel thresholds from highest-priority hypothesis per dimension.
 
-**Internal manifest:** Writes `.claude/spec-manifest.json` containing the full intermediate data (hypotheses, research results, cluster info) for `/iterate` to consume. This manifest is not user-facing — the user sees only experiment.yaml.
+**Manifest:** `.claude/spec-manifest.json` with research, hypotheses, cluster data. For `/iterate`. Not user-facing.
 
-### `/iterate` — Enhanced with Per-Hypothesis Verdicts
+### `/iterate` — Scorecard + Per-Hypothesis Verdicts
 
-In addition to the 4-dimension funnel scorecard and overall verdict:
+Per hypothesis: map `success_metric` → funnel metric, compare against `threshold`.
+Verdict: CONFIRMED / REJECTED / INCONCLUSIVE.
 
-- For each hypothesis, map its `success_metric` to the closest funnel metric
-- Compare actual metric against `threshold`
-- Produce per-hypothesis verdict: CONFIRMED / REJECTED / INCONCLUSIVE
-- Sample size qualifiers:
-  - <30 visitors → "insufficient data"
-  - 30-100 → "directional signal"
-  - 100-500 → "reliable"
-  - 500+ → "high confidence"
+**Scorecard:** 4 funnel dimensions as actual/threshold ratios. FEASIBILITY = build-time gate (checked by `/spec`), not runtime.
 
-### Validation Scorecard (produced by /iterate)
+| Dimension | Measured via | From |
+|-----------|-------------|------|
+| **REACH** | ad CTR, impressions, CPC | L1+ |
+| **DEMAND** | CTA rate, signup rate, engagement | L1+ |
+| **MONETIZE** | pricing interaction, payment intent | L2+ |
+| **RETAIN** | return visits, repeat usage, churn | L3+ |
 
-Four funnel dimensions scored as **actual/threshold ratios**. FEASIBILITY is a build-time gate (checked by `/spec`), not a runtime metric.
+Confidence per dimension: <30 events `insufficient`, 30-100 `directional`, 100-500 `reliable`, 500+ `high`.
 
-| Dimension | Funnel Position | Measured via | Available from |
-|-----------|----------------|-------------|----------------|
-| **REACH** | Top | ad CTR, impression volume, cost-per-click | L1+ |
-| **DEMAND** | Middle | CTA click rate, signup rate, engagement depth | L1+ |
-| **MONETIZE** | Middle-bottom | pricing interaction, payment intent, conversion | L2+ |
-| **RETAIN** | Bottom | return visits, repeat usage, churn | L3+ |
+Decision: walk funnel top-down, first dimension below threshold = **bottleneck**.
 
-**Scoring:** Each dimension produces a ratio = actual ÷ threshold (from hypothesis). A ratio of 1.0 means "exactly met threshold." No 0-100 normalization — the raw ratio preserves signal magnitude.
-
-**Confidence** per dimension based on sample size:
-- <30 events → `insufficient` (ratio shown but grayed out)
-- 30-100 → `directional`
-- 100-500 → `reliable`
-- 500+ → `high`
-
-**Decision logic:** Walk the funnel top-down. The first dimension below threshold is the **bottleneck**. Decision is based on bottleneck severity, not an average:
-
-| Condition | Decision | Meaning |
-|-----------|----------|---------|
-| All tested dimensions ≥ 1.0 | SCALE | Funnel is healthy — invest more |
-| Bottleneck ratio ≥ 0.7 | REFINE | Close to threshold — address bottleneck dimension |
-| Bottleneck ratio < 0.7 | PIVOT | Significant gap — change the angle, keep the problem space |
-| Top-funnel (REACH or DEMAND) < 0.5 | KILL | No signal at the top — stop spending, archive |
-
-The bottleneck is highlighted with a specific recommendation (e.g., "Bottleneck: DEMAND (ratio 0.65). Signup rate 3.2% vs 5.0% threshold. Consider stronger CTA or social proof.").
+| Condition | Decision |
+|-----------|----------|
+| All tested dimensions >= 1.0 | SCALE |
+| Bottleneck ratio >= 0.7 | REFINE |
+| Bottleneck ratio < 0.7 | PIVOT |
+| REACH or DEMAND < 0.5 | KILL |
 
 ---
 
 ## 4. API & Data Flow
 
-### API Routes
+### Routes
 
 ```
-GET    /api/experiments                            — list experiments (paginated: ?page=1&limit=20)
-GET    /api/experiments/:id                        — get single experiment
-POST   /api/experiments                            — create experiment
-PATCH  /api/experiments/:id                        — update status, deployed_url, decision
-DELETE /api/experiments/:id                         — soft delete (sets archived_at)
+GET    /api/experiments                    — list (paginated)
+GET    /api/experiments/:id                — get single
+POST   /api/experiments                    — create
+PATCH  /api/experiments/:id                — update status/url/decision
+DELETE /api/experiments/:id                — soft delete (archived_at)
 
-POST   /api/experiments/:id/hypotheses             — store hypotheses (from /spec), mode: append|replace
-GET    /api/experiments/:id/hypotheses              — list (paginated)
+POST   /api/experiments/:id/hypotheses     — store (mode: append|replace)
+GET    /api/experiments/:id/hypotheses     — list
 
-POST   /api/experiments/:id/offers                 — store offer variants (from /offer), mode: append|replace
-GET    /api/experiments/:id/offers                  — list (paginated)
+POST   /api/experiments/:id/offers         — store variants
+GET    /api/experiments/:id/offers         — list
 
-POST   /api/experiments/:id/insights               — store scorecard + decision (from /iterate)
-GET    /api/experiments/:id/insights                — list decision history (paginated)
+POST   /api/experiments/:id/insights       — store scorecard + decision
+GET    /api/experiments/:id/insights       — list history
 
-POST   /api/experiments/:id/research               — store research results (from /spec)
-GET    /api/experiments/:id/research                — list (paginated)
+POST   /api/experiments/:id/research       — store research results
+GET    /api/experiments/:id/research       — list
 
-POST   /api/experiments/:id/metrics/sync           — query PostHog, cache in experiment_metrics
-GET    /api/experiments/:id/metrics                 — get cached metrics
+POST   /api/experiments/:id/metrics/sync   — query PostHog, cache
+GET    /api/experiments/:id/metrics        — cached metrics
 
-POST   /api/experiments/:id/spec                    — calls Claude AI, returns full spec (NOT persisted)
+POST   /api/experiments/:id/spec           — AI generation (NOT persisted)
 ```
 
-All list endpoints support `?page=1&limit=20` pagination (default limit: 20, max: 100).
+Pagination: `?page=1&limit=20` (max 100). Sub-resource POST: `mode=append` (default) or `mode=replace`.
 
-Sub-resource POST endpoints accept `mode` parameter: `append` (default) adds rows, `replace` deletes existing rows for the experiment then inserts.
-
-### Error Response Schema
-
-All endpoints return errors in a consistent format:
+### Error Schema
 
 ```json
-{
-  "error": {
-    "code": "validation_error",
-    "message": "Human-readable description",
-    "details": {}
-  }
-}
+{ "error": { "code": "validation_error", "message": "...", "details": {} } }
 ```
 
-Error codes: `validation_error`, `not_found`, `unauthorized`, `rate_limited`, `ai_error`, `internal_error`.
+Codes: `validation_error`, `not_found`, `unauthorized`, `rate_limited`, `ai_error`, `internal_error`.
 
 ### Data Flow
 
 ```
-/spec → returns experiment.yaml (hypotheses + behaviors + variants + funnel + stack)
-     ↓
-User reviews/edits experiment.yaml
-  → POST /api/experiments/[id]/hypotheses (mode: replace)
-  → POST /api/experiments/[id]/research (persisted)
-  → POST /api/experiments/[id]/offers (persisted)
-     ↓
-/bootstrap → generates code (filesystem side effect)
-     ↓
-/deploy → deploys (infrastructure side effect)
-  → PATCH /api/experiments/[id] { status: "active", deployed_url: "..." }
-     ↓
-PostHog ← user behavior events
-     ↓
-POST /api/experiments/[id]/metrics/sync → queries PostHog → caches in DB
-     ↓
-/iterate → returns scorecard + per-hypothesis verdicts
-  → POST /api/experiments/[id]/insights (persisted)
-  → PATCH hypotheses SET status = 'passed'/'failed' (per-hypothesis)
+/spec → experiment.yaml + spec-manifest.json
+  ↓
+User reviews/edits
+  → POST hypotheses (replace) + POST research + POST offers
+  ↓
+/bootstrap → code
+  ↓
+/deploy → PATCH { status: "active", deployed_url }
+  ↓
+PostHog ← events
+  ↓
+POST metrics/sync → cache
+  ↓
+/iterate → POST insights + PATCH hypothesis statuses
 ```
 
-### Metrics Sync Caching
+### Metrics Cache
 
-`POST /api/experiments/:id/metrics/sync` queries PostHog only if `fetched_at` is older than 15 minutes. Within 15 minutes, returns cached data. Manual refresh via `?force=true` bypasses the cache.
+`POST metrics/sync` queries PostHog only if `fetched_at` > 15min. `?force=true` bypasses.
 
 ### Env Vars
 
@@ -473,10 +426,12 @@ CREATE TABLE experiments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id),
   name text NOT NULL,
+  experiment_type text NOT NULL DEFAULT 'web-app'
+    CHECK (experiment_type IN ('web-app', 'service', 'cli', 'agent')),
   idea_text text NOT NULL,
   status text NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'active', 'paused', 'completed', 'archived')),
-  experiment_level integer CHECK (experiment_level IN (1, 2, 3)),  -- L1 Pitch, L2 Prototype, L3 Product
+  experiment_level integer CHECK (experiment_level IN (1, 2, 3)),
   variable_being_tested text,
   budget numeric DEFAULT 0,
   budget_spent numeric DEFAULT 0,
@@ -558,7 +513,7 @@ CREATE POLICY hypotheses_user_isolation ON hypotheses
     experiment_id IN (SELECT id FROM experiments WHERE user_id = auth.uid())
   );
 
--- Hypothesis dependencies (replaces depends_on uuid[])
+-- Hypothesis dependencies
 CREATE TABLE hypothesis_dependencies (
   hypothesis_id uuid NOT NULL REFERENCES hypotheses(id) ON DELETE CASCADE,
   depends_on_id uuid NOT NULL REFERENCES hypotheses(id) ON DELETE CASCADE,
@@ -589,7 +544,7 @@ CREATE POLICY research_results_user_isolation ON research_results
     experiment_id IN (SELECT id FROM experiments WHERE user_id = auth.uid())
   );
 
--- Variants (offer variants)
+-- Variants
 CREATE TABLE variants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   experiment_id uuid NOT NULL REFERENCES experiments(id) ON DELETE CASCADE,
@@ -643,8 +598,8 @@ CREATE TABLE experiment_decisions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   experiment_id uuid NOT NULL REFERENCES experiments(id) ON DELETE CASCADE,
   decision text NOT NULL CHECK (decision IN ('scale', 'refine', 'pivot', 'kill')),
-  reach_ratio numeric,                    -- actual ÷ threshold
-  reach_confidence text,                  -- 'insufficient', 'directional', 'reliable', 'high'
+  reach_ratio numeric,
+  reach_confidence text,
   reach_sample_size integer,
   demand_ratio numeric,
   demand_confidence text,
@@ -655,8 +610,8 @@ CREATE TABLE experiment_decisions (
   retain_ratio numeric,
   retain_confidence text,
   retain_sample_size integer,
-  bottleneck_dimension text,              -- first funnel dimension below threshold
-  bottleneck_recommendation text,         -- actionable suggestion
+  bottleneck_dimension text,
+  bottleneck_recommendation text,
   reasoning text,
   next_steps text,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -730,143 +685,104 @@ CREATE TRIGGER oauth_tokens_updated_at BEFORE UPDATE ON oauth_tokens
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 ```
 
-### Experiment Status Transitions
+### Status Transitions
 
-```
-draft → active → paused → active (resume)
-                → completed → archived
-                → archived (kill)
-draft → archived (abandon)
-```
+**Experiment:** `draft → active → paused → active` | `active → completed → archived` | `active → archived (kill)` | `draft → archived (abandon)`
 
-Transitions are triggered by skill invocations:
 - `draft → active`: `/deploy` succeeds
 - `active → paused`: user action
 - `active → completed`: `/iterate` returns SCALE or KILL
 - `* → archived`: `/teardown` or user action
 
-### Hypothesis Status Transitions
+**Hypothesis:** `pending → testing → passed/failed/skipped`
 
-```
-pending → testing → passed
-                  → failed
-                  → skipped
-```
-
-- `pending → testing`: experiment status becomes `active`
-- `testing → passed/failed`: `/iterate` produces verdict
+- `pending → testing`: experiment becomes `active`
+- `testing → passed/failed`: `/iterate` verdict
 - `* → skipped`: user manually skips
 
-### Pages
+### Pages (Assayer Platform)
 
 ```yaml
 pages:
-  - name: landing        # Assayer product intro + signup
+  - name: landing        # Product intro + signup
   - name: dashboard      # Experiment overview + portfolio
   - name: new-experiment # Create wizard (idea + level → spec → deploy)
   - name: experiment     # Detail (tabs: overview, hypotheses, variants, data, insights)
   - name: settings       # Account, billing
 ```
 
-### Validation Asset Types
-
-| Level | Name | Tests | Stack Needed | Includes |
-|-------|------|-------|-------------|----------|
-| L1 | **Pitch** | Is there interest? (REACH + DEMAND) | Vercel + PostHog + shadcn | — |
-| L2 | **Prototype** | Will they engage? (+ MONETIZE) | + Supabase | Everything from L1 |
-| L3 | **Product** | Will they use and retain? (+ RETAIN) | Full template stack (+ Auth) | Everything from L1 + L2 |
-
 ---
 
 ## 6. Build Order
 
-Each step = one Claude Code session unless noted. Sessions are self-contained — they read the codebase, not the previous session's context.
+| # | What | Method | Depends On |
+|---|------|--------|-----------|
+| 0 | Infrastructure setup | manual | — |
+| 0.5 | Rename `idea.yaml` → `experiment.yaml` (66 files) | direct edit | — |
+| 1 | Create `spec.md` | direct file creation | #0.5 |
+| 2 | Enhance `iterate.md` (per-hypothesis verdicts) | direct edit | — |
+| 3 | Minor updates to `distribute.md` | direct edit | #1 |
+| 4 | Update Assayer `idea.yaml` | manual edit | #1-2 |
+| 5 | `/bootstrap` Assayer platform | /bootstrap | #4 |
+| 6 | `/change`: error schema + API key auth | /change | #5 |
+| 7 | `/change`: experiments + hypotheses + clusters CRUD | /change | #6 |
+| 8 | `/change`: research + offers + metrics + AI spec endpoint | /change | #6 |
+| 9 | `/change`: new experiment page (AI generation + editing) | /change | #7-8 |
+| 10 | `/change`: dashboard + experiment detail pages | /change | #7-8 |
+| 11 | `/change`: PostHog metrics sync (15min cache) | /change | #7 |
+| 12 | `/harden` + `/verify` | /harden, /verify | #9-11 |
+| 13 | `/deploy` | /deploy | #12 |
+| 14 | First real experiment | manual | #13 |
 
-| # | What | Where | Method | Depends On | Est. |
-|---|------|-------|--------|-----------|------|
-| 0 | Infrastructure setup (Supabase, OAuth apps, PostHog, domain, Vercel, Sentry, CI/CD) | Infra | manual | — | Day 0 |
-| 0.5 | Global rename `idea.yaml` → `experiment.yaml` (66 files) | mvp-template | direct edit | — | 2-3 hrs |
-| 1 | Create `spec.md` (idea + level → experiment.yaml with hypotheses, behaviors, variants) | mvp-template | direct file creation | #0.5 | 10-14 hrs |
-| 2 | Enhance `iterate.md` (per-hypothesis verdicts + proxy quality) | mvp-template | direct edit | — | 3-5 hrs |
-| 3 | Minor updates to `distribute.md` | mvp-template | direct edit | #1 output format | 1-2 hrs |
-| 4 | Update Assayer `idea.yaml` (new API routes, new tables, new features) | Assayer | manual edit | #1-2 define data structures | 1-2 hrs |
-| 5 | `/bootstrap` Assayer platform | Assayer | /bootstrap | #4 | 1-2 hrs |
-| 6 | `/change`: error response schema + API key auth middleware | Assayer | /change | #5 | 2-3 hrs |
-| 7 | `/change`: experiments + hypotheses + clusters CRUD | Assayer | /change | #6 | 3-4 hrs |
-| 8 | `/change`: research + offers + metrics CRUD + AI spec endpoint | Assayer | /change | #6 | 3-4 hrs |
-| 9 | `/change`: new experiment page (AI generation + level selection + inline editing) | Assayer | /change | #7-8 | 3-5 hrs |
-| 10 | `/change`: dashboard + experiment detail pages (all tabs) | Assayer | /change | #7-8 | 4-6 hrs |
-| 11 | `/change`: PostHog metrics sync endpoint (with 15min cache) | Assayer | /change | #7 | 4-6 hrs |
-| 12 | `/harden` + `/verify` | Assayer | /harden, /verify | #9-11 | 2-4 hrs |
-| 13 | `/deploy` | Assayer | /deploy | #12 | 1-2 hrs |
-| 14 | Run first real experiment using the platform | Both repos | manual | #13 | — |
-
-**Estimated total: 45-60 hrs** (excludes infra setup and step 14).
-
-**Session types:**
-- **direct file creation** (step 1): Write new `.claude/commands/spec.md`. No skill involved — this IS the skill being created.
-- **direct edit** (steps 0.5, 2-3): Modify existing files. Mechanical or focused changes.
-- **manual edit** (step 4): Update `idea.yaml` by hand to reflect new features/routes/tables.
-- **/bootstrap** (step 5): Standard skill — generates scaffold from experiment.yaml.
-- **/change** (steps 6-11): Standard skill — updates idea.yaml feature, then implements. One bounded feature per session.
-
-**Parallelism:** #2, #3 can run in parallel with #1. #7 and #8 can run in parallel (both depend only on #6). #9, #10, #11 can run in parallel.
+**Parallelism:** #2+#3 parallel with #1. #7+#8 parallel. #9+#10+#11 parallel.
 
 ### Skill-to-Skill Data Flow
 
-Skills pass data via manifest files (same pattern as `/iterate` writing `.claude/iterate-manifest.json`):
-
 ```
-/spec        → writes idea/experiment.yaml
-             → writes .claude/spec-manifest.json (intermediate data for /iterate)
-                  ↓
+/spec        → writes idea/experiment.yaml + .claude/spec-manifest.json
 /bootstrap   → reads idea/experiment.yaml
-                  ↓
-/iterate     → reads .claude/spec-manifest.json (for per-hypothesis verdicts)
-             → writes .claude/iterate-manifest.json
+/iterate     → reads .claude/spec-manifest.json → writes .claude/iterate-manifest.json
 ```
 
-Manifest files are committed to the experiment repo so they persist across sessions and workspaces.
+Manifests committed to experiment repo — persist across sessions.
 
-### Infrastructure (Day 0 — before all other work)
+### Infrastructure (Day 0)
 
-| What | Est. |
-|------|------|
-| Create Supabase project (platform DB + Auth) | 30 min |
-| Register Google OAuth app + GitHub OAuth app (for Supabase Auth) | 30 min |
-| Create PostHog project (shared for platform + experiments) | 15 min |
-| Create Stripe account + test products | 30 min |
-| Purchase/configure assayer.io domain + wildcard DNS + SSL → Vercel | 1 hr |
-| Set up Vercel Pro account | 15 min |
-| Set up Sentry (Next.js integration) | 30 min |
-| Set up GitHub Actions CI (build + lint + test) | 30 min |
+| What |
+|------|
+| Supabase project (platform DB + Auth) |
+| Google OAuth + GitHub OAuth apps (for Supabase Auth) |
+| PostHog project (shared for platform + experiments) |
+| Stripe account + test products |
+| assayer.io domain + wildcard DNS + SSL → Vercel |
+| Vercel Pro account |
+| Sentry (Next.js integration) |
+| GitHub Actions CI (build + lint + test) |
 
 ### Future Additions (build when triggered)
 
 | Feature | Trigger |
 |---------|---------|
-| `/assay` orchestrator | Users ask for "one command" automation |
+| `/assay` orchestrator | Users ask for "one command" |
 | Auto-sequencing | 20+ experiments in DB |
 | Benchmark database | 100+ experiments in DB |
-| Google/Meta Ads API write | Manual campaign creation becomes bottleneck |
-| Agent SDK on Cloud Run + Workspace Lifecycle (Agent SDK path) | External users arrive |
+| Google/Meta Ads API write | Manual campaign creation bottleneck |
+| Agent SDK on Cloud Run | External users arrive |
 | Upstash rate limiting | External API exposure |
-| Pricing tiers + Stripe activation | ai_usage data available + external users |
+| Pricing tiers + Stripe | ai_usage data + external users |
 | Experiment comparison view | 5+ experiments per user |
-| PostHog project sharding | 100+ experiments, query perf degrades |
+| PostHog project sharding | 100+ experiments, perf degrades |
 
 ---
 
-## 7. Implementation Constraints
+## 7. Constraints
 
-- Use Opus for all AI skills (`/spec`, `/iterate`). Quality over cost — every skill output directly impacts user decisions.
-- Token budget tracked in `ai_usage` table from Day 1 with two categories:
-  - **Analysis** (`/spec`, `/iterate`): $5 per-experiment cap
-  - **Implementation** (`/bootstrap`, `/change`): tracked but uncapped (cost varies by experiment complexity)
-- Every AI-calling skill must: validate output with zod, retry once on parse failure, return typed error on second failure.
+- Opus for all AI skills. Quality over cost.
+- Token budget in `ai_usage` from Day 1: analysis (`/spec`, `/iterate`) $5/experiment cap, implementation tracked but uncapped.
+- AI skills: zod validation, retry once, typed error on second failure.
 - Show sample size alongside every metric. Never auto-decide with <100 clicks.
-- Allow user to preview and edit AI-generated content before deployment.
-- Rate limit AI-calling API endpoints (`/api/experiments/:id/spec`) from Day 1 — application-level, in-memory counter.
+- User can preview and edit AI content before deployment.
+- Rate limit `/api/experiments/:id/spec` from Day 1 — in-memory counter.
 
 ---
 
@@ -878,24 +794,24 @@ Manifest files are committed to the experiment repo so they persist across sessi
 /spec "AI-powered invoice tool for freelancers"
 
 Pre-flight checks                                    4/4 passed
-──────────────────
-✓ Market exists        Freelancer invoicing: $4.2B TAM          (confidence: high)
-✓ Problem validated    340+ forum threads                       (confidence: high)
-✓ Competitors found    None use AI generation                   (confidence: medium)
-✓ ICP identifiable     Solo freelancers, US/EU                  (confidence: high)
+------------------------------------------------------------------
+[ok] Market exists        Freelancer invoicing: $4.2B TAM          (confidence: high)
+[ok] Problem validated    340+ forum threads                       (confidence: high)
+[ok] Competitors found    None use AI generation                   (confidence: medium)
+[ok] ICP identifiable     Solo freelancers, US/EU                  (confidence: high)
 
 Level: L1 Pitch (default)
 Build: $150  Ad budget: $200  Time: 7 days
 
 Hypotheses:
-  REACH      "Ad CTR > 2% for freelancer invoice keywords"  → CTR
-  DEMAND     "Freelancers search for invoice automation"     → signup rate
-  MONETIZE   "Freelancers will pay $19/mo"                   → pricing clicks
+  REACH      "Ad CTR > 2% for freelancer invoice keywords"  -> CTR
+  DEMAND     "Freelancers search for invoice automation"     -> signup rate
+  MONETIZE   "Freelancers will pay $19/mo"                   -> pricing clicks
 
 Behaviors (3):
-  b-01  Given a freelancer lands → they understand the value prop      (L1)
-  b-02  Given interest → CTA click enters signup flow                  (L1)
-  b-03  Given pricing shown → they interact with pricing options       (L1)
+  b-01  Given a freelancer lands -> they understand the value prop      (L1)
+  b-02  Given interest -> CTA click enters signup flow                  (L1)
+  b-03  Given pricing shown -> they interact with pricing options       (L1)
 
 Variants (3):
   "time-saver"    Save 5 Hours Every Week on Invoicing
@@ -910,22 +826,22 @@ To test at L2/L3, run: /spec "AI-powered invoice tool" --level 2
 ### CLI — After /iterate
 
 ```
-RESULTS — Experiment #1 (L1 Pitch)
-═══════════════════════════════════════════════
+RESULTS -- Experiment #1 (L1 Pitch)
+=============================================
 
 Funnel scorecard:
-  REACH      1.90  ██████████████████░░  CTR 3.8% / 2.0%         (reliable — 523 impressions)
-  DEMAND     1.34  ████████████████░░░░  6.7% signup / 5.0%      (reliable — 523 visitors)
-  MONETIZE   0.65  █████████████░░░░░░░  4.5% clicks / 7.0%      (directional — 89 clicks)
-  RETAIN     --    (not tested — requires L3)
+  REACH      1.90  ##################..  CTR 3.8% / 2.0%         (reliable -- 523 impressions)
+  DEMAND     1.34  ################....  6.7% signup / 5.0%      (reliable -- 523 visitors)
+  MONETIZE   0.65  #############.......  4.5% clicks / 7.0%      (directional -- 89 clicks)
+  RETAIN     --    (not tested -- requires L3)
 
-⚠ Bottleneck: MONETIZE (ratio 0.65). Pricing click rate 4.5% vs 7.0% threshold.
+! Bottleneck: MONETIZE (ratio 0.65). Pricing click rate 4.5% vs 7.0% threshold.
   Consider: test lower price points or add value justification.
 
 Hypothesis verdicts:
-  REACH      CTR 3.8% vs 2.0% threshold     PASS ✓  (reliable — 523 impressions)
-  DEMAND     6.7% signup vs 5.0%             PASS ✓  (reliable — 523 visitors)
-  MONETIZE   4.5% pricing clicks vs 7.0%     FAIL ✗  (directional — 89 clicks)
+  REACH      CTR 3.8% vs 2.0% threshold     PASS  (reliable -- 523 impressions)
+  DEMAND     6.7% signup vs 5.0%             PASS  (reliable -- 523 visitors)
+  MONETIZE   4.5% pricing clicks vs 7.0%     FAIL  (directional -- 89 clicks)
 
 VERDICT: REFINE (bottleneck MONETIZE at 0.65)
 Recommended: Adjust pricing/value prop, then upgrade to L2 for deeper engagement data
@@ -934,46 +850,47 @@ Recommended: Adjust pricing/value prop, then upgrade to L2 for deeper engagement
 ### Web UI — New Experiment (2-Step Wizard)
 
 ```
-Step 1 — Describe:
+Step 1 -- Describe:
 
-┌────────────────────────────────────────────────────────────┐
-│  Your idea: "AI-powered invoice tool for freelancers"      │
-│                                                            │
-│  Or try an example:                                        │
-│  [AI resume builder] [Meal prep planner] [SaaS analytics]  │
-│                                                            │
-│  Level: [L1 Pitch ▾]  [L2 Prototype]  [L3 Product]        │
-│                                                            │
-│  [Generate Spec]                                           │
-└────────────────────────────────────────────────────────────┘
++------------------------------------------------------------+
+|  Your idea: "AI-powered invoice tool for freelancers"       |
+|                                                             |
+|  Or try an example:                                         |
+|  [AI resume builder] [Meal prep planner] [SaaS analytics]   |
+|                                                             |
+|  Type: [web-app v] [service] [cli] [agent]                  |
+|  Level: [L1 Pitch v]  [L2 Prototype]  [L3 Product]         |
+|                                                             |
+|  [Generate Spec]                                            |
++------------------------------------------------------------+
 
-Step 2 — Review & Create:
+Step 2 -- Review & Create:
 
-┌────────────────────────────────────────────────────────────┐
-│  ai-invoice-tool — L1 Pitch                                │
-│  Build: $150  Ad budget: $200  Time: 7 days                │
-│                                                            │
-│  Pre-flight checks:                        4/4 passed      │
-│  ✓ Market  ✓ Problem  ✓ Competition  ✓ ICP                 │
-│                                                            │
-│  Hypotheses (3):                                           │
-│  ┌ REACH     "Ad CTR > 2%"              → CTR            ┐│
-│  │ DEMAND    "Signup rate > 5%"          → signups        ││
-│  └ MONETIZE  "Pricing clicks > 7%"      → clicks         ┘│
-│                                                            │
-│  Behaviors (3):                                            │
-│  b-01  Given landing → understand value prop      (L1)     │
-│  b-02  Given interest → CTA enters signup         (L1)     │
-│  b-03  Given pricing → interact with options      (L1)     │
-│                                                            │
-│  Variants (3):                                             │
-│  "time-saver" | "ai-magic" | "cost-cutter"                 │
-│                                                            │
-│  All AI-generated fields are editable — click any value    │
-│  to modify. [Regenerate]                                   │
-│                                                            │
-│  [Create Experiment]                                       │
-└────────────────────────────────────────────────────────────┘
++------------------------------------------------------------+
+|  ai-invoice-tool -- L1 Pitch -- web-app                     |
+|  Build: $150  Ad budget: $200  Time: 7 days                 |
+|                                                             |
+|  Pre-flight checks:                        4/4 passed       |
+|  [ok] Market  [ok] Problem  [ok] Competition  [ok] ICP      |
+|                                                             |
+|  Hypotheses (3):                                            |
+|  | REACH     "Ad CTR > 2%"              -> CTR            | |
+|  | DEMAND    "Signup rate > 5%"          -> signups        | |
+|  | MONETIZE  "Pricing clicks > 7%"      -> clicks         | |
+|                                                             |
+|  Behaviors (3):                                             |
+|  b-01  Given landing -> understand value prop      (L1)     |
+|  b-02  Given interest -> CTA enters signup         (L1)     |
+|  b-03  Given pricing -> interact with options      (L1)     |
+|                                                             |
+|  Variants (3):                                              |
+|  "time-saver" | "ai-magic" | "cost-cutter"                  |
+|                                                             |
+|  All AI-generated fields are editable -- click any value    |
+|  to modify. [Regenerate]                                    |
+|                                                             |
+|  [Create Experiment]                                        |
++------------------------------------------------------------+
 
 Single API call: POST /api/experiments/:id/spec
 ```
@@ -981,16 +898,16 @@ Single API call: POST /api/experiments/:id/spec
 ### Web UI — Monitoring
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│  AI Invoice Tool          ACTIVE   Day 3/7   L1 Pitch      │
-│                                                            │
-│  Impressions: 2,340  Clicks: 89  Spend: $62                │
-│                                                            │
-│  REACH     CTR 3.8% / 2.0%  ████████████████ 1.90  ✓ PASS │
-│  DEMAND    6.7% signup / 5.0% ██████████████░ 1.34  ✓ PASS │
-│  MONETIZE  4.5% clicks / 7.0% █████████░░░░░ 0.65  ⚠ LOW  │
-│  RETAIN    — (requires L3)                                 │
-│                                                            │
-│  [Pause]  [View Site]  [Analyze Early]  [Upgrade to L2]    │
-└────────────────────────────────────────────────────────────┘
++------------------------------------------------------------+
+|  AI Invoice Tool          ACTIVE   Day 3/7   L1 Pitch       |
+|                                                             |
+|  Impressions: 2,340  Clicks: 89  Spend: $62                 |
+|                                                             |
+|  REACH     CTR 3.8% / 2.0%  ################ 1.90  PASS    |
+|  DEMAND    6.7% signup / 5.0% ##############. 1.34  PASS    |
+|  MONETIZE  4.5% clicks / 7.0% #########..... 0.65  LOW     |
+|  RETAIN    -- (requires L3)                                  |
+|                                                             |
+|  [Pause]  [View Site]  [Analyze Early]  [Upgrade to L2]     |
++------------------------------------------------------------+
 ```
