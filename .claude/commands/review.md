@@ -184,9 +184,11 @@ Files to read:
 - Read `Makefile`
 
 After reading: trace the user journey for each archetype:
-- web-app: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`
-- service: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro` → `/teardown`
-- cli: `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` (surface only) → `npm publish` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro`
+- web-app: (`/spec`) → `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` → `/iterate` → `/retro` → `/teardown`
+- service: (`/spec`) → `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro` → `/teardown`
+- cli: (`/spec`) → `make validate` → `/bootstrap` → merge → `/verify` → `/deploy` (surface only) → `npm publish` → `/change` → `/verify` → `/distribute` (if surface ≠ none) → `/iterate` → `/retro`
+
+For `quality: production` experiments, also trace: `/iterate` (SCALE verdict) → `/harden` → `/change` (production path: TDD + implementer agents + spec-reviewer) → `/verify` (with spec-reviewer)
 
 For each finding, record the archetype and fixture(s) whose config matches the
 dead-end scenario. If no fixture covers it, note "no fixture coverage."
