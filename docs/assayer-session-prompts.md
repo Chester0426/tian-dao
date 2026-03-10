@@ -42,7 +42,7 @@
 
 ```
 Phase 0: Template Finalization (workflow repo)
-  Session 0: Production Quality Mode (3 PRs → patterns, agents, wiring)
+  Session 0: Production Quality Mode (3 PRs → patterns, agents, wiring) ✅
 
 Phase 1: Assayer Repo + Spec
   Session 1: Create repo + /spec → experiment.yaml
@@ -71,7 +71,7 @@ Critical path: 10 sessions (Sessions 5+6 and 7+8 can parallelize).
 
 ---
 
-## Session 0: Production Quality Mode (workflow repo)
+## Session 0: Production Quality Mode (workflow repo) ✅
 
 **Repo:** `/Users/quanpeng/claude_projects/workflow`
 **Produces:** 3 sequential PRs (patterns → agents → wiring+harden)
