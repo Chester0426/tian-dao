@@ -188,10 +188,17 @@ Supporting skills (unchanged): `/review`, `/rollback`
 ```yaml
 # 1. Identity
 name: ai-invoice-tool                    # kebab-case
+type: web-app                            # web-app | service | cli (determines archetype)
 level: 1                                 # 1 (Pitch), 2 (Prototype), 3 (Product)
 status: draft
+# quality: production                    # Build config (not experiment definition).
+                                         # Toggles TDD, per-task implementer, spec review.
+                                         # Does not affect hypotheses, behaviors, or funnel.
 
 # 2. Intent
+description: |                           # 2-3 sentences for landing page copy
+  Freelancers waste hours on manual invoicing. An AI tool that generates
+  professional invoices from time logs in under 60 seconds.
 thesis: "Freelancers want AI-generated invoices"
 target_user: "Solo freelancers, US/EU"
 distribution: "Google Ads targeting freelancer invoice keywords"
@@ -207,7 +214,10 @@ hypotheses:                               # inline — no separate manifest
   # ... 5-10 hypotheses
 
 # 3. Behaviors (replaces features — given/when/then with hypothesis traceability)
+#    Unified model: user behaviors (default) and system behaviors (actor: system)
+#    share the same list. This eliminates the need for a separate critical_flows section.
 behaviors:
+  # User behavior (actor: user is the default, can be omitted)
   - id: b-01
     given: "A freelancer lands on the pitch page"
     when: "They read the headline and subheadline"
@@ -226,6 +236,18 @@ behaviors:
       - "Signup form renders after click"
     hypothesis_id: h-02
     level: 1
+  # System behavior (actor: system — for webhooks, crons, background jobs)
+  - id: b-05
+    actor: system                         # system | cron (default: user)
+    trigger: "stripe webhook checkout.session.completed"
+    given: "A Stripe checkout session completes"
+    when: "Webhook is received"
+    then: "Invoice marked paid, freelancer notified, client receipted"
+    tests:
+      - "invoices table has status='paid'"
+      - "2 emails queued (freelancer + client)"
+    hypothesis_id: h-03
+    level: 3
 
 # 4. Journey (golden path with events)
 golden_path:
@@ -284,18 +306,29 @@ stack:
   ui: shadcn
   # database: supabase       — added at L2+
   # auth: supabase           — added at L3
+  # auth_providers: [google]  — OAuth providers, nested under auth config
 deploy:
   url: null                   # filled by /deploy
   repo: null
   vercel_project_id: null
 ```
 
+**Schema design decisions (first-principles analysis):**
+
+| Field | In schema? | Where | Rationale |
+|-------|-----------|-------|-----------|
+| `type` | **Yes** | Section 1 Identity | Product archetype (web-app/service/cli/mobile-app) fundamentally changes golden path, funnel shape, behavior types, and variant carriers. A service has no "landing page visit" — its reach hypothesis is tested via API signups. |
+| `quality` | No — build config | Top-level flag alongside Section 1 | Process decision (TDD vs smoke tests), not experiment definition. Two identical experiments with different `quality` test the same thing. |
+| `critical_flows` | **Absorbed** | Section 3 Behaviors (`actor: system`) | System-triggered chains (webhooks, crons) are behaviors with a non-human actor. Unified model: one `behaviors` list with `actor` field eliminates duplicate definitions and works uniformly across archetypes (service = mostly `actor: system`). |
+| `auth_providers` | No — stack config | Section 7 `stack.auth_providers` | Implementation detail of the auth stack. Google OAuth vs email/password doesn't change any hypothesis or funnel metric. |
+| `description` | **Yes** | Section 2 Intent | Landing page copy material. Provides the 2-3 sentence problem/solution summary that `thesis` alone is too terse to convey. Replaces the old `problem` + `solution` pair with a single field. |
+
 **Key behaviors** (6 phases):
 
 1. **Parse input:** Extract idea text from `$ARGUMENTS`. If level not specified, default to 1 (Pitch). Validate idea text is >= 20 characters.
 2. **Pre-flight research:** Analyze the idea across 4 dimensions (market existence, problem validation, competitive landscape, ICP identification). Each produces a research result with finding, sources, confidence, and verdict. Present as "pre-flight checks" summary.
 3. **Hypothesis generation:** Generate 5-10 hypotheses across categories (demand, reach, feasibility, monetize, retain). Each has: id, category, statement, success_metric, threshold, priority_score, experiment_level, depends_on. Mark research-type hypotheses as resolved.
-4. **Behavior derivation:** Convert each experiment-type hypothesis's `test_method` into given/when/then behaviors with `tests[]` array and `level` annotation. Behaviors replace vague feature one-liners with testable specifications.
+4. **Behavior derivation:** Convert each experiment-type hypothesis into given/when/then behaviors with `tests[]` array and `level` annotation. User-triggered behaviors omit `actor` (default: user). System-triggered behaviors (webhooks, crons) set `actor: system` and add a `trigger` field. All behaviors live in one unified list — no separate `critical_flows` section.
 5. **Variant generation:** Generate 3-5 offer variants, each testing a meaningfully different angle (>30% word difference in headlines). Include: slug, headline, subheadline, CTA, pain_points, promise, proof, urgency.
 6. **Stack/funnel determination:** Set stack deterministically from level (L1: static, L2: + Supabase, L3: + auth). Set funnel thresholds from highest-priority hypothesis per dimension.
 
