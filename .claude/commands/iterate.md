@@ -131,15 +131,15 @@ Then apply the decision tree:
 | Condition | Verdict |
 |-----------|---------|
 | time_pct < 25% AND total visits < 30 | **TOO EARLY** — not enough data for a verdict. Keep running, check back in a few days. |
-| pace >= 0.7 | **GO** — on track. Continue and optimize conversion at the biggest bottleneck. |
-| pace 0.3–0.7 AND time_pct < 60% | **MONITOR** — behind pace but recoverable. Focus on the biggest funnel bottleneck identified in Step 4. |
-| pace < 0.3 AND time_pct > 50% | **NO-GO** — unlikely to reach target. Consider stopping or major pivot. |
-| 0 activations AND time_pct > 30% | **NO-GO** — zero demand signal. Stop spending, re-evaluate positioning. |
-| target_pct > 0 AND pace < 0.3 AND funnel has clear bottleneck | **PIVOT** — there's signal, but the angle is wrong. Change messaging or target user. |
+| pace >= 0.7 | **SCALE** — on track. Continue and optimize conversion at the biggest bottleneck. |
+| pace 0.4–0.7 AND time_pct < 60% | **REFINE** — behind pace but recoverable. Focus on the biggest funnel bottleneck identified in Step 4. |
+| pace 0.2–0.4 AND time_pct > 50% | **PIVOT** — there's signal, but the angle is wrong. Change messaging or target user. |
+| pace < 0.2 AND time_pct > 50% | **KILL** — unlikely to reach target. Consider stopping. |
+| 0 activations AND time_pct > 30% | **KILL** — zero demand signal. Stop spending, re-evaluate positioning. |
 
 Output the verdict prominently:
 
-> ### Verdict: [GO / NO-GO / PIVOT / MONITOR / TOO EARLY]
+> ### Verdict: [SCALE / KILL / PIVOT / REFINE / TOO EARLY]
 >
 > **[One-line reasoning]**
 
@@ -149,6 +149,36 @@ Output the verdict prominently:
 - Qualitative signals (user feedback, feature requests) can override quantitative pace
 - If `target_value` is not cleanly numeric (e.g., "validate that freelancers will pay"), use the closest measurable proxy and note the approximation
 - For experiments without ads (organic only), budget dimension is omitted
+
+## Step 3.5: Per-Hypothesis Verdicts
+
+Read `.claude/spec-manifest.json`. If the file does not exist, skip this step entirely (backward compatible — experiments created before /spec won't have it).
+
+For each hypothesis in `spec-manifest.json` where `status` is `"testing"` (not `"resolved"`):
+
+1. **Map metric**: match `success_metric` to the closest funnel metric from Step 2 data (e.g., "CTA click rate" → visit_landing-to-signup conversion, "signup rate" → signup_start count)
+2. **Compare**: actual value vs `threshold`
+3. **Verdict**:
+   - `CONFIRMED` — actual >= threshold
+   - `REJECTED` — actual < threshold AND sample size >= 30
+   - `INCONCLUSIVE` — sample size < 30
+4. **Confidence tag** based on sample size:
+   - <30: "insufficient data"
+   - 30-100: "directional signal"
+   - 100-500: "reliable"
+   - 500+: "high confidence"
+
+Output:
+```
+Hypothesis Verdicts
+───────────────────
+  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE]  ([confidence] — [N] [unit])
+  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE]  ([confidence] — [N] [unit])
+  ...
+```
+
+If ALL testable hypotheses are CONFIRMED and verdict from Step 3 is SCALE, note:
+> All hypotheses confirmed. This experiment has validated its core assumptions. Consider graduating with `/harden`.
 
 ## Step 4: Diagnose the funnel
 
@@ -175,6 +205,35 @@ Users sign up but don't [complete the core action].
 ```
 
 Focus on the **biggest drop-off** in the funnel. That's where effort has the highest leverage.
+
+### Validation Scorecard
+
+Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / threshold) * 100`, capped at 100.
+
+| Dimension | Metric | Actual | Threshold | Score | Confidence | Available |
+|-----------|--------|--------|-----------|-------|------------|-----------|
+| REACH | ad CTR + visit count | [value] | [threshold] | [0-100] | [tag] | L1+ |
+| DEMAND | CTA click rate + signup rate | [value] | [threshold] | [0-100] | [tag] | L1+ |
+| MONETIZE | pricing interaction + payment | [value] | [threshold] | [0-100] | [tag] | L2+ |
+| RETAIN | return visits + repeat behavior | [value] | [threshold] | [0-100] | [tag] | L3+ |
+
+- If experiment level < dimension level, show "—" for that row with "(not tested at this level)"
+- Confidence per-dimension is based on sample size (same tags as Step 3.5)
+- Thresholds come from spec-manifest.json `hypotheses[].threshold` mapped by category, or from EVENTS.yaml funnel benchmarks if no spec-manifest exists
+
+### Bottleneck
+
+Identify the dimension with the lowest `actual / threshold` ratio (excluding dimensions not available at the current level):
+
+```
+⚠ Bottleneck: [DIMENSION] (ratio [N.NN]) — [dimension-specific recommendation]
+```
+
+Dimension-specific recommendations:
+- **REACH** → improve ad targeting, headline, or channel selection
+- **DEMAND** → improve CTA clarity, value proposition, or signup friction
+- **MONETIZE** → adjust pricing, add value justification, or feature comparison
+- **RETAIN** → improve onboarding, engagement hooks, or usage feedback
 
 ### Ads Performance (if ads.yaml exists)
 
@@ -244,7 +303,7 @@ Common patterns:
 
 | One variant clearly wins | `/change` to consolidate — remove losing variant, make winner the sole landing page |
 | No variant winner | Extend test for more data, or `/change` to try a new messaging angle |
-| Verdict is GO with strong metrics | Suggest `/harden` to graduate: "Your metrics indicate product-market fit. Run `/harden` to add TDD coverage to critical paths before scaling." |
+| Verdict is SCALE with strong metrics | Suggest `/harden` to graduate: "Your metrics indicate product-market fit. Run `/harden` to add TDD coverage to critical paths before scaling." |
 | Production incident | `/rollback` to revert deploy, then `/change fix <root cause>` |
 
 Present recommendations in priority order (highest impact first).
@@ -271,11 +330,14 @@ Read `thresholds.go_signal` and `thresholds.no_go_signal` from `idea/ads.yaml` a
 Write `.claude/iterate-manifest.json`:
 ```json
 {
-  "verdict": "<GO|NO-GO|PIVOT|MONITOR|TOO_EARLY>",
+  "verdict": "<SCALE|KILL|PIVOT|REFINE|TOO_EARLY>",
   "bottleneck": {
     "stage": "<funnel stage name>",
     "conversion": "<percentage>",
-    "diagnosis": "<one-line diagnosis>"
+    "diagnosis": "<one-line diagnosis>",
+    "dimension": "<REACH|DEMAND|MONETIZE|RETAIN>",
+    "ratio": 0.65,
+    "recommendation": "<dimension-specific recommendation>"
   },
   "recommendations": [
     {
@@ -285,9 +347,29 @@ Write `.claude/iterate-manifest.json`:
     }
   ],
   "variant_winner": "<slug or null>",
-  "analyzed_at": "<ISO 8601>"
+  "analyzed_at": "<ISO 8601>",
+  "hypothesis_verdicts": [
+    {
+      "hypothesis_id": "<id from spec-manifest>",
+      "metric_name": "<mapped metric>",
+      "actual_value": "<value>",
+      "threshold": "<threshold>",
+      "verdict": "<CONFIRMED|REJECTED|INCONCLUSIVE>",
+      "sample_size": 0,
+      "confidence_level": "<insufficient data|directional signal|reliable|high confidence>"
+    }
+  ],
+  "funnel_scores": {
+    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0 },
+    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0 },
+    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0 },
+    "retain": null
+  }
 }
 ```
+
+- `hypothesis_verdicts` and `funnel_scores` are only populated when spec-manifest.json exists. Omit both fields for experiments without /spec.
+- `bottleneck.dimension`, `bottleneck.ratio`, and `bottleneck.recommendation` are populated from the Validation Scorecard. For experiments without spec-manifest, populate from funnel analysis only (`dimension` and `ratio` may be null).
 
 This file is read by `/change` to provide context for the next iteration.
 
@@ -309,8 +391,8 @@ If the diagnosis reveals a need to change direction:
 - Do NOT update experiment.yaml for major pivots — the user should think about this and manually edit experiment.yaml
 - Remind them: "After updating experiment.yaml, run `make clean` then `/bootstrap` to start a new experiment (or in a fresh repo), or `/change ...` to iteratively shift the existing one."
 
-### On track (verdict is GO)
-- Say so clearly: "The Step 3 verdict is GO. You're on track. [X] of [target_value] achieved with [Y days] remaining."
+### On track (verdict is SCALE)
+- Say so clearly: "The Step 3 verdict is SCALE. You're on track. [X] of [target_value] achieved with [Y days] remaining."
 - Recommend: keep going, focus on distribution, or run `/change improve conversion` to improve conversion
 - If the experiment shows strong, sustained traction: suggest `/harden` as a graduation step: "Consider graduating to production quality: run `/harden` to add TDD coverage to critical paths before scaling. This adds specification tests to auth, payment, and core business logic."
 
@@ -321,7 +403,7 @@ End with a clear, numbered action list. Prepend the verdict from Step 3:
 ```
 ## Recommended Next Steps
 
-**Verdict: [GO/NO-GO/PIVOT/MONITOR/TOO EARLY]** — [one-line summary]
+**Verdict: [SCALE/KILL/PIVOT/REFINE/TOO EARLY]** — [one-line summary]
 
 1. Run `/change sharpen landing page headline to address [specific user pain]`
 2. Run `/change add onboarding checklist after signup`
@@ -344,13 +426,13 @@ Based on the measurement window and current progress, provide a concrete schedul
 | Milestone | Date | Action |
 |-----------|------|--------|
 | Next data check | [3 days from now] | Run `/iterate` again |
-| Decision point | [when time_pct hits 50%] | Verdict becomes actionable — MONITOR/NO-GO verdicts require decision |
+| Decision point | [when time_pct hits 50%] | Verdict becomes actionable — REFINE/KILL verdicts require decision |
 | Window closes | [measurement_window end date] | Run `/retro` to file retrospective |
 ```
 
 - Calculate dates from `measurement_window` and the elapsed days reported in Step 3
 - If verdict is TOO EARLY, set next check-in to 3 days or when 30+ visits are expected
-- If verdict is NO-GO, the next check-in is NOW — recommend immediate decision
+- If verdict is KILL, the next check-in is NOW — recommend immediate decision
 - Tell the user: "Set a calendar reminder for [next check-in date] to run `/iterate` again."
 
 ## Do NOT

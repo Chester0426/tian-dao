@@ -48,6 +48,14 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
 9. Verify the analytics stack is configured: read the analytics stack file's `env` frontmatter. If `env.client` lists a client env var, check that it appears in `.env.example`. If the env var is not found in `.env.example`, stop: "Analytics is not configured. Verify `.env.example` contains the analytics client key, or run `/bootstrap` first to scaffold the app with analytics." If `env.client` is empty, the stack uses hardcoded keys (e.g., PostHog's shared publishable key) — skip this check.
 10. If `idea/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
 
+## Step 1.5: Load hypothesis context
+
+If `.claude/spec-manifest.json` exists, read it and extract:
+- All hypotheses where `category` is `"demand"` or `"reach"` (the categories relevant to distribution)
+- For each: `statement`, `success_metric`, `threshold`
+
+Store as hypothesis context for Step 3. If the file does not exist, skip — all subsequent steps work without it.
+
 ## Step 2: Research targeting
 
 Read `idea/experiment.yaml`: `problem`, `solution`, `target_user`, `title`, `features`.
@@ -116,6 +124,16 @@ Read the selected channel's stack file "Ad Format Constraints" section for chara
 - Headline = outcome for target_user (what they get)
 - Description/body = proof + CTA (why believe + what to do next)
 - Include the landing URL with UTM parameters — read the channel's stack file "UTM Parameters" section for `utm_source` and `utm_medium` values: `?utm_source={channel_source}&utm_medium={channel_medium}&utm_campaign={campaign_name}`
+
+### Hypothesis alignment (when spec-manifest.json exists)
+
+If hypothesis context was loaded in Step 1.5:
+
+- **Headlines**: derive from `demand` hypothesis `statement`. If the hypothesis says "freelancers want AI-generated invoices from time logs", the headline should address that angle directly (e.g., "Turn Time Logs Into Invoices in Seconds").
+- **CTA**: align with the `success_metric`'s desired user action. If the metric is "signup rate", the CTA should drive signups ("Start Free" > "Learn More"). If the metric is "CTA click rate", the CTA should be prominent and action-oriented.
+- **Targeting angle**: if a `reach` hypothesis specifies a channel or audience (e.g., "freelancers on Reddit respond to invoicing pain"), use it to inform the targeting research in Step 2.
+
+This is additive guidance — it refines the copy principles above, not replaces them. Message match rules from messaging.md still apply.
 
 ### Message match
 Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read the surface source to extract the actual landing headline and derive ad headlines from it: for web-app read `src/app/page.tsx`; for service read the root route handler (path per framework stack file); for CLI read `site/index.html`. Note that character constraints are channel-specific — read the stack file's "Ad Format Constraints" for the channel's limits.
