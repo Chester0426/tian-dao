@@ -384,6 +384,12 @@ Decision: walk funnel top-down, first dimension below threshold = **bottleneck**
 | Bottleneck ratio < 0.7 | PIVOT |
 | REACH or DEMAND < 0.5 | KILL |
 
+**Two-tier verdict approach:** The template uses a more sophisticated two-tier model than the single ratio table above. Tier 1 (Step 3): pace-based overall verdict using `target_pct / time_pct` — produces TOO EARLY, SCALE, REFINE, PIVOT, or KILL. Tier 2 (Step 4 Scorecard): per-dimension ratio analysis against thresholds — identifies the specific bottleneck. The `decision_framework` field in experiment.yaml is human-readable documentation of the operator's decision criteria, not algorithmic input.
+
+**Custom funnel mapping:** For service/cli archetypes with `funnel_template: custom`, custom events map to the 4 standard dimensions: `api_call`/`command_run` → REACH, `activate` → DEMAND, `pay_*` → MONETIZE, `retain_return` → RETAIN.
+
+**Dependency-aware verdicts:** Per-hypothesis verdicts respect `depends_on[]` — if a parent hypothesis is REJECTED, dependent hypotheses are marked BLOCKED (not evaluated).
+
 ---
 
 ## 4. API & Data Flow
