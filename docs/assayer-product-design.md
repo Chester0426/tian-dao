@@ -104,7 +104,10 @@ AI-calling skills (`/spec`, `/iterate`): validate with zod, retry once on parse 
 
 ### Persistence
 
-Supabase = single source of truth. Skills return JSON; caller persists. CLI: stateless output; use `ASSAYER_API_KEY` + `ASSAYER_API_URL` for persistence.
+Supabase = single source of truth. Skills return JSON; caller persists.
+- **Web UI path:** Backend invokes skill via Agent SDK → receives JSON → persists to Supabase directly.
+- **CLI path:** User runs skill locally → receives JSON output. No automatic platform sync in V1.
+- **Future CLI sync:** A thin CLI wrapper could POST results to the Assayer API. Not in scope for MVP.
 
 ### Workspace Lifecycle (CLI)
 
@@ -457,8 +460,8 @@ POST metrics/sync → cache
 ### Env Vars
 
 ```
-ASSAYER_API_URL=https://assayer.io    # or http://localhost:3000 in dev
-ASSAYER_API_KEY=<service-key>         # skill-to-API auth
+ASSAYER_API_URL=https://assayer.io    # platform-mode signal — skills skip interactive prompts when set
+ASSAYER_API_KEY=<service-key>         # backend service key for protecting API routes
 ```
 
 ---
