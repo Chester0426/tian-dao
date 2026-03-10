@@ -202,12 +202,13 @@ Each hypothesis must have:
 - Research-type hypotheses from Step 2 are included with `status: resolved` and their verdicts
 - Every hypothesis MUST have a concrete, numeric `threshold` — no vague language
 - Filter: only include hypotheses where `experiment_level <= selected level`
-- Minimum 5 hypotheses after filtering. If fewer, add more at the selected level.
-- At least one hypothesis per category that applies to the selected level:
-  - Level 1: demand, reach required
-  - Level 2: demand, reach, feasibility, monetize, retain required
-  - Level 3: all five categories required
-- `monetize` hypotheses appear at Level 2+
+- Counts below are for **pending** hypotheses only (require building product + real user data). The 4 resolved research hypotheses from Step 2 are separate and don't count toward these minimums.
+- At least one hypothesis per required category:
+  - Level 1: demand, reach (minimum 2 pending)
+  - Level 2: demand, reach, feasibility, retain (minimum 4 pending)
+  - Level 3: all five categories (minimum 5 pending)
+- Maximum pending hypotheses: level minimum + 2. Extra hypotheses must test genuinely independent risks, not rephrasings of existing ones.
+- `monetize` hypotheses appear at Level 2+ but are only *required* at Level 3
 - Sort by `priority_score` descending
 
 ## Step 4: Derive Behaviors
@@ -484,7 +485,7 @@ Next: Run /bootstrap to scaffold the app, or edit experiment/experiment.yaml to 
 ## Do NOT
 - Add behaviors not traceable to a hypothesis
 - Add stack components not required by the selected level
-- Generate fewer than 3 variants or fewer than 5 hypotheses
+- Generate fewer than 3 variants or fewer pending hypotheses than the level minimum (L1: 2, L2: 4, L3: 5)
 - Produce hypotheses without a testable numeric threshold
 - Modify any file other than `experiment/experiment.yaml` and `.claude/spec-manifest.json`
 - Skip the user approval checkpoint in Step 6
