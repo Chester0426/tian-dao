@@ -323,6 +323,47 @@ if funnel is not None:
 # --- Stack validation ---
 stack = data.get("stack", {})
 
+# --- Level ↔ Stack consistency ---
+if level is not None:
+    stack_db = stack.get("database")
+    stack_auth = stack.get("auth")
+    stack_payment = stack.get("payment")
+
+    if level == 1:
+        if stack_db:
+            print(f"Error: level 1 cannot have stack.database (got: {stack_db}). "
+                  "Database requires level 2+.")
+            sys.exit(1)
+        if stack_auth:
+            print(f"Error: level 1 cannot have stack.auth (got: {stack_auth}). "
+                  "Auth requires level 3.")
+            sys.exit(1)
+        if stack_payment:
+            print(f"Error: level 1 cannot have stack.payment (got: {stack_payment}). "
+                  "Payment requires level 3 with monetize hypotheses.")
+            sys.exit(1)
+
+    if level == 2:
+        if stack_auth:
+            print(f"Error: level 2 cannot have stack.auth (got: {stack_auth}). "
+                  "Auth requires level 3.")
+            sys.exit(1)
+        if stack_payment:
+            print(f"Error: level 2 cannot have stack.payment (got: {stack_payment}). "
+                  "Payment requires level 3 with monetize hypotheses.")
+            sys.exit(1)
+
+    if level == 3 and stack_payment:
+        if hypotheses is not None:
+            has_monetize = any(
+                h.get("category") == "monetize"
+                for h in hypotheses if isinstance(h, dict)
+            )
+            if not has_monetize:
+                print("Error: level 3 with stack.payment requires at least one "
+                      "hypothesis with category 'monetize'.")
+                sys.exit(1)
+
 # Per-service values via services[] array
 services = stack.get("services", [])
 if services:
