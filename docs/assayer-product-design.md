@@ -69,6 +69,24 @@ Skills return JSON. Caller handles persistence. Exception: `/bootstrap`, `/deplo
 
 AI-calling skills (`/spec`, `/iterate`): validate with zod, retry once on parse failure, typed error on second failure.
 
+### Interactive Skill Architecture
+
+10 of 12 skills have interactive points (37 total). When the Agent SDK serves external users, these fall into three categories:
+
+| Category | Count | Examples | Platform handling |
+|----------|-------|---------|-------------------|
+| **Input collection** | ~25 (68%) | Credential prompts, config questions, plan choices | Pre-collected via web forms before skill invocation — zero round trips |
+| **Approval gates** | ~12 (32%) | Deploy plan review, bootstrap plan review, PR descriptions | Session resume — skill pauses, UI collects approval, session continues |
+| **Credential collection** | subset of input | API keys, OAuth tokens, Stripe keys | Environment variable injection — never through AI |
+
+**Three-layer model:**
+
+1. **Pre-collection** — Web UI gathers all input-collection data (idea text, level, change description, external service decisions) before invoking the skill. The skill receives these as pre-filled context, skipping interactive prompts.
+2. **Credential injection** — Platform pre-configures credentials as environment variables in the Cloud Run container. Skills detect platform mode via `ASSAYER_API_URL` and skip interactive credential collection.
+3. **Session resume** — For approval gates (deploy plan, bootstrap plan), the skill runs until it hits a gate, streams output to the web UI, pauses, and resumes when the user approves or requests changes.
+
+`ASSAYER_API_URL` is the platform-mode signal: when set, skills skip interactive credential collection (layer 2). Approval gates (layer 3) are preserved — they use the session resume pattern regardless of mode.
+
 ### experiment.yaml vs idea.yaml
 
 | | Assayer platform | Per-experiment |
@@ -97,11 +115,27 @@ Agent SDK path (Cloud Run, Docker, credential injection) documented when externa
 ### Agent SDK
 
 ```typescript
-import { Claude } from "@anthropic-ai/claude-code";
+import { query, resumeSession } from "@anthropic-ai/claude-agent-sdk";
 
-const claude = new Claude({ cwd: workspacePath });
-const result = await claude.sendMessage("/bootstrap", {
+// 1. First query — skill runs until approval gate
+const session = await query({
+  cwd: workspacePath,
+  prompt: "/bootstrap",
   allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
+});
+
+// 2. Stream output to web UI while skill runs
+for await (const event of session.events) {
+  // Forward to client via WebSocket / SSE
+}
+
+// 3. Skill pauses at approval gate — session.status === "waiting_for_input"
+//    Web UI renders the plan and collects user approval
+
+// 4. Resume session with user's approval
+const resumed = await resumeSession({
+  sessionId: session.id,
+  input: "approve",
 });
 ```
 

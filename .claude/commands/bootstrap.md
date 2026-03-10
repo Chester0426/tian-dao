@@ -319,7 +319,10 @@ After the externals subagent returns its classification table:
    collect decisions (Fake Door / Skip / Full Integration / Provide now /
    Provision at deploy) for each dependency.
 2. **Collect credentials**: for "Provide now" choices, ask the user for
-   credential values.
+   credential values. **Platform mode:** If `ASSAYER_API_URL` is set, skip
+   interactive credential collection. Read credential values from environment
+   variables instead of prompting. Classification table is still presented
+   for the plan record.
 3. **Execute remaining work**: generate external stack files (per
    scaffold-externals.md Steps 6-8), write env vars to `.env.local` and
    `.env.example`, create Fake Door entries.

@@ -58,6 +58,10 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 
 ## Step 1: Gather configuration
 
+> **Platform mode:** If `ASSAYER_API_URL` is set, skip all interactive credential
+> collection in this step — credentials are pre-configured as environment variables
+> by the Assayer platform. Proceed directly to Step 2.
+
 1. **Hosting config**: Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the experiment.yaml field listed in the stack file — if set, skip the prompt.
 2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the experiment.yaml fields listed — if set, skip the prompts.
 3. **DB password** (if applicable): Generate with `openssl rand -base64 24`.
@@ -110,7 +114,7 @@ Read the database stack file's `## Deploy Interface > Provisioning` and follow e
 
 ## Step 3.5: Collect OAuth credentials (first deploy only)
 
-Skip if `stack.auth_providers` is absent OR credentials already collected in Step 1.
+Skip if `stack.auth_providers` is absent OR credentials already collected in Step 1. Skip if `ASSAYER_API_URL` is set (platform mode).
 
 Now that the Supabase ref is known from Step 3, for each provider in `auth_providers`:
 show the callback URL (`https://<ref>.supabase.co/auth/v1/callback`), ask for Client ID
