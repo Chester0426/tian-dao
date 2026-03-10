@@ -17,6 +17,17 @@ idea:
   distribution: |
     Post in freelancer communities and share on social media.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A freelancer visits the landing page"
+      when: "They enter expenses, salary, and hours"
+      then: "They see their calculated hourly rate"
+      tests:
+        - "Calculator form accepts input fields"
+        - "Completing calculation fires activate event"
+      level: 1
+
   golden_path:
     - step: Visit landing page
       event: visit_landing

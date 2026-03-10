@@ -14,6 +14,17 @@ idea:
   distribution: |
     Internal team distribution via API docs.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "An authenticated user calls the flag-evaluate endpoint"
+      when: "They provide a flag name and user ID"
+      then: "They receive the flag evaluation result"
+      tests:
+        - "Flag evaluation returns boolean result"
+        - "Unauthenticated requests are rejected"
+      level: 1
+
   endpoints:
     - name: flags
       purpose: List all feature flags

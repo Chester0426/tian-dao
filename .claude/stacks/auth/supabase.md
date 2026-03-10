@@ -238,6 +238,7 @@ add these elements below the email/password form:
 
 Example (for `auth_providers: [google, github]`):
 ```tsx
+import { Button } from "@/components/ui/button";
 {/* Add after the email/password </form> closing tag */}
 <div className="relative my-4">
   <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>

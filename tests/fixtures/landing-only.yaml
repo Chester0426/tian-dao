@@ -15,6 +15,16 @@ idea:
   distribution: |
     Share link in relevant communities and social media.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A visitor lands on the landing page"
+      when: "They see the CTA and enter their email"
+      then: "They submit the interest form"
+      tests:
+        - "Landing page renders email form"
+        - "Submitting email fires activate event"
+      level: 1
 
   golden_path:
     - step: Visit landing page
