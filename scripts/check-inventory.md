@@ -40,7 +40,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Validate fixture structure | Test fixtures have required keys, valid idea.name, correct assertions |
 | Verify frontmatter-content sync | Code block headers match `files` frontmatter; Makefile clean lines match `clean` frontmatter |
 | Verify conditional dependency guards | References to optional stack categories have conditional guards within 150 chars |
-| Verify required fields consistency | Required idea.yaml fields match between Makefile and validate-semantics.py |
+| Verify required fields consistency | Required experiment.yaml fields match between Makefile and validate-semantics.py |
 | Verify fixture stack coverage | Every stack file is covered by at least one fixture; mandatory categories present in all fixtures |
 | Verify tool and prereq validity | Tool names referenced in skill prose are in the known tools list |
 | Verify env loading outside Next.js runtime | Non-`src/` templates using `process.env` load env config |
@@ -50,16 +50,16 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify fixture coverage for stack file branching | Conditional stack paths (`when stack.X is NOT Y`) must have fixture coverage for the alternate branch |
 | Verify stack fallback when assumes not met | Stack files with optional-category `assumes` must have a fallback section for absent dependencies |
 | Verify Makefile deploy hosting guard | Deploy target using provider-specific commands must check `stack.hosting` |
-| Verify change skill validates payment-auth dependency | change.md must validate that `stack.auth` is present when adding `payment` to idea.yaml stack |
+| Verify change skill validates payment-auth dependency | change.md must validate that `stack.auth` is present when adding `payment` to experiment.yaml stack |
 | Verify stack file env vars in prose match frontmatter declarations | Environment Variables prose sections mentioning env var names must have those vars declared in frontmatter `env.server` or `env.client` |
 | Verify change skill validates payment requires database | change.md Feature constraints must validate that `payment` in the stack requires `database` to also be present |
 | Verify fixture coverage for testing with partial assumptions | Testing fixtures must not only cover all-met and none-met assumes scenarios — at least one partial-met fixture (e.g., auth present, database absent) is required |
 | Verify Makefile help text doesn't hard-code optional env var names | Makefile target help comments (`## ...` text) must not contain specific environment variable names that are conditional on stack configuration |
 | Verify stack file packages in prose match frontmatter declarations | Packages prose sections with `npm install` commands must have those packages declared in frontmatter `packages.runtime` or `packages.dev` |
-| Verify bootstrap validates payment requires database | bootstrap.md Validate idea.yaml section must validate that `stack.payment` requires `stack.database` to also be present |
+| Verify bootstrap validates payment requires database | bootstrap.md Validate experiment.yaml section must validate that `stack.payment` requires `stack.database` to also be present |
 | Verify testing CI template includes payment env vars | If ci.yml e2e job contains Stripe env vars, the testing stack CI Job Template must also reference them |
 | Verify testing no-auth fallback includes CI job template | Testing stack No-Auth Fallback section must contain a YAML code block with an `e2e:` job definition |
-| Verify change skill Test type permits adding testing to idea.yaml | change.md Test type constraints must address adding `testing` to idea.yaml stack section |
+| Verify change skill Test type permits adding testing to experiment.yaml | change.md Test type constraints must address adding `testing` to experiment.yaml stack section |
 | Verify testing env frontmatter excludes assumes-dependent vars | Testing stack env frontmatter with optional assumes and a fallback must not unconditionally declare provider-specific env vars |
 | Verify auth page templates contain post-auth redirects | Auth stack signup/login code blocks must contain `router.push` or `redirect` after auth success — a bare TODO comment fails |
 | Verify change skill assumes validation matches bootstrap assumes validation | change.md assumes validation must include value-matching language, not just category-existence checks |
@@ -71,13 +71,13 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify skill prose event names exist in EVENTS.yaml | Backtick-wrapped snake_case tokens in skill prose appearing near event/fire context must exist in EVENTS.yaml, be defined in a YAML code block within the same skill, or reference "from/in EVENTS.yaml" within 100 chars |
 | Verify stack files with fallback sections annotate conditional files in frontmatter | Stack files with fallback sections listing assumes-dependent files in `files` frontmatter must include a `# conditional` annotation |
 | Verify no-auth CI template includes commented database placeholder env vars | If the full-auth CI Job Template in the testing stack includes database-related env var names, the No-Auth CI Job Template must also contain them (commented or uncommented) |
-| Verify Makefile validate warns about bootstrap-excluded stack categories | Makefile `validate` target must check for `testing` in idea.yaml `stack` and warn that bootstrap rejects it |
+| Verify Makefile validate warns about bootstrap-excluded stack categories | Makefile `validate` target must check for `testing` in experiment.yaml `stack` and warn that bootstrap rejects it |
 | Verify change skill classification precedes classification-dependent checks | In change.md, the step heading containing "Classify" must appear before any step heading whose body contains "classified as" or "is a Fix" or "is NOT Test" |
 | Verify ads.yaml schema | If `idea/ads.yaml` exists: channel-aware validation — universal keys (campaign_name, project_name, landing_url, budget, targeting, conversions, guardrails, thresholds) required for all channels; google-ads requires keywords + ads with RSA constraints and guardrails.max_cpc_cents; twitter requires tweets (≥2, ≤280 chars); reddit requires posts (≥2, headline ≤300 chars); budget within limits; thresholds.expected_activations is int >= 0, go_signal and no_go_signal are non-empty strings |
-| Verify ads.yaml campaign_name matches idea.yaml name | `campaign_name` in ads.yaml must start with idea.yaml `name` |
+| Verify ads.yaml campaign_name matches experiment.yaml name | `campaign_name` in ads.yaml must start with experiment.yaml `name` |
 | Verify distribute skill prose event names | distribute.md must contain a YAML code block defining the `feedback_submitted` event (added to EVENTS.yaml `custom_events` during Step 7c) |
 | Verify distribution docs references exist | If distribute.md or any `.claude/stacks/distribution/*.md` file contains a backtick-wrapped `docs/*.md` reference, that file must exist on disk |
-| Verify distribute skill validates analytics stack in idea.yaml | distribute.md preconditions section (Step 1) must validate that `stack.analytics` is present in idea.yaml before proceeding |
+| Verify distribute skill validates analytics stack in experiment.yaml | distribute.md preconditions section (Step 1) must validate that `stack.analytics` is present in experiment.yaml before proceeding |
 | Verify distribute skill validates EVENTS.yaml custom_events structure | distribute.md preconditions section (Step 1) must reference `custom_events` near a stop/validation context (`stop`, `list`, `malformed`, or `missing` within 200 chars) |
 | Verify trackServerEvent calls are awaited in stack file code blocks | `trackServerEvent()` calls in stack file code blocks (excluding function definitions) must be preceded by `await` on the same line |
 | Verify Supabase CLI commands use correct flag syntax | Code blocks containing `supabase projects delete` must include the `--project-ref` flag |

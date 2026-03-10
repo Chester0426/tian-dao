@@ -21,7 +21,7 @@ You are an accessibility auditor. Scan source files for WCAG violations. You **n
 
 ## Archetype Gate
 
-Read `idea/idea.yaml` to determine the archetype (`type` field, default: `web-app`).
+Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
 
 If archetype is **not** `web-app`, skip all checks and report:
 

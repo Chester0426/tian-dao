@@ -23,7 +23,7 @@ You **never fix code** — you only report findings with proof-of-concept exploi
 
 ## Archetype Scope
 
-Read `idea/idea.yaml` to determine the archetype (`type` field, default: `web-app`):
+Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`):
 
 - **web-app**: A1–A5
 - **service**: A1–A4 (A5 only if auth endpoints exist)

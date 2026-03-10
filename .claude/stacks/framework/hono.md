@@ -17,7 +17,7 @@ clean:
 gitignore: []
 ---
 # Framework: Hono
-> Used when idea.yaml has `stack.framework: hono`
+> Used when experiment.yaml has `stack.framework: hono`
 
 ## Packages
 ```bash
@@ -46,7 +46,7 @@ export default tseslint.config(
 ```
 src/
   index.ts          # Entry point — creates Hono app, registers routes, serves
-  routes/           # One file per idea.yaml endpoint
+  routes/           # One file per experiment.yaml endpoint
     <endpoint>.ts   # Route handler module
   lib/              # Utilities (analytics, database clients, etc.)
     analytics.ts    # Server-side analytics (see analytics stack file)
@@ -73,7 +73,7 @@ app.get("/api/health", (c) => {
 // When surface is co-located: add root route returning HTML marketing page
 // Example: app.get("/", (c) => c.html("<!DOCTYPE html>..."));
 
-// Register route modules here (one per idea.yaml endpoint)
+// Register route modules here (one per experiment.yaml endpoint)
 // Example: app.route("/api/convert", convertRoute);
 
 const port = Number(process.env.PORT) || 3000;
@@ -88,7 +88,7 @@ export default app;
 
 ## Route Conventions
 
-Each endpoint in idea.yaml gets a route file in `src/routes/`:
+Each endpoint in experiment.yaml gets a route file in `src/routes/`:
 
 ```ts
 // src/routes/convert.ts
@@ -162,7 +162,7 @@ app.route("/api/convert", convertRoute);
 - Rate limiting: use in-memory counters for auth and payment routes (works on persistent-process hosts like Railway)
 
 ## Patterns
-- One route file per idea.yaml endpoint in `src/routes/`
+- One route file per experiment.yaml endpoint in `src/routes/`
 - Register all routes in `src/index.ts` with `app.route("/api/<name>", route)`
 - Use `c.json()` for all responses
 - Use `c.req.json()` to parse request bodies, then validate with zod

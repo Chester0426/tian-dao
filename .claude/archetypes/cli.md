@@ -12,11 +12,11 @@ funnel_template: custom
 
 Command-line tool invoked by users on their local machine. The primary unit of
 work is the **command** (not the page or endpoint). Use this archetype when
-`type: cli` is set in idea.yaml.
+`type: cli` is set in experiment.yaml.
 
 ## Structure
 
-Each idea.yaml `commands` entry maps to a command module:
+Each experiment.yaml `commands` entry maps to a command module:
 
 ```
 src/commands/<command-name>.ts

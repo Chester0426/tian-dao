@@ -5,7 +5,7 @@ requires_approval: true
 branch_prefix: ""
 reads:
   - .claude/deploy-manifest.json
-  - idea/idea.yaml
+  - idea/experiment.yaml
 stack_categories:
   - hosting
 references:

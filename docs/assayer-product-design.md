@@ -118,7 +118,7 @@ All experiments share one PostHog project. Template `global_properties` distingu
 |---|-------|-----------------|--------|
 | 1 | `/hypothesize` | Idea → Testable hypotheses + priority ranking | **New** |
 | 2 | `/offer` | Hypotheses → 3-5 value proposition variants | **New** |
-| 3 | `/bootstrap` | idea.yaml → Project code | Existing |
+| 3 | `/bootstrap` | experiment.yaml → Project code | Existing |
 | 4 | `/change` | Modify experiment code (pivot) | Existing |
 | 5 | `/verify` | Build + test quality gate | Existing |
 | 6 | `/deploy` | Code → Live URL | Existing |
@@ -284,7 +284,7 @@ Platform stack matches template stack — one framework, one mental model, one s
 | `stacks/ads/google.md` | Google Ads API integration | P1 (Phase 1.5) |
 | `stacks/ads/meta.md` | Meta Marketing API integration | P1 (Phase 1.5) |
 
-### idea.yaml Stack (V1)
+### experiment.yaml Stack (V1)
 
 ```yaml
 stack:
@@ -310,7 +310,7 @@ stack:
 
 Assayer is a production product, not a throwaway experiment. Standard MVP quality (Rule 4: smoke tests only) creates unsustainable debt.
 
-### `quality: production` in idea.yaml
+### `quality: production` in experiment.yaml
 
 When present, activates production development rules extracted from [Superpowers](https://github.com/obra/superpowers) patterns:
 
@@ -324,7 +324,7 @@ When present, activates production development rules extracted from [Superpowers
 
 ```
 Feature request
-  → /change updates idea.yaml
+  → /change updates experiment.yaml
   → Design doc (docs/plans/YYYY-MM-DD-<feature>-design.md)
   → Implementation plan (bite-sized tasks)
   → Per-task: implementer subagent → TDD (red/green/refactor) → spec review → quality review
@@ -369,7 +369,7 @@ Three parallel tracks maximize throughput. Track 2 (infrastructure) and Track 4 
 
 | Step | What | Est. |
 |------|------|------|
-| 4 | Write Assayer idea.yaml (`quality: production`) — see V1 Scope below | 2-4 hrs |
+| 4 | Write Assayer experiment.yaml (`quality: production`) — see V1 Scope below | 2-4 hrs |
 | 5 | /bootstrap → generate full V1 (pages, API, DB, auth, analytics, tests) | 1-2 hrs |
 | 5.1 | Run migrations against Supabase (Track 2 I-1) | 30 min |
 | 5.2 | Configure env vars in Vercel (all keys from Track 2) | 30 min |
@@ -399,7 +399,7 @@ Step 1 (2-4h) → Step 4 (2-4h) → Step 5 (1-2h) → Step 6a (2-4h) → Step 6b
 
 **Total critical path: ~12-20 hours of Claude Code work.** Infrastructure (Track 2) and skills (Track 4) run in parallel and must finish before Step 7.
 
-#### V1 Scope (idea.yaml boundaries)
+#### V1 Scope (experiment.yaml boundaries)
 
 **Pages (in V1):**
 
@@ -431,9 +431,9 @@ Step 1 (2-4h) → Step 4 (2-4h) → Step 5 (1-2h) → Step 6a (2-4h) → Step 6b
 
 #### Step 4 Design Review Checkpoint
 
-Step 4 (idea.yaml) is the highest-leverage step. Everything downstream is generated from it. Treat it as a design review:
+Step 4 (experiment.yaml) is the highest-leverage step. Everything downstream is generated from it. Treat it as a design review:
 
-1. Write idea.yaml with V1 scope (5 pages, 4 tables, core features)
+1. Write experiment.yaml with V1 scope (5 pages, 4 tables, core features)
 2. Review against this design doc — does every page, endpoint, and feature trace to a design doc section?
 3. Review against the template's archetype (`web-app`) — does the structure conform?
 4. Only then proceed to Step 5 (/bootstrap)
@@ -488,19 +488,19 @@ Per-experiment AI cost: ~$5-20 (Opus 4.6 default — verify current pricing at a
 
 ## 9. Template Enhancement: Production Quality Mode
 
-Assayer itself is production code, not a throwaway MVP. The mvp-template must support both modes in a single repo via a `quality` field in idea.yaml.
+Assayer itself is production code, not a throwaway MVP. The mvp-template must support both modes in a single repo via a `quality` field in experiment.yaml.
 
 ### Why One Repo, Not Two
 
 Two repos (mvp-template + production-template) means ~70 duplicated files (stacks, skills, agents, patterns). Every bug fix = two PRs. And crucially, upgrading a successful MVP to production requires migrating to a different template — a wall instead of a ramp.
 
-One repo with `quality: production` means: add one field to idea.yaml, everything changes. Same `/change`, same `/verify`, internal behavior adapts.
+One repo with `quality: production` means: add one field to experiment.yaml, everything changes. Same `/change`, same `/verify`, internal behavior adapts.
 
 ### Why NOT Superpowers for MVPs
 
 | | Without Superpowers | With Superpowers |
 |-|--------------------|--------------------|
-| Planning | 0 min (idea.yaml is the spec) | 30-60 min (design doc + plan) |
+| Planning | 0 min (experiment.yaml is the spec) | 30-60 min (design doc + plan) |
 | Implementation | 30-60 min (scaffold) | 2-4 hrs (TDD per task) |
 | Verification | 10 min (/verify) | 30 min (/verify + reviews) |
 | **Total** | **~1 hour** | **~4-6 hours** |
@@ -534,7 +534,7 @@ implementer-prompt.md           →  agents/implementer.md
 spec-reviewer-prompt.md         →  agents/spec-reviewer.md
 
 Discarded (already have equivalents):
-brainstorming                   →  idea.yaml + /change plan phase
+brainstorming                   →  experiment.yaml + /change plan phase
 writing-plans                   →  absorbed into /change Step 6
 executing-plans / SDD           →  absorbed into /change Step 6
 implementation-planning         →  absorbed into /change Step 6
@@ -564,7 +564,7 @@ quality-reviewer                →  design-critic + security-* agents
 | `commands/change.md` | Step 4: precondition (quality: production requires stack.testing). Step 6: production path for Feature, Fix, AND Upgrade types. Task dependency ordering for implementer. |
 | `commands/bootstrap.md` | scaffold-\* generate tests alongside code when production; hardening guidance; agent test ownership |
 | `patterns/verify.md` | spec-reviewer as 6th parallel agent when production |
-| `idea/idea.yaml` | Optional `quality` field |
+| `idea/experiment.yaml` | Optional `quality` field |
 | `commands/iterate.md` | Graduation recommendation when verdict=GO (suggest /harden) |
 
 ### How /change Works in Production Mode
@@ -579,7 +579,7 @@ Phase 2:
           If absent: "Production quality requires a testing framework.
           Add testing: playwright (web-app) or testing: vitest (service/cli)."
 
-  Step 5: Update idea.yaml (same)
+  Step 5: Update experiment.yaml (same)
 
   Step 6: Production quality path (Feature, Fix, AND Upgrade types)
     1. Generate implementation plan — break into 2-5 min TDD tasks
@@ -614,7 +614,7 @@ TDD is impossible for bootstrap (generating 50 files from scratch — no framewo
    - **scaffold-libs**: generates unit tests for utility functions (validation, parsing, calculations)
    - **scaffold-pages**: generates page-load smoke tests (per existing template behavior)
    - **scaffold-wire**: runs test discovery checkpoint (`npx playwright test --list` or vitest equivalent)
-2. /verify includes **spec-reviewer** (checks all idea.yaml features/pages exist)
+2. /verify includes **spec-reviewer** (checks all experiment.yaml features/pages exist)
 3. After bootstrap PR merges, run **`/harden`** to add TDD coverage to critical paths
 
 ### How /harden Works (MVP → Production Transition)
@@ -632,7 +632,7 @@ Step 0: Validate preconditions
     a specific module, or /change for new features."
 
 Step 1: Scan & classify
-  - Read idea.yaml (features, golden_path, critical_flows, stack)
+  - Read experiment.yaml (features, golden_path, critical_flows, stack)
   - Scan src/ for all modules (API routes, lib/, pages, components)
   - Check existing test coverage (glob **/*.test.*, **/*.spec.*, e2e/**)
   - Classify each module:
@@ -675,19 +675,19 @@ Step 2: Present plan
   - [module] — [reason: UI-only / already covered]
 
   ### Changes:
-  - idea.yaml: add quality: production
-  - idea.yaml: add stack.testing if absent
+  - experiment.yaml: add quality: production
+  - experiment.yaml: add stack.testing if absent
 
   > Approve to proceed, or remove modules you don't want hardened.
 
 Step 3: Execute (after approval)
   1. Branch setup (chore/harden-production)
-  2. Set quality: production in idea.yaml
+  2. Set quality: production in experiment.yaml
   3. Add stack.testing if absent (playwright for web-app, vitest for service/cli)
   4. For each approved Critical module, sequentially:
      a. Spawn implementer agent (worktree isolation)
      b. Implementer writes specification tests:
-        - What SHOULD the module do? (read code + idea.yaml features)
+        - What SHOULD the module do? (read code + experiment.yaml features)
         - Write tests for correct behavior (may fail if code has bugs)
         - If test fails: fix the code (this is a feature, not a bug)
         - If test passes: good — specification captured
@@ -742,7 +742,7 @@ Production quality mode has been fully implemented across three PRs:
 
 - **PR 1**: `patterns/tdd.md` + `patterns/systematic-debugging.md` — reference docs
 - **PR 2**: `agents/implementer.md` + `agents/spec-reviewer.md` — subagent definitions
-- **PR 3**: CLAUDE.md + change.md + bootstrap.md + verify.md + idea.yaml + `commands/harden.md` + `commands/iterate.md` — activated all conditional branches
+- **PR 3**: CLAUDE.md + change.md + bootstrap.md + verify.md + experiment.yaml + `commands/harden.md` + `commands/iterate.md` — activated all conditional branches
 
 ---
 

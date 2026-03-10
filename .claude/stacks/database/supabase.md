@@ -20,7 +20,7 @@ clean:
 gitignore: []
 ---
 # Database: Supabase (Postgres)
-> Used when idea.yaml has `stack.database: supabase`
+> Used when experiment.yaml has `stack.database: supabase`
 > Assumes: `framework/nextjs` (server client uses `next/headers` for cookies)
 
 ## Packages
@@ -348,7 +348,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
 ### Config Gathering
 
 - **Org discovery:** `supabase orgs list -o json` — returns `[{"id": "...", "name": "..."}]`
-- **idea.yaml fields:**
+- **experiment.yaml fields:**
   - `deploy.supabase_org` — if set, skip the org prompt
   - `deploy.supabase_region` — if set, use it; otherwise default to `us-east-1`
 
@@ -401,7 +401,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
    - File: `~/.supabase/access-token`
    - macOS Keychain: `security find-generic-password -s "Supabase CLI" -w 2>/dev/null` — strip `go-keyring-base64:` prefix, base64-decode remainder
    - If neither found: ask user for token (generate at supabase.com/dashboard/account/tokens) or skip
-2. **Extract short title:** idea.yaml `title` up to first ` — `, ` - `, or ` | ` delimiter; fallback to capitalized `name`
+2. **Extract short title:** experiment.yaml `title` up to first ` — `, ` - `, or ` | ` delimiter; fallback to capitalized `name`
 3. **Configure auth:**
    ```bash
    curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \

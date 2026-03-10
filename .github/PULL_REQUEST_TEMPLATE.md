@@ -15,13 +15,13 @@
 -
 
 ## Why
-<!-- What problem does this solve? Reference the idea.yaml feature or problem. -->
+<!-- What problem does this solve? Reference the experiment.yaml feature or problem. -->
 <!-- If fixing a bug: include root cause and link to issue (Closes #123) -->
 
 ## Checklist
 
 ### Scope
-- [ ] Only builds/changes what's in `idea/idea.yaml`
+- [ ] Only builds/changes what's in `idea/experiment.yaml`
 - [ ] No new features, libraries, or frameworks beyond scope
 - [ ] No unrelated changes bundled into this PR
 

@@ -1,8 +1,8 @@
 ---
-description: "Generate distribution campaign config from idea.yaml. Requires a deployed MVP."
+description: "Generate distribution campaign config from experiment.yaml. Requires a deployed MVP."
 type: code-writing
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - EVENTS.yaml
   - idea/ads.yaml
 stack_categories: [analytics, hosting, distribution, ui, framework]
@@ -15,7 +15,7 @@ references:
 branch_prefix: chore
 modifies_specs: true
 ---
-Generate a distribution campaign configuration from idea.yaml and implement distribution tracking.
+Generate a distribution campaign configuration from experiment.yaml and implement distribution tracking.
 
 > If `idea/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `idea/ads.yaml` to regenerate from scratch.
 
@@ -23,13 +23,13 @@ This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and t
 
 ## Step 0: Archetype check and branch setup
 
-Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured. Options: (1) add `stack.surface: co-located` or `detached` to idea.yaml and re-run `/distribute`, or (2) distribute manually — for CLI tools: `npm publish` to npm registry, GitHub Releases for binaries, Homebrew for macOS; for services: API marketplace listings, documentation links, or direct outreach. See the archetype file for details."
+Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured. Options: (1) add `stack.surface: co-located` or `detached` to experiment.yaml and re-run `/distribute`, or (2) distribute manually — for CLI tools: `npm publish` to npm registry, GitHub Releases for binaries, Homebrew for macOS; for services: API marketplace listings, documentation links, or direct outreach. See the archetype file for details."
 
 If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 
 ## Step 1: Validate preconditions
 
-1. Verify `idea/idea.yaml` exists and is complete. If not, stop: "No experiment found. Create `idea/idea.yaml` from the template first, then run `/bootstrap`."
+1. Verify `idea/experiment.yaml` exists and is complete. If not, stop: "No experiment found. Create `idea/experiment.yaml` from the template first, then run `/bootstrap`."
 2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
 3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
@@ -39,18 +39,18 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
    2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
    3. Read the selected channel's stack file at `.claude/stacks/distribution/<channel>.md`
 7. **Policy check:**
-   1. Read idea.yaml `problem` and `solution`
+   1. Read experiment.yaml `problem` and `solution`
    2. Match against restricted-industry keywords: `crypto`, `DeFi`, `token`, `ICO`, `blockchain`, `NFT`, `yield`, `staking`, `liquidity`, `protocol`, `wallet`, `exchange`, `mining`, `DAO`
    3. If match found, read the selected channel's "Policy Restrictions" section
    4. If the channel restricts or bans the category, warn the user: "⚠ Your experiment mentions [keyword]. [Channel] [restricts/bans] this category: [details]. Consider switching to [alternative channels that allow it]."
    5. Non-blocking — the user can confirm to proceed or switch channel
-8. Verify `stack.analytics` is present in idea.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to idea.yaml `stack` and run `/bootstrap` first."
+8. Verify `stack.analytics` is present in experiment.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to experiment.yaml `stack` and run `/bootstrap` first."
 9. Verify the analytics stack is configured: read the analytics stack file's `env` frontmatter. If `env.client` lists a client env var, check that it appears in `.env.example`. If the env var is not found in `.env.example`, stop: "Analytics is not configured. Verify `.env.example` contains the analytics client key, or run `/bootstrap` first to scaffold the app with analytics." If `env.client` is empty, the stack uses hardcoded keys (e.g., PostHog's shared publishable key) — skip this check.
 10. If `idea/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
 
 ## Step 2: Research targeting
 
-Read `idea/idea.yaml`: `problem`, `solution`, `target_user`, `title`, `features`.
+Read `idea/experiment.yaml`: `problem`, `solution`, `target_user`, `title`, `features`.
 
 Read the selected channel's stack file "Targeting Model" section, then generate targeting research appropriate for the channel:
 
@@ -106,7 +106,7 @@ Keyword rules (google-ads):
 
 ## Step 3: Generate ad creative
 
-Derive from idea.yaml `title`, `solution`, and `primary_metric`.
+Derive from experiment.yaml `title`, `solution`, and `primary_metric`.
 
 ### Ad format constraints
 
@@ -120,8 +120,8 @@ Read the selected channel's stack file "Ad Format Constraints" section for chara
 ### Message match
 Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines must be shortened versions of the landing page headline (the value proposition, not the product name). If the app has already been bootstrapped, read the surface source to extract the actual landing headline and derive ad headlines from it: for web-app read `src/app/page.tsx`; for service read the root route handler (path per framework stack file); for CLI read `site/index.html`. Note that character constraints are channel-specific — read the stack file's "Ad Format Constraints" for the channel's limits.
 
-### Variant ad groups (when idea.yaml has `variants`)
-When idea.yaml has a `variants` field, generate per-variant creative:
+### Variant ad groups (when experiment.yaml has `variants`)
+When experiment.yaml has a `variants` field, generate per-variant creative:
 - Create a separate ad group/creative set per variant
 - Each variant's creative is derived from that variant's `headline` field (not from the shared `solution`)
 - Each variant's landing URL includes `utm_content={slug}` (e.g., `?utm_source={source}&utm_medium={medium}&utm_campaign={campaign_name}&utm_content=speed`)
@@ -163,15 +163,15 @@ Go signal: [N]+ activations from paid traffic in [measurement_window]
 No-go signal: 0 activations after $[half-budget] spend, or <1% CTR after 500 impressions
 ```
 
-4. Define go/no-go signals based on idea.yaml `target_value` and `measurement_window`
+4. Define go/no-go signals based on experiment.yaml `target_value` and `measurement_window`
 
 ### Schema rules for ads.yaml
 - `channel`: the selected distribution channel (e.g., `google-ads`, `twitter`, `reddit`)
 - `campaign_name`: auto-generated following the channel's config schema pattern (e.g., `{idea.name}-search-v{N}` for google-ads, `{idea.name}-twitter-v{N}` for twitter)
 - `budget.total_budget_cents`: defaults to 10000 ($100), max 50000 ($500) without explicit override
-- `budget.duration_days`: defaults to idea.yaml `measurement_window` parsed to days
+- `budget.duration_days`: defaults to experiment.yaml `measurement_window` parsed to days
 - `guardrails`: channel-specific — CPC channels require `max_cpc_cents`; other channels may use `max_cpe_cents` or just `auto_pause_rules`
-- `thresholds`: AI-generated from idea.yaml context using first-principles reasoning
+- `thresholds`: AI-generated from experiment.yaml context using first-principles reasoning
 
 ## Step 5: Generate ads.yaml
 
@@ -195,7 +195,7 @@ Present the full config for review.
 - EVENTS.yaml has these as optional properties on `visit_landing` — the landing page must parse them from `window.location.search` and pass them to the tracking call
 - Update the landing page to parse URL params and include them in the visit tracking call
 
-- When idea.yaml has `variants`, also capture `utm_content` from URL params alongside UTM params. This maps to the variant slug and enables per-variant attribution in analytics (e.g., filter `visit_landing` by `utm_content = "speed"` to see paid traffic for the speed variant).
+- When experiment.yaml has `variants`, also capture `utm_content` from URL params alongside UTM params. This maps to the variant slug and enables per-variant attribution in analytics (e.g., filter `visit_landing` by `utm_content = "speed"` to see paid traffic for the speed variant).
 
 ### 7b: Add click ID capture
 
@@ -225,7 +225,7 @@ custom_events:
       activation_action:
         type: string
         required: true
-        description: What activation action preceded this (from idea.yaml primary_metric)
+        description: What activation action preceded this (from experiment.yaml primary_metric)
 ```
 
 Add a `FeedbackWidget` component at `src/components/feedback-widget.tsx`:
@@ -357,7 +357,7 @@ Only reached when:
 - Create a campaign if `campaign_id` already exists in `idea/ads.yaml` — campaigns are idempotent
 - Skip credential setup — if credentials are missing, guide the user through setup; do not fall back to manual campaign creation
 - Hardcode credential file paths — read from the channel's stack file "Credential Files" subsection
-- Modify idea.yaml — this skill reads it but does not change it
+- Modify experiment.yaml — this skill reads it but does not change it
 - Add new packages — the feedback widget uses existing shadcn components and the analytics library
 - Skip the config approval step (Step 6) — the operator must review targeting, ad creative, and budget before proceeding
 - Hardcode analytics import paths or provider names — always read the analytics stack file for the correct imports

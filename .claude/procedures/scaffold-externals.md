@@ -9,9 +9,9 @@
 
 ### Evaluate external dependencies
 
-Before API routes are generated, assess whether idea.yaml features require external services not covered by `stack`:
+Before API routes are generated, assess whether experiment.yaml features require external services not covered by `stack`:
 
-1. Read idea.yaml `features`. For each feature, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
+1. Read experiment.yaml `features`. For each feature, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
    - Examples: "Connect Xero and import invoices" → Xero OAuth, "Send SMS via Twilio" → Twilio API key, "Sync with Google Sheets" → Google OAuth
    - Stack-handled services don't count: Supabase, Stripe, Resend, PostHog are already managed by their stack files
 

@@ -19,22 +19,22 @@ file will exist at build time when the merged checkpoint runs `npm run build`.
 
 #### App shell (Step 3)
 - Follow the framework stack file's file structure and page conventions
-- **Root layout**: metadata from idea.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (chosen font via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
+- **Root layout**: metadata from experiment.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (chosen font via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
 - **404 page**: simple not-found page with link back to `/`
 - **Error boundary**: user-friendly message and retry button
 
 #### Pages (Step 4)
-For each entry in idea.yaml `pages`:
+For each entry in experiment.yaml `pages`:
 - If `name` is `landing` → create the root page
 - Otherwise → create a page at the appropriate route
 - Every page file must:
   - Follow page conventions from the framework stack file
   - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate EVENTS.yaml event(s) on the correct trigger
   - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
-  - If a standard_funnel event from EVENTS.yaml has no matching page in idea.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
+  - If a standard_funnel event from EVENTS.yaml has no matching page in experiment.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page**: Do NOT generate the landing page content here — it is
   created by the landing-page subagent (see `scaffold-landing.md`). If
-  idea.yaml has `variants`, create only the structural routing files here:
+  experiment.yaml has `variants`, create only the structural routing files here:
   - `src/lib/variants.ts` — typed `VARIANTS` array (slug, headline,
     subheadline, cta, pain_points, isDefault) and `getVariant(slug)` helper
   - Root `src/app/page.tsx` — imports and renders `LandingContent` with the
@@ -45,18 +45,18 @@ For each entry in idea.yaml `pages`:
   If no `variants`, skip entirely — the landing-page subagent creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file).
   Fire the corresponding EVENTS.yaml events at their specified triggers.
-  If `stack.auth_providers` is present in idea.yaml: add OAuth login buttons for each
+  If `stack.auth_providers` is present in experiment.yaml: add OAuth login buttons for each
   listed provider below the email/password form, using the OAuth button template and
   `handleOAuthLogin` function from the auth stack file's "OAuth buttons" section.
   Fire `trackSignupStart({ method: "<provider>" })` before the OAuth redirect.
   Update the post-auth redirect in signup and login pages to navigate to the first
-  non-auth, non-landing page from idea.yaml (e.g., `/dashboard`). If no such page
+  non-auth, non-landing page from experiment.yaml (e.g., `/dashboard`). If no such page
   exists, keep the redirect to `/`.
 - If `stack.email` is present: wire the welcome email API call into the auth success callback. After `signup_complete` event fires, call `/api/email/welcome` with the user's email and name. Read the email stack file for the route handler template.
 - **All other pages**: For each non-landing, non-auth page, apply the
   preloaded `frontend-design` guidelines (injected via skills) with:
   - The existing theme tokens (from `src/app/globals.css` and tailwind config)
-  - The page's `purpose` from idea.yaml
+  - The page's `purpose` from experiment.yaml
   - The visual language brief from `.claude/current-visual-brief.md` (palette,
     typography, animation, spacing, component style, and texture decisions)
   - Instruction: "Design a top-tier SaaS product screen (think Linear, Vercel,
@@ -82,13 +82,13 @@ For each entry in idea.yaml `pages`:
 ### service
 
 Skip shell and pages. Create API directory structure only:
-- `src/app/api/` directory with placeholder route folders for each endpoint in idea.yaml
+- `src/app/api/` directory with placeholder route folders for each endpoint in experiment.yaml
 - Follow the framework stack file's route handler conventions
 
 ### cli
 
 Skip shell and pages. Create CLI entry point and command modules:
 - `src/index.ts` — CLI entry point with bin config
-- `src/commands/` — one module per idea.yaml command
+- `src/commands/` — one module per experiment.yaml command
 - Follow the framework stack file's conventions
 

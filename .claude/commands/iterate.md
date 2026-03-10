@@ -2,7 +2,7 @@
 description: "Use when you have analytics data and want to decide what to do next. Analysis only — no code changes."
 type: analysis-only
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - EVENTS.yaml
   - idea/ads.yaml
 stack_categories: [analytics]
@@ -17,19 +17,19 @@ This skill does NOT write code. It helps you decide what action to take, then po
 
 ## Step 1: Read the experiment definition
 
-- Verify `idea/idea.yaml` exists. If not, stop and tell the user: "No experiment found. Create `idea/idea.yaml` from the template first, then run `/bootstrap`."
+- Verify `idea/experiment.yaml` exists. If not, stop and tell the user: "No experiment found. Create `idea/experiment.yaml` from the template first, then run `/bootstrap`."
 - If `package.json` does not exist, stop and tell the user: "No app found. Run `/bootstrap` first to create the app, then run `/iterate` to review its progress."
 - Run `npm run build`. If it fails, stop and tell the user: "The app has build errors. Run `/change fix build errors` to repair the codebase first, then return to `/iterate`."
 - Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
-- Check if `stack.analytics` is present in idea.yaml. If not, warn: "No analytics stack configured — skipping auto-query. You can provide funnel numbers manually in Step 2b, or add `analytics: posthog` to idea.yaml `stack` and run `/change add analytics` for automated tracking." Skip Step 2a entirely and proceed to Step 2b.
-- Read `idea/idea.yaml` — understand the hypothesis:
+- Check if `stack.analytics` is present in experiment.yaml. If not, warn: "No analytics stack configured — skipping auto-query. You can provide funnel numbers manually in Step 2b, or add `analytics: posthog` to experiment.yaml `stack` and run `/change add analytics` for automated tracking." Skip Step 2a entirely and proceed to Step 2b.
+- Read `idea/experiment.yaml` — understand the hypothesis:
   - What are we building? (`title`, `solution`)
   - For whom? (`target_user`)
   - What does success look like? (`primary_metric`, `target_value`)
   - How long do we have? (`measurement_window`)
   - What features exist? (`features`)
   - What is the scope? (`pages` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_idea_fields`)
-- Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). Note the `funnel_template` value:
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Note the `funnel_template` value:
   - `web` (web-app) — funnel events come from EVENTS.yaml `standard_funnel`
   - `custom` (service, cli) — funnel events come from EVENTS.yaml `custom_events` and the experiment's own event definitions
 - Read `EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
@@ -71,7 +71,7 @@ Tell the user how to get the numbers. See the analytics stack file's "Dashboard 
 >
 > If `funnel_template` is `custom` (service, cli): create a funnel using events from EVENTS.yaml `custom_events`. If `custom_events` is empty, use the typical events suggested in the archetype file (e.g., `api_call` → `activate` → `retain_return` for services, `command_run` → `activate` → `retain_return` for CLIs). Also include `payment_funnel` events if `stack.payment` is present.
 >
-> Filter by `project_name` equals your idea.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
+> Filter by `project_name` equals your experiment.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
 > If you haven't deployed yet, the app isn't collecting data. For web-app and service archetypes, run `/deploy` first; for CLI archetypes, publish via `npm publish` or GitHub Releases (see the archetype file). Then return to `/iterate` after a few days of live traffic. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
@@ -89,7 +89,7 @@ Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask 
 
 4. **Observations** — anything the team has noticed (e.g., "users sign up but never create an invoice", "landing page bounce rate is high")
 
-5. **Variant comparison (if idea.yaml has `variants`)** — per-variant metrics:
+5. **Variant comparison (if experiment.yaml has `variants`)** — per-variant metrics:
    - `visit_landing` count per variant (filter by `variant` property)
    - `signup_complete` count per variant (if available, filter by UTM content or variant context)
    - `activate` count per variant (if available)
@@ -111,7 +111,7 @@ Before diagnosing details, assess overall experiment health. This verdict is the
 
 From the data gathered in Step 2, determine:
 - **Time elapsed**: parse `measurement_window` (e.g., "2 weeks" = 14 days) and ask the user how many days have passed (or derive from timeline data in 2c). Calculate `time_pct = elapsed_days / total_days`.
-- **Target progress**: compare the user's reported metrics against `target_value` from idea.yaml. Extract the target number and the closest matching metric (e.g., `target_value: "10 paid invoices"` → compare against `activate` or `pay_success` count). Calculate `target_pct = achieved / target_number`.
+- **Target progress**: compare the user's reported metrics against `target_value` from experiment.yaml. Extract the target number and the closest matching metric (e.g., `target_value: "10 paid invoices"` → compare against `activate` or `pay_success` count). Calculate `target_pct = achieved / target_number`.
 - **Pace**: `pace = target_pct / time_pct`. A pace of 1.0 means exactly on track; >1.0 means ahead; <1.0 means behind.
 - **Budget progress (if ads running)**: if the user provided ads spend data, calculate `budget_pct = spent / total_budget`.
 
@@ -165,7 +165,7 @@ Analyze the data to find where the funnel breaks. Present a funnel visualization
 | [payment_funnel events if stack.payment present] | ... | ... | ... |
 | [retain_return] | [count] | — | [retention diagnosis] |
 
-If `stack.payment` is absent from idea.yaml, omit the `pay_start` and `pay_success` rows from the funnel table.
+If `stack.payment` is absent from experiment.yaml, omit the `pay_start` and `pay_success` rows from the funnel table.
 
 > Note: `retain_return` is a retention metric, not a conversion step. Show it below the funnel or as a separate row — it does not have a meaningful conversion rate relative to the row above it.
 
@@ -193,7 +193,7 @@ If `idea/ads.yaml` exists and the user provided ads data in Step 2, include this
 
 Read `idea/ads.yaml` to populate threshold values. Use the user-provided ads data for actual values.
 
-### Variant Winner Analysis (if idea.yaml has `variants`)
+### Variant Winner Analysis (if experiment.yaml has `variants`)
 
 If the user provided per-variant metrics in Step 2, present a comparison:
 
@@ -296,8 +296,8 @@ This file is read by `/change` to provide context for the next iteration.
 If the diagnosis reveals a need to change direction:
 
 ### Minor pivot (keep same target user, adjust features)
-- Propose the changes to the user and list the specific edits to idea.yaml
-- The user should edit idea.yaml manually, then run `/change ...` to implement the changes (or `make clean` followed by `/bootstrap` to rebuild from scratch)
+- Propose the changes to the user and list the specific edits to experiment.yaml
+- The user should edit experiment.yaml manually, then run `/change ...` to implement the changes (or `make clean` followed by `/bootstrap` to rebuild from scratch)
 
 ### Pivot (verdict is PIVOT — signal exists but wrong angle)
 - Identify what IS working (which funnel stage converts well)
@@ -306,8 +306,8 @@ If the diagnosis reveals a need to change direction:
 
 ### Major pivot or stop (verdict is NO-GO)
 - Present the case: "The Step 3 verdict is NO-GO. The data suggests [current approach] isn't working because [reason]. Consider targeting [new user] or solving [different problem]."
-- Do NOT update idea.yaml for major pivots — the user should think about this and manually edit idea.yaml
-- Remind them: "After updating idea.yaml, run `make clean` then `/bootstrap` to start a new experiment (or in a fresh repo), or `/change ...` to iteratively shift the existing one."
+- Do NOT update experiment.yaml for major pivots — the user should think about this and manually edit experiment.yaml
+- Remind them: "After updating experiment.yaml, run `make clean` then `/bootstrap` to start a new experiment (or in a fresh repo), or `/change ...` to iteratively shift the existing one."
 
 ### On track (verdict is GO)
 - Say so clearly: "The Step 3 verdict is GO. You're on track. [X] of [target_value] achieved with [Y days] remaining."
@@ -325,7 +325,7 @@ End with a clear, numbered action list. Prepend the verdict from Step 3:
 
 1. Run `/change sharpen landing page headline to address [specific user pain]`
 2. Run `/change add onboarding checklist after signup`
-3. Post in [distribution channel from idea.yaml] — drive more top-of-funnel traffic
+3. Post in [distribution channel from experiment.yaml] — drive more top-of-funnel traffic
 
 Your measurement window ends in [X days]. [Verdict-specific guidance].
 ```

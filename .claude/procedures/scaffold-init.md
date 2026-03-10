@@ -9,7 +9,7 @@
 ## Steps
 
 ### Step 1: Design decisions
-1. Derive the three design constraints per `.claude/patterns/design.md` (color direction, design philosophy, optimization target) from idea.yaml's product domain.
+1. Derive the three design constraints per `.claude/patterns/design.md` (color direction, design philosophy, optimization target) from experiment.yaml's product domain.
 2. Apply the preloaded `frontend-design` guidelines (injected via skills)
    for visual direction within the derived constraints. If not available,
    use your own judgment — match the product's personality, not framework defaults.

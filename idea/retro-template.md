@@ -10,7 +10,7 @@ Claude runs these commands and presents a summary:
 - `gh pr list --state all --limit 50` — PR counts (merged, open, closed)
 - Count pages in `src/app/` (excluding `api/`)
 - Count production dependencies from `package.json`
-- Read `idea/idea.yaml` — experiment name, title, target user, primary metric, target value
+- Read `idea/experiment.yaml` — experiment name, title, target user, primary metric, target value
 - Read `EVENTS.yaml` — events being tracked
 
 ## Part 2: Four Questions (Claude asks these one at a time)
@@ -38,14 +38,14 @@ Follow-up: "What was the actual result vs your target of [target_value] for [pri
 Claude generates a structured document with these sections:
 1. **Experiment Summary** — name, problem, solution, target user, outcome, metric results
 2. **Timeline & Activity** — commits, PRs, pages built, scope delivered
-3. **Stack Used** — from idea.yaml
+3. **Stack Used** — from experiment.yaml
 4. **Team Assessment** — answers to Q2-Q4
 5. **Template Improvement Suggestions** — specific, actionable changes mapped to template components
 
 ## Part 4: File as GitHub Issue
 
 After generating the retro, Claude files it as a GitHub Issue:
-- If `template_repo` is set in idea.yaml: file on that repo
+- If `template_repo` is set in experiment.yaml: file on that repo
 - If not set: ask the user for the template repo URL (e.g., `owner/repo-name`)
 
 Command Claude runs:

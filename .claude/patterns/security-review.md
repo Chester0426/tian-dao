@@ -32,7 +32,7 @@ checklist below.
 
 ### Archetype Scope
 
-Read `idea/idea.yaml` to determine the archetype (`type` field, default: `web-app`).
+Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
 Scope applies to both Defender and Attacker agents below:
 
 - **web-app**: Defender D1–D5, Attacker A1–A5
@@ -64,7 +64,7 @@ each `route.ts` / `route.js` file — if the handler reads `request.json()`,
 `request.formData()`, or URL params without schema validation, it's a FAIL.
 
 **D3. Database RLS**
-> Skip if `stack.database` is absent from idea.yaml.
+> Skip if `stack.database` is absent from experiment.yaml.
 
 Every `CREATE TABLE` statement must have a corresponding
 `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` and at least one policy. Check

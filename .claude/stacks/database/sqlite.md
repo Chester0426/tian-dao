@@ -15,7 +15,7 @@ clean:
 gitignore: []
 ---
 # Database: SQLite
-> Used when idea.yaml has `stack.database: sqlite`
+> Used when experiment.yaml has `stack.database: sqlite`
 > Assumes: nothing (framework-agnostic — works with any Node.js framework)
 
 ## Packages

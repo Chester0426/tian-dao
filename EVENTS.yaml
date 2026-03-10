@@ -6,11 +6,11 @@
 
 global_properties:
   project_name:
-    description: From idea.yaml `name` field. Identifies which experiment this data belongs to.
+    description: From experiment.yaml `name` field. Identifies which experiment this data belongs to.
     type: string
     required: true
   project_owner:
-    description: From idea.yaml `owner` field. Identifies who owns this experiment.
+    description: From experiment.yaml `owner` field. Identifies who owns this experiment.
     type: string
     required: true
 
@@ -25,7 +25,7 @@ standard_funnel:
       variant:
         type: string
         required: false
-        description: Variant slug from idea.yaml variants (e.g., "speed"). Absent when no variants defined.
+        description: Variant slug from experiment.yaml variants (e.g., "speed"). Absent when no variants defined.
       referrer:
         type: string
         required: false
@@ -72,7 +72,7 @@ standard_funnel:
         description: "Signup method: email, google, github"
 
   - event: activate
-    trigger: User completes the core action that delivers first value (defined by idea.yaml primary_metric)
+    trigger: User completes the core action that delivers first value (defined by experiment.yaml primary_metric)
     properties:
       action:
         type: string
@@ -97,7 +97,7 @@ standard_funnel:
 # Typical service events: api_call, activate, retain_return (all via trackServerEvent).
 # CLIs (type: cli) also use funnel_template: custom — typical events: command_run, activate, retain_return.
 
-# Payment funnel — only include when stack.payment is present in idea.yaml
+# Payment funnel — only include when stack.payment is present in experiment.yaml
 payment_funnel:
   - event: pay_start
     trigger: User clicks a payment/subscribe button and enters checkout
