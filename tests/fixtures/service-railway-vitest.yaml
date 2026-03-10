@@ -14,6 +14,17 @@ idea:
   distribution: |
     API docs shared in developer communities.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A developer calls the current weather endpoint"
+      when: "They provide a location"
+      then: "They receive current weather data"
+      tests:
+        - "Current endpoint returns weather data"
+        - "Forecast endpoint returns multi-day forecast"
+      level: 1
+
   endpoints:
     - name: current
       purpose: Get current weather for a location

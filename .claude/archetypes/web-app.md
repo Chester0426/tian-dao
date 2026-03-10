@@ -3,7 +3,7 @@ description: "Web application with browser-based pages, UI components, and user 
 required_stacks: [framework, hosting]
 optional_stacks: [database, auth, analytics, ui, payment, email, testing]
 excluded_stacks: []
-required_idea_fields: [pages]
+required_idea_fields: [golden_path]
 build_command: "npm run build"
 funnel_template: web
 ---
@@ -16,14 +16,14 @@ experiment.yaml.
 
 ## Structure
 
-Each experiment.yaml `pages` entry maps to a route folder:
+Each experiment.yaml `golden_path` entry with a `page` field maps to a route folder:
 
 ```
 src/app/<page-name>/page.tsx
 ```
 
 Pages are React components rendered in the browser. The landing page
-(`pages` must include an entry with `name: landing`) is the public entry point.
+(`golden_path` must include an entry with `page: landing`) is the public entry point.
 
 ## Funnel
 

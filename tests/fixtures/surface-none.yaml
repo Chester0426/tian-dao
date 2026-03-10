@@ -14,6 +14,16 @@ idea:
   distribution: |
     Shared internally via documentation and Slack channels.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "An internal service calls the transform endpoint"
+      when: "They provide data and transformation rules"
+      then: "They receive the transformed data"
+      tests:
+        - "Transform endpoint processes data correctly"
+      level: 1
+
   endpoints:
     - name: transform
       purpose: Transform data according to configured rules

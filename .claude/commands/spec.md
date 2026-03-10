@@ -4,7 +4,10 @@ type: code-writing
 reads: []
 stack_categories: []
 requires_approval: true
-references: []
+references:
+  - .claude/patterns/verify.md
+  - .claude/patterns/branch.md
+  - .claude/patterns/observe.md
 branch_prefix: feat
 modifies_specs: true
 ---

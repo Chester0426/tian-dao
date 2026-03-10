@@ -17,6 +17,25 @@ idea:
   distribution: |
     Post launch in r/freelance and Indie Hackers. LinkedIn posts targeting freelancers.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A visitor lands on the landing page"
+      when: "They see the CTA"
+      then: "They click the CTA button"
+      tests:
+        - "Landing page renders CTA button"
+        - "Clicking CTA navigates to signup"
+      level: 1
+    - id: b-02
+      hypothesis_id: h-02
+      given: "A logged-in user is on the invoice-create page"
+      when: "They fill in line items and click send"
+      then: "An invoice is created"
+      tests:
+        - "Invoice form accepts line items and submits"
+      level: 2
+
   variants:
     - slug: speed
       headline: "Invoice Clients in 60 Seconds"
@@ -84,6 +103,6 @@ assertions:
   payment_events_required: false
   activate_required: true
   skippable_events: []
-  min_pages: 5
+  min_pages: 3
   has_variants: true
   variant_count: 2

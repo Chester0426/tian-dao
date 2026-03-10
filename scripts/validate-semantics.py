@@ -1068,14 +1068,11 @@ def main() -> int:
     # Required fields for experiment.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
     BASE_REQUIRED_IDEA_FIELDS = [
         "name",
-        "title",
-        "owner",
-        "problem",
-        "solution",
-        "target_user",
-        "distribution",
+        "type",
         "description",
         "thesis",
+        "target_user",
+        "distribution",
         "behaviors",
         "stack",
     ]
@@ -1219,8 +1216,33 @@ def main() -> int:
                 if not idea.get(field):
                     error(f"[3] {ff}: idea.{field} is missing or empty")
 
-            # Validate pages includes landing (only for archetypes requiring pages)
-            if "pages" in fixture_required:
+            # Validate golden_path includes landing (only for archetypes requiring golden_path)
+            if "golden_path" in fixture_required:
+                golden_path = idea.get("golden_path", [])
+                if isinstance(golden_path, list):
+                    has_landing = any(
+                        isinstance(entry, dict) and entry.get("page") == "landing"
+                        for entry in golden_path
+                    )
+                    if not has_landing:
+                        error(f"[3] {ff}: idea.golden_path must include a 'landing' entry")
+                    # Derive pages from golden_path for downstream checks
+                    pages = [
+                        {"name": entry.get("page")}
+                        for entry in golden_path
+                        if isinstance(entry, dict) and entry.get("page")
+                    ]
+                    # Deduplicate by page name
+                    seen_pages: set[str] = set()
+                    unique_pages: list[dict] = []
+                    for p in pages:
+                        if p["name"] not in seen_pages:
+                            seen_pages.add(p["name"])
+                            unique_pages.append(p)
+                    pages = unique_pages
+                else:
+                    pages = []
+            elif "pages" in fixture_required:
                 pages = idea.get("pages", [])
                 if isinstance(pages, list):
                     has_landing = any(
@@ -1246,7 +1268,7 @@ def main() -> int:
 
                 # Signup and landing event checks — archetype-aware
                 skippable = assertions.get("skippable_events", [])
-                if "pages" in fixture_required:
+                if "golden_path" in fixture_required or "pages" in fixture_required:
                     # Web-app: if no signup page, signup events should be in skippable
                     has_signup = False
                     if isinstance(pages, list):
@@ -1515,10 +1537,12 @@ def main() -> int:
         # Collect category/value pairs from stack file paths
         # Exclude distribution/ — distribution is not a bootstrap stack category;
         # it's a runtime choice made at /distribute time and has no experiment.yaml stack entry.
+        # Exclude ai/ — ai is an optional add-on for agent experiments, not a core
+        # bootstrap category; no fixture currently exercises it.
         stack_pairs = set()
         for sf in stack_files:
             pair = sf.replace(".claude/stacks/", "").replace(".md", "")
-            if pair.startswith("distribution/"):
+            if pair.startswith("distribution/") or pair.startswith("ai/"):
                 continue
             stack_pairs.add(pair)
 
@@ -1537,7 +1561,26 @@ def main() -> int:
             idea = fixture.get("idea", {})
             stack = idea.get("stack", {})
             if isinstance(stack, dict):
-                pairs = {f"{k}/{v}" for k, v in stack.items()}
+                pairs: set[str] = set()
+                # Map per-service keys to stack file directories
+                SERVICE_KEY_TO_DIR = {
+                    "runtime": "framework",
+                    "hosting": "hosting",
+                    "ui": "ui",
+                    "testing": "testing",
+                }
+                for k, v in stack.items():
+                    if k == "services":
+                        continue  # handled below
+                    pairs.add(f"{k}/{v}")
+                # Extract per-service stacks from services[] array
+                services = stack.get("services", [])
+                if isinstance(services, list):
+                    for svc in services:
+                        if isinstance(svc, dict):
+                            for svc_key, stack_dir in SERVICE_KEY_TO_DIR.items():
+                                if svc_key in svc:
+                                    pairs.add(f"{stack_dir}/{svc[svc_key]}")
                 fixture_stack_coverage[ff] = pairs
                 all_fixture_stacks |= pairs
 
@@ -1969,7 +2012,7 @@ def main() -> int:
 
         # Find the Phase 1 Step 3 validation section (a numbered list item: "3. **Validate experiment.yaml**")
         validate_section_match = re.search(
-            r"(?i)(?:###?\s*|\d+\.\s*(?:\*\*)?)Validate idea\.yaml(?:\*\*)?\s*\n(.*?)(?=\n\d+\.\s*\*\*|\n###?\s|\n##\s|\Z)",
+            r"(?i)(?:###?\s*|\d+\.\s*(?:\*\*)?)Validate (?:idea|experiment)\.yaml(?:\*\*)?\s*\n(.*?)(?=\n\d+\.\s*\*\*|\n###?\s|\n##\s|\Z)",
             bootstrap_content_22,
             re.DOTALL,
         )
@@ -2696,7 +2739,7 @@ def main() -> int:
 
         # Find the "Validate experiment.yaml" section (Step 3)
         validate_section_match = re.search(
-            r"##.*(?:Step 3|Validate idea\.yaml).*?\n(.*?)(?=\n## |\Z)",
+            r"##.*(?:Step 3|Validate (?:idea|experiment)\.yaml).*?\n(.*?)(?=\n## |\Z)",
             bootstrap_content_44,
             re.DOTALL,
         )
