@@ -77,7 +77,7 @@ A successful version output confirms the binary is installed and executable.
 ## Conventions
 
 - Every command fires analytics events per EVENTS.yaml (server-side, opt-in)
-- No landing page requirement — `validate-idea.py` skips landing checks
+- No landing page requirement — `validate-experiment.py` skips landing checks
 - No UI components — the `ui` stack category is excluded
 - No server hosting — the `hosting` stack category is excluded
 - `package.json` must have a `bin` field pointing to the compiled entry point

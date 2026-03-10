@@ -70,7 +70,7 @@ or API marketplace listings.
 ## Conventions
 
 - Every endpoint fires analytics events per EVENTS.yaml (server-side)
-- No landing page requirement — `validate-idea.py` skips landing checks
+- No landing page requirement — `validate-experiment.py` skips landing checks
 - No UI components — the `ui` stack category is excluded
 - Database access uses RLS (Row-Level Security) when auth is configured
 - API routes live directly under `src/app/api/`

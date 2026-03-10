@@ -51,9 +51,9 @@ validate: ## Check experiment.yaml for valid YAML, TODOs, name format, and struc
 		echo "Replace every TODO before running make bootstrap."; \
 		exit 1; \
 	fi
-	@# validate-idea.py checks: name format, archetype structure, required fields, stack files, testing warning, assumes
+	@# validate-experiment.py checks: name format, archetype structure, required fields, stack files, testing warning, assumes
 	@STACK_WARN=0; \
-	python3 scripts/validate-idea.py || STACK_WARN=$$?; \
+	python3 scripts/validate-experiment.py || STACK_WARN=$$?; \
 	if [ "$$STACK_WARN" -ne 0 ] && [ "$$STACK_WARN" -ne 2 ]; then exit 1; fi; \
 	if [ -f EVENTS.yaml ]; then \
 		python3 scripts/validate-events.py || exit 1; \

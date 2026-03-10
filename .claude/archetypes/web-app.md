@@ -43,7 +43,7 @@ Payment funnel events (`pay_start`, `pay_success`) are added when
 ## Conventions
 
 - Every page fires analytics events per EVENTS.yaml
-- Landing page is required — `validate-idea.py` enforces this
+- Landing page is required — `validate-experiment.py` enforces this
 - UI components come from the configured UI stack (e.g., shadcn/ui)
 - API routes live under `src/app/api/` for mutations and server-side logic
 - Database access uses RLS (Row-Level Security) when auth is configured
