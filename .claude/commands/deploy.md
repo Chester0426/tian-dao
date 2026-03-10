@@ -37,7 +37,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 4. Read `experiment/experiment.yaml` — extract `name`, `stack.services[0].hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `cli`:
    - Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
-   - If surface is `detached`: proceed with surface-only deployment (skip Steps 3-4, go directly to Step 5 surface deployment).
+   - If surface is `detached`: this is a surface-only deployment — skip Steps 0.6–0.10 (no hosting/database infrastructure), Steps 1 and 3–4 (no infrastructure provisioning). Present a simplified plan in Step 2 (surface deployment only), then proceed directly to Step 5a.1.
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
 6. **Hosting prerequisites:** Read the hosting stack file at `.claude/stacks/hosting/<stack.services[0].hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
@@ -178,9 +178,9 @@ Collect all env vars and set them using the hosting provider's method:
 ### 5a.1: Surface deployment (if archetype is `cli` and surface is `detached`)
 
 1. Verify `site/index.html` exists. If not, stop: "Surface page not found. Run `/bootstrap` to generate it."
-2. Deploy the surface using the hosting stack file's `## Deploy Interface > Deploy` command, run from the `site/` directory.
-3. Extract the deployment URL per the stack file's instructions.
-4. If `deploy.domain` is set in experiment.yaml: add custom domain using the hosting stack file's `## Deploy Interface > Domain Setup`.
+2. Read the surface stack file at `.claude/stacks/surface/detached.md` → `## Deployment`. Deploy the surface using the command specified there (e.g., `vercel site/ --prod`).
+3. Extract the deployment URL from the command output.
+4. If `deploy.domain` is set in experiment.yaml: bind custom domain (`<name>.<domain>`) to the deployed surface.
 5. Set `surface_url` = custom domain URL or deployment URL.
 6. For CLI archetype: `canonical_url` = `surface_url` (the surface IS the canonical web presence).
 
@@ -191,10 +191,9 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 #### 5b preamble: determine which agents to spawn
 
 Assemble the shared context block (read-only inputs for all agents):
-- `canonical_url`, hosting env var method (from hosting stack file's `## Deploy Interface > Environment Variables`), database refs/keys (from Step 3), hosting project `name` and team/account (from Step 4)
-- Hosting and database stack file paths (so agents can read provider-specific instructions)
-- experiment.yaml contents (name, description, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
-- CLI statuses from Step 0
+- `canonical_url`, experiment.yaml contents (name, description, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
+- If Steps 3–4 were executed (not skipped for CLI detached): hosting env var method (from hosting stack file's `## Deploy Interface > Environment Variables`), database refs/keys (from Step 3), hosting project `name` and team/account (from Step 4), hosting and database stack file paths
+- CLI statuses from Step 0 (if Step 0.10 was executed)
 
 Determine which agents to launch based on experiment.yaml stack (all use
 `subagent_type: general-purpose`):
@@ -372,6 +371,13 @@ Note: projects with Stripe require two production deploys during first-time setu
 
 ### 5c: Health check
 
+If archetype is `cli` (surface-only deployment): skip the `/api/health` check — CLI surfaces are static HTML pages with no API routes. Instead, verify the surface loads:
+```bash
+curl -s -o /dev/null -w "%{http_code}" <canonical_url>
+```
+If HTTP 200 → proceed to Step 6. If not → report: "Surface returned HTTP <code>. Check the hosting dashboard." Skip Step 5d (no services to auto-fix for static surfaces).
+
+For all other archetypes:
 ```bash
 curl -s <canonical_url>/api/health
 ```

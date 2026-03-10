@@ -197,6 +197,38 @@ Skip `src/lib/analytics.ts` and `src/lib/events.ts`.
 no typed event wrappers — call `trackServerEvent(eventName, distinctId, properties)`
 directly for all events (standard funnel, payment funnel, and custom).
 
+### CLI Opt-In Consent
+
+When the archetype is `cli`, analytics must be opt-in per the CLI archetype
+contract. Wrap all `trackServerEvent()` calls in a consent check:
+
+```ts
+function isAnalyticsEnabled(): boolean {
+  return process.env.DO_NOT_TRACK !== "1"
+    && process.env.<CLI_NAME>_TELEMETRY_OPTOUT !== "1";
+}
+```
+
+Replace `<CLI_NAME>` with the uppercase experiment name (e.g., `QUICKBILL`).
+Bootstrap generates this helper in `src/lib/analytics-server.ts` for CLI
+projects and wraps `trackServerEvent()` so callers don't need to check
+manually:
+
+```ts
+export async function trackServerEvent(
+  event: string,
+  distinctId: string,
+  properties?: Record<string, unknown>
+) {
+  if (!isAnalyticsEnabled()) return;
+  // ... existing PostHog capture logic
+}
+```
+
+The `DO_NOT_TRACK` env var follows the [Console Do Not Track](https://consoledonottrack.com/)
+standard. The project-specific `<CLI_NAME>_TELEMETRY_OPTOUT` provides a
+per-tool opt-out. Both default to tracking-enabled (absent = opt-in).
+
 **Reverse Proxy Setup:** Skip — no client-side requests to proxy.
 
 **`next.config.ts` rewrites:** Not applicable — no Next.js config file.

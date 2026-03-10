@@ -169,6 +169,7 @@ Re-read `.claude/current-plan.md` and `experiment/experiment.yaml` now. Verify e
 - For each behavior in `behaviors`: confirm the implementation addresses it
 - If `funnel_template` is `web` (web-app): for each standard_funnel event in `EVENTS.yaml`, confirm a tracking call exists in the appropriate page
 - If `funnel_template` is `custom` (service/cli): confirm custom_events tracking calls exist (if any are defined in EVENTS.yaml)
+- If archetype is `cli` and `stack.analytics` is present: confirm `analytics-server.ts` wraps `trackServerEvent()` with an opt-in consent check (see analytics stack file's "CLI Opt-In Consent" section). CLI telemetry must be opt-in per the CLI archetype contract.
 - If surface ≠ none and archetype is `service`: confirm root route exists and returns HTML (Content-Type: text/html)
 - If surface ≠ none and archetype is `cli`: confirm `site/index.html` exists
 - If `stack.payment` is present: confirm the webhook handler does not contain `// TODO: Update user's payment status` (this compiles silently — verify it was resolved in Step 5/6)
