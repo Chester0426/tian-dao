@@ -10,19 +10,19 @@ Claude runs these commands and presents a summary:
 - `gh pr list --state all --limit 50` — PR counts (merged, open, closed)
 - Count pages in `src/app/` (excluding `api/`)
 - Count production dependencies from `package.json`
-- Read `idea/experiment.yaml` — experiment name, title, target user, primary metric, target value
+- Read `idea/experiment.yaml` — experiment name, title, target user, thesis
 - Read `EVENTS.yaml` — events being tracked
 
 ## Part 2: Four Questions (Claude asks these one at a time)
 
 ### Q1: Outcome
 "What was the outcome of this experiment?"
-- Succeeded — hit or exceeded target_value
-- Partially succeeded — made progress but didn't hit target
-- Failed — didn't move the metric
+- Succeeded — thesis validated (funnel thresholds met or exceeded)
+- Partially succeeded — made progress but didn't fully validate the thesis
+- Failed — thesis invalidated
 - Inconclusive — not enough data or time
 
-Follow-up: "What was the actual result vs your target of [target_value] for [primary_metric]?"
+Follow-up: "What was the actual result vs your thesis?"
 
 ### Q2: What worked
 "What worked well? (workflow, tools, stack, anything)"
@@ -45,13 +45,15 @@ Claude generates a structured document with these sections:
 ## Part 4: File as GitHub Issue
 
 After generating the retro, Claude files it as a GitHub Issue:
-- If `template_repo` is set in experiment.yaml: file on that repo
-- If not set: ask the user for the template repo URL (e.g., `owner/repo-name`)
+Get the template repo from the current repo context:
+```
+TEMPLATE_REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+```
 
 Command Claude runs:
 ```
 gh issue create \
-  --repo <template_repo> \
+  --repo $TEMPLATE_REPO \
   --title "Retro: <experiment-name> — <outcome>" \
   --label "retro" \
   --body "<structured retro content>"

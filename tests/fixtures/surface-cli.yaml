@@ -2,17 +2,13 @@
 # Validates that cli archetype with surface: detached gets a site/index.html marketing page.
 idea:
   name: test-surface-cli
-  title: Git Stats CLI
-  owner: tester
-  template_repo: acme/experiment-template
   type: cli
 
-  problem: |
+  description: |
     Developers want quick insights into their git repository activity.
-
-  solution: |
     A command-line tool that shows commit stats and contributor activity.
 
+  thesis: "If we provide a git stats CLI with a marketing surface, then developers will discover and install it, as measured by CLI installs per week"
   target_user: Developers analyzing repository activity
 
   distribution: |
@@ -24,16 +20,11 @@ idea:
     - name: contributors
       purpose: List top contributors with activity metrics
 
-  features:
-    - Commit statistics command
-    - Contributor activity command
-
-  primary_metric: CLI installs per week
-  target_value: "30 installs in 2 weeks"
-  measurement_window: 2 weeks
 
   stack:
-    framework: commander
+    services:
+      - name: cli
+        runtime: commander
     analytics: posthog
     surface: detached
 

@@ -2,17 +2,13 @@
 # Validates that cli archetype works with the testing stack.
 idea:
   name: test-cli-with-testing
-  title: Service Monitor CLI
-  owner: tester
-  template_repo: acme/experiment-template
   type: cli
 
-  problem: |
+  description: |
     DevOps teams need a CLI to deploy, monitor, and inspect logs for their services.
-
-  solution: |
     A command-line tool with deploy, status, and logs commands for service lifecycle management.
 
+  thesis: "If we provide a service monitor CLI, then DevOps engineers will use it for production management, as measured by CLI installs per week"
   target_user: DevOps engineers managing production services
 
   distribution: |
@@ -26,19 +22,13 @@ idea:
     - name: logs
       purpose: Stream or fetch recent logs for a service
 
-  features:
-    - Service deployment command
-    - Status monitoring command
-    - Log streaming command
-
-  primary_metric: CLI installs per week
-  target_value: "50 installs in 2 weeks"
-  measurement_window: 2 weeks
 
   stack:
-    framework: commander
+    services:
+      - name: cli
+        runtime: commander
+        testing: vitest
     analytics: posthog
-    testing: vitest
 
 events:
   standard_funnel:

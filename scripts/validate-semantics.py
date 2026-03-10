@@ -716,8 +716,8 @@ def check_33_phantom_event_names(
         "custom_events", "standard_funnel", "payment_funnel",
         "object_action", "track", "event_name",
         "name", "title", "owner", "problem", "solution",
-        "target_user", "distribution", "primary_metric",
-        "target_value", "measurement_window",
+        "target_user", "distribution", "thesis",
+        "description", "behaviors",
         "page_name", "feature", "features", "pages", "variants",
     }
 
@@ -1074,10 +1074,9 @@ def main() -> int:
         "solution",
         "target_user",
         "distribution",
-        "features",
-        "primary_metric",
-        "target_value",
-        "measurement_window",
+        "description",
+        "thesis",
+        "behaviors",
         "stack",
     ]
 

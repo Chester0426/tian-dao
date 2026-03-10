@@ -2,17 +2,13 @@
 # Validates that service archetype works with database and auth stacks.
 idea:
   name: test-service-with-db
-  title: Feature Flag Service
-  owner: tester
-  template_repo: acme/experiment-template
   type: service
 
-  problem: |
+  description: |
     Teams need a simple feature flag API to control rollouts without redeploying.
-
-  solution: |
     A lightweight feature flag service with endpoints for flag management and evaluation.
 
+  thesis: "If we provide a simple feature flag API, then engineering teams will use it to control rollouts, as measured by flags evaluated per day"
   target_user: Engineering teams managing feature rollouts
 
   distribution: |
@@ -26,21 +22,15 @@ idea:
     - name: flag-create
       purpose: Create a new feature flag
 
-  features:
-    - Feature flag listing endpoint
-    - Feature flag evaluation endpoint
-    - Feature flag creation endpoint
-
-  primary_metric: Flags evaluated per day
-  target_value: "50 flag evaluations in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: api
+        runtime: nextjs
+        hosting: vercel
     database: supabase
     auth: supabase
     analytics: posthog
-    hosting: vercel
 
 events:
   standard_funnel:

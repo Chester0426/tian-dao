@@ -2,17 +2,13 @@
 # Validates that service archetype with surface: co-located gets a root HTML page.
 idea:
   name: test-surface-service
-  title: Weather Forecast API
-  owner: tester
-  template_repo: acme/experiment-template
   type: service
 
-  problem: |
+  description: |
     Developers need a simple weather API for their applications.
-
-  solution: |
     A lightweight API service returning current weather and forecasts.
 
+  thesis: "If we provide a weather API with a co-located surface page, then developers will discover and adopt it, as measured by API calls per day"
   target_user: Developers building weather-aware apps
 
   distribution: |
@@ -24,18 +20,13 @@ idea:
     - name: forecast
       purpose: Get 5-day forecast for a location
 
-  features:
-    - Current weather endpoint
-    - 5-day forecast endpoint
-
-  primary_metric: API calls per day
-  target_value: "100 API calls in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: api
+        runtime: nextjs
+        hosting: vercel
     analytics: posthog
-    hosting: vercel
     surface: co-located
 
 events:

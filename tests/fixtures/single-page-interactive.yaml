@@ -3,41 +3,36 @@
 # the page has an interactive feature that delivers value.
 idea:
   name: test-interactive
-  title: Interactive — Single Page with Calculator Feature
-  owner: tester
-  template_repo: acme/experiment-template
   type: web-app
 
-  problem: |
-    Freelancers don't know how much to charge per hour. They guess and often undercharge.
+  description: |
+    Freelancers don't know how much to charge per hour — they guess and often undercharge.
+    A single-page hourly rate calculator where you enter your expenses, desired salary,
+    and hours available to get your minimum hourly rate instantly.
 
-  solution: |
-    A single-page hourly rate calculator. Enter your expenses, desired salary,
-    and hours available — get your minimum hourly rate instantly.
+  thesis: "If freelancers can calculate their ideal hourly rate in under a minute, then at least 100 will complete a calculation, as measured by calculator completions in 1 week"
 
   target_user: Freelancers who are unsure what hourly rate to charge
 
   distribution: |
     Post in freelancer communities and share on social media.
 
-  pages:
-    - name: landing
-      purpose: Explain the tool and host the interactive rate calculator. CTA anchors to the calculator section.
+  golden_path:
+    - step: Visit landing page
+      event: visit_landing
+      page: landing
+    - step: Complete a rate calculation
+      event: activate
+      page: landing
 
-  features:
-    - Hourly rate calculator with expense, salary, and hours inputs
-    - Instant result display with breakdown
-    - Share result via URL with encoded parameters
-
-  primary_metric: Calculator completions
-  target_value: "100 users complete a calculation"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: app
+        runtime: nextjs
+        hosting: vercel
+        ui: shadcn
     analytics: posthog
-    ui: shadcn
-    hosting: vercel
 
 events:
   standard_funnel:

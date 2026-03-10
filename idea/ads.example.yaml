@@ -58,7 +58,7 @@ ads:
 budget:
   daily_budget_cents: 1500          # $15/day
   total_budget_cents: 10000         # $100 total cap (max 50000 without override)
-  duration_days: 7                  # matches measurement_window
+  duration_days: 7                  # experiment duration
   bidding_strategy: maximize_clicks # Phase 1; switch to target_cpa after 15+ conversions
 
 # --- Targeting ---
@@ -121,7 +121,7 @@ guardrails:
 #           - "Professional invoices without the learning curve. Sign up free today."
 
 # --- Thresholds (AI-generated per MVP) ---
-# Generated from experiment.yaml target_value, measurement_window, budget
+# Generated from experiment.yaml thesis, funnel thresholds, budget
 thresholds:
   expected_clicks: 70               # $100 / ~$1.40 avg CPC for SaaS keywords
   expected_signups: 7               # ~10% landing->signup (conservative for cold traffic)

@@ -72,7 +72,7 @@ standard_funnel:
         description: "Signup method: email, google, github"
 
   - event: activate
-    trigger: User completes the core action that delivers first value (defined by experiment.yaml primary_metric)
+    trigger: User completes the core action that delivers first value (defined by experiment.yaml thesis)
     properties:
       action:
         type: string

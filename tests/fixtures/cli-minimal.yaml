@@ -2,17 +2,13 @@
 # Validates that cli archetype skips pages, endpoints, hosting, and UI requirements.
 idea:
   name: test-cli-minimal
-  title: Cloud Deploy CLI
-  owner: tester
-  template_repo: acme/experiment-template
   type: cli
 
-  problem: |
+  description: |
     Developers need a simple CLI to deploy and check status of cloud services.
-
-  solution: |
     A command-line tool with deploy and status commands for cloud service management.
 
+  thesis: "If we provide a simple deploy CLI, then developers will adopt it for cloud management, as measured by CLI installs per week"
   target_user: Developers managing cloud deployments
 
   distribution: |
@@ -24,16 +20,11 @@ idea:
     - name: status
       purpose: Check deployment status of a service
 
-  features:
-    - Cloud deployment command
-    - Deployment status command
-
-  primary_metric: CLI installs per week
-  target_value: "30 installs in 2 weeks"
-  measurement_window: 2 weeks
 
   stack:
-    framework: commander
+    services:
+      - name: cli
+        runtime: commander
     analytics: posthog
 
 events:
