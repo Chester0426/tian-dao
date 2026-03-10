@@ -10,11 +10,11 @@ channel: google-ads
 
 # --- Campaign Identity ---
 campaign_name: quickbill-search-v1  # auto: {idea.name}-search-v{N}
-project_name: quickbill              # from idea.yaml name
+project_name: quickbill              # from experiment.yaml name
 landing_url: https://quickbill.vercel.app  # deployed URL
 
 # --- Keywords ---
-# AI-researched from idea.yaml problem/solution/target_user
+# AI-researched from experiment.yaml problem/solution/target_user
 keywords:
   exact:
     - "[freelance invoicing tool]"
@@ -90,7 +90,7 @@ guardrails:
     - condition: cost_per_conversion_cents > 2000 AND conversions >= 5
       action: alert_high_cpa
 
-# --- Variant Ad Groups (when idea.yaml has variants) ---
+# --- Variant Ad Groups (when experiment.yaml has variants) ---
 # /distribute generates ad_groups instead of ads when variants are present.
 # Each ad group targets one variant's landing page with matched messaging.
 #
@@ -121,7 +121,7 @@ guardrails:
 #           - "Professional invoices without the learning curve. Sign up free today."
 
 # --- Thresholds (AI-generated per MVP) ---
-# Generated from idea.yaml target_value, measurement_window, budget
+# Generated from experiment.yaml target_value, measurement_window, budget
 thresholds:
   expected_clicks: 70               # $100 / ~$1.40 avg CPC for SaaS keywords
   expected_signups: 7               # ~10% landing->signup (conservative for cold traffic)

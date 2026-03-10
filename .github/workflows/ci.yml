@@ -45,7 +45,7 @@ jobs:
           python3 -c "
           import yaml, sys
           errors = []
-          for f in ['idea/idea.yaml', 'EVENTS.yaml']:
+          for f in ['idea/experiment.yaml', 'EVENTS.yaml']:
               try:
                   with open(f) as fh:
                       yaml.safe_load(fh)
@@ -93,7 +93,7 @@ jobs:
     # Dummy env vars so `npm run build` can compile without real credentials.
     # The app handles missing values gracefully at runtime.
     # These match the default stack (supabase + posthog). If you change
-    # stack.database or stack.analytics in idea.yaml, update these env var
+    # stack.database or stack.analytics in experiment.yaml, update these env var
     # names to match the new stack's environment variables.
     # After bootstrap, compare .env.example with these CI placeholders and
     # add any new variables here so CI builds don't break.
