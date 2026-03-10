@@ -3,12 +3,12 @@
 Every skill reads this baseline context before executing its specific logic.
 
 ## Required Context (always read)
-1. `idea/idea.yaml` — single source of truth (scope, features, stack, metrics)
+1. `idea/experiment.yaml` — single source of truth (scope, features, stack, metrics)
 2. `EVENTS.yaml` — canonical analytics event list
-3. Archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`)
+3. Archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
 
 ## Stack Context (read when `stack_categories` in skill frontmatter includes the category)
-For each category in idea.yaml `stack`:
+For each category in experiment.yaml `stack`:
 - Read `.claude/stacks/<category>/<value>.md`
 
 ## Optional Context (read if file exists)

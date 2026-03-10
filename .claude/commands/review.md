@@ -5,7 +5,7 @@ reads:
   - CLAUDE.md
   - EVENTS.yaml
   - scripts/check-inventory.md
-  - idea/idea.example.yaml
+  - idea/experiment.example.yaml
 stack_categories: []
 requires_approval: false
 references:
@@ -23,8 +23,8 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 - Read `CLAUDE.md`
 - Read `EVENTS.yaml`
 - Read `scripts/check-inventory.md`
-- Read `idea/idea.example.yaml` (for understanding template structure)
-- **Check open observation issues** (if `template_repo` is set in idea.yaml):
+- Read `idea/experiment.example.yaml` (for understanding template structure)
+- **Check open observation issues** (if `template_repo` is set in experiment.yaml):
   ```bash
   gh issue list --repo <template_repo> --label observation --state open --limit 10 --json number,title,body
   ```
@@ -95,7 +95,7 @@ agent's prompt from:
 > **Shared context instruction** — include verbatim in every subagent prompt:
 >
 > Before reviewing, read these files:
-> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `idea/idea.example.yaml`, `EVENTS.yaml`.
+> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `idea/experiment.example.yaml`, `EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 **Dimension A: Cross-File Consistency**
@@ -119,7 +119,7 @@ configuration triggers the contradiction. Record the config alongside the findin
 **Dimension B: Edge Case Robustness**
 
 Focus: Find configurations where skills or stack files would produce broken output. Examples:
-- A skill assumes auth exists but the idea.yaml has no `stack.auth`
+- A skill assumes auth exists but the experiment.yaml has no `stack.auth`
 - A code template hard-codes a path that changes based on stack choices
 - A conditional branch in a skill handles 2 of 3 possible states
 - A skill's conditional branching handles 2 of 3 archetypes (e.g., web-app and service but not cli)
@@ -401,7 +401,7 @@ If branch exists with changes:
 
 ## Do NOT
 
-- Modify idea.yaml or EVENTS.yaml
+- Modify experiment.yaml or EVENTS.yaml
 - Enter plan mode or wait for user approval
 - Add new features or pages
 - Propose checks that regex-match natural-language prose

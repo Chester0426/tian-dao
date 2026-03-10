@@ -2,7 +2,7 @@
 description: "Transition an MVP to production quality mode. Scans code, plans hardening, adds specification tests to critical paths."
 type: code-writing
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, testing]
@@ -22,12 +22,12 @@ Transition this MVP to production quality mode: $ARGUMENTS
 
 - `package.json` exists (app is bootstrapped). If not → stop: "No app found. Run `/bootstrap` first."
 - `npm run build` passes. If not → stop: "App has build errors. Run `/change fix build errors` first."
-- If `quality: production` already set in idea.yaml AND no `$ARGUMENTS`: stop — "Already in production mode. Use `/harden <module>` to harden a specific module, or `/change` for new features."
+- If `quality: production` already set in experiment.yaml AND no `$ARGUMENTS`: stop — "Already in production mode. Use `/harden <module>` to harden a specific module, or `/change` for new features."
 - If on a `chore/harden-*` branch with existing specification tests: a previous `/harden` may have partially completed. Tell the user: "Found existing hardening work on this branch. Scanning for modules that still need tests..." Then scan for CRITICAL modules without test files and proceed from Step 3.4.
 
 ## Step 1: Scan & classify
 
-- Read `idea/idea.yaml` (features, golden_path, critical_flows, stack)
+- Read `idea/experiment.yaml` (features, golden_path, critical_flows, stack)
 - Scan `src/` for all modules (API routes, lib/, pages, components)
 - Glob for existing tests (`**/*.test.*`, `**/*.spec.*`, `e2e/**`)
 - Classify each module into 4 categories:
@@ -58,8 +58,8 @@ Transition this MVP to production quality mode: $ARGUMENTS
 - [module] — [reason: UI-only / already covered]
 
 ### Changes:
-- idea.yaml: add quality: production
-- idea.yaml: add stack.testing if absent
+- experiment.yaml: add quality: production
+- experiment.yaml: add stack.testing if absent
 
 > Approve to proceed, or remove modules you don't want hardened.
 ```
@@ -69,12 +69,12 @@ DO NOT proceed until the user explicitly replies with approval.
 ## Step 3: Execute (after approval)
 
 1. Branch setup (`chore/harden-production`) per `patterns/branch.md`
-2. Set `quality: production` in idea.yaml
+2. Set `quality: production` in experiment.yaml
 3. Add `stack.testing` if absent (playwright for web-app, vitest for service/cli). Install testing packages per testing stack file.
 4. For each approved Critical module **sequentially**:
    a. Spawn implementer agent (`agents/implementer.md`, isolation: "worktree")
    b. Implementer writes specification tests per `patterns/tdd.md`:
-      - What SHOULD the module do? (read code + idea.yaml features)
+      - What SHOULD the module do? (read code + experiment.yaml features)
       - Write tests for correct behavior
       - If test fails AND failure shows incorrect behavior → fix the code (bug discovery protocol)
       - If test passes → specification captured
@@ -120,5 +120,5 @@ Production quality mode is now active.
 - Harden UI-only components or static content — specification tests add no value there
 - Run modules in parallel — sequential execution prevents cascading breakage
 - Skip the verify step — spec-reviewer must validate test-to-spec alignment
-- Add tests for hypothetical edge cases — test what the code SHOULD do per idea.yaml
+- Add tests for hypothetical edge cases — test what the code SHOULD do per experiment.yaml
 - Commit to main directly

@@ -8,8 +8,8 @@
 ## Steps
 
 ### Step 1: Package installation and framework setup
-- Create `package.json` with `name` from idea.yaml and project setup from the framework stack file (.nvmrc, scripts, engines, tsconfig, config)
-- Install packages from all stack files whose categories are present in idea.yaml `stack`
+- Create `package.json` with `name` from experiment.yaml and project setup from the framework stack file (.nvmrc, scripts, engines, tsconfig, config)
+- Install packages from all stack files whose categories are present in experiment.yaml `stack`
 - Install dev dependencies from the framework and UI stack files
 - The lead has already checked `typescript-language-server` availability. The TSP status is provided in your prompt. If status is `"skipped"`, proceed without it. If status is `"available"`, LSP type-checking is active.
 - Run the UI setup commands from the UI stack file

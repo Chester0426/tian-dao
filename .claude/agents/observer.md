@@ -31,7 +31,7 @@ OR: project code was fixed, but the root cause is incorrect guidance in a templa
 
 **C. Not a user code issue.** NOT caused by: business logic bugs, project-specific dependency conflicts, or code that simply doesn't follow template guidance.
 
-**Heuristic:** "Would another developer using this template with a DIFFERENT idea.yaml hit this same problem?" If yes -> file it.
+**Heuristic:** "Would another developer using this template with a DIFFERENT experiment.yaml hit this same problem?" If yes -> file it.
 
 If no fixes qualify -> return `"No template observations"` and stop.
 
@@ -39,7 +39,7 @@ If no fixes qualify -> return `"No template observations"` and stop.
 
 ### 1. Prerequisites
 
-1. Read `template_repo` from `idea/idea.yaml`. If not set or idea.yaml does not exist -> return "No template observations".
+1. Read `template_repo` from `idea/experiment.yaml`. If not set or experiment.yaml does not exist -> return "No template observations".
 2. `gh auth status` — if fails -> return "No template observations".
 3. `gh repo view <template_repo> --json name` — if fails -> return "No template observations".
 
@@ -50,8 +50,8 @@ Apply the decision framework above to each fix summary + its corresponding diff.
 ### 3. Redaction
 
 Before composing the issue, strip all project-specific information:
-- Replace the project name (from idea.yaml `name`) with `<project>`
-- Replace idea.yaml content (problem, solution, features) with `<redacted>`
+- Replace the project name (from experiment.yaml `name`) with `<project>`
+- Replace experiment.yaml content (problem, solution, features) with `<redacted>`
 - Replace full error stack traces with the relevant error message only
 - Replace paths containing project-specific page names with generic paths (e.g., `src/app/invoice-create/page.tsx` -> `src/app/<page>/page.tsx`)
 - Keep: template file name, generic symptom description, fix diff (template-relevant lines only)
@@ -88,7 +88,7 @@ If label "observation" doesn't exist, retry without `--label "observation"`.
 
 - Environment issues (missing tools, network, Node version)
 - Simple typos unlikely to recur
-- Project-specific bugs tied to specific idea.yaml content
+- Project-specific bugs tied to specific experiment.yaml content
 
 ## Constraints
 

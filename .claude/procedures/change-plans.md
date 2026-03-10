@@ -24,11 +24,11 @@
 - [event_name] — fires when [trigger]
 
 **Golden Path impact:**
-- Current: [show current golden_path from idea.yaml, or "not defined"]
+- Current: [show current golden_path from experiment.yaml, or "not defined"]
 - After this change: [updated path if flow changes, or "unchanged"]
 
 **Critical Flows impact:**
-- Current: [show current critical_flows from idea.yaml, or "none defined"]
+- Current: [show current critical_flows from experiment.yaml, or "none defined"]
 - After this change: [new flow if adding webhook/admin/cron, or "unchanged"]
 
 **Questions:**
@@ -110,7 +110,7 @@
 **Skipped:** retain_return (requires 24h delay)
 
 **Activation Detail:**
-- primary_metric: [from idea.yaml]
+- primary_metric: [from experiment.yaml]
 - Activation test: [what the test will do]
 
 **Files to Create/Modify:**

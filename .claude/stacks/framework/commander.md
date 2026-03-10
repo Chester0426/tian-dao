@@ -17,7 +17,7 @@ clean:
 gitignore: []
 ---
 # Framework: Commander.js
-> Used when idea.yaml has `stack.framework: commander`
+> Used when experiment.yaml has `stack.framework: commander`
 > Assumes: nothing (standalone CLI tool)
 
 ## Packages
@@ -28,7 +28,7 @@ npm install -D typescript tsx @types/node eslint @eslint/js typescript-eslint
 
 ## Project Setup
 - `.nvmrc`: containing `20` (used by CI and local version managers)
-- `package.json`: `name` from idea.yaml, `bin` field pointing to `dist/index.js`, `scripts` with `dev`, `build`, `start`, `lint`, and `test` (when `stack.testing` is present); `engines: { "node": ">=20" }`
+- `package.json`: `name` from experiment.yaml, `bin` field pointing to `dist/index.js`, `scripts` with `dev`, `build`, `start`, `lint`, and `test` (when `stack.testing` is present); `engines: { "node": ">=20" }`
 - `tsconfig.json`: enable `strict: true`, target `ES2022`, module `NodeNext`, outDir `dist`, `@/` path alias mapping to `src/`
 
 ### `eslint.config.mjs`
@@ -47,7 +47,7 @@ export default tseslint.config(
 ```
 src/
   index.ts          # Entry point — sets up program, registers commands, calls parse()
-  commands/         # One file per idea.yaml command
+  commands/         # One file per experiment.yaml command
     <command>.ts    # Command module
   lib/              # Utilities (analytics, etc.)
     analytics.ts    # Server-side analytics (see analytics stack file)
@@ -68,10 +68,10 @@ const program = new Command();
 
 program
   .name("my-cli")
-  .description("CLI description from idea.yaml")
+  .description("CLI description from experiment.yaml")
   .version("0.1.0");
 
-// Register command modules here (one per idea.yaml command)
+// Register command modules here (one per experiment.yaml command)
 // Example: import { registerDeployCommand } from "./commands/deploy";
 // registerDeployCommand(program);
 
@@ -83,7 +83,7 @@ program.parse();
 
 ## Command Conventions
 
-Each command in idea.yaml gets a command file in `src/commands/`:
+Each command in experiment.yaml gets a command file in `src/commands/`:
 
 ```ts
 // src/commands/deploy.ts
@@ -137,7 +137,7 @@ registerDeployCommand(program);
   }
 }
 ```
-Replace `my-cli` with idea.yaml `name`. After `npm link` or `npm install -g`,
+Replace `my-cli` with experiment.yaml `name`. After `npm link` or `npm install -g`,
 the CLI is available as a global command.
 
 ## Data Fetching
@@ -160,7 +160,7 @@ the CLI is available as a global command.
 - If making network requests, validate URLs and sanitize paths
 
 ## Patterns
-- One command file per idea.yaml command in `src/commands/`
+- One command file per experiment.yaml command in `src/commands/`
 - Register all commands in `src/index.ts` with `register<Name>Command(program)`
 - Use `commander` for argument parsing — no custom argv parsing
 - Print structured output (JSON) when `--json` flag is present

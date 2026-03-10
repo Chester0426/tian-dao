@@ -103,7 +103,7 @@ ads:
   - headlines: [...]    # 5+ headlines, 3-30 chars each
     descriptions: [...]  # 2+ descriptions, up to 90 chars each
 
-# When idea.yaml has variants, use ad_groups instead of ads:
+# When experiment.yaml has variants, use ad_groups instead of ads:
 # ad_groups:
 #   - variant: {slug}
 #     landing_url: "{url}/v/{slug}?utm_source=google&utm_medium=cpc&utm_campaign={campaign}&utm_content={slug}"

@@ -31,7 +31,7 @@ clean:
 gitignore: []
 ---
 # [Category]: [Technology Name]
-> Used when idea.yaml has `stack.[category]: [value]`
+> Used when experiment.yaml has `stack.[category]: [value]`
 > Assumes: [other stack files this depends on, e.g., `framework/nextjs` — or "None"]
 
 ## Packages
@@ -124,7 +124,7 @@ VARIABLE_NAME=description-or-example
 <!-- ### Prerequisites -->
 <!-- - install_check, install_fix, auth_check, auth_fix -->
 <!-- ### Config Gathering -->
-<!-- - CLI command to discover team/org, idea.yaml field name -->
+<!-- - CLI command to discover team/org, experiment.yaml field name -->
 <!-- ### Project Setup -->
 <!-- - Create/link project, connect GitHub -->
 <!-- ### Domain Setup -->
@@ -150,7 +150,7 @@ VARIABLE_NAME=description-or-example
 <!-- ### Prerequisites -->
 <!-- - install_check, auth_check (empty for embedded databases like sqlite) -->
 <!-- ### Config Gathering -->
-<!-- - Required parameters (org, region, etc.), idea.yaml field names -->
+<!-- - Required parameters (org, region, etc.), experiment.yaml field names -->
 <!-- ### Provisioning -->
 <!-- - Project creation, readiness polling, key extraction, link + migration commands -->
 <!-- ### Hosting Requirements -->

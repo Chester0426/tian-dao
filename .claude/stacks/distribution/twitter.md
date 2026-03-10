@@ -113,7 +113,7 @@ tweets:
       description: "..." # up to 200 chars
       image: "..."     # URL or path to 800x418px image
 
-# When idea.yaml has variants, include utm_content in landing URLs:
+# When experiment.yaml has variants, include utm_content in landing URLs:
 # tweets:
 #   - text: "..."
 #     variant: {slug}

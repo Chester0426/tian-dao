@@ -2,7 +2,7 @@
 description: "Deploy the app. Run once after /bootstrap PR is merged."
 type: analysis-only
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - .env.example
   - CLAUDE.md
   - EVENTS.yaml
@@ -34,9 +34,9 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
     <npm audit output>
     Reply **continue** to deploy anyway, or fix vulnerabilities first with `npm audit fix`."
     Wait for user confirmation. If no critical vulnerabilities, proceed silently.
-4. Read `idea/idea.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
-5. Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). If the archetype is `cli`:
-   - Resolve surface type: if `stack.surface` is set in idea.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
+4. Read `idea/experiment.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
+5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `cli`:
+   - Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
    - If surface is `detached`: proceed with surface-only deployment (skip Steps 3-4, go directly to Step 5 surface deployment).
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
@@ -58,8 +58,8 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 
 ## Step 1: Gather configuration
 
-1. **Hosting config**: Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the idea.yaml field listed in the stack file — if set, skip the prompt.
-2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the idea.yaml fields listed — if set, skip the prompts.
+1. **Hosting config**: Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the experiment.yaml field listed in the stack file — if set, skip the prompt.
+2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the experiment.yaml fields listed — if set, skip the prompts.
 3. **DB password** (if applicable): Generate with `openssl rand -base64 24`.
 5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
 7. **OAuth provider credentials** (if `stack.auth_providers` present):
@@ -124,7 +124,7 @@ Read the hosting stack file's `## Deploy Interface > Project Setup`. Follow the 
 
 ### 4.2: Domain setup
 
-Read the hosting stack file's `## Deploy Interface > Domain Setup`. Follow the instructions to add a custom domain. The default parent domain is `draftlabs.org`; override with `deploy.domain` in idea.yaml.
+Read the hosting stack file's `## Deploy Interface > Domain Setup`. Follow the instructions to add a custom domain. The default parent domain is `draftlabs.org`; override with `deploy.domain` in experiment.yaml.
 - **On success:** `canonical_url` = the custom domain, `domain_added` = true
 - **On failure:** warn with the stack file's fallback message, set `canonical_url` = null (finalized after Step 5a deploy), `domain_added` = false
 
@@ -176,7 +176,7 @@ Collect all env vars and set them using the hosting provider's method:
 1. Verify `site/index.html` exists. If not, stop: "Surface page not found. Run `/bootstrap` to generate it."
 2. Deploy the surface using the hosting stack file's `## Deploy Interface > Deploy` command, run from the `site/` directory.
 3. Extract the deployment URL per the stack file's instructions.
-4. If `deploy.domain` is set in idea.yaml: add custom domain using the hosting stack file's `## Deploy Interface > Domain Setup`.
+4. If `deploy.domain` is set in experiment.yaml: add custom domain using the hosting stack file's `## Deploy Interface > Domain Setup`.
 5. Set `surface_url` = custom domain URL or deployment URL.
 6. For CLI archetype: `canonical_url` = `surface_url` (the surface IS the canonical web presence).
 
@@ -189,10 +189,10 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 Assemble the shared context block (read-only inputs for all agents):
 - `canonical_url`, hosting env var method (from hosting stack file's `## Deploy Interface > Environment Variables`), database refs/keys (from Step 3), hosting project `name` and team/account (from Step 4)
 - Hosting and database stack file paths (so agents can read provider-specific instructions)
-- idea.yaml contents (name, title, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
+- experiment.yaml contents (name, title, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
 - CLI statuses from Step 0
 
-Determine which agents to launch based on idea.yaml stack (all use
+Determine which agents to launch based on experiment.yaml stack (all use
 `subagent_type: general-purpose`):
 - **Agent A** (Supabase Auth): spawn if `stack.auth: supabase` AND `stack.database: supabase`
 - **Agent B** (Stripe Webhook): spawn if `stack.payment: stripe` AND Stripe CLI is available
@@ -216,7 +216,7 @@ Launch all applicable agents **simultaneously** using parallel Agent tool calls.
 #### Agent A — Database Auth config
 
 **Spawn condition:** `stack.auth: supabase` AND `stack.database: supabase`
-**Receives:** `canonical_url`, database refs/keys (from Step 3), idea.yaml `title`/`name`, database stack file path, `oauth_credentials` from Step 1/3.5, `stack.auth_providers`
+**Receives:** `canonical_url`, database refs/keys (from Step 3), experiment.yaml `title`/`name`, database stack file path, `oauth_credentials` from Step 1/3.5, `stack.auth_providers`
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: [], oauth_configured: ["google", ...], oauth_skipped: ["github", ...]}`
 
 Instructions for Agent A:
@@ -264,7 +264,7 @@ If webhook creation fails, return `{status: "failed", message: "<error details>"
 #### Agent C — Analytics Dashboard
 
 **Spawn condition:** `stack.analytics: posthog`
-**Receives:** `canonical_url`, idea.yaml `name`/`title`/`variants`, archetype `funnel_template`, `EVENTS.yaml` content, `stack.payment` presence
+**Receives:** `canonical_url`, experiment.yaml `name`/`title`/`variants`, archetype `funnel_template`, `EVENTS.yaml` content, `stack.payment` presence
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", dashboard_url: "<url>"|null, env_vars_added: []}`
 
 Instructions for Agent C:
@@ -312,7 +312,7 @@ curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insig
   -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
 ```
 
-If idea.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
+If experiment.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
 ```bash
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
@@ -459,7 +459,7 @@ Print a deployment summary:
 [If PostHog dashboard was NOT auto-created] **Analytics dashboard (manual):**
   1. Go to PostHog → Dashboards → New dashboard → name it "<idea.name> Experiment"
   2. Add a Funnel insight: visit_landing → signup_start → signup_complete → activate [→ pay_start → pay_success if payment]. Filter by project_name = "<idea.name>".
-  If idea.yaml has `variants`: add a second Funnel insight with the same events, but add Breakdown → Event property → `variant`. Name it "<idea.name> Funnel by Variant".
+  If experiment.yaml has `variants`: add a second Funnel insight with the same events, but add Breakdown → Event property → `variant`. Name it "<idea.name> Funnel by Variant".
   3. Add a Trend insight: all standard_funnel events, daily, last 14 days, filtered by project_name.
 
 **Scheduled digest (recommended):** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
@@ -500,7 +500,7 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
 
 ```json
 {
-  "name": "<idea.yaml name>",
+  "name": "<experiment.yaml name>",
   "canonical_url": "<canonical_url>",
   "hosting": {
     "provider": "<stack.hosting value>",

@@ -7,7 +7,7 @@ files:
   - vitest.config.ts
   - tests/smoke.test.ts       # conditional: service archetype bootstrap smoke tests
   - tests/commands.test.ts    # conditional: cli archetype bootstrap smoke tests
-  - tests/flows.test.ts      # conditional: only when idea.yaml has critical_flows
+  - tests/flows.test.ts      # conditional: only when experiment.yaml has critical_flows
 env:
   server: []
   client: []
@@ -18,7 +18,7 @@ clean:
 gitignore: []
 ---
 # Testing: Vitest
-> Used when idea.yaml has `stack.testing: vitest`
+> Used when experiment.yaml has `stack.testing: vitest`
 > Assumes: nothing (framework-agnostic — works with any Node.js project)
 
 ## Packages
@@ -149,7 +149,7 @@ Bootstrap generates minimal smoke tests to verify that routes/commands are regis
 
 ### Service Smoke Tests — `tests/smoke.test.ts`
 
-Template for `type: service` projects. One test per idea.yaml endpoint plus a health check:
+Template for `type: service` projects. One test per experiment.yaml endpoint plus a health check:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -161,7 +161,7 @@ describe("smoke tests", () => {
     expect(res.status).toBe(200);
   });
 
-  // One test per idea.yaml endpoint:
+  // One test per experiment.yaml endpoint:
   // GET endpoints:
   it("GET /api/<endpoint> does not 500", async () => {
     const res = await app.request("/api/<endpoint>");
@@ -188,7 +188,7 @@ describe("smoke tests", () => {
 
 ### CLI Smoke Tests — `tests/commands.test.ts`
 
-Template for `type: cli` projects. Tests `--version`, `--help`, and each idea.yaml command:
+Template for `type: cli` projects. Tests `--version`, `--help`, and each experiment.yaml command:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -222,7 +222,7 @@ describe("CLI smoke tests", () => {
     expect(stdout).toContain("Usage:");
   });
 
-  // One test per idea.yaml command:
+  // One test per experiment.yaml command:
   it("<command> --help exits 0", () => {
     const { stdout, exitCode } = runCli("<command> --help");
     expect(exitCode).toBe(0);
@@ -239,7 +239,7 @@ describe("CLI smoke tests", () => {
 
 ## Critical Flow Integration Tests
 
-When idea.yaml has `critical_flows`, bootstrap generates `tests/flows.test.ts` with one test per
+When experiment.yaml has `critical_flows`, bootstrap generates `tests/flows.test.ts` with one test per
 critical flow entry. These test operational chains at the API level.
 
 ### `tests/flows.test.ts` — Integration tests for operational chains

@@ -21,7 +21,7 @@ You are a compliance auditor. Check for the **presence** of required security co
 
 ## Archetype Scope
 
-Read `idea/idea.yaml` to determine the archetype (`type` field, default: `web-app`):
+Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`):
 
 - **web-app**: D1–D5
 - **service**: D1, D2, D3, D5 (skip D4)
@@ -36,7 +36,7 @@ Search for secret-like patterns: `sk_live_`, `sk_test_`, `sbp_`, `supabase_servi
 Every API route handler must validate input with zod (or similar). Check each `route.ts` / `route.js` file — if the handler reads `request.json()`, `request.formData()`, or URL params without schema validation, it's a FAIL.
 
 **D3. Database RLS**
-> Skip if `stack.database` is absent from idea.yaml.
+> Skip if `stack.database` is absent from experiment.yaml.
 
 Every `CREATE TABLE` statement must have a corresponding `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` and at least one policy. Check migration files and schema definitions. Missing RLS is a FAIL.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate idea.yaml structure: name format, archetype structure, required fields,
+"""Validate experiment.yaml structure: name format, archetype structure, required fields,
 stack file existence, testing warning, and stack assumes consistency.
 
 Exit codes:
@@ -15,7 +15,7 @@ import sys
 import yaml
 
 
-data = yaml.safe_load(open("idea/idea.yaml"))
+data = yaml.safe_load(open("idea/experiment.yaml"))
 warnings = False
 
 # --- Name format ---
@@ -64,7 +64,7 @@ pages = data.get("pages", [])
 if "pages" in archetype_required:
     if not any(p.get("name") == "landing" for p in pages):
         print("Error: pages must include an entry with name: landing")
-        print("Add a landing page to the pages list in idea.yaml.")
+        print("Add a landing page to the pages list in experiment.yaml.")
         sys.exit(1)
 
 # --- Required fields ---
@@ -322,7 +322,7 @@ if assumes_warnings:
         print(f"    - {w}")
     print(
         "  /bootstrap will reject these. "
-        "Fix idea.yaml stack values or create compatible stack files."
+        "Fix experiment.yaml stack values or create compatible stack files."
     )
     warnings = True
 

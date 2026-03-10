@@ -19,7 +19,7 @@ trigger observations. `/review` fixes are already captured in the review PR.
 
 ## Prerequisites
 
-1. Read `template_repo` from `idea/idea.yaml`. If not set or idea.yaml does not
+1. Read `template_repo` from `idea/experiment.yaml`. If not set or experiment.yaml does not
    exist → skip silently.
 2. `gh auth status` — if fails → skip silently.
 3. `gh repo view <template_repo> --json name` — if fails → skip silently.
@@ -91,10 +91,10 @@ change — a file under:
 Node version mismatches, missing env vars (.env not populated), or auth failures.
 
 **C. Not a user code issue.** NOT caused by: business logic bugs specific to this
-idea.yaml, unclear idea.yaml content, user code not following template guidance, or
+experiment.yaml, unclear experiment.yaml content, user code not following template guidance, or
 project-specific dependency conflicts.
 
-**Heuristic:** "Would another developer using this template with a different idea.yaml
+**Heuristic:** "Would another developer using this template with a different experiment.yaml
 hit this same problem?" If yes → file it.
 
 If no fixes qualify → stop here.
@@ -102,8 +102,8 @@ If no fixes qualify → stop here.
 ## Redaction
 
 Before composing the issue, strip all project-specific information:
-- Replace the project name (from idea.yaml `name`) with `<project>`
-- Replace idea.yaml content (problem, solution, features) with `<redacted>`
+- Replace the project name (from experiment.yaml `name`) with `<project>`
+- Replace experiment.yaml content (problem, solution, features) with `<redacted>`
 - Replace full error stack traces with the relevant error message only
 - Replace paths containing project-specific page names with generic paths
   (e.g., `src/app/invoice-create/page.tsx` → `src/app/<page>/page.tsx`)

@@ -54,7 +54,7 @@ Poll `http://localhost:3099` until it responds (max 15 seconds, then abort).
 
 ### 4. Screenshot All Pages
 
-Read `idea/idea.yaml` to get the list of pages and their routes. Write a small
+Read `idea/experiment.yaml` to get the list of pages and their routes. Write a small
 inline Node.js script using Playwright API to:
 - Launch Chromium (headless)
 - Visit each route at `http://localhost:3099`

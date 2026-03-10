@@ -1,5 +1,5 @@
-# idea.example.yaml — Worked example of a filled-in idea.yaml
-# Copy the structure to idea/idea.yaml and replace with your own values.
+# experiment.example.yaml — Worked example of a filled-in experiment.yaml
+# Copy the structure to idea/experiment.yaml and replace with your own values.
 
 # --- Identity ---
 name: quickbill

@@ -17,7 +17,7 @@ clean:
 gitignore: []
 ---
 # Framework: Virtuals ACP
-> Used when idea.yaml has `stack.framework: virtuals-acp`
+> Used when experiment.yaml has `stack.framework: virtuals-acp`
 > Assumes: nothing (standalone persistent-process agent)
 
 ## Packages
@@ -60,7 +60,7 @@ export default tseslint.config(
 ```
 src/
   index.ts          # Entry point — ACP client init, onNewTask callback, polling
-  handlers/         # One file per idea.yaml endpoint, dispatched by job type
+  handlers/         # One file per experiment.yaml endpoint, dispatched by job type
     <endpoint>.ts   # Handler module
   lib/              # Utilities (analytics, LLM clients, etc.)
     analytics.ts    # Server-side analytics (see analytics stack file)
@@ -87,7 +87,7 @@ const client = new AcpClient({
 client.onNewTask(async (task) => {
   const jobType = task.taskDescription?.toLowerCase() ?? "";
 
-  // Dispatch to handlers based on idea.yaml endpoints
+  // Dispatch to handlers based on experiment.yaml endpoints
   // Example: if (jobType.includes("analyze-token")) { ... }
 
   // Return result to ACP protocol
@@ -104,7 +104,7 @@ console.log("ACP agent started — polling for tasks");
 
 ## Handler Conventions
 
-Each endpoint in idea.yaml gets a handler file in `src/handlers/`:
+Each endpoint in experiment.yaml gets a handler file in `src/handlers/`:
 
 ```ts
 // src/handlers/analyze-token.ts
@@ -229,7 +229,7 @@ For analytics, track payment events using `trackServerEvent()` with custom event
 - Rate limiting is not applicable — the ACP protocol controls task assignment rate
 
 ## Patterns
-- One handler file per idea.yaml endpoint in `src/handlers/`
+- One handler file per experiment.yaml endpoint in `src/handlers/`
 - Dispatch tasks in `src/index.ts` based on job type string
 - Use zod for all input validation
 - Return structured `{ success, result?, error? }` from every handler

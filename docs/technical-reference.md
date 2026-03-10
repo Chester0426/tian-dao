@@ -4,20 +4,20 @@ This document is for technical teammates and template maintainers. If you're run
 
 ## Project structure
 
-The generated file structure depends on the archetype (`type` in idea.yaml):
+The generated file structure depends on the archetype (`type` in experiment.yaml):
 
 **web-app** (default):
 ```
 src/
   app/
     api/              # API route handlers (all mutations go here)
-    <page-name>/      # One folder per idea.yaml page
+    <page-name>/      # One folder per experiment.yaml page
       page.tsx
   components/
     ui/               # UI library components (auto-generated)
   lib/
     analytics.ts      # Analytics tracking
-idea/                 # idea.yaml lives here
+idea/                 # experiment.yaml lives here
 supabase/migrations/  # Database migrations (when stack.database: supabase)
 ```
 
@@ -26,7 +26,7 @@ supabase/migrations/  # Database migrations (when stack.database: supabase)
 src/
   app/
     api/
-      <endpoint>/     # One folder per idea.yaml endpoint
+      <endpoint>/     # One folder per experiment.yaml endpoint
         route.ts
   lib/
     analytics.ts      # Server-side analytics only
@@ -37,7 +37,7 @@ idea/
 ```
 src/
   commands/
-    <command-name>.ts # One file per idea.yaml command
+    <command-name>.ts # One file per experiment.yaml command
   index.ts           # CLI entry point
 idea/
 ```
@@ -45,8 +45,8 @@ idea/
 ### Other files (all archetypes)
 
 ```
-idea/idea.yaml           # Your experiment definition (edit this first)
-idea/idea.example.yaml   # Worked example for reference
+idea/experiment.yaml           # Your experiment definition (edit this first)
+idea/experiment.example.yaml   # Worked example for reference
 idea/retro-template.md   # Retrospective template
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
 EVENTS.yaml              # Analytics event dictionary
@@ -121,7 +121,7 @@ Each value maps to a stack file at `.claude/stacks/<category>/<value>.md`. Skill
 
 | | web-app | service | cli |
 |---|---------|---------|-----|
-| **idea.yaml field** | `pages` | `endpoints` | `commands` |
+| **experiment.yaml field** | `pages` | `endpoints` | `commands` |
 | **Required stacks** | framework, hosting | framework, hosting | framework |
 | **Excluded stacks** | *(none)* | ui | hosting, ui, auth, payment, email |
 | **Deploy model** | `/deploy` (Vercel) | `/deploy` (Vercel/Railway) | `npm publish` or GitHub Releases |
@@ -137,7 +137,7 @@ To support a new technology (e.g., Firebase instead of Supabase):
 
 1. Create a stack file at `.claude/stacks/<category>/<value>.md` (e.g., `.claude/stacks/database/firebase.md`)
 2. Use `.claude/stacks/TEMPLATE.md` as a starting point — it documents the required and optional sections
-3. Set the corresponding `stack.<category>` value in idea.yaml to match the filename
+3. Set the corresponding `stack.<category>` value in experiment.yaml to match the filename
 4. Skills automatically read your new stack file — no changes to skill files needed
 
 > Stack files may depend on other stacks. Each file declares its assumptions in an `> Assumes:` line at the top. When swapping a stack, check the `> Assumes:` lines in related files.
@@ -172,7 +172,7 @@ Run `make` to see all available commands:
 
 | Command | What it does |
 |---------|-------------|
-| `make validate` | Check idea.yaml for valid YAML, TODOs, name format, and required fields |
+| `make validate` | Check experiment.yaml for valid YAML, TODOs, name format, and required fields |
 | `make verify-local` | Verify the app works locally (install, test, cleanup) — needs Docker |
 | `make supabase-start` | Start local Supabase for testing (requires Docker) |
 | `make supabase-stop` | Stop local Supabase |

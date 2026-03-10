@@ -1,8 +1,8 @@
 ---
-description: "Use when starting a new experiment from a filled-in idea.yaml. Run once per project."
+description: "Use when starting a new experiment from a filled-in experiment.yaml. Run once per project."
 type: code-writing
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, ui, payment, email, hosting, testing]
@@ -23,7 +23,7 @@ references:
 branch_prefix: feat
 modifies_specs: false
 ---
-Bootstrap the MVP from idea.yaml.
+Bootstrap the MVP from experiment.yaml.
 
 ## Step 0: Branch Setup
 
@@ -36,13 +36,13 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 DO NOT write any code, create any files, or run any install commands during this phase.
 
 1. **Read context files**
-   - Read `idea/idea.yaml` — this is the single source of truth
+   - Read `idea/experiment.yaml` — this is the single source of truth
    - Read `EVENTS.yaml` — these are the canonical analytics events to wire up
    - Read `CLAUDE.md` — these are the rules to follow
 
 2. **Resolve the archetype and stack**
-   - Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`). The archetype defines required idea.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per idea.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
-   - Read idea.yaml `stack`. For each category present in idea.yaml `stack`, read `.claude/stacks/<category>/<value>.md`. Which categories are required, optional, or excluded depends on the archetype (see the archetype file's `required_stacks`, `optional_stacks`, and `excluded_stacks` fields).
+   - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). The archetype defines required experiment.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per experiment.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
+   - Read experiment.yaml `stack`. For each category present in experiment.yaml `stack`, read `.claude/stacks/<category>/<value>.md`. Which categories are required, optional, or excluded depends on the archetype (see the archetype file's `required_stacks`, `optional_stacks`, and `excluded_stacks` fields).
    - If a stack file doesn't exist for a given value:
      1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
      2. Read existing stack files in the same category (`.claude/stacks/<category>/*.md`) as reference for conventions and structure. If no files exist in that category, read a well-populated stack file from another category (e.g., `database/supabase.md` or `analytics/posthog.md`) as a structural reference.
@@ -55,27 +55,27 @@ DO NOT write any code, create any files, or run any install commands during this
      6. File an observation per `.claude/patterns/observe.md` noting the missing stack file, so the template repo can add a reviewed version.
      7. Continue bootstrap using the generated stack file.
    - These files define packages, library files, env vars, and patterns for each technology.
-   - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in idea.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
+   - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
 
-3. **Validate idea.yaml**
+3. **Validate experiment.yaml**
    - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `title`, `owner`, `problem`, `solution`, `target_user`, `distribution`, `features`, `primary_metric`, `target_value`, `measurement_window`, `stack`, plus fields from the archetype's `required_idea_fields` (e.g., `pages` for web-app, `endpoints` for service)
    - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
    - If the archetype requires `pages` (web-app): verify `pages` includes an entry with `name: landing`
    - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
    - If the archetype requires `commands` (cli): verify `commands` is a non-empty list
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
-   - For each category in the archetype's `excluded_stacks` list: if that category is present in idea.yaml `stack`, stop and tell the user: "The `<archetype>` archetype excludes `<category>`. Remove `<category>: <value>` from your idea.yaml `stack` section, or switch to a different archetype."
-   - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
-   - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
-   - If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your idea.yaml `stack` section."
-   - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your idea.yaml `stack` section."
+   - For each category in the archetype's `excluded_stacks` list: if that category is present in experiment.yaml `stack`, stop and tell the user: "The `<archetype>` archetype excludes `<category>`. Remove `<category>: <value>` from your experiment.yaml `stack` section, or switch to a different archetype."
+   - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your experiment.yaml `stack` section."
+   - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
+   - If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your experiment.yaml `stack` section."
+   - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
    - If `stack.testing` is `playwright` and archetype is `service` or `cli`: stop and tell the user: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` (or another server-side test runner) instead."
-   - If `quality: production` is set in idea.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to idea.yaml `stack`."
+   - If `quality: production` is set in experiment.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to experiment.yaml `stack`."
    - If `stack.auth_providers` is present:
-     - Verify `stack.auth` is also present. If not: stop — "OAuth providers require an auth system. Add `auth: supabase` to your idea.yaml `stack` section."
+     - Verify `stack.auth` is also present. If not: stop — "OAuth providers require an auth system. Add `auth: supabase` to your experiment.yaml `stack` section."
      - Verify it is a non-empty list of strings. If empty: stop — "auth_providers is empty. Either add providers (e.g., `[google, github]`) or remove the field."
      - Warn (don't stop) for unrecognized slugs — Supabase may add new providers.
-   - If `variants` is present in idea.yaml, validate the variants list:
+   - If `variants` is present in experiment.yaml, validate the variants list:
      - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
      - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
      - Each `slug` must be lowercase, start with a letter, and use only a-z, 0-9, hyphens
@@ -90,22 +90,22 @@ DO NOT write any code, create any files, or run any install commands during this
    1. Detect the GitHub org: run `gh repo view --json owner --jq '.owner.login'`.
       If this fails (not a GitHub repo, or `gh` not authed), skip this entire step silently.
 
-   2. Update the repo description with idea.yaml `title`:
+   2. Update the repo description with experiment.yaml `title`:
       ```bash
-      gh repo edit --description "<idea.yaml title>"
+      gh repo edit --description "<experiment.yaml title>"
       ```
       If this fails, warn but continue — description is cosmetic.
 
    3. Hard check — name collision:
       Run `gh repo list <org> --json name,url --limit 200 --no-archived`.
-      If any repo name exactly matches idea.yaml `name` AND is not the current repo,
+      If any repo name exactly matches experiment.yaml `name` AND is not the current repo,
       stop: "A repo named '<name>' already exists in <org>: <url>. Pick a different
-      `name` in idea.yaml or confirm with the team that this is intentional."
+      `name` in experiment.yaml or confirm with the team that this is intentional."
 
    4. Soft check — LLM-filtered duplicate detection:
       Run `gh repo list <org> --json name,description,url --limit 200 --no-archived`.
       Exclude the current repo from the list. Review the remaining repo names and
-      descriptions against the current idea.yaml (`title`, `problem`, `solution`,
+      descriptions against the current experiment.yaml (`title`, `problem`, `solution`,
       `target_user`). Identify repos that appear to solve a substantially similar
       problem for a similar audience.
 
@@ -137,8 +137,8 @@ DO NOT write any code, create any files, or run any install commands during this
    ## What I'll Build
 
    **Pages:**
-   - Landing Page (/) — [purpose from idea.yaml]
-   - [Page Name] (/route) — [purpose from idea.yaml]
+   - Landing Page (/) — [purpose from experiment.yaml]
+   - [Page Name] (/route) — [purpose from experiment.yaml]
    - ...
 
    **Features:**
@@ -146,7 +146,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - [feature 2] → built in [file(s)]
    - ...
 
-   **Variants (if idea.yaml has `variants`):**
+   **Variants (if experiment.yaml has `variants`):**
    - [slug] — "[headline]" → /v/[slug] [default if applicable]
    - [slug] — "[headline]" → /v/[slug]
    - Root `/` renders: [default variant slug]
@@ -167,25 +167,25 @@ DO NOT write any code, create any files, or run any install commands during this
    - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
    - [For each payment_funnel event if stack.payment present, show: event_name on page/route]
 
-   **Golden Path (from idea.yaml):**
+   **Golden Path (from experiment.yaml):**
    | Step | Page | Action | Event | Value Moment |
    |------|------|--------|-------|--------------|
    | 1 | [page] | [action] | [event] | [yes/no] |
    Target: [target_clicks] clicks
 
-   If idea.yaml has no `golden_path` field: derive one from pages + EVENTS.yaml standard_funnel,
-   present it in the plan, and write it back to idea.yaml after approval (Step 7).
+   If experiment.yaml has no `golden_path` field: derive one from pages + EVENTS.yaml standard_funnel,
+   present it in the plan, and write it back to experiment.yaml after approval (Step 7).
 
-   **Critical Flows (from idea.yaml):**
+   **Critical Flows (from experiment.yaml):**
    | Flow | Trigger | Actor | Steps | Verify |
    |------|---------|-------|-------|--------|
    | [name] | [trigger] | [actor] | [steps summary] | [verify] |
 
-   If idea.yaml has no `critical_flows`: "None defined — operational chains will be tested manually.
+   If experiment.yaml has no `critical_flows`: "None defined — operational chains will be tested manually.
    Use `/change` to add critical_flows after the first webhook, admin, or cron feature."
 
    **Activation mapping:**
-   - idea.yaml primary_metric: [metric]
+   - experiment.yaml primary_metric: [metric]
    - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all features are descriptive, activate will be omitted" if no feature involves an interactive user action
 
    **Tests (if stack.testing present):**
@@ -206,7 +206,7 @@ DO NOT write any code, create any files, or run any install commands during this
    DO NOT proceed to Phase 2 until the user explicitly replies with approval.
    If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in idea.yaml), write it back to `idea/idea.yaml` after approval. If `critical_flows` was identified during planning but not in idea.yaml, write it back to `idea/idea.yaml` after approval.
+7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in experiment.yaml), write it back to `idea/experiment.yaml` after approval. If `critical_flows` was identified during planning but not in experiment.yaml, write it back to `idea/experiment.yaml` after approval.
 
 ## Phase 2: Implement (only after the user has approved)
 
@@ -218,7 +218,7 @@ prompt tells them WHICH files to read and WHAT to do.
 
 Before spawning any subagents, the lead performs user-interactive checks:
 
-1. **Production quality check**: If `quality: production` is set in idea.yaml, pass this flag to each scaffold-* agent prompt: "quality: production is set. Generate tests alongside each file you create." Agent test ownership:
+1. **Production quality check**: If `quality: production` is set in experiment.yaml, pass this flag to each scaffold-* agent prompt: "quality: production is set. Generate tests alongside each file you create." Agent test ownership:
    - scaffold-setup: create testing config (playwright.config.ts or vitest.config.ts)
    - scaffold-libs: generate unit tests for utility functions alongside library code
    - scaffold-pages: generate page-load smoke tests (same as MVP, but more thorough)
@@ -243,8 +243,8 @@ Spawn a subagent via Agent with:
 - subagent_type: scaffold-setup
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-setup.md` and execute all steps
-  2. Read context files: `idea/idea.yaml`, all `.claude/stacks/<category>/<value>.md`
-     for categories in idea.yaml `stack`, `.claude/archetypes/<type>.md`
+  2. Read context files: `idea/experiment.yaml`, all `.claude/stacks/<category>/<value>.md`
+     for categories in experiment.yaml `stack`, `.claude/archetypes/<type>.md`
   3. TSP-LSP status: `<tsp_status from preamble>`
   4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
@@ -260,9 +260,9 @@ Spawn a subagent via Agent with:
 - subagent_type: scaffold-init
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-init.md` and execute all steps
-  2. Read context files: `idea/idea.yaml`, `.claude/current-plan.md`,
+  2. Read context files: `idea/experiment.yaml`, `.claude/current-plan.md`,
      `.claude/patterns/design.md`, `.claude/archetypes/<type>.md`,
-     `.claude/stacks/surface/<value>.md` (resolved from idea.yaml or inferred)
+     `.claude/stacks/surface/<value>.md` (resolved from experiment.yaml or inferred)
   3. Follow CLAUDE.md Rules 3, 4, 7
 
 The subagent returns its completion report directly as the result.
@@ -276,7 +276,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-libs
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
-  2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
+  2. Read context files: `idea/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, all stack files
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
 
@@ -284,7 +284,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-pages
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
-  2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
+  2. Read context files: `idea/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, archetype file,
      framework/UI stack files, `.claude/patterns/design.md`,
      `.claude/current-visual-brief.md`
@@ -295,7 +295,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-externals.md` and execute the
      analysis steps (evaluate dependencies, classify core/non-core)
-  2. Read context files: `idea/idea.yaml`, `.claude/current-plan.md`,
+  2. Read context files: `idea/experiment.yaml`, `.claude/current-plan.md`,
      `.claude/stacks/TEMPLATE.md`, existing stack files
   3. Follow CLAUDE.md Rules 3, 4, 6
   4. Return the classification table and Fake Door list — do NOT collect
@@ -305,7 +305,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-landing
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
-  2. Read context files: `idea/idea.yaml`, `EVENTS.yaml`,
+  2. Read context files: `idea/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      framework/UI/surface stack files,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
@@ -348,19 +348,19 @@ Run combined verification after all four parallel subagents complete — these c
 
 1. **Build**: run `npm run build` — the project must compile
 2. **Page/endpoint/command existence:**
-   - If archetype is `web-app`: for each page in idea.yaml `pages`, verify
+   - If archetype is `web-app`: for each page in experiment.yaml `pages`, verify
      `src/app/<page-name>/page.tsx` exists (or root page for `landing`).
      If surface ≠ none: verify landing page file exists (`src/app/page.tsx`
      or `src/components/landing-content.tsx` for variants)
-   - If archetype is `service`: for each endpoint in idea.yaml `endpoints`,
+   - If archetype is `service`: for each endpoint in experiment.yaml `endpoints`,
      verify the handler file exists at the path defined by the framework stack file
-   - If archetype is `cli`: for each command in idea.yaml `commands`, verify
+   - If archetype is `cli`: for each command in experiment.yaml `commands`, verify
      `src/commands/<command-name>.ts` exists
 3. **Analytics wiring** (if `stack.analytics` is present): for each
    standard_funnel event in EVENTS.yaml, grep for the event name in `src/`
    to confirm a tracking call exists. Also verify analytics constants:
    grep `src/lib/analytics*.ts` for `PROJECT_NAME` and `PROJECT_OWNER` —
-   both must equal the actual idea.yaml `name` and `owner` values, not
+   both must equal the actual experiment.yaml `name` and `owner` values, not
    `"TODO"` strings
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
@@ -377,9 +377,9 @@ Spawn a subagent via Agent with:
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/wire.md` and execute Steps 5 through 8b ONLY.
      Do NOT run Step 8 (verify.md) or Step 9 (PR).
-  2. Read context files before starting: `idea/idea.yaml`, `EVENTS.yaml`,
+  2. Read context files before starting: `idea/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
-     all `.claude/stacks/<category>/<value>.md` for categories in idea.yaml `stack`,
+     all `.claude/stacks/<category>/<value>.md` for categories in experiment.yaml `stack`,
      `.claude/patterns/visual-review.md`,
      `.claude/patterns/security-review.md`,
      `.github/PULL_REQUEST_TEMPLATE.md`
@@ -402,11 +402,11 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
 ### Commit, Push, Open PR
 
 The lead executes wire.md Step 9 directly:
-- Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
+- Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format
 - Include completion reports from all subagents for PR body context
 - Delete `.claude/current-plan.md` and `.claude/current-visual-brief.md`
 - Report the PR URL to the user
 
-If `quality: production` is set in idea.yaml, add to the user message:
+If `quality: production` is set in experiment.yaml, add to the user message:
 > "Bootstrap complete with production quality mode. Run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."

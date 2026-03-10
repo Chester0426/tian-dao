@@ -2,7 +2,7 @@
 
 ## Prerequisites
 - Packages installed and UI setup complete (Step 1 finished)
-- Stack files on disk for all categories in idea.yaml `stack`
+- Stack files on disk for all categories in experiment.yaml `stack`
 - `.claude/current-plan.md` exists
 
 ## Instructions
@@ -21,7 +21,7 @@ Create the library files specified in each stack file's "Files to Create" sectio
 
 5. **Payment library files** (if `stack.payment` is present): create from the payment stack file's "Files to Create" section. Note: the payment stack file's checkout route template intentionally references `user.id` which is undefined until auth is integrated — this will cause a build error at the merged checkpoint that you must fix by adding the auth check (see the auth stack file's "Server-Side Auth Check" section). The webhook route template also contains a `// TODO: Update user's payment status in database` — unlike the auth check, this TODO compiles silently, so you must resolve it using the database schema planned in Phase 1.
 
-6. **Analytics constant replacement** (if `stack.analytics` is present): replace placeholder constants in the analytics library files — replace `PROJECT_NAME = "TODO"` with the `name` from idea.yaml and `PROJECT_OWNER = "TODO"` with the `owner` from idea.yaml. For web-app: replace in both client (`src/lib/analytics.ts`) and server (`src/lib/analytics-server.ts`) files. For service/cli: replace in the server analytics file only (no client-side analytics). These constants auto-attach to every event — if left as TODO, experiment filtering will fail.
+6. **Analytics constant replacement** (if `stack.analytics` is present): replace placeholder constants in the analytics library files — replace `PROJECT_NAME = "TODO"` with the `name` from experiment.yaml and `PROJECT_OWNER = "TODO"` with the `owner` from experiment.yaml. For web-app: replace in both client (`src/lib/analytics.ts`) and server (`src/lib/analytics-server.ts`) files. For service/cli: replace in the server analytics file only (no client-side analytics). These constants auto-attach to every event — if left as TODO, experiment filtering will fail.
 
 7. **Typed event wrappers** (if `stack.analytics` is present): generate `src/lib/events.ts` with typed track wrapper functions from EVENTS.yaml. For each event, create a function like `trackVisitLanding(props: { referrer?: string; utm_source?: string })` that calls `track("visit_landing", props)`. Only generate wrappers for standard_funnel events and (if stack.payment is present) payment_funnel events. Pages should import from `events.ts` instead of calling `track()` directly with string event names.
 

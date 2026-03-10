@@ -107,7 +107,7 @@ posts:
     url: "..."          # landing URL with UTM params
     thumbnail: "..."    # optional, 1200x628px image
 
-# When idea.yaml has variants, include utm_content in landing URLs:
+# When experiment.yaml has variants, include utm_content in landing URLs:
 # posts:
 #   - headline: "..."
 #     variant: {slug}

@@ -1,7 +1,7 @@
-# idea.yaml — Describe your MVP experiment
+# experiment.yaml — Describe your MVP experiment
 #
 # Fill in every field below. Claude Code reads this file to decide what to build.
-# See idea/idea.example.yaml for a complete worked example.
+# See idea/experiment.example.yaml for a complete worked example.
 #
 # HOW TO FILL THIS IN:
 # 1. Replace every "TODO" value with your actual content
