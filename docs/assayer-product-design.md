@@ -455,12 +455,6 @@ POST metrics/sync → cache
 
 `POST metrics/sync` queries PostHog only if `fetched_at` > 15min. `?force=true` bypasses.
 
-### Env Vars
-
-```
-ASSAYER_API_KEY=<service-key>         # backend service key for protecting API routes
-```
-
 ---
 
 ## 5. Data Model
