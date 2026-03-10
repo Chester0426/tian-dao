@@ -40,8 +40,21 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
   - If `disputed_rate` > 30%: add to prompt: "Prior review had high dispute rate — only report findings where the contradiction cannot be resolved by reading surrounding context."
   - If `skipped_rate` > 20%: add to prompt: "Prior review had many unfixable findings — focus on findings directly fixable in a single PR."
   - If `reverted_rate` > 20%: add to prompt: "Prior review had fixes that caused regressions — be conservative with fixes that touch cross-file invariants."
-  - If overall dimension precision < 50%: also reduce to top 3 findings instead of 5.
+  - **Per-dimension budget allocation** (from `prior_precision`):
+    Extract per-dimension precision from the Precision Summary (A, B, C rates).
+    Set `max_findings` per dimension:
+    - precision >= 60%: `max_findings_per_dimension` (full budget)
+    - precision 30-59%: `ceil(max_findings_per_dimension * 0.6)` (reduced)
+    - precision < 30%: 2 (minimum floor)
+    - If no per-dimension data available: use uniform `max_findings_per_dimension`
+    The total findings budget shifts toward dimensions that produce real fixes.
   If not found or command fails, set `prior_precision` to empty and continue.
+- **Compute observation hot spots** (from `observation_backlog`):
+  Count observations per template file path. Files with 3+ open observations
+  are "hot spots." Pass to each dimension agent in Step 2a:
+  > These template files have 3+ open observations — scan them with extra
+  > scrutiny: [list of hot spot file paths]
+  If no hot spots, skip this instruction.
 
 ## Step 1: Run baseline validators
 
@@ -138,6 +151,21 @@ After reading: for each potential finding, identify the test fixture(s) whose
 the finding. If no fixture covers the edge case, note "no fixture coverage" —
 this itself may be a finding worth reporting.
 
+**Systematic archetype coverage check** (after heuristic scanning):
+
+1. List all archetypes from `.claude/archetypes/*.md`
+2. For each skill file that contains archetype-conditional language
+   (e.g., "If archetype is", "If the archetype is", "web-app", "service", "cli"):
+   a. Identify all archetype-specific branches in the skill
+   b. For each archetype, verify either: a dedicated branch exists, OR
+      the default/fallback branch explicitly covers it
+   c. If an archetype has no branch and no explicit default coverage:
+      report as a finding ("skill X has no handling for archetype Y")
+3. Focus on the 3 most heavily conditionalized skills first:
+   bootstrap.md, deploy.md, change.md
+4. This check supplements (not replaces) the heuristic scan above.
+   Heuristic findings about archetype gaps take priority if they overlap.
+
 **Dimension C: User Journey Completeness**
 
 Focus: Find dead-end states where a user gets stuck with no clear next step. Examples:
@@ -202,7 +230,7 @@ Do NOT propose checks that:
 
 Include these in each subagent prompt:
 
-1. **Maximum `max_findings_per_dimension` findings.** Keep only the most impactful.
+1. **Maximum findings for this dimension** (see per-dimension budget from Step 0).
 2. **No overlap with automated checks.** `scripts/check-inventory.md` is authoritative, including the Pending and Rejected sections. If a check is pending, propose extending it instead. If a check was rejected, do not re-propose it unless the rejection reason no longer applies.
 3. **Zero findings is valid.** Say "No findings for this dimension" and summarize what was checked.
 4. **Self-review before presenting.** Merge proposed checks that cover the same invariant. Verify each finding against check-inventory.md one more time.
