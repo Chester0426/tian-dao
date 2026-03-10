@@ -3,43 +3,37 @@
 # verifies that no-auth CI template handles database env vars correctly.
 idea:
   name: test-db-only-tests
-  title: DB+Tests — Public App with Database and E2E Tests
-  owner: tester
-  template_repo: acme/experiment-template
   type: web-app
 
-  problem: |
+  description: |
     Users need a public data browser to explore open datasets without needing to sign in.
-
-  solution: |
     A public app backed by Supabase for data storage, with E2E tests to verify the browsing flow.
+
+  thesis: "If we provide a public data browser with filters, then at least 100 users will browse the dataset, as measured by browse page visits in 1 week"
 
   target_user: Data enthusiasts exploring open datasets
 
   distribution: |
     Share in data communities and forums.
 
-  pages:
-    - name: landing
-      purpose: Explain the dataset and invite users to explore
-    - name: browse
-      purpose: Browse and filter the dataset
+  golden_path:
+    - step: Visit landing page
+      event: visit_landing
+      page: landing
+    - step: Apply a filter on the browse page
+      event: activate
+      page: browse
 
-  features:
-    - Landing page with dataset description
-    - Public data browser with filters (no auth required)
-
-  primary_metric: Dataset page views
-  target_value: "100 browse page visits in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: app
+        runtime: nextjs
+        hosting: vercel
+        ui: shadcn
+        testing: playwright
     database: supabase
     analytics: posthog
-    ui: shadcn
-    hosting: vercel
-    testing: playwright
 
 events:
   standard_funnel:

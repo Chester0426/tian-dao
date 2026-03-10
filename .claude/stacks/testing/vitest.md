@@ -7,7 +7,7 @@ files:
   - vitest.config.ts
   - tests/smoke.test.ts       # conditional: service archetype bootstrap smoke tests
   - tests/commands.test.ts    # conditional: cli archetype bootstrap smoke tests
-  - tests/flows.test.ts      # conditional: only when experiment.yaml has critical_flows
+  - tests/flows.test.ts      # conditional: only when experiment.yaml has behaviors with actor: system/cron
 env:
   server: []
   client: []
@@ -239,7 +239,7 @@ describe("CLI smoke tests", () => {
 
 ## Critical Flow Integration Tests
 
-When experiment.yaml has `critical_flows`, bootstrap generates `tests/flows.test.ts` with one test per
+When experiment.yaml has `behaviors with actor: system/cron`, bootstrap generates `tests/flows.test.ts` with one test per
 critical flow entry. These test operational chains at the API level.
 
 ### `tests/flows.test.ts` — Integration tests for operational chains
@@ -277,7 +277,7 @@ Notes:
 - Admin tests call admin API endpoints (no browser, no login flow)
 - Skip tests when required env vars are missing (e.g., Stripe webhook secret)
 - These complement golden_path funnel tests: golden_path tests the customer journey,
-  critical_flows tests the delivery chain
+  behaviors with actor: system/cron tests the delivery chain
 - Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
 
 ## Patterns

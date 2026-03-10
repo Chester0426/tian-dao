@@ -264,7 +264,7 @@ Missing → fall back to manual input + show setup instructions.
 ### Query Procedure
 1. Read API key from `~/.posthog/personal-api-key`
 2. Build event list from EVENTS.yaml (`standard_funnel` + `payment_funnel` if `stack.payment` present in experiment.yaml + `custom_events`)
-3. Parse `measurement_window` from experiment.yaml to days (e.g., "2 weeks" = 14)
+3. Determine experiment duration from experiment.yaml context (e.g., funnel thresholds, deploy date)
 4. Single HogQL query via curl:
 
 ```bash

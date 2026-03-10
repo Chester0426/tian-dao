@@ -24,16 +24,16 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 - Read `EVENTS.yaml`
 - Read `scripts/check-inventory.md`
 - Read `idea/experiment.example.yaml` (for understanding template structure)
-- **Check open observation issues** (if `template_repo` is set in experiment.yaml):
+- **Check open observation issues** (use current repo via `gh`):
   ```bash
-  gh issue list --repo <template_repo> --label observation --state open --limit 10 --json number,title,body
+  gh issue list --label observation --state open --limit 10 --json number,title,body
   ```
   If any open issues exist, save them as `observation_backlog`. These will be
   used as additional input in Step 2a below. If none exist or the command fails,
   set `observation_backlog` to empty and continue.
-- **Read prior review precision** (if `template_repo` is set):
+- **Read prior review precision** (use current repo via `gh`):
   ```bash
-  gh pr list --repo <template_repo> --state merged --search "Automated review-fix" --limit 1 --json number,body
+  gh pr list --state merged --search "Automated review-fix" --limit 1 --json number,body
   ```
   If found, extract the Precision Summary. Store as `prior_precision`.
   Use prior precision to coach each dimension's agent in Step 2a:
@@ -396,7 +396,7 @@ If branch exists with changes:
 - **Close resolved observations**: For each observation issue whose root cause
   was fixed in this review PR, close it with a comment:
   ```bash
-  gh issue close <number> --repo <template_repo> --comment "Fixed in review PR #<pr-number>"
+  gh issue close <number> --comment "Fixed in review PR #<pr-number>"
   ```
 
 ## Do NOT

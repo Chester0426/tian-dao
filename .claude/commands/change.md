@@ -32,7 +32,7 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 
 ## Step 2: Read context
 
-- Read `idea/experiment.yaml` — understand the current scope, existing pages, existing features, target user, primary metric
+- Read `idea/experiment.yaml` — understand the current scope, pages (derived from golden_path), existing behaviors, target user, thesis
 - Read `EVENTS.yaml` — understand existing analytics events (this is the canonical event list)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references. If the archetype is `cli`, new capabilities map to subcommand modules (`src/commands/`), not page folders or API routes. Skip Fake Door, landing page, and API route references.
 - Resolve the stack: read experiment.yaml `stack`. For each category, read `.claude/stacks/<category>/<value>.md`. If a stack file doesn't exist for a given value, generate it: read `.claude/stacks/TEMPLATE.md` for the schema, read existing files in the same category as reference, and create `.claude/stacks/<category>/<value>.md` with complete frontmatter and code templates. Run `python3 scripts/validate-frontmatter.py` to verify (max 2 fix attempts). If validation fails, stop: "Could not generate a valid stack file for `<category>/<value>`. Create it manually using TEMPLATE.md as a guide." File an observation per `.claude/patterns/observe.md` for the missing stack file.
@@ -93,8 +93,8 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 
 ### Step 5: Update specs (type-specific)
 
-- **Feature**: add the new feature to experiment.yaml `features` list. Add any new pages to `pages` list. If the new feature changes the user journey (adds a page to the main flow, changes a CTA destination, or moves the value moment), update `golden_path` in experiment.yaml accordingly. If the new feature adds a webhook handler, admin action, or background job, add a corresponding entry to `critical_flows` in experiment.yaml. Do NOT remove or modify existing features or pages.
-- **Upgrade**: do NOT modify experiment.yaml `features` (the feature already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
+- **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey (adds a page to the main flow, changes a CTA destination, or changes a key step), update `golden_path` in experiment.yaml accordingly. Do NOT remove or modify existing behaviors.
+- **Upgrade**: do NOT modify experiment.yaml `behaviors` (the behavior already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
 - **Analytics**: if the user approved custom events, add them to `custom_events` in EVENTS.yaml following the `<object>_<action>` naming convention with all properties.
 - **Fix / Polish**: do NOT modify experiment.yaml or EVENTS.yaml.
 - **Test**: do NOT modify EVENTS.yaml. If adding tests for the first time (no `stack.testing` in experiment.yaml and no `playwright.config.ts` on disk), add `testing: <value>` to experiment.yaml `stack` section. Do not modify other parts of experiment.yaml.
@@ -113,7 +113,7 @@ Follow the procedure in `.claude/procedures/change-fix.md`.
 #### Polish constraints
 - No new features, pages, routes, or libraries
 - Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. If the archetype includes a landing page (web-app): landing page must include all content inventory from messaging.md Section B. When experiment.yaml has `variants`, variant messaging fields (`headline`, `subheadline`, `cta`, `pain_points`) override Section A derivation — see messaging.md Section D.
-- If the change modifies experiment.yaml `features`, `title`, or `solution` AND the archetype is service or cli AND surface ≠ none: regenerate the surface HTML to reflect the updated content (surface location: root route handler for co-located — file path per framework stack file, e.g., `src/app/route.ts` for Next.js; `site/index.html` for detached). Re-invoke `frontend-design` for the surface if the visual direction changed.
+- If the change modifies experiment.yaml `behaviors`, `name`, or `description` AND the archetype is service or cli AND surface ≠ none: regenerate the surface HTML to reflect the updated content (surface location: root route handler for co-located — file path per framework stack file, e.g., `src/app/route.ts` for Next.js; `site/index.html` for detached). Re-invoke `frontend-design` for the surface if the visual direction changed.
 - Visual design: follow `.claude/patterns/design.md` quality invariants. Read existing pages and maintain visual consistency with the established design direction.
 - Remove anything that doesn't serve conversion. Keep above-the-fold to: headline, subheadline, CTA.
 - Count steps between CTA click and first value moment — remove or defer unnecessary fields
@@ -151,10 +151,10 @@ Follow the procedure in `.claude/procedures/change-test.md`.
   - **Production quality (if `quality: production`)**: verify.md spawns all agents (existing 5 + spec-reviewer). Pass experiment.yaml + `.claude/current-plan.md` to spec-reviewer.
   - **Test**: verify test discovery works by running the testing stack file's test command in dry-run/list mode (e.g., `npx playwright test --list` for Playwright, `npx vitest run --reporter=verbose` for Vitest). If test discovery fails, treat it as a build error — fix the test files and re-run. If still failing after the verify.md retry budget, report to the user with the error output.
   - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `idea/experiment.yaml`. Verify implementation matches the archetype's primary units:
-    - If archetype requires `pages`: confirm `src/app/<page-name>/page.tsx` exists for each page in experiment.yaml `pages`
+    - If archetype requires pages: confirm `src/app/<page-name>/page.tsx` exists for each unique page referenced in experiment.yaml `golden_path`
     - If archetype requires `endpoints`: confirm API route exists for each endpoint in experiment.yaml `endpoints` (path depends on framework stack file)
     - If archetype requires `commands` (cli): confirm `src/commands/<command-name>.ts` exists for each entry in the experiment.yaml command list
-    - For each feature in `features`, confirm the implementation addresses it. For each event in `EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
+    - For each behavior in `behaviors`, confirm the implementation addresses it. For each event in `EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
 
 ### Step 8: Commit, push, open PR
 - You are already on a feature branch (created in Step 0). Do not create another branch.
@@ -163,8 +163,8 @@ Follow the procedure in `.claude/procedures/change-test.md`.
   - **Summary**: plain-English description of the change
   - **How to Test**: steps to verify the change works after merging
   - **What Changed**: list every file created/modified and what changed
-  - **Why**: how this change serves the target user and primary metric. If from a GitHub issue, include `Closes #<number>`.
-  - **Checklist — Scope**: check all boxes. For features: confirm experiment.yaml was updated.
+  - **Why**: how this change serves the target user and thesis. If from a GitHub issue, include `Closes #<number>`.
+  - **Checklist — Scope**: check all boxes. For new behaviors: confirm experiment.yaml was updated.
   - **Checklist — Analytics**: list all new/modified events and which pages fire them. For fixes/polish: confirm no events were removed or broken.
   - **Checklist — Build**: confirm build passes, no hardcoded secrets
   - **Checklist — Verification**: fill in design-critic, ux-journeyer, and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
@@ -175,10 +175,10 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 
 ## Do NOT
 - Add more than what `$ARGUMENTS` describes — one change per PR
-- Modify existing features unless the change requires integration (e.g., adding a nav link)
+- Modify existing behaviors unless the change requires integration (e.g., adding a nav link)
 - Remove or break existing analytics events (unless the change is specifically about fixing analytics)
 - Add libraries not in experiment.yaml `stack` without user approval
-- Skip updating experiment.yaml when adding new features — the source of truth must always reflect the current app
+- Skip updating experiment.yaml when adding new behaviors — the source of truth must always reflect the current app
 - Change analytics event names — they must match EVENTS.yaml
 - Add custom analytics events without user approval
 - Add error-state tests — funnel happy path only (Rule 4)

@@ -34,7 +34,7 @@ Run `npx playwright --version`. If it fails, return:
 
 ### 2. Read Context
 
-- Read `idea/experiment.yaml` — pages, features, primary_metric, target_user
+- Read `idea/experiment.yaml` — golden_path, behaviors, thesis, target_user
 - Read `EVENTS.yaml` — standard_funnel events (these define the expected journey steps)
 - Read `.claude/current-plan.md` if it exists — check for an explicit Golden Path field
 
@@ -42,8 +42,8 @@ Run `npx playwright --version`. If it fails, return:
 
 If experiment.yaml has a `golden_path` field: use it directly. Record the steps as the expected journey.
 
-If experiment.yaml has no `golden_path` field: derive from `pages` + EVENTS.yaml `standard_funnel`:
-Landing -> [signup if auth] -> [core page] -> [value moment].
+If experiment.yaml has no `golden_path` field: derive from behaviors + EVENTS.yaml `standard_funnel`:
+Landing -> [signup if auth] -> [core page] -> [activation].
 
 If `.claude/current-plan.md` exists and has a Golden Path section that differs from experiment.yaml,
 prefer experiment.yaml (it's the persistent source of truth).

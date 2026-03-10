@@ -21,7 +21,7 @@ clean:
 gitignore: [.next/, out/]
 ---
 # Framework: Next.js (App Router)
-> Used when experiment.yaml has `stack.framework: nextjs`
+> Used when experiment.yaml has `stack.services[].runtime: nextjs`
 
 ## Packages
 ```bash

@@ -348,9 +348,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
 ### Config Gathering
 
 - **Org discovery:** `supabase orgs list -o json` — returns `[{"id": "...", "name": "..."}]`
-- **experiment.yaml fields:**
-  - `deploy.supabase_org` — if set, skip the org prompt
-  - `deploy.supabase_region` — if set, use it; otherwise default to `us-east-1`
+- Always prompt user for org/region selection or use Supabase CLI defaults (no experiment.yaml fields for these)
 
 ### Provisioning
 

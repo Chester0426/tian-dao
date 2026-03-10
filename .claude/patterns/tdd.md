@@ -24,7 +24,7 @@ satisfies the specification — skip to REFACTOR and move on.
 Specification tests are the primary approach in production mode. They define
 what the code SHOULD do, not what it currently DOES.
 
-- Derive test cases from experiment.yaml `features`, `golden_path`, and `critical_flows`
+- Derive test cases from experiment.yaml `behaviors`, `golden_path`, and behaviors with `actor: system/cron`
 - Each test asserts correct behavior for a specific input/scenario
 - If code fails a specification test, that is a real bug — fix the code
 - Do NOT write characterization tests (tests that merely snapshot current behavior)

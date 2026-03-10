@@ -2,17 +2,13 @@
 # Validates that service archetype skips pages, landing page, and UI requirements.
 idea:
   name: test-service-minimal
-  title: Currency Conversion Service
-  owner: tester
-  template_repo: acme/experiment-template
   type: service
 
-  problem: |
+  description: |
     Developers need a simple currency conversion API for their applications.
-
-  solution: |
     A lightweight API service with endpoints for conversion and rate listing.
 
+  thesis: "If we provide a simple currency conversion API, then developers will integrate it into their apps, as measured by API calls per day"
   target_user: Developers integrating currency features
 
   distribution: |
@@ -24,18 +20,13 @@ idea:
     - name: rates
       purpose: List current exchange rates
 
-  features:
-    - Currency conversion endpoint
-    - Exchange rate listing endpoint
-
-  primary_metric: API calls per day
-  target_value: "100 API calls in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: api
+        runtime: nextjs
+        hosting: vercel
     analytics: posthog
-    hosting: vercel
 
 events:
   standard_funnel:

@@ -2,17 +2,13 @@
 # Validates that service archetype works with non-Vercel hosting and non-Playwright testing.
 idea:
   name: test-service-railway-vitest
-  title: Weather Forecast Service
-  owner: tester
-  template_repo: acme/experiment-template
   type: service
 
-  problem: |
+  description: |
     Developers need a simple weather forecast API for their applications.
-
-  solution: |
     A lightweight API service with endpoints for current weather and forecasts.
 
+  thesis: "If we provide a simple weather API, then developers will integrate it into their apps, as measured by API calls per day"
   target_user: Developers building weather-aware applications
 
   distribution: |
@@ -24,19 +20,14 @@ idea:
     - name: forecast
       purpose: Get multi-day forecast for a location
 
-  features:
-    - Current weather endpoint
-    - Multi-day forecast endpoint
-
-  primary_metric: API calls per day
-  target_value: "100 API calls in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: api
+        runtime: nextjs
+        hosting: railway
+        testing: vitest
     analytics: posthog
-    hosting: railway
-    testing: vitest
 
 events:
   standard_funnel:

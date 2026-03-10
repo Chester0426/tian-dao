@@ -19,10 +19,10 @@ trigger observations. `/review` fixes are already captured in the review PR.
 
 ## Prerequisites
 
-1. Read `template_repo` from `idea/experiment.yaml`. If not set or experiment.yaml does not
-   exist → skip silently.
+1. Get the template repo from the current repo: `gh repo view --json nameWithOwner -q .nameWithOwner`.
+   If experiment.yaml does not exist or the command fails → skip silently.
 2. `gh auth status` — if fails → skip silently.
-3. `gh repo view <template_repo> --json name` — if fails → skip silently.
+3. `gh repo view $(gh repo view --json nameWithOwner -q .nameWithOwner) --json name` — if fails → skip silently.
 
 Observation filing is best-effort. Never stop the skill, never ask the user for
 input, never block on filing.
@@ -115,7 +115,7 @@ Before composing the issue, strip all project-specific information:
 Search for existing open observations about the same template file:
 
 ```bash
-gh issue list --repo <template_repo> --label observation \
+gh issue list --repo $(gh repo view --json nameWithOwner -q .nameWithOwner) --label observation \
   --search "[observe] <template-file-basename>:" --state open --limit 20
 ```
 
@@ -124,7 +124,7 @@ underlying problem (same template file, same root cause — even if worded
 differently), add a comment instead of creating a new issue:
 
 ```bash
-gh issue comment <issue-number> --repo <template_repo> --body "<comment>"
+gh issue comment <issue-number> --repo $(gh repo view --json nameWithOwner -q .nameWithOwner) --body "<comment>"
 ```
 
 Comment body:
@@ -183,7 +183,7 @@ template-level fix.>
 
 **Filing command:**
 ```bash
-gh issue create --repo <template_repo> \
+gh issue create --repo $(gh repo view --json nameWithOwner -q .nameWithOwner) \
   --title "<title>" \
   --label "observation" \
   --body "<body>"

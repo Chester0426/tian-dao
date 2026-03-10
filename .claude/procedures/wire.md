@@ -11,7 +11,7 @@
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file
 - Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
-- If experiment.yaml features imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.
+- If experiment.yaml behaviors imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.
 - For the webhook handler's `// TODO: Update user's payment status in database` comment: resolve it using the database schema you planned in Phase 1. If no payments/subscriptions table was planned, add one to the migration in Step 6 and return here to wire the webhook update after the table exists.
 - Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
 - Follow the hosting stack file for rate limiting guidance in auth and payment API route handlers. Mention any limitations in the PR body so the user knows to address them before production
@@ -36,15 +36,15 @@ These routes must:
 - Read the external stack file (`.claude/stacks/external/<service-slug>.md`) for API patterns and code templates
 
 ### Step 6: Database schema (if needed)
-If `stack.database` is present and experiment.yaml features require persistent data:
+If `stack.database` is present and experiment.yaml behaviors require persistent data:
 - Follow the schema management approach from the database stack file
-- Create the initial migration with all tables needed for experiment.yaml features. Migration numbering is based on the current branch state — concurrent branches may create conflicting numbers, which should be resolved by renumbering at merge time.
+- Create the initial migration with all tables needed for experiment.yaml behaviors. Migration numbering is based on the current branch state — concurrent branches may create conflicting numbers, which should be resolved by renumbering at merge time.
 - If `stack.payment` is present and a payments/subscriptions table was created: return to the webhook handler (`src/app/api/webhooks/stripe/route.ts`) and resolve the `// TODO: Update user's payment status in database` using the new table before proceeding to Step 7.
 - If `stack.email` is present and the nudge route requires activation tracking: add `activated_at timestamptz` and `nudge_sent_at timestamptz` columns to the user-related table (or create a `user_status` table if no user table exists beyond Supabase auth). The nudge cron queries this to find un-activated, un-nudged users.
 - Also create `src/lib/types.ts` with TypeScript types matching the table schemas
 - Include post-merge database setup instructions in the PR body (see database stack file's "PR Instructions" section)
 
-If no features require database tables, skip this step.
+If no behaviors require database tables, skip this step.
 
 ### Step 7: Environment config
 - Generate `.env.example` by combining all environment variables from active stack files (framework, database, analytics, and any others that define env vars)
@@ -87,7 +87,7 @@ If `stack.testing` is present in experiment.yaml:
   ```
 - If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
   - Read the funnel test template from the testing stack file
-  - If experiment.yaml has `golden_path`: use it as the funnel sequence. Each step with an `action` becomes a test step. Read actual page source files for selectors. Steps with `value_moment: true` get an additional assertion that the action produces a visible result (not just page load).
+  - If experiment.yaml has `golden_path`: use it as the funnel sequence. Each step with an `action` becomes a test step. Read actual page source files for selectors. Steps marked as activation points get an additional assertion that the action produces a visible result (not just page load).
   - If experiment.yaml has no `golden_path`: fall back to reading experiment.yaml pages and EVENTS.yaml to determine funnel sequence
   - Read actual page source files (created in Step 4) to extract real selectors
   - Generate tests: landing content → activate action (if applicable) → login → core value pages
@@ -125,11 +125,11 @@ If `stack.testing` is present in experiment.yaml:
 - Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
 - Add CI step per the testing stack file's "CI Integration" section
 
-### Step 7c: Critical flow integration tests (if critical_flows present in experiment.yaml)
+### Step 7c: System/cron behavior integration tests (if behaviors with `actor: system/cron` present in experiment.yaml)
 
-If experiment.yaml has `critical_flows`:
+If experiment.yaml has behaviors with `actor: system/cron`:
 - If vitest is not already installed (check `package.json` devDependencies): install `vitest`
-- Create `tests/flows.test.ts` with one test per critical_flow:
+- Create `tests/flows.test.ts` with one test per system/cron behavior:
   - Each test calls the relevant API endpoint(s) with test payloads
   - Asserts the `verify` condition (database state, email queued, status updated)
   - Tests are independent — each sets up its own state and cleans up
@@ -140,7 +140,7 @@ If experiment.yaml has `critical_flows`:
 - Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
 - These tests are NOT run during bootstrap — only created (same as funnel tests)
 
-If experiment.yaml has no `critical_flows`: skip this step entirely.
+If experiment.yaml has no behaviors with `actor: system/cron`: skip this step entirely.
 
 NOTE: Tests are NOT run during bootstrap — only created
 
@@ -166,7 +166,7 @@ Re-read `.claude/current-plan.md` and `idea/experiment.yaml` now. Verify each of
 - If archetype requires `commands` (cli): for each command in `commands`, confirm `src/commands/<command-name>.ts` exists with a `register<CommandName>Command(program)` export, and verify it is registered in `src/index.ts` per the framework stack file
 
 **Feature and analytics checks:**
-- For each feature in `features`: confirm the implementation addresses it
+- For each behavior in `behaviors`: confirm the implementation addresses it
 - If `funnel_template` is `web` (web-app): for each standard_funnel event in `EVENTS.yaml`, confirm a tracking call exists in the appropriate page
 - If `funnel_template` is `custom` (service/cli): confirm custom_events tracking calls exist (if any are defined in EVENTS.yaml)
 - If surface ≠ none and archetype is `service`: confirm root route exists and returns HTML (Content-Type: text/html)

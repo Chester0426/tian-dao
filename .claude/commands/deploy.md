@@ -34,13 +34,13 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
     <npm audit output>
     Reply **continue** to deploy anyway, or fix vulnerabilities first with `npm audit fix`."
     Wait for user confirmation. If no critical vulnerabilities, proceed silently.
-4. Read `idea/experiment.yaml` — extract `name`, `stack.hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
+4. Read `idea/experiment.yaml` — extract `name`, `stack.services[0].hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `cli`:
-   - Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
+   - Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
    - If surface is `detached`: proceed with surface-only deployment (skip Steps 3-4, go directly to Step 5 surface deployment).
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
-6. **Hosting prerequisites:** Read the hosting stack file at `.claude/stacks/hosting/<stack.hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
+6. **Hosting prerequisites:** Read the hosting stack file at `.claude/stacks/hosting/<stack.services[0].hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
    - Run `install_check` — if not found, stop with `install_fix` instructions
    - Run `auth_check` — if fails, stop with `auth_fix` instructions
 7. **Database prerequisites** (if `stack.database` is present): Read the database stack file at `.claude/stacks/database/<stack.database>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
@@ -48,7 +48,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
    - Run `auth_check` — if fails, stop with `auth_fix` instructions
    - If the database has no Prerequisites section (e.g., sqlite), skip
 8. **Payment prerequisites:** If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
-9. **Compatibility check:** Read the database stack file's `## Deploy Interface > Hosting Requirements > incompatible_hosting`. If the current `stack.hosting` value appears in the list, stop with the reason from the stack file (e.g., "SQLite is incompatible with Vercel: serverless has no persistent filesystem").
+9. **Compatibility check:** Read the database stack file's `## Deploy Interface > Hosting Requirements > incompatible_hosting`. If the current `stack.services[0].hosting` value appears in the list, stop with the reason from the stack file (e.g., "SQLite is incompatible with Vercel: serverless has no persistent filesystem").
 10. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
    - `which <cli>` — record `cli_status: not_installed` (with install command) if not found
    - If found, run auth check — record `cli_status: not_authed` if fails
@@ -189,7 +189,7 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 Assemble the shared context block (read-only inputs for all agents):
 - `canonical_url`, hosting env var method (from hosting stack file's `## Deploy Interface > Environment Variables`), database refs/keys (from Step 3), hosting project `name` and team/account (from Step 4)
 - Hosting and database stack file paths (so agents can read provider-specific instructions)
-- experiment.yaml contents (name, title, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
+- experiment.yaml contents (name, description, variants, stack, type), `EVENTS.yaml` contents, archetype `funnel_template`
 - CLI statuses from Step 0
 
 Determine which agents to launch based on experiment.yaml stack (all use
@@ -216,7 +216,7 @@ Launch all applicable agents **simultaneously** using parallel Agent tool calls.
 #### Agent A — Database Auth config
 
 **Spawn condition:** `stack.auth: supabase` AND `stack.database: supabase`
-**Receives:** `canonical_url`, database refs/keys (from Step 3), experiment.yaml `title`/`name`, database stack file path, `oauth_credentials` from Step 1/3.5, `stack.auth_providers`
+**Receives:** `canonical_url`, database refs/keys (from Step 3), experiment.yaml `name`, database stack file path, `oauth_credentials` from Step 1/3.5, `stack.auth_providers`
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", env_vars_added: [], oauth_configured: ["google", ...], oauth_skipped: ["github", ...]}`
 
 Instructions for Agent A:
@@ -264,7 +264,7 @@ If webhook creation fails, return `{status: "failed", message: "<error details>"
 #### Agent C — Analytics Dashboard
 
 **Spawn condition:** `stack.analytics: posthog`
-**Receives:** `canonical_url`, experiment.yaml `name`/`title`/`variants`, archetype `funnel_template`, `EVENTS.yaml` content, `stack.payment` presence
+**Receives:** `canonical_url`, experiment.yaml `name`/`description`/`variants`, archetype `funnel_template`, `EVENTS.yaml` content, `stack.payment` presence
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", dashboard_url: "<url>"|null, env_vars_added: []}`
 
 Instructions for Agent C:
@@ -296,7 +296,7 @@ POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashboards/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.title>"}'
+  -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.name>"}'
 ```
 
 Extract the dashboard `id` from the response. Then create funnel insight. **Choose the funnel series based on the archetype's `funnel_template`:**
@@ -503,7 +503,7 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
   "name": "<experiment.yaml name>",
   "canonical_url": "<canonical_url>",
   "hosting": {
-    "provider": "<stack.hosting value>",
+    "provider": "<stack.services[0].hosting value>",
     ...provider-specific keys from hosting stack file's `## Deploy Interface > Manifest Keys`
   },
   "database": {

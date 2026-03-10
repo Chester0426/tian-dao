@@ -2,48 +2,44 @@
 # Exercises the auth/supabase standalone client path (no database: supabase).
 idea:
   name: test-auth-only
-  title: AuthOnly — App with Supabase Auth but No Supabase Database
-  owner: tester
-  template_repo: acme/experiment-template
   type: web-app
 
-  problem: |
+  description: |
     Users want a simple authenticated app that stores data in a third-party API
-    rather than a traditional database.
+    rather than a traditional database. A lightweight app with Supabase Auth for
+    login but no Supabase database — data is fetched from an external API using
+    the authenticated user's token.
 
-  solution: |
-    A lightweight app with Supabase Auth for login but no Supabase database — data
-    is fetched from an external API using the authenticated user's token.
+  thesis: "If we provide a simple auth-gated app backed by an external API, then at least 20 users will sign up, as measured by signups in 1 week"
 
   target_user: Developers building API-first apps with auth
 
   distribution: |
     Share in developer communities and forums.
 
-  pages:
-    - name: landing
-      purpose: Explain the app and direct users to sign up
-    - name: signup
-      purpose: Email/password registration form
-    - name: login
-      purpose: Email/password login form
-    - name: dashboard
-      purpose: Show data fetched from external API for the logged-in user
+  golden_path:
+    - step: Visit landing page
+      event: visit_landing
+      page: landing
+    - step: Open registration form
+      event: signup_start
+      page: signup
+    - step: Complete account registration
+      event: signup_complete
+      page: signup
+    - step: View dashboard with external API data
+      event: activate
+      page: dashboard
 
-  features:
-    - User authentication via email/password
-    - Dashboard displaying external API data for the authenticated user
-
-  primary_metric: Authenticated users
-  target_value: "20 users sign up in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: app
+        runtime: nextjs
+        hosting: vercel
+        ui: shadcn
     auth: supabase
     analytics: posthog
-    ui: shadcn
-    hosting: vercel
 
 events:
   standard_funnel:

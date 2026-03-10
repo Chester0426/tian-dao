@@ -2,119 +2,124 @@
 # All stack categories present: auth, payment, database, analytics, etc.
 idea:
   name: test-full-stack
-  title: FullStack — Complete MVP with Auth, Payment, and Database
-  owner: tester
-  template_repo: acme/experiment-template
   type: web-app
 
-  problem: |
-    Freelancers billing fewer than 5 clients per month waste time on invoicing.
-    They bounce between spreadsheets and manual payment follow-ups.
-
-  solution: |
-    A single-page invoicing tool where freelancers create an invoice in under 60 seconds,
+  description: |
+    Freelancers billing fewer than 5 clients per month waste time on invoicing,
+    bouncing between spreadsheets and manual payment follow-ups. A single-page
+    invoicing tool where freelancers create an invoice in under 60 seconds,
     send a payment link to clients, and get notified when paid.
+
+  thesis: "If freelancers can create invoices in under 60 seconds, then at least 10 will send a paid invoice, as measured by paid invoices within 2 weeks"
 
   target_user: Freelance designers and developers billing 1-5 clients per month
 
   distribution: |
     Post launch in r/freelance and Indie Hackers. LinkedIn posts targeting freelancers.
 
-  pages:
-    - name: landing
-      purpose: Explain value prop, show pricing, collect signups
-    - name: signup
-      purpose: Email/password registration form
-    - name: login
-      purpose: Email/password login form
-    - name: dashboard
-      purpose: List all invoices with status and total revenue
-    - name: invoice-create
-      purpose: Form to create a new invoice with line items
-    - name: invoice-view
-      purpose: Public shareable invoice page with pay button
-    - name: settings
-      purpose: Profile, business details, Stripe connection
-
-  features:
-    - Create invoices with line items, tax, and due date
-    - Send invoice link to client via email
-    - Stripe checkout for client payments
-    - Dashboard showing invoice statuses and total revenue
-    - Email reminders for overdue invoices
-
-  primary_metric: Paid invoices
-  target_value: "10 freelancers send at least 1 paid invoice"
-  measurement_window: 2 weeks
-
-  stack:
-    framework: nextjs
-    hosting: vercel
-    database: supabase
-    auth: supabase
-    analytics: posthog
-    ui: shadcn
-    payment: stripe
-
   level: 3
-  thesis: "If freelancers can create invoices in under 60 seconds, at least 10 will send a paid invoice within 2 weeks"
 
   hypotheses:
-    - id: h_demand_1
+    - id: h-01
       category: demand
       statement: "At least 5% of landing visitors will click the CTA"
-      test_method: "A/B landing page with analytics"
       success_metric: "CTA click-through rate"
       threshold: ">5% CTR"
-      priority_score: 9
+      priority_score: 90
       experiment_level: 1
       depends_on: []
       status: pending
-    - id: h_feasibility_1
+    - id: h-02
       category: feasibility
       statement: "Invoice creation works in under 60 seconds"
-      test_method: "Build and measure time-to-complete"
       success_metric: "Median time to first sent invoice"
       threshold: "<60 seconds"
-      priority_score: 8
+      priority_score: 80
       experiment_level: 2
-      depends_on: [h_demand_1]
+      depends_on: [h-01]
       status: pending
-    - id: h_monetize_1
+    - id: h-03
       category: monetize
       statement: "At least 20% of active users will start checkout"
-      test_method: "Stripe integration with analytics"
       success_metric: "Checkout start rate"
       threshold: ">20% of active users"
-      priority_score: 7
+      priority_score: 70
       experiment_level: 3
-      depends_on: [h_feasibility_1]
+      depends_on: [h-02]
       status: pending
 
   behaviors:
-    - id: b_1
-      hypothesis_id: h_demand_1
+    - id: b-01
+      hypothesis_id: h-01
       given: "A visitor lands on the landing page"
       when: "They see the CTA"
       then: "They click the CTA button"
+      tests:
+        - "Landing page renders CTA button"
+        - "Clicking CTA navigates to signup"
       level: 1
-    - id: b_2
-      hypothesis_id: h_feasibility_1
+    - id: b-02
+      hypothesis_id: h-02
       given: "A logged-in user is on the invoice-create page"
       when: "They fill in line items and click send"
       then: "An invoice is created and a payment link is generated"
+      tests:
+        - "Invoice form accepts line items and submits"
+        - "Payment link is generated after invoice creation"
       level: 2
 
+  golden_path:
+    - step: Visit landing page
+      event: visit_landing
+      page: landing
+    - step: Open registration form
+      event: signup_start
+      page: signup
+    - step: Complete account registration
+      event: signup_complete
+      page: signup
+    - step: Create first invoice
+      event: activate
+      page: invoice-create
+    - step: View invoice with pay button
+      event: pay_start
+      page: invoice-view
+
   funnel:
-    thresholds:
-      visit_to_cta: ">5%"
-      cta_to_signup: ">15%"
-      signup_to_activate: ">30%"
-      activate_to_pay: ">20%"
-    decision_framework: |
-      CONTINUE if: CTR >5% AND signup >15%
-      PIVOT if: CTR >3% but signup <10%
-      KILL if: CTR <3% after 200 visitors
+    reach:
+      metric: "Landing page visitors from distribution channels"
+      threshold: ">200 visitors in 2 weeks"
+      available_from: L1
+    demand:
+      metric: "CTA click-through rate"
+      threshold: ">5%"
+      available_from: L1
+    monetize:
+      metric: "Checkout start rate among active users"
+      threshold: ">20%"
+      available_from: L2
+    retain:
+      metric: "Return visits within 7 days"
+      threshold: ">15%"
+      available_from: L3
+
+  decision_framework:
+    scale: "CTR >5% AND signup >15% AND checkout >20%"
+    refine: "CTR >5% AND signup >15% but checkout <20%"
+    pivot: "CTR >3% but signup <10%"
+    kill: "CTR <3% after 200 visitors"
+
+
+  stack:
+    services:
+      - name: app
+        runtime: nextjs
+        hosting: vercel
+        ui: shadcn
+    database: supabase
+    auth: supabase
+    analytics: posthog
+    payment: stripe
 
 events:
   standard_funnel:

@@ -110,11 +110,10 @@ def fake_fixture(
         "solution": "Test solution",
         "target_user": "Developers",
         "distribution": "organic",
-        "features": [{"name": "core", "description": "Core feature"}],
-        "primary_metric": "signups",
-        "target_value": 100,
-        "measurement_window": "7d",
-        "stack": stack or {"framework": "nextjs", "analytics": "posthog", "ui": "shadcn", "hosting": "vercel"},
+        "description": "Test experiment description",
+        "thesis": "If we build X, then Y will happen, measured by signups reaching 100",
+        "behaviors": [{"id": "core", "description": "Core behavior"}],
+        "stack": stack or {"services": [{"name": "web", "runtime": "nextjs", "hosting": "vercel", "ui": "shadcn"}], "analytics": "posthog"},
     }
     if pages is not None:
         idea["pages"] = pages

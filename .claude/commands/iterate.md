@@ -23,12 +23,11 @@ This skill does NOT write code. It helps you decide what action to take, then po
 - Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
 - Check if `stack.analytics` is present in experiment.yaml. If not, warn: "No analytics stack configured — skipping auto-query. You can provide funnel numbers manually in Step 2b, or add `analytics: posthog` to experiment.yaml `stack` and run `/change add analytics` for automated tracking." Skip Step 2a entirely and proceed to Step 2b.
 - Read `idea/experiment.yaml` — understand the hypothesis:
-  - What are we building? (`title`, `solution`)
+  - What are we building? (`name`, `description`)
   - For whom? (`target_user`)
-  - What does success look like? (`primary_metric`, `target_value`)
-  - How long do we have? (`measurement_window`)
-  - What features exist? (`features`)
-  - What is the scope? (`pages` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_idea_fields`)
+  - What does success look like? (`thesis`, `funnel` thresholds)
+  - What behaviors exist? (`behaviors`)
+  - What is the scope? (pages from `golden_path` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_idea_fields`)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Note the `funnel_template` value:
   - `web` (web-app) — funnel events come from EVENTS.yaml `standard_funnel`
   - `custom` (service, cli) — funnel events come from EVENTS.yaml `custom_events` and the experiment's own event definitions
@@ -83,7 +82,7 @@ Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask 
 
 1. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty and not already fetched in 2a, ask for counts of each custom event. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
 
-2. **Timeline** — how far into the `measurement_window` are we?
+2. **Timeline** — how far into the experiment timeline are we?
 
 3. **Qualitative feedback** — any user quotes, complaints, feature requests, support messages?
 
@@ -110,8 +109,8 @@ Before diagnosing details, assess overall experiment health. This verdict is the
 ### 3a: Calculate progress
 
 From the data gathered in Step 2, determine:
-- **Time elapsed**: parse `measurement_window` (e.g., "2 weeks" = 14 days) and ask the user how many days have passed (or derive from timeline data in 2c). Calculate `time_pct = elapsed_days / total_days`.
-- **Target progress**: compare the user's reported metrics against `target_value` from experiment.yaml. Extract the target number and the closest matching metric (e.g., `target_value: "10 paid invoices"` → compare against `activate` or `pay_success` count). Calculate `target_pct = achieved / target_number`.
+- **Time elapsed**: ask the user how many days the experiment has been running and the total planned duration. Calculate `time_pct = elapsed_days / total_days`.
+- **Target progress**: extract the target from experiment.yaml `thesis` (e.g., "10+ will complete at least one paid invoice within 2 weeks" → target = 10 paid invoices). Compare against the closest matching funnel metric. Calculate `target_pct = achieved / target_number`.
 - **Pace**: `pace = target_pct / time_pct`. A pace of 1.0 means exactly on track; >1.0 means ahead; <1.0 means behind.
 - **Budget progress (if ads running)**: if the user provided ads spend data, calculate `budget_pct = spent / total_budget`.
 
@@ -147,7 +146,7 @@ Output the verdict prominently:
 
 - The verdict is a **guideline, not an order** — the user makes the final call
 - Qualitative signals (user feedback, feature requests) can override quantitative pace
-- If `target_value` is not cleanly numeric (e.g., "validate that freelancers will pay"), use the closest measurable proxy and note the approximation
+- If `thesis` target is not cleanly numeric (e.g., "validate that freelancers will pay"), use the closest measurable proxy and note the approximation
 - For experiments without ads (organic only), budget dimension is omitted
 
 ## Step 3.5: Per-Hypothesis Verdicts
@@ -321,7 +320,7 @@ If `idea/ads.yaml` exists and the campaign has been running for the full `budget
 | 0 activations, >10 signups | Activation problem | `/change` to reduce activation friction |
 | 0 activations, >50 clicks, <3 signups | Landing page problem | `/change` to improve landing page |
 | 0 activations, <50 clicks, <1% CTR | Targeting problem | Revise targeting in ads.yaml, re-run `/distribute` |
-| 0 activations, <50 clicks, >1% CTR | Budget/time problem | Extend budget or measurement window |
+| 0 activations, <50 clicks, >1% CTR | Budget/time problem | Extend budget or experiment duration |
 
 Read `thresholds.go_signal` and `thresholds.no_go_signal` from `idea/ads.yaml` and use them as the primary decision criteria. The table above provides additional diagnostic detail.
 
@@ -377,7 +376,7 @@ This file is read by `/change` to provide context for the next iteration.
 
 If the diagnosis reveals a need to change direction:
 
-### Minor pivot (keep same target user, adjust features)
+### Minor pivot (keep same target user, adjust behaviors)
 - Propose the changes to the user and list the specific edits to experiment.yaml
 - The user should edit experiment.yaml manually, then run `/change ...` to implement the changes (or `make clean` followed by `/bootstrap` to rebuild from scratch)
 
@@ -392,7 +391,7 @@ If the diagnosis reveals a need to change direction:
 - Remind them: "After updating experiment.yaml, run `make clean` then `/bootstrap` to start a new experiment (or in a fresh repo), or `/change ...` to iteratively shift the existing one."
 
 ### On track (verdict is SCALE)
-- Say so clearly: "The Step 3 verdict is SCALE. You're on track. [X] of [target_value] achieved with [Y days] remaining."
+- Say so clearly: "The Step 3 verdict is SCALE. You're on track. [X] of [target from thesis] achieved with [Y days] remaining."
 - Recommend: keep going, focus on distribution, or run `/change improve conversion` to improve conversion
 - If the experiment shows strong, sustained traction: suggest `/harden` as a graduation step: "Consider graduating to production quality: run `/harden` to add TDD coverage to critical paths before scaling. This adds specification tests to auth, payment, and core business logic."
 
@@ -413,7 +412,7 @@ Your measurement window ends in [X days]. [Verdict-specific guidance].
 ```
 
 ### Retro reminder
-If the experiment is near the end of its `measurement_window` or the user is considering stopping:
+If the experiment is near its planned end date or the user is considering stopping:
 > Your measurement window ends in [X days]. When you're ready to wrap up, run **`/retro`** to generate a structured retrospective and file it as feedback on the template repo.
 
 ### Next Check-in
@@ -427,10 +426,10 @@ Based on the measurement window and current progress, provide a concrete schedul
 |-----------|------|--------|
 | Next data check | [3 days from now] | Run `/iterate` again |
 | Decision point | [when time_pct hits 50%] | Verdict becomes actionable — REFINE/KILL verdicts require decision |
-| Window closes | [measurement_window end date] | Run `/retro` to file retrospective |
+| Window closes | [experiment end date] | Run `/retro` to file retrospective |
 ```
 
-- Calculate dates from `measurement_window` and the elapsed days reported in Step 3
+- Calculate dates from the experiment timeline and the elapsed days reported in Step 3
 - If verdict is TOO EARLY, set next check-in to 3 days or when 30+ visits are expected
 - If verdict is KILL, the next check-in is NOW — recommend immediate decision
 - Tell the user: "Set a calendar reminder for [next check-in date] to run `/iterate` again."

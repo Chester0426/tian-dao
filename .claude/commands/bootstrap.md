@@ -58,9 +58,9 @@ DO NOT write any code, create any files, or run any install commands during this
    - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
 
 3. **Validate experiment.yaml**
-   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `title`, `owner`, `problem`, `solution`, `target_user`, `distribution`, `features`, `primary_metric`, `target_value`, `measurement_window`, `stack`, plus fields from the archetype's `required_idea_fields` (e.g., `pages` for web-app, `endpoints` for service)
+   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_idea_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
    - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
-   - If the archetype requires `pages` (web-app): verify `pages` includes an entry with `name: landing`
+   - If the archetype requires pages (web-app): verify `golden_path` includes at least one entry with `page: landing`
    - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
    - If the archetype requires `commands` (cli): verify `commands` is a non-empty list
    - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
@@ -80,9 +80,8 @@ DO NOT write any code, create any files, or run any install commands during this
      - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
      - Each `slug` must be lowercase, start with a letter, and use only a-z, 0-9, hyphens
      - Slugs must be unique across all variants
-     - No slug may collide with a page name from `pages`
+     - No slug may collide with a page name from `golden_path`
      - `pain_points` must have exactly 3 items per variant
-     - At most one variant may have `default: true`
      - If any validation fails: stop and list the specific errors
 
 3b. **Check for duplicate experiments and update repo description**
@@ -90,9 +89,9 @@ DO NOT write any code, create any files, or run any install commands during this
    1. Detect the GitHub org: run `gh repo view --json owner --jq '.owner.login'`.
       If this fails (not a GitHub repo, or `gh` not authed), skip this entire step silently.
 
-   2. Update the repo description with experiment.yaml `title`:
+   2. Update the repo description with experiment.yaml `name` and `description` (first line):
       ```bash
-      gh repo edit --description "<experiment.yaml title>"
+      gh repo edit --description "<experiment.yaml name>: <first line of description>"
       ```
       If this fails, warn but continue — description is cosmetic.
 
@@ -105,7 +104,7 @@ DO NOT write any code, create any files, or run any install commands during this
    4. Soft check — LLM-filtered duplicate detection:
       Run `gh repo list <org> --json name,description,url --limit 200 --no-archived`.
       Exclude the current repo from the list. Review the remaining repo names and
-      descriptions against the current experiment.yaml (`title`, `problem`, `solution`,
+      descriptions against the current experiment.yaml (`name`, `description`,
       `target_user`). Identify repos that appear to solve a substantially similar
       problem for a similar audience.
 
@@ -141,15 +140,15 @@ DO NOT write any code, create any files, or run any install commands during this
    - [Page Name] (/route) — [purpose from experiment.yaml]
    - ...
 
-   **Features:**
-   - [feature 1] → built in [file(s)]
-   - [feature 2] → built in [file(s)]
+   **Behaviors:**
+   - [b-NN: behavior description] → built in [file(s)]
+   - [b-NN: behavior description] → built in [file(s)]
    - ...
 
    **Variants (if experiment.yaml has `variants`):**
-   - [slug] — "[headline]" → /v/[slug] [default if applicable]
    - [slug] — "[headline]" → /v/[slug]
-   - Root `/` renders: [default variant slug]
+   - [slug] — "[headline]" → /v/[slug]
+   - Root `/` renders: [first variant slug]
 
    **Database Tables (if any):**
    - [table name] — stores [what]
@@ -161,32 +160,31 @@ DO NOT write any code, create any files, or run any install commands during this
    - ...
    - (Or: "None — all features use stack-managed services")
 
-   Core = removing it prevents users from completing primary_metric ("[value]").
+   Core = removing it prevents users from validating the thesis.
 
    **Analytics Events:**
    - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
    - [For each payment_funnel event if stack.payment present, show: event_name on page/route]
 
    **Golden Path (from experiment.yaml):**
-   | Step | Page | Action | Event | Value Moment |
-   |------|------|--------|-------|--------------|
-   | 1 | [page] | [action] | [event] | [yes/no] |
+   | Step | Page | Event |
+   |------|------|-------|
+   | 1. [step] | [page] | [event] |
    Target: [target_clicks] clicks
 
-   If experiment.yaml has no `golden_path` field: derive one from pages + EVENTS.yaml standard_funnel,
+   If experiment.yaml has no `golden_path` field: derive one from behaviors + EVENTS.yaml standard_funnel,
    present it in the plan, and write it back to experiment.yaml after approval (Step 7).
 
-   **Critical Flows (from experiment.yaml):**
-   | Flow | Trigger | Actor | Steps | Verify |
-   |------|---------|-------|-------|--------|
-   | [name] | [trigger] | [actor] | [steps summary] | [verify] |
+   **System/Cron Behaviors (from experiment.yaml):**
+   | Behavior | Actor | Trigger | Then |
+   |----------|-------|---------|------|
+   | [b-NN] | [actor] | [trigger] | [then] |
 
-   If experiment.yaml has no `critical_flows`: "None defined — operational chains will be tested manually.
-   Use `/change` to add critical_flows after the first webhook, admin, or cron feature."
+   If no behaviors have `actor: system` or `actor: cron`: "None defined — all behaviors are user-initiated."
 
    **Activation mapping:**
-   - experiment.yaml primary_metric: [metric]
-   - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all features are descriptive, activate will be omitted" if no feature involves an interactive user action
+   - experiment.yaml thesis: [thesis]
+   - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all behaviors are descriptive, activate will be omitted" if no behavior involves an interactive user action
 
    **Tests (if stack.testing present):**
    - Test runner: [testing stack value]
@@ -206,7 +204,7 @@ DO NOT write any code, create any files, or run any install commands during this
    DO NOT proceed to Phase 2 until the user explicitly replies with approval.
    If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in experiment.yaml), write it back to `idea/experiment.yaml` after approval. If `critical_flows` was identified during planning but not in experiment.yaml, write it back to `idea/experiment.yaml` after approval.
+7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in experiment.yaml), write it back to `idea/experiment.yaml` after approval.
 
 ## Phase 2: Implement (only after the user has approved)
 
@@ -348,8 +346,8 @@ Run combined verification after all four parallel subagents complete — these c
 
 1. **Build**: run `npm run build` — the project must compile
 2. **Page/endpoint/command existence:**
-   - If archetype is `web-app`: for each page in experiment.yaml `pages`, verify
-     `src/app/<page-name>/page.tsx` exists (or root page for `landing`).
+   - If archetype is `web-app`: for each unique page referenced in experiment.yaml `golden_path`,
+     verify `src/app/<page-name>/page.tsx` exists (or root page for `landing`).
      If surface ≠ none: verify landing page file exists (`src/app/page.tsx`
      or `src/components/landing-content.tsx` for variants)
    - If archetype is `service`: for each endpoint in experiment.yaml `endpoints`,
@@ -359,9 +357,9 @@ Run combined verification after all four parallel subagents complete — these c
 3. **Analytics wiring** (if `stack.analytics` is present): for each
    standard_funnel event in EVENTS.yaml, grep for the event name in `src/`
    to confirm a tracking call exists. Also verify analytics constants:
-   grep `src/lib/analytics*.ts` for `PROJECT_NAME` and `PROJECT_OWNER` —
-   both must equal the actual experiment.yaml `name` and `owner` values, not
-   `"TODO"` strings
+   grep `src/lib/analytics*.ts` for `PROJECT_NAME` —
+   it must equal the actual experiment.yaml `name` value, not
+   a `"TODO"` string
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
 

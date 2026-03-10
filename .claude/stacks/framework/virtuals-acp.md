@@ -17,7 +17,7 @@ clean:
 gitignore: []
 ---
 # Framework: Virtuals ACP
-> Used when experiment.yaml has `stack.framework: virtuals-acp`
+> Used when experiment.yaml has `stack.services[].runtime: virtuals-acp`
 > Assumes: nothing (standalone persistent-process agent)
 
 ## Packages

@@ -179,7 +179,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
 ### Config Gathering
 
 - **CLI command:** `vercel teams list` — lists available teams (or personal account)
-- **experiment.yaml field:** `deploy.vercel_team` — if set, skip the prompt
+- Prompt user for Vercel team selection during deploy (no experiment.yaml field for this)
 
 ### Project Setup
 

@@ -2,17 +2,13 @@
 # Validates that service archetype works with the ACP Agent stack (protocol agent, not HTTP server).
 idea:
   name: test-service-acp
-  title: Token Security Intelligence Agent
-  owner: tester
-  template_repo: acme/experiment-template
   type: service
 
-  problem: |
+  description: |
     Crypto traders need quick risk assessments for new tokens before investing.
-
-  solution: |
     An ACP agent that performs multi-source token analysis and returns risk reports.
 
+  thesis: "If we provide automated token risk analysis via ACP, then crypto traders will use it before investing, as measured by tasks completed per day"
   target_user: Crypto traders evaluating new token launches
 
   distribution: |
@@ -24,19 +20,14 @@ idea:
     - name: scan-protocol
       purpose: Protocol-level risk scan with TVL and liquidity data
 
-  features:
-    - Token risk analysis endpoint
-    - Protocol scanning endpoint
-
-  primary_metric: Tasks completed per day
-  target_value: "50 tasks in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: virtuals-acp
+    services:
+      - name: api
+        runtime: virtuals-acp
+        hosting: railway
+        testing: vitest
     analytics: posthog
-    hosting: railway
-    testing: vitest
 
 events:
   standard_funnel:

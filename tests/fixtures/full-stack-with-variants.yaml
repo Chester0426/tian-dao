@@ -2,18 +2,15 @@
 # Tests experiment matrix support with variant messaging.
 idea:
   name: test-full-stack-variants
-  title: FullStack Variants — MVP with Auth, Database, and Messaging Variants
-  owner: tester
-  template_repo: acme/experiment-template
   type: web-app
 
-  problem: |
-    Freelancers billing fewer than 5 clients per month waste time on invoicing.
-    They bounce between spreadsheets and manual payment follow-ups.
-
-  solution: |
-    A single-page invoicing tool where freelancers create an invoice in under 60 seconds,
+  description: |
+    Freelancers billing fewer than 5 clients per month waste time on invoicing,
+    bouncing between spreadsheets and manual payment follow-ups. A single-page
+    invoicing tool where freelancers create an invoice in under 60 seconds,
     send a payment link to clients, and get notified when paid.
+
+  thesis: "If freelancers can create and send invoices in under 60 seconds, then at least 10 will send an invoice, as measured by invoices sent within 2 weeks"
 
   target_user: Freelance designers and developers billing 1-5 clients per month
 
@@ -32,7 +29,6 @@ idea:
       promise: "Create and send invoices in under 60 seconds"
       proof: "Used by 500+ freelancers in beta"
       urgency: "Every day without invoicing costs you billable hours"
-      default: true
     - slug: simplicity
       headline: "Dead-Simple Invoicing for Freelancers"
       subheadline: "No accounting degree needed. Professional invoices in minutes."
@@ -45,34 +41,30 @@ idea:
       proof: "Built by freelancers, for freelancers"
       urgency: "Tax season is coming — get your invoicing sorted now"
 
-  pages:
-    - name: landing
-      purpose: Explain value prop, show pricing, collect signups
-    - name: signup
-      purpose: Email/password registration form
-    - name: login
-      purpose: Email/password login form
-    - name: dashboard
-      purpose: List all invoices with status and total revenue
-    - name: invoice-create
-      purpose: Form to create a new invoice with line items
+  golden_path:
+    - step: Visit landing page
+      event: visit_landing
+      page: landing
+    - step: Open registration form
+      event: signup_start
+      page: signup
+    - step: Complete account registration
+      event: signup_complete
+      page: signup
+    - step: Create first invoice
+      event: activate
+      page: invoice-create
 
-  features:
-    - Create invoices with line items, tax, and due date
-    - Send invoice link to client via email
-    - Dashboard showing invoice statuses and total revenue
-
-  primary_metric: Invoices sent
-  target_value: "10 freelancers send at least 1 invoice"
-  measurement_window: 2 weeks
 
   stack:
-    framework: nextjs
-    hosting: vercel
+    services:
+      - name: app
+        runtime: nextjs
+        hosting: vercel
+        ui: shadcn
     database: supabase
     auth: supabase
     analytics: posthog
-    ui: shadcn
 
 events:
   standard_funnel:

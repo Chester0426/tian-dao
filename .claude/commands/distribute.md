@@ -23,7 +23,7 @@ This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and t
 
 ## Step 0: Archetype check and branch setup
 
-Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured. Options: (1) add `stack.surface: co-located` or `detached` to experiment.yaml and re-run `/distribute`, or (2) distribute manually — for CLI tools: `npm publish` to npm registry, GitHub Releases for binaries, Homebrew for macOS; for services: API marketplace listings, documentation links, or direct outreach. See the archetype file for details."
+Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`. If surface is `none`, stop **before creating a branch**: "The /distribute skill generates ad campaigns that drive traffic to a surface page. No surface is configured. Options: (1) add `stack.surface: co-located` or `detached` to experiment.yaml and re-run `/distribute`, or (2) distribute manually — for CLI tools: `npm publish` to npm registry, GitHub Releases for binaries, Homebrew for macOS; for services: API marketplace listings, documentation links, or direct outreach. See the archetype file for details."
 
 If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/branch.md`. Branch: `chore/distribute`.
 
@@ -39,7 +39,7 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
    2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
    3. Read the selected channel's stack file at `.claude/stacks/distribution/<channel>.md`
 7. **Policy check:**
-   1. Read experiment.yaml `problem` and `solution`
+   1. Read experiment.yaml `description`
    2. Match against restricted-industry keywords: `crypto`, `DeFi`, `token`, `ICO`, `blockchain`, `NFT`, `yield`, `staking`, `liquidity`, `protocol`, `wallet`, `exchange`, `mining`, `DAO`
    3. If match found, read the selected channel's "Policy Restrictions" section
    4. If the channel restricts or bans the category, warn the user: "⚠ Your experiment mentions [keyword]. [Channel] [restricts/bans] this category: [details]. Consider switching to [alternative channels that allow it]."
@@ -58,7 +58,7 @@ Store as hypothesis context for Step 3. If the file does not exist, skip — all
 
 ## Step 2: Research targeting
 
-Read `idea/experiment.yaml`: `problem`, `solution`, `target_user`, `title`, `features`.
+Read `idea/experiment.yaml`: `description`, `target_user`, `name`, `behaviors`.
 
 Read the selected channel's stack file "Targeting Model" section, then generate targeting research appropriate for the channel:
 
@@ -114,7 +114,7 @@ Keyword rules (google-ads):
 
 ## Step 3: Generate ad creative
 
-Derive from experiment.yaml `title`, `solution`, and `primary_metric`.
+Derive from experiment.yaml `name`, `description`, and `thesis`.
 
 ### Ad format constraints
 
@@ -141,7 +141,7 @@ Follow the message match rules in `.claude/patterns/messaging.md`. Ad headlines 
 ### Variant ad groups (when experiment.yaml has `variants`)
 When experiment.yaml has a `variants` field, generate per-variant creative:
 - Create a separate ad group/creative set per variant
-- Each variant's creative is derived from that variant's `headline` field (not from the shared `solution`)
+- Each variant's creative is derived from that variant's `headline` field (not from the shared `description`)
 - Each variant's landing URL includes `utm_content={slug}` (e.g., `?utm_source={source}&utm_medium={medium}&utm_campaign={campaign_name}&utm_content=speed`)
 - Each variant's landing URL points to `/v/{slug}` (e.g., `https://example.vercel.app/v/speed?...`)
 - Follow messaging.md Section D: ad headlines for a variant match that variant's landing page headline
@@ -177,17 +177,17 @@ Expected [clicks/impressions]: [calculation]
 Expected signups: [clicks * landing-to-signup rate] ([rate]% — [reasoning])
 Expected activations: [signups * signup-to-activate rate] ([rate]% — [reasoning])
 
-Go signal: [N]+ activations from paid traffic in [measurement_window]
+Go signal: [N]+ activations from paid traffic within experiment timeline
 No-go signal: 0 activations after $[half-budget] spend, or <1% CTR after 500 impressions
 ```
 
-4. Define go/no-go signals based on experiment.yaml `target_value` and `measurement_window`
+4. Define go/no-go signals based on experiment.yaml `thesis` and `funnel` thresholds
 
 ### Schema rules for ads.yaml
 - `channel`: the selected distribution channel (e.g., `google-ads`, `twitter`, `reddit`)
 - `campaign_name`: auto-generated following the channel's config schema pattern (e.g., `{idea.name}-search-v{N}` for google-ads, `{idea.name}-twitter-v{N}` for twitter)
 - `budget.total_budget_cents`: defaults to 10000 ($100), max 50000 ($500) without explicit override
-- `budget.duration_days`: defaults to experiment.yaml `measurement_window` parsed to days
+- `budget.duration_days`: defaults to 14 (standard experiment window) unless overridden
 - `guardrails`: channel-specific — CPC channels require `max_cpc_cents`; other channels may use `max_cpe_cents` or just `auto_pause_rules`
 - `thresholds`: AI-generated from experiment.yaml context using first-principles reasoning
 
@@ -243,7 +243,7 @@ custom_events:
       activation_action:
         type: string
         required: true
-        description: What activation action preceded this (from experiment.yaml primary_metric)
+        description: What activation action preceded this (from experiment.yaml thesis)
 ```
 
 Add a `FeedbackWidget` component at `src/components/feedback-widget.tsx`:

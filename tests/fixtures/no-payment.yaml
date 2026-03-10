@@ -2,52 +2,44 @@
 # Tests that payment_funnel events are absent when stack.payment is missing.
 idea:
   name: test-no-payment
-  title: NoPayment — Auth App Without Payment
-  owner: tester
-  template_repo: acme/experiment-template
   type: web-app
 
-  problem: |
+  description: |
     Teams need a simple shared notes tool but existing options are too complex.
-
-  solution: |
     A minimal collaborative notes app where teams create, edit, and share notes.
     Free to use — no payment required.
+
+  thesis: "If we provide a dead-simple shared notes tool, then at least 5 teams will create 3+ notes each, as measured by active notes within 2 weeks"
 
   target_user: Small teams of 2-5 people who need shared notes
 
   distribution: |
     Post in ProductHunt and relevant Slack communities.
 
-  pages:
-    - name: landing
-      purpose: Explain the value prop and link to signup
-    - name: signup
-      purpose: Email/password registration form
-    - name: login
-      purpose: Email/password login form
-    - name: dashboard
-      purpose: List all notes with search and create button
-    - name: note-edit
-      purpose: Editor for creating and editing a note
+  golden_path:
+    - step: Visit landing page
+      event: visit_landing
+      page: landing
+    - step: Open registration form
+      event: signup_start
+      page: signup
+    - step: Complete account registration
+      event: signup_complete
+      page: signup
+    - step: Create first note
+      event: activate
+      page: note-edit
 
-  features:
-    - Create and edit markdown notes
-    - Share notes with team members via link
-    - Dashboard with search and filter
-    - Real-time collaborative editing
-
-  primary_metric: Active notes
-  target_value: "5 teams create at least 3 notes each"
-  measurement_window: 2 weeks
 
   stack:
-    framework: nextjs
-    hosting: vercel
+    services:
+      - name: app
+        runtime: nextjs
+        hosting: vercel
+        ui: shadcn
     database: supabase
     auth: supabase
     analytics: posthog
-    ui: shadcn
 
 events:
   standard_funnel:

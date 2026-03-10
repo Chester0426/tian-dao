@@ -17,7 +17,7 @@ clean:
 gitignore: []
 ---
 # Framework: Hono
-> Used when experiment.yaml has `stack.framework: hono`
+> Used when experiment.yaml has `stack.services[].runtime: hono`
 
 ## Packages
 ```bash

@@ -17,7 +17,7 @@ clean:
 gitignore: []
 ---
 # Framework: Commander.js
-> Used when experiment.yaml has `stack.framework: commander`
+> Used when experiment.yaml has `stack.services[].runtime: commander`
 > Assumes: nothing (standalone CLI tool)
 
 ## Packages

@@ -49,35 +49,17 @@ if idea_type is not None:
 
 # --- Resolve archetype metadata ---
 effective_type = idea_type if idea_type is not None else "web-app"
-archetype_path_resolved = f".claude/archetypes/{effective_type}.md"
-archetype_fm = {}
-if os.path.isfile(archetype_path_resolved):
-    with open(archetype_path_resolved) as af:
-        _content = af.read()
-    _m = re.match(r"^---\n(.*?\n)---", _content, re.DOTALL)
-    if _m:
-        archetype_fm = yaml.safe_load(_m.group(1)) or {}
-archetype_required = archetype_fm.get("required_idea_fields", ["pages"])
-
-# --- Landing page (only for archetypes that require pages) ---
-pages = data.get("pages", [])
-if "pages" in archetype_required:
-    if not any(p.get("name") == "landing" for p in pages):
-        print("Error: pages must include an entry with name: landing")
-        print("Add a landing page to the pages list in experiment.yaml.")
-        sys.exit(1)
 
 # --- Required fields ---
 base_required = [
-    "name", "title", "owner", "problem", "solution", "target_user",
-    "distribution", "features", "primary_metric", "target_value",
-    "measurement_window", "stack",
+    "name", "description", "thesis", "target_user",
+    "distribution", "stack", "golden_path",
 ]
-required = base_required + archetype_required
-missing = [f for f in required if not data.get(f)]
+missing = [f for f in base_required if not data.get(f)]
 if missing:
     print("Error: these required fields are missing or empty: " + ", ".join(missing))
     sys.exit(1)
+
 # --- Variants validation (optional field) ---
 variants = data.get("variants")
 if variants is not None:
@@ -91,9 +73,7 @@ if variants is not None:
         )
         sys.exit(1)
 
-    page_names = {p.get("name") for p in pages if isinstance(p, dict)}
     slugs_seen = set()
-    default_count = 0
 
     for i, v in enumerate(variants):
         if not isinstance(v, dict):
@@ -119,10 +99,6 @@ if variants is not None:
             sys.exit(1)
         slugs_seen.add(slug)
 
-        if slug in page_names:
-            print(f"Error: variant slug '{slug}' collides with page name '{slug}'")
-            sys.exit(1)
-
         pp = v.get("pain_points", [])
         if not isinstance(pp, list) or len(pp) != 3:
             print(f"Error: variants[{i}].pain_points must have exactly 3 items")
@@ -136,14 +112,7 @@ if variants is not None:
                     print(f"Error: variants[{i}].{enrich_field} must be a non-empty string (or remove it)")
                     sys.exit(1)
 
-        if v.get("default"):
-            default_count += 1
-
-    if default_count > 1:
-        print("Error: at most one variant may have default: true")
-        sys.exit(1)
-
-# --- Golden path validation (optional field) ---
+# --- Golden path validation (required field) ---
 golden_path = data.get("golden_path")
 if golden_path is not None:
     if not isinstance(golden_path, list):
@@ -153,41 +122,15 @@ if golden_path is not None:
         print("Error: golden_path must have at least 2 entries")
         sys.exit(1)
 
-    page_names = {p.get("name") for p in pages if isinstance(p, dict)}
-    implicit_auth_pages = {"signup", "login"}
-    has_value_moment = False
-
-    for i, step in enumerate(golden_path):
-        if not isinstance(step, dict):
+    for i, gp_step in enumerate(golden_path):
+        if not isinstance(gp_step, dict):
             print(f"Error: golden_path[{i}] must be a mapping")
             sys.exit(1)
 
-        step_page = step.get("page")
-        step_action = step.get("action")
-        if not step_page or not isinstance(step_page, str):
-            print(f"Error: golden_path[{i}].page is missing or empty")
+        step_val = gp_step.get("step")
+        if not step_val or not isinstance(step_val, str):
+            print(f"Error: golden_path[{i}].step is missing or empty")
             sys.exit(1)
-        if not step_action or not isinstance(step_action, str):
-            print(f"Error: golden_path[{i}].action is missing or empty")
-            sys.exit(1)
-
-        if step_page not in page_names and step_page not in implicit_auth_pages:
-            print(
-                f"Error: golden_path[{i}].page '{step_page}' "
-                "is not in the pages list and is not an implicit auth page"
-            )
-            sys.exit(1)
-
-        if step.get("value_moment"):
-            has_value_moment = True
-
-    if not has_value_moment:
-        print("Error: golden_path must have at least one entry with value_moment: true")
-        sys.exit(1)
-
-    if golden_path[0].get("page") != "landing":
-        print("Error: golden_path first entry's page must be 'landing'")
-        sys.exit(1)
 
 # --- Target clicks validation (optional field) ---
 target_clicks = data.get("target_clicks")
@@ -196,57 +139,6 @@ if target_clicks is not None:
         print("Error: target_clicks must be a positive integer")
         sys.exit(1)
 
-# --- Critical flows validation (optional field) ---
-critical_flows = data.get("critical_flows")
-if critical_flows is not None:
-    if not isinstance(critical_flows, list):
-        print("Error: critical_flows must be a list")
-        sys.exit(1)
-    if len(critical_flows) < 1:
-        print("Error: critical_flows must have at least 1 entry")
-        sys.exit(1)
-
-    valid_actors = {"system", "admin", "cron"}
-    flow_names_seen = set()
-
-    for i, flow in enumerate(critical_flows):
-        if not isinstance(flow, dict):
-            print(f"Error: critical_flows[{i}] must be a mapping")
-            sys.exit(1)
-
-        flow_name = flow.get("name")
-        if not flow_name or not isinstance(flow_name, str):
-            print(f"Error: critical_flows[{i}].name is missing or empty")
-            sys.exit(1)
-
-        if flow_name in flow_names_seen:
-            print(f"Error: duplicate critical_flows name: {flow_name}")
-            sys.exit(1)
-        flow_names_seen.add(flow_name)
-
-        flow_trigger = flow.get("trigger")
-        if not flow_trigger or not isinstance(flow_trigger, str):
-            print(f"Error: critical_flows[{i}].trigger is missing or empty")
-            sys.exit(1)
-
-        flow_actor = flow.get("actor", "system")
-        if flow_actor not in valid_actors:
-            print(
-                f'Error: critical_flows[{i}].actor "{flow_actor}" '
-                f"must be one of: {', '.join(sorted(valid_actors))}"
-            )
-            sys.exit(1)
-
-        flow_steps = flow.get("steps")
-        if not isinstance(flow_steps, list) or len(flow_steps) < 1:
-            print(f"Error: critical_flows[{i}].steps must be a list with at least 1 entry")
-            sys.exit(1)
-
-        flow_verify = flow.get("verify")
-        if not flow_verify or not isinstance(flow_verify, str):
-            print(f"Error: critical_flows[{i}].verify is missing or empty")
-            sys.exit(1)
-
 # --- Level validation (optional, /spec field) ---
 level = data.get("level")
 if level is not None:
@@ -254,7 +146,7 @@ if level is not None:
         print("Error: level must be 1, 2, or 3")
         sys.exit(1)
 
-# --- Thesis validation (optional, /spec field) ---
+# --- Thesis validation (required field) ---
 thesis = data.get("thesis")
 if thesis is not None:
     if not isinstance(thesis, str) or not thesis.strip():
@@ -277,21 +169,21 @@ if hypotheses is not None:
             print(f"Error: hypotheses[{i}] must be a mapping"); sys.exit(1)
 
         # Required string fields
-        for field in ["id", "category", "statement", "test_method", "success_metric", "threshold"]:
+        for field in ["id", "category", "statement", "success_metric", "threshold"]:
             if not h.get(field) or not isinstance(h.get(field), str):
                 print(f"Error: hypotheses[{i}].{field} is missing or empty"); sys.exit(1)
 
         h_id = h["id"]
-        if not re.fullmatch(r"h_[a-z]+_\d+", h_id):
-            print(f'Error: hypotheses[{i}].id "{h_id}" must match h_<category>_<n>'); sys.exit(1)
+        if not re.fullmatch(r"h-\d{2,}", h_id):
+            print(f'Error: hypotheses[{i}].id "{h_id}" must match h-NN (e.g., h-01, h-02)'); sys.exit(1)
 
         if h["category"] not in VALID_CATEGORIES:
             print(f'Error: hypotheses[{i}].category "{h["category"]}" must be: {", ".join(sorted(VALID_CATEGORIES))}'); sys.exit(1)
 
         # Required int fields
         ps = h.get("priority_score")
-        if not isinstance(ps, int) or isinstance(ps, bool) or not (1 <= ps <= 10):
-            print(f"Error: hypotheses[{i}].priority_score must be integer 1-10"); sys.exit(1)
+        if not isinstance(ps, int) or isinstance(ps, bool) or not (0 <= ps <= 100):
+            print(f"Error: hypotheses[{i}].priority_score must be integer 0-100"); sys.exit(1)
 
         el = h.get("experiment_level")
         if not isinstance(el, int) or isinstance(el, bool) or el not in (1, 2, 3):
@@ -332,6 +224,7 @@ if behaviors is not None:
         print("Error: behaviors must be a list"); sys.exit(1)
 
     behavior_ids = set()
+    valid_behavior_actors = {"system", "cron"}
     for i, b in enumerate(behaviors):
         if not isinstance(b, dict):
             print(f"Error: behaviors[{i}] must be a mapping"); sys.exit(1)
@@ -341,8 +234,8 @@ if behaviors is not None:
                 print(f"Error: behaviors[{i}].{field} is missing or empty"); sys.exit(1)
 
         b_id = b["id"]
-        if not re.fullmatch(r"b_\d+", b_id):
-            print(f'Error: behaviors[{i}].id "{b_id}" must match b_<n>'); sys.exit(1)
+        if not re.fullmatch(r"b-\d{2,}", b_id):
+            print(f'Error: behaviors[{i}].id "{b_id}" must match b-NN (e.g., b-01, b-02)'); sys.exit(1)
 
         if b_id in behavior_ids:
             print(f"Error: duplicate behavior id: {b_id}"); sys.exit(1)
@@ -351,6 +244,30 @@ if behaviors is not None:
         b_level = b.get("level")
         if not isinstance(b_level, int) or isinstance(b_level, bool) or b_level not in (1, 2, 3):
             print(f"Error: behaviors[{i}].level must be 1, 2, or 3"); sys.exit(1)
+
+        # Optional actor field
+        b_actor = b.get("actor")
+        if b_actor is not None:
+            if b_actor not in valid_behavior_actors:
+                print(
+                    f'Error: behaviors[{i}].actor "{b_actor}" '
+                    f"must be one of: {', '.join(sorted(valid_behavior_actors))}"
+                ); sys.exit(1)
+
+        # Optional trigger field (just validate it's a non-empty string if present)
+        b_trigger = b.get("trigger")
+        if b_trigger is not None:
+            if not isinstance(b_trigger, str) or not b_trigger.strip():
+                print(f"Error: behaviors[{i}].trigger must be a non-empty string (or remove it)"); sys.exit(1)
+
+        # Optional tests field: must be list of 1-3 strings
+        b_tests = b.get("tests")
+        if b_tests is not None:
+            if not isinstance(b_tests, list) or not (1 <= len(b_tests) <= 3):
+                print(f"Error: behaviors[{i}].tests must be a list of 1-3 strings"); sys.exit(1)
+            for j, t in enumerate(b_tests):
+                if not isinstance(t, str) or not t.strip():
+                    print(f"Error: behaviors[{i}].tests[{j}] must be a non-empty string"); sys.exit(1)
 
         # Cross-ref: hypothesis_id must exist if hypotheses section present
         h_id_ref = b["hypothesis_id"]
@@ -368,32 +285,109 @@ if funnel is not None:
     if not isinstance(funnel, dict):
         print("Error: funnel must be a mapping"); sys.exit(1)
 
-    thresholds = funnel.get("thresholds")
-    if not isinstance(thresholds, dict) or not thresholds:
-        print("Error: funnel.thresholds is required and must be a non-empty mapping"); sys.exit(1)
-    for k, v in thresholds.items():
-        if not isinstance(v, str) or not v.strip():
-            print(f'Error: funnel.thresholds.{k} must be a non-empty string'); sys.exit(1)
+    VALID_FUNNEL_STAGES = {"reach", "demand", "monetize", "retain"}
+    funnel_stages_found = set()
+
+    for stage_key in VALID_FUNNEL_STAGES:
+        stage = funnel.get(stage_key)
+        if stage is not None:
+            funnel_stages_found.add(stage_key)
+            if not isinstance(stage, dict):
+                print(f"Error: funnel.{stage_key} must be a mapping"); sys.exit(1)
+            for req_field in ["metric", "threshold", "available_from"]:
+                val = stage.get(req_field)
+                if not val or not isinstance(val, str):
+                    print(f"Error: funnel.{stage_key}.{req_field} is missing or empty"); sys.exit(1)
+
+    if not funnel_stages_found:
+        print("Error: funnel must have at least one stage from: " + ", ".join(sorted(VALID_FUNNEL_STAGES))); sys.exit(1)
+
+    # Reject unknown keys at funnel top level (except decision_framework)
+    for fk in funnel:
+        if fk not in VALID_FUNNEL_STAGES and fk != "decision_framework":
+            print(f'Error: funnel.{fk} is not a valid funnel key (expected: {", ".join(sorted(VALID_FUNNEL_STAGES))}, decision_framework)'); sys.exit(1)
 
     df = funnel.get("decision_framework")
-    if not isinstance(df, str) or not df.strip():
-        print("Error: funnel.decision_framework is required and must be a non-empty string"); sys.exit(1)
+    if df is not None:
+        if not isinstance(df, dict):
+            print("Error: funnel.decision_framework must be a mapping"); sys.exit(1)
+        VALID_DF_KEYS = {"scale", "refine", "pivot", "kill"}
+        for dk in VALID_DF_KEYS:
+            dv = df.get(dk)
+            if not dv or not isinstance(dv, str):
+                print(f"Error: funnel.decision_framework.{dk} is missing or empty"); sys.exit(1)
+        for dk in df:
+            if dk not in VALID_DF_KEYS:
+                print(f'Error: funnel.decision_framework.{dk} is not valid (expected: {", ".join(sorted(VALID_DF_KEYS))})'); sys.exit(1)
 
-if not data.get("template_repo"):
-    print(
-        "  Warning: template_repo not set. "
-        "/retro will ask where to file the retrospective."
-    )
-
-# --- Stack file existence ---
+# --- Stack validation ---
 stack = data.get("stack", {})
-stack_warnings = [
-    f"stack.{k}: {v} — no file at .claude/stacks/{k}/{v}.md"
-    for k, v in stack.items()
-    if not os.path.isfile(f".claude/stacks/{k}/{v}.md")
-]
-if stack_warnings:
-    for w in stack_warnings:
+
+# Per-service values via services[] array
+services = stack.get("services", [])
+if services:
+    if not isinstance(services, list):
+        print("Error: stack.services must be a list"); sys.exit(1)
+
+    service_names_seen = set()
+    for i, svc in enumerate(services):
+        if not isinstance(svc, dict):
+            print(f"Error: stack.services[{i}] must be a mapping"); sys.exit(1)
+
+        svc_name = svc.get("name")
+        if not svc_name or not isinstance(svc_name, str):
+            print(f"Error: stack.services[{i}].name is missing or empty"); sys.exit(1)
+
+        if svc_name in service_names_seen:
+            print(f"Error: duplicate service name: {svc_name}"); sys.exit(1)
+        service_names_seen.add(svc_name)
+
+        svc_runtime = svc.get("runtime")
+        if not svc_runtime or not isinstance(svc_runtime, str):
+            print(f"Error: stack.services[{i}].runtime is missing or empty"); sys.exit(1)
+
+        svc_hosting = svc.get("hosting")
+        if not svc_hosting or not isinstance(svc_hosting, str):
+            print(f"Error: stack.services[{i}].hosting is missing or empty"); sys.exit(1)
+
+        # Optional per-service fields
+        for opt_field in ["ui", "testing"]:
+            opt_val = svc.get(opt_field)
+            if opt_val is not None and not isinstance(opt_val, str):
+                print(f"Error: stack.services[{i}].{opt_field} must be a string"); sys.exit(1)
+
+# Stack file existence checks — per-service values
+CATEGORY_DIR_MAP = {
+    "runtime": "framework",
+    "hosting": "hosting",
+    "ui": "ui",
+    "testing": "testing",
+}
+stack_file_warnings = []
+
+# Reverse map: directory name → service key (e.g., "framework" → "runtime")
+DIR_TO_SVC_KEY = {v: k for k, v in CATEGORY_DIR_MAP.items()}
+
+for i, svc in enumerate(services):
+    for svc_key, dir_name in CATEGORY_DIR_MAP.items():
+        val = svc.get(svc_key)
+        if val:
+            sf_path = f".claude/stacks/{dir_name}/{val}.md"
+            if not os.path.isfile(sf_path):
+                stack_file_warnings.append(
+                    f"stack.services[{i}].{svc_key}: {val} — no file at {sf_path}"
+                )
+
+# Stack file existence checks — shared values
+SHARED_STACK_KEYS = {"database", "auth", "analytics", "payment"}
+for k, v in stack.items():
+    if k in SHARED_STACK_KEYS and isinstance(v, str):
+        sf_path = f".claude/stacks/{k}/{v}.md"
+        if not os.path.isfile(sf_path):
+            stack_file_warnings.append(f"stack.{k}: {v} — no file at {sf_path}")
+
+if stack_file_warnings:
+    for w in stack_file_warnings:
         print(f"  Warning: {w}")
     print(
         "  Claude will use general knowledge for these. "
@@ -404,8 +398,9 @@ if stack_warnings:
 # --- Surface validation ---
 effective_surface = stack.get("surface")
 if effective_surface is None:
-    # Infer from hosting presence
-    effective_surface = "co-located" if "hosting" in stack else "detached"
+    # Infer from hosting presence (check services for hosting)
+    has_hosting = any(svc.get("hosting") for svc in services)
+    effective_surface = "co-located" if has_hosting else "detached"
 
 # Validate surface value format
 if effective_surface not in ("co-located", "detached", "none"):
@@ -431,7 +426,12 @@ if effective_surface != "none":
 
 # --- Stack assumes consistency ---
 assumes_warnings = []
-for cat, val in stack.items():
+
+# Check shared stack values
+for cat in SHARED_STACK_KEYS:
+    val = stack.get(cat)
+    if not val or not isinstance(val, str):
+        continue
     sf = f".claude/stacks/{cat}/{val}.md"
     if not os.path.isfile(sf):
         continue
@@ -446,15 +446,71 @@ for cat, val in stack.items():
         if len(parts) != 2:
             continue
         a_cat, a_val = parts
-        actual = stack.get(a_cat)
-        if actual is None:
-            assumes_warnings.append(
-                f"stack.{cat}/{val} assumes {assume}, but stack.{a_cat} is not set"
-            )
-        elif actual != a_val:
-            assumes_warnings.append(
-                f"stack.{cat}/{val} assumes {assume}, but stack.{a_cat} is {actual}"
-            )
+        # Check if assumption is satisfied by any service or shared stack
+        # a_cat may be a dir name (framework) or a service key (runtime) — normalize
+        resolved_svc_key = DIR_TO_SVC_KEY.get(a_cat) or (a_cat if a_cat in CATEGORY_DIR_MAP else None)
+        if resolved_svc_key is not None:
+            # Per-service value — check if any service has this
+            svc_key = resolved_svc_key
+            satisfied = any(svc.get(svc_key) == a_val for svc in services)
+            if not satisfied:
+                assumes_warnings.append(
+                    f"stack.{cat}/{val} assumes {assume}, but no service has {svc_key}: {a_val}"
+                )
+        else:
+            actual = stack.get(a_cat)
+            if actual is None:
+                assumes_warnings.append(
+                    f"stack.{cat}/{val} assumes {assume}, but stack.{a_cat} is not set"
+                )
+            elif actual != a_val:
+                assumes_warnings.append(
+                    f"stack.{cat}/{val} assumes {assume}, but stack.{a_cat} is {actual}"
+                )
+
+# Check per-service stack values
+for i, svc in enumerate(services):
+    for svc_key, dir_name in CATEGORY_DIR_MAP.items():
+        val = svc.get(svc_key)
+        if not val or not isinstance(val, str):
+            continue
+        sf = f".claude/stacks/{dir_name}/{val}.md"
+        if not os.path.isfile(sf):
+            continue
+        with open(sf) as f:
+            content = f.read()
+        m_match = re.match(r"^---\n(.*?\n)---", content, re.DOTALL)
+        if not m_match:
+            continue
+        fm = yaml.safe_load(m_match.group(1)) or {}
+        for assume in fm.get("assumes") or []:
+            parts = assume.split("/")
+            if len(parts) != 2:
+                continue
+            a_cat, a_val = parts
+            resolved_a_svc_key = DIR_TO_SVC_KEY.get(a_cat) or (a_cat if a_cat in CATEGORY_DIR_MAP else None)
+            if resolved_a_svc_key is not None:
+                # Check within the same service first
+                a_svc_key = resolved_a_svc_key
+                actual = svc.get(a_svc_key)
+                if actual is None:
+                    assumes_warnings.append(
+                        f"stack.services[{i}].{svc_key}/{val} assumes {assume}, but services[{i}].{a_svc_key} is not set"
+                    )
+                elif actual != a_val:
+                    assumes_warnings.append(
+                        f"stack.services[{i}].{svc_key}/{val} assumes {assume}, but services[{i}].{a_svc_key} is {actual}"
+                    )
+            else:
+                actual = stack.get(a_cat)
+                if actual is None:
+                    assumes_warnings.append(
+                        f"stack.services[{i}].{svc_key}/{val} assumes {assume}, but stack.{a_cat} is not set"
+                    )
+                elif actual != a_val:
+                    assumes_warnings.append(
+                        f"stack.services[{i}].{svc_key}/{val} assumes {assume}, but stack.{a_cat} is {actual}"
+                    )
 
 if assumes_warnings:
     print("  Warning: stack assumes mismatches:")

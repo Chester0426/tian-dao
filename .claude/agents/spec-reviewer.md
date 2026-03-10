@@ -35,7 +35,7 @@ Read `idea/experiment.yaml` `type` field (default: `web-app`):
 ## Checks
 
 **S1. Feature coverage**
-Every experiment.yaml `feature` has corresponding implementation. Grep for feature-related code (component names, function names, route handlers). A feature with no matching code is a FAIL.
+Every experiment.yaml `behavior` has corresponding implementation. Grep for feature-related code (component names, function names, route handlers). A feature with no matching code is a FAIL.
 
 **S2. Page/endpoint/command existence**
 Every experiment.yaml `page` (web-app) / `endpoint` (service) / `command` (cli) exists as a file. Missing file is a FAIL.
@@ -50,10 +50,10 @@ Every event in `EVENTS.yaml` has a tracking call in source code. Grep for each e
 
 For each `golden_path` step: the page exists, the CTA or action element exists, and the corresponding event fires. Unreachable step is a FAIL.
 
-**S5. Critical flows coverage**
-> Skip if no `critical_flows` in experiment.yaml.
+**S5. System/cron behaviors coverage**
+> Skip if no behaviors with `actor: system/cron` in experiment.yaml.
 
-Each `critical_flows` step is implemented and has a test. Missing implementation or test is a FAIL.
+Each behavior with `actor: system/cron` is implemented and has a test. Missing implementation or test is a FAIL.
 
 **S6. Plan completion**
 > Skip if no `.claude/current-plan.md` exists.
@@ -69,7 +69,7 @@ Every plan item is addressed in source code. Unaddressed item is a FAIL.
 | S2. Pages/endpoints | pass/FAIL | <missing pages if FAIL> |
 | S3. Analytics wiring | pass/FAIL/skip | <missing events if FAIL> |
 | S4. Golden path | pass/FAIL/skip | <unreachable steps if FAIL> |
-| S5. Critical flows | pass/FAIL/skip | <missing tests if FAIL> |
+| S5. System/cron behaviors | pass/FAIL/skip | <missing tests if FAIL> |
 | S6. Plan completion | pass/FAIL/skip | <unaddressed items if FAIL> |
 
 ## Verdict

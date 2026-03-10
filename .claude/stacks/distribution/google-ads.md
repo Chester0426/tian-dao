@@ -81,7 +81,7 @@ Import method: analytics provider webhook → Google Ads Offline Conversions.
 Budget structure:
 - `daily_budget_cents`: daily spend cap
 - `total_budget_cents`: total campaign cap (max 50000 / $500 without explicit override)
-- `duration_days`: campaign length (matches `measurement_window`)
+- `duration_days`: campaign length (set based on experiment duration)
 
 ## Config Schema
 

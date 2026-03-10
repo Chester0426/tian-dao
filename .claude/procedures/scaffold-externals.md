@@ -11,13 +11,13 @@
 
 Before API routes are generated, assess whether experiment.yaml features require external services not covered by `stack`:
 
-1. Read experiment.yaml `features`. For each feature, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
+1. Read experiment.yaml `behaviors`. For each behavior, assess: does it require credentials for an external service (OAuth, API key, webhook secret) that is NOT already handled by a `stack` category (database, auth, payment, email, analytics)?
    - Examples: "Connect Xero and import invoices" → Xero OAuth, "Send SMS via Twilio" → Twilio API key, "Sync with Google Sheets" → Google OAuth
    - Stack-handled services don't count: Supabase, Stripe, Resend, PostHog are already managed by their stack files
 
 2. If NO external dependencies detected → report "No external dependencies" and finish.
 
-3. **Classify each dependency as core or non-core.** For each external dependency, ask: "If this feature were entirely absent, could users still complete `primary_metric`?" If no → **core**. If yes → **non-core**. Present the classification to the user for confirmation or override:
+3. **Classify each dependency as core or non-core.** For each external dependency, ask: "If this feature were entirely absent, could users still validate the `thesis`?" If no → **core**. If yes → **non-core**. Present the classification to the user for confirmation or override:
 
    > These features require external service credentials not covered by your stack:
    >
@@ -25,7 +25,7 @@ Before API routes are generated, assess whether experiment.yaml features require
    > |---------|---------|-------------------|----------------|
    > | ... | ... | ... | **core** / **non-core** |
    >
-   > Core = removing it prevents users from completing primary_metric ("[value]").
+   > Core = removing it prevents users from validating the thesis.
    >
    > Does this classification look right? If so, choose an option for each:
 

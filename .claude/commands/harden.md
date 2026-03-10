@@ -27,12 +27,12 @@ Transition this MVP to production quality mode: $ARGUMENTS
 
 ## Step 1: Scan & classify
 
-- Read `idea/experiment.yaml` (features, golden_path, critical_flows, stack)
+- Read `idea/experiment.yaml` (behaviors, golden_path, stack)
 - Scan `src/` for all modules (API routes, lib/, pages, components)
 - Glob for existing tests (`**/*.test.*`, `**/*.spec.*`, `e2e/**`)
 - Classify each module into 4 categories:
 
-  **CRITICAL** (harden now): Auth/session logic, payment/billing, data mutations (POST/PUT/DELETE API routes with DB writes), golden_path value_moment steps, critical_flows steps, non-trivial business logic
+  **CRITICAL** (harden now): Auth/session logic, payment/billing, data mutations (POST/PUT/DELETE API routes with DB writes), golden_path activation steps, behaviors with `actor: system/cron`, non-trivial business logic
 
   **ON-TOUCH** (harden when next modified): Read-only API routes (GET), form validation, data fetching/transformation, golden_path non-value-moment steps
 
@@ -74,7 +74,7 @@ DO NOT proceed until the user explicitly replies with approval.
 4. For each approved Critical module **sequentially**:
    a. Spawn implementer agent (`agents/implementer.md`, isolation: "worktree")
    b. Implementer writes specification tests per `patterns/tdd.md`:
-      - What SHOULD the module do? (read code + experiment.yaml features)
+      - What SHOULD the module do? (read code + experiment.yaml behaviors)
       - Write tests for correct behavior
       - If test fails AND failure shows incorrect behavior → fix the code (bug discovery protocol)
       - If test passes → specification captured

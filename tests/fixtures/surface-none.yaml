@@ -2,17 +2,13 @@
 # Validates that surface: none skips surface-related steps and funnel starts at activate.
 idea:
   name: test-surface-none
-  title: Internal Data Pipeline
-  owner: tester
-  template_repo: acme/experiment-template
   type: service
 
-  problem: |
+  description: |
     Teams need a simple internal API for data transformation.
-
-  solution: |
     A lightweight API service for internal data processing pipelines.
 
+  thesis: "If we provide a simple data transformation API, then internal teams will use it for pipelines, as measured by API calls per day"
   target_user: Internal engineering teams
 
   distribution: |
@@ -24,18 +20,13 @@ idea:
     - name: status
       purpose: Check pipeline processing status
 
-  features:
-    - Data transformation endpoint
-    - Pipeline status endpoint
-
-  primary_metric: API calls per day
-  target_value: "50 API calls in 1 week"
-  measurement_window: 1 week
 
   stack:
-    framework: nextjs
+    services:
+      - name: api
+        runtime: nextjs
+        hosting: vercel
     analytics: posthog
-    hosting: vercel
     surface: none
 
 events:

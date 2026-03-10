@@ -10,7 +10,7 @@ files:
   - e2e/helpers.ts
   - e2e/smoke.spec.ts
   - e2e/funnel.spec.ts  # conditional: only when all assumes are met
-  - tests/flows.test.ts      # conditional: only when experiment.yaml has critical_flows
+  - tests/flows.test.ts      # conditional: only when experiment.yaml has behaviors with actor: system/cron
 env:
   server: []
   client: []
@@ -340,14 +340,14 @@ Notes:
 - `retain_return` is skipped — requires 24h+ delay, untestable in E2E
 - Waitlist/form tests use timestamped emails (`funnel-${Date.now()}@test.example`) to avoid duplicate conflicts on re-runs
 - Unlike smoke tests (page-load only), funnel tests verify the actual user journey through the app
-- **Value moment assertion**: For golden_path steps with `value_moment: true`, the funnel test asserts the action produces a visible result — not just page load. Bootstrap reads the page source to determine the success indicator (e.g., a success toast, an item appearing in a list, a confirmation message). Example: if value_moment is "Create Invoice" on /invoice-create, the test fills the form, clicks submit, and asserts a success indicator is visible.
+- **Activation assertion**: For golden_path steps marked as activation points, the funnel test asserts the action produces a visible result — not just page load. Bootstrap reads the page source to determine the success indicator (e.g., a success toast, an item appearing in a list, a confirmation message). Example: if the activation step is "Create Invoice" on /invoice-create, the test fills the form, clicks submit, and asserts a success indicator is visible.
 - **Analytics verification**: Funnel tests use `captureAnalytics` instead of `blockAnalytics` — this intercepts analytics payloads for verification while still blocking them from reaching the provider. The final test step asserts that all expected events from golden_path (entries with non-null `event`) were fired during the funnel journey.
 - **CTA Repeat strict mode**: Landing pages include the CTA at least twice (messaging.md Section B content inventory), so selectors targeting CTAs will match 2+ elements. For **form submit** actions (waitlist, signup), use `input.press("Enter")` instead of clicking the submit button — this binds to user intent and avoids ambiguous button selectors entirely. For **navigation CTAs** (links), use `.first()` on these selectors (e.g., `page.getByRole("link", { name: /cta/i }).first()`). This applies to landing page tests only — other pages have unique selectors.
 - **CTA selector role**: Landing page CTAs that navigate to another page use `<Button asChild><Link>`, which renders as `<a>` (role `"link"`). Use `getByRole("link")` for navigation CTAs. Use `getByRole("button")` only for CTAs that trigger actions (form submits, dialogs). Bootstrap determines the correct role by reading the actual page source.
 
 ## Critical Flow Integration Tests
 
-When experiment.yaml has `critical_flows`, bootstrap generates `tests/flows.test.ts` using vitest
+When experiment.yaml has `behaviors with actor: system/cron`, bootstrap generates `tests/flows.test.ts` using vitest
 (installed alongside Playwright). These test operational chains at the API level — no browser needed.
 
 ### `tests/flows.test.ts` — Integration tests for operational chains
@@ -385,7 +385,7 @@ Notes:
 - Admin tests call admin API endpoints (no browser, no login flow)
 - Skip tests when required env vars are missing (e.g., Stripe webhook secret)
 - These complement funnel tests: golden_path tests the customer journey (browser),
-  critical_flows tests the delivery chain (API)
+  behaviors with actor: system/cron tests the delivery chain (API)
 
 ## Environment Variables
 ```

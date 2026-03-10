@@ -34,7 +34,7 @@ Collect these data points and present a summary before asking questions:
    - Count production dependencies from `package.json` (if it exists)
 
 3. **Spec files**
-   - Read `idea/experiment.yaml` — extract experiment name, title, target user, primary metric, target value, measurement window
+   - Read `idea/experiment.yaml` — extract experiment name, description, target user, thesis, funnel thresholds
    - Read `EVENTS.yaml` — list events being tracked
 
 Present the summary and then proceed to Step 2.
@@ -47,12 +47,12 @@ Ask these questions **one at a time** by ending your response after each questio
 
 ### Q1: Outcome
 "What was the outcome of this experiment?"
-- Succeeded — hit or exceeded target_value
+- Succeeded — hit or exceeded thesis target
 - Partially succeeded — made progress but didn't hit target
 - Failed — didn't move the metric
 - Inconclusive — not enough data or time
 
-Follow-up: "What was the actual result vs your target of [target_value] for [primary_metric]?"
+Follow-up: "What was the actual result vs the target in your thesis: [thesis]?"
 
 ### Q2: What worked
 "What worked well? (workflow, tools, stack, anything)"
@@ -67,7 +67,7 @@ Follow-up: "What was the actual result vs your target of [target_value] for [pri
 
 Compile all data into a structured document with these sections:
 
-1. **Experiment Summary** — name, problem, solution, target user, outcome, metric results
+1. **Experiment Summary** — name, description, target user, thesis, outcome, metric results
 2. **Timeline & Activity** — commits, PRs, pages built, scope delivered vs planned
 3. **Stack Used** — from experiment.yaml `stack`
 4. **Team Assessment** — answers to Q2-Q4
@@ -77,14 +77,12 @@ Show the full retro to the user before filing.
 
 ## Step 4: File as GitHub Issue
 
-1. Read `template_repo` from `idea/experiment.yaml`
-2. If `template_repo` is not set, ask the user: "Where should I file this retro? Enter a repo in `owner/repo` format, or say 'skip' to print it to the terminal instead."
-3. If the user says "skip", print the retro to the terminal and stop.
+1. Determine the target repo: use the current repo via `gh repo view --json nameWithOwner --jq '.nameWithOwner'`. If `gh` is not available or the command fails, ask the user: "Where should I file this retro? Enter a repo in `owner/repo` format, or say 'skip' to print it to the terminal instead."
+2. If the user says "skip", print the retro to the terminal and stop.
 
 File the issue:
 ```
 gh issue create \
-  --repo <template_repo> \
   --title "Retro: <experiment-name> — <outcome>" \
   --label "retro" \
   --body "<structured retro content>"
@@ -94,7 +92,6 @@ gh issue create \
 - If `gh issue create` fails with a label error (e.g., label "retro" doesn't exist): retry **without** the `--label "retro"` flag. The user may not have triage permissions to create labels.
 - If `gh issue create` fails for any other reason: show the full error message and suggest:
   - Check GitHub authentication: `gh auth status`
-  - Verify the repo exists and you have access: `gh repo view <template_repo>`
   - Try filing manually by copying the retro content above
 - If the issue is created successfully, show the issue URL.
 

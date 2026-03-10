@@ -39,9 +39,9 @@ If no fixes qualify -> return `"No template observations"` and stop.
 
 ### 1. Prerequisites
 
-1. Read `template_repo` from `idea/experiment.yaml`. If not set or experiment.yaml does not exist -> return "No template observations".
+1. Get the template repo from the current repo: `TEMPLATE_REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)`. If experiment.yaml does not exist or the command fails -> return "No template observations".
 2. `gh auth status` — if fails -> return "No template observations".
-3. `gh repo view <template_repo> --json name` — if fails -> return "No template observations".
+3. `gh repo view $TEMPLATE_REPO --json name` — if fails -> return "No template observations".
 
 ### 2. Evaluate Each Fix
 
@@ -59,14 +59,14 @@ Before composing the issue, strip all project-specific information:
 ### 4. Dedup
 
 ```bash
-gh issue list --repo <template_repo> --label observation \
+gh issue list --repo $TEMPLATE_REPO --label observation \
   --search "[observe] <template-file-basename>:" --state open --limit 20
 ```
 
 If any existing issue describes the same root cause, add a comment instead:
 
 ```bash
-gh issue comment <issue-number> --repo <template_repo> --body "<comment>"
+gh issue comment <issue-number> --repo $TEMPLATE_REPO --body "<comment>"
 ```
 
 ### 5. Issue Creation
@@ -76,7 +76,7 @@ If no duplicate found, create a new issue:
 **Title:** `[observe] <template-file-basename>: <symptom-in-imperative-form>`
 
 ```bash
-gh issue create --repo <template_repo> \
+gh issue create --repo $TEMPLATE_REPO \
   --title "<title>" \
   --label "observation" \
   --body "<body>"
