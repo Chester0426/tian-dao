@@ -17,7 +17,7 @@ src/
     ui/               # UI library components (auto-generated)
   lib/
     analytics.ts      # Analytics tracking
-idea/                 # experiment.yaml lives here
+experiment/           # experiment.yaml lives here
 supabase/migrations/  # Database migrations (when stack.database: supabase)
 ```
 
@@ -30,7 +30,7 @@ src/
         route.ts
   lib/
     analytics.ts      # Server-side analytics only
-idea/
+experiment/
 ```
 
 **cli** (`type: cli`):
@@ -39,15 +39,15 @@ src/
   commands/
     <command-name>.ts # One file per experiment.yaml command
   index.ts           # CLI entry point
-idea/
+experiment/
 ```
 
 ### Other files (all archetypes)
 
 ```
-idea/experiment.yaml           # Your experiment definition (edit this first)
-idea/experiment.example.yaml   # Worked example for reference
-idea/retro-template.md   # Retrospective template
+experiment/experiment.yaml           # Your experiment definition (edit this first)
+experiment/experiment.example.yaml   # Worked example for reference
+experiment/retro-template.md   # Retrospective template
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
 EVENTS.yaml              # Analytics event dictionary
 .claude/commands/        # Claude Code skills
@@ -177,7 +177,7 @@ Run `make` to see all available commands:
 | `make supabase-start` | Start local Supabase for testing (requires Docker) |
 | `make supabase-stop` | Stop local Supabase |
 | `make test-e2e` | Run E2E tests |
-| `make distribute` | Validate idea/ads.yaml |
+| `make distribute` | Validate experiment/ads.yaml |
 | `make migrate` | Push pending Supabase migrations to remote database |
 | `make deploy` | Deploy to Vercel (first-time setup or manual deploys) |
 | `make setup-prod` | Link Vercel + Supabase for production debugging |

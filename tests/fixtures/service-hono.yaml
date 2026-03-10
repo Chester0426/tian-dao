@@ -1,6 +1,6 @@
 # Test fixture: Service with Hono framework — covers framework/hono
 # Validates that service archetype works with non-Next.js framework on Railway.
-idea:
+experiment:
   name: test-service-hono
   type: service
 

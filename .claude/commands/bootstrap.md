@@ -2,7 +2,7 @@
 description: "Use when starting a new experiment from a filled-in experiment.yaml. Run once per project."
 type: code-writing
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, ui, payment, email, hosting, testing]
@@ -36,7 +36,7 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 DO NOT write any code, create any files, or run any install commands during this phase.
 
 1. **Read context files**
-   - Read `idea/experiment.yaml` — this is the single source of truth
+   - Read `experiment/experiment.yaml` — this is the single source of truth
    - Read `EVENTS.yaml` — these are the canonical analytics events to wire up
    - Read `CLAUDE.md` — these are the rules to follow
 
@@ -204,7 +204,7 @@ DO NOT write any code, create any files, or run any install commands during this
    DO NOT proceed to Phase 2 until the user explicitly replies with approval.
    If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in experiment.yaml), write it back to `idea/experiment.yaml` after approval.
+7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in experiment.yaml), write it back to `experiment/experiment.yaml` after approval.
 
 ## Phase 2: Implement (only after the user has approved)
 
@@ -241,7 +241,7 @@ Spawn a subagent via Agent with:
 - subagent_type: scaffold-setup
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-setup.md` and execute all steps
-  2. Read context files: `idea/experiment.yaml`, all `.claude/stacks/<category>/<value>.md`
+  2. Read context files: `experiment/experiment.yaml`, all `.claude/stacks/<category>/<value>.md`
      for categories in experiment.yaml `stack`, `.claude/archetypes/<type>.md`
   3. TSP-LSP status: `<tsp_status from preamble>`
   4. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
@@ -258,7 +258,7 @@ Spawn a subagent via Agent with:
 - subagent_type: scaffold-init
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-init.md` and execute all steps
-  2. Read context files: `idea/experiment.yaml`, `.claude/current-plan.md`,
+  2. Read context files: `experiment/experiment.yaml`, `.claude/current-plan.md`,
      `.claude/patterns/design.md`, `.claude/archetypes/<type>.md`,
      `.claude/stacks/surface/<value>.md` (resolved from experiment.yaml or inferred)
   3. Follow CLAUDE.md Rules 3, 4, 7
@@ -274,7 +274,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-libs
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
-  2. Read context files: `idea/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files: `experiment/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, all stack files
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
 
@@ -282,7 +282,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-pages
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
-  2. Read context files: `idea/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files: `experiment/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, archetype file,
      framework/UI stack files, `.claude/patterns/design.md`,
      `.claude/current-visual-brief.md`
@@ -293,7 +293,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-externals.md` and execute the
      analysis steps (evaluate dependencies, classify core/non-core)
-  2. Read context files: `idea/experiment.yaml`, `.claude/current-plan.md`,
+  2. Read context files: `experiment/experiment.yaml`, `.claude/current-plan.md`,
      `.claude/stacks/TEMPLATE.md`, existing stack files
   3. Follow CLAUDE.md Rules 3, 4, 6
   4. Return the classification table and Fake Door list — do NOT collect
@@ -303,7 +303,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-landing
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
-  2. Read context files: `idea/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files: `experiment/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      framework/UI/surface stack files,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
@@ -378,7 +378,7 @@ Spawn a subagent via Agent with:
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/wire.md` and execute Steps 5 through 8b ONLY.
      Do NOT run Step 8 (verify.md) or Step 9 (PR).
-  2. Read context files before starting: `idea/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files before starting: `experiment/experiment.yaml`, `EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      all `.claude/stacks/<category>/<value>.md` for categories in experiment.yaml `stack`,
      `.claude/patterns/visual-review.md`,

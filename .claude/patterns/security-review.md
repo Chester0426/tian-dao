@@ -32,7 +32,7 @@ checklist below.
 
 ### Archetype Scope
 
-Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
+Read `experiment/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
 Scope applies to both Defender and Attacker agents below:
 
 - **web-app**: Defender D1–D5, Attacker A1–A5

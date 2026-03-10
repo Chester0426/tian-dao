@@ -15,7 +15,7 @@ import sys
 import yaml
 
 
-data = yaml.safe_load(open("idea/experiment.yaml"))
+data = yaml.safe_load(open("experiment/experiment.yaml"))
 warnings = False
 
 # --- Name format ---
@@ -29,18 +29,18 @@ if not re.fullmatch(r"[a-z][a-z0-9-]*", name):
     sys.exit(1)
 
 # --- Product type (optional) ---
-idea_type = data.get("type")
-if idea_type is not None:
-    if not re.fullmatch(r"[a-z][a-z0-9-]*", str(idea_type)):
+experiment_type = data.get("type")
+if experiment_type is not None:
+    if not re.fullmatch(r"[a-z][a-z0-9-]*", str(experiment_type)):
         print(
-            f'Error: type "{idea_type}" must be lowercase, start with a letter, '
+            f'Error: type "{experiment_type}" must be lowercase, start with a letter, '
             "and use only a-z, 0-9, hyphens."
         )
         print("Example: web-app")
         sys.exit(1)
-    archetype_path = f".claude/archetypes/{idea_type}.md"
+    archetype_path = f".claude/archetypes/{experiment_type}.md"
     if not os.path.isfile(archetype_path):
-        print(f"  Warning: type '{idea_type}' — no file at {archetype_path}")
+        print(f"  Warning: type '{experiment_type}' — no file at {archetype_path}")
         print(
             "  Claude will use general knowledge for this archetype. "
             "To fix: create the archetype file or change the type value."
@@ -48,7 +48,7 @@ if idea_type is not None:
         warnings = True
 
 # --- Resolve archetype metadata ---
-effective_type = idea_type if idea_type is not None else "web-app"
+effective_type = experiment_type if experiment_type is not None else "web-app"
 
 # --- Required fields ---
 base_required = [

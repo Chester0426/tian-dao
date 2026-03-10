@@ -70,7 +70,7 @@ Three experiment levels control scope:
 
 ### 1. Describe your idea
 
-Edit `idea/experiment.yaml` — replace every `TODO` with your actual content. See `idea/experiment.example.yaml` (the QuickBill example) for reference. If you used `/spec`, this step is already done.
+Edit `experiment/experiment.yaml` — replace every `TODO` with your actual content. See `experiment/experiment.example.yaml` (the QuickBill example) for reference. If you used `/spec`, this step is already done.
 
 Key fields:
 - **name** — a short slug for your project (used in analytics, e.g., `quick-bill`)

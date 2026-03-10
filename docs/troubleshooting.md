@@ -5,10 +5,10 @@
 ## make validate errors
 
 **"TODO placeholders"**
-Open `idea/experiment.yaml` and replace every `TODO` with your actual content. See `idea/experiment.example.yaml` for a complete example.
+Open `experiment/experiment.yaml` and replace every `TODO` with your actual content. See `experiment/experiment.example.yaml` for a complete example.
 
 **"invalid YAML syntax"**
-Check `idea/experiment.yaml` for indentation errors or missing colons. YAML requires consistent spacing (2 spaces, no tabs). Use a YAML validator if unsure.
+Check `experiment/experiment.yaml` for indentation errors or missing colons. YAML requires consistent spacing (2 spaces, no tabs). Use a YAML validator if unsure.
 
 **"PyYAML is not installed"**
 Run `pip3 install pyyaml` to install the required Python YAML library.
@@ -31,7 +31,7 @@ Some stacks are not compatible with certain archetypes. For example, `type: cli`
 Make sure you're in a cloned repo. Run `git init` or clone your repo first.
 
 **"uncommitted changes"**
-Commit your experiment.yaml changes first: `git add idea/experiment.yaml && git commit -m "Fill in experiment.yaml"`. The branch setup requires a clean working tree.
+Commit your experiment.yaml changes first: `git add experiment/experiment.yaml && git commit -m "Fill in experiment.yaml"`. The branch setup requires a clean working tree.
 
 **"GitHub CLI is not authenticated"**
 Run `gh auth login` and follow the prompts to authenticate.

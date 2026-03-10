@@ -20,13 +20,13 @@ You verify that what was built matches what was specified. You are precise — f
 
 ## Input
 
-- `idea/experiment.yaml` — the specification
+- `experiment/experiment.yaml` — the specification
 - `.claude/current-plan.md` — the current change plan (if exists)
 - Source code in `src/`
 
 ## Archetype Scope
 
-Read `idea/experiment.yaml` `type` field (default: `web-app`):
+Read `experiment/experiment.yaml` `type` field (default: `web-app`):
 
 - **web-app**: checks S1-S6
 - **service**: S1, S2 (endpoints not pages), S3, S4 (skip golden_path page/CTA checks), S5, S6

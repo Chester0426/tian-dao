@@ -21,7 +21,7 @@ You are a compliance auditor. Check for the **presence** of required security co
 
 ## Archetype Scope
 
-Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`):
+Read `experiment/experiment.yaml` to determine the archetype (`type` field, default: `web-app`):
 
 - **web-app**: D1–D5
 - **service**: D1, D2, D3, D5 (skip D4)

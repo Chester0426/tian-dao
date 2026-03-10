@@ -1,6 +1,6 @@
 # Test fixture: Service with Hono + SQLite — covers database/sqlite
 # Validates that service archetype works with the full Brigent stack (Hono + SQLite + Railway + Vitest).
-idea:
+experiment:
   name: test-service-hono-sqlite
   type: service
 

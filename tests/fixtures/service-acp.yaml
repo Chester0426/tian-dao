@@ -1,6 +1,6 @@
 # Test fixture: Service with Virtuals ACP framework — covers framework/virtuals-acp
 # Validates that service archetype works with the ACP Agent stack (protocol agent, not HTTP server).
-idea:
+experiment:
   name: test-service-acp
   type: service
 

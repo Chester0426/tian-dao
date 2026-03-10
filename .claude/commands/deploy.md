@@ -2,7 +2,7 @@
 description: "Deploy the app. Run once after /bootstrap PR is merged."
 type: analysis-only
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - .env.example
   - CLAUDE.md
   - EVENTS.yaml
@@ -34,7 +34,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
     <npm audit output>
     Reply **continue** to deploy anyway, or fix vulnerabilities first with `npm audit fix`."
     Wait for user confirmation. If no critical vulnerabilities, proceed silently.
-4. Read `idea/experiment.yaml` — extract `name`, `stack.services[0].hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
+4. Read `experiment/experiment.yaml` — extract `name`, `stack.services[0].hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
 5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `cli`:
    - Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
    - If surface is `detached`: proceed with surface-only deployment (skip Steps 3-4, go directly to Step 5 surface deployment).

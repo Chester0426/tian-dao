@@ -2,7 +2,7 @@
 description: "Use for any modification to an existing bootstrapped app: new features, bug fixes, UI polish, analytics fixes, or adding tests."
 type: code-writing
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, ui, payment, email, testing, hosting]
@@ -38,7 +38,7 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 
 ## Step 2: Read context
 
-- Read `idea/experiment.yaml` — understand the current scope, pages (derived from golden_path), existing behaviors, target user, thesis
+- Read `experiment/experiment.yaml` — understand the current scope, pages (derived from golden_path), existing behaviors, target user, thesis
 - Read `EVENTS.yaml` — understand existing analytics events (this is the canonical event list)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references. If the archetype is `cli`, new capabilities map to subcommand modules (`src/commands/`), not page folders or API routes. Skip Fake Door, landing page, and API route references.
 - Resolve the stack: read experiment.yaml `stack`. For each category, read `.claude/stacks/<category>/<value>.md`. If a stack file doesn't exist for a given value, generate it: read `.claude/stacks/TEMPLATE.md` for the schema, read existing files in the same category as reference, and create `.claude/stacks/<category>/<value>.md` with complete frontmatter and code templates. Run `python3 scripts/validate-frontmatter.py` to verify (max 2 fix attempts). If validation fails, stop: "Could not generate a valid stack file for `<category>/<value>`. Create it manually using TEMPLATE.md as a guide." File an observation per `.claude/patterns/observe.md` for the missing stack file.
@@ -156,7 +156,7 @@ Follow the procedure in `.claude/procedures/change-test.md`.
   - **Analytics**: re-trace each standard funnel event through the code to confirm it now fires correctly.
   - **Production quality (if `quality: production`)**: verify.md spawns all agents (existing 5 + spec-reviewer). Pass experiment.yaml + `.claude/current-plan.md` to spec-reviewer.
   - **Test**: verify test discovery works by running the testing stack file's test command in dry-run/list mode (e.g., `npx playwright test --list` for Playwright, `npx vitest run --reporter=verbose` for Vitest). If test discovery fails, treat it as a build error — fix the test files and re-run. If still failing after the verify.md retry budget, report to the user with the error output.
-  - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `idea/experiment.yaml`. Verify implementation matches the archetype's primary units:
+  - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `experiment/experiment.yaml`. Verify implementation matches the archetype's primary units:
     - If archetype requires pages: confirm `src/app/<page-name>/page.tsx` exists for each unique page referenced in experiment.yaml `golden_path`
     - If archetype requires `endpoints`: confirm API route exists for each endpoint in experiment.yaml `endpoints` (path depends on framework stack file)
     - If archetype requires `commands` (cli): confirm `src/commands/<command-name>.ts` exists for each entry in the experiment.yaml command list

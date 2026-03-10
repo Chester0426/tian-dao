@@ -14,7 +14,7 @@
 ## Implementation
 
 - If `quality: production` is set in experiment.yaml:
-  1. **ON-TOUCH check**: If `idea/on-touch.yaml` exists, check if any files in the implementation plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing new feature code. Remove the entry from `idea/on-touch.yaml` after tests are added.
+  1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists, check if any files in the implementation plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing new feature code. Remove the entry from `experiment/on-touch.yaml` after tests are added.
   2. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity
   3. Analyze task dependency graph per `patterns/tdd.md` § Task Dependency Ordering:
      - Independent tasks → spawn implementer agents in parallel (isolation: "worktree")

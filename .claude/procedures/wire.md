@@ -158,7 +158,7 @@ If `stack.testing` is NOT present in experiment.yaml: skip this step entirely.
 
 ### Step 8b: Spec compliance check
 
-Re-read `.claude/current-plan.md` and `idea/experiment.yaml` now. Verify each of these before proceeding to the PR:
+Re-read `.claude/current-plan.md` and `experiment/experiment.yaml` now. Verify each of these before proceeding to the PR:
 
 **Archetype-specific structure checks:**
 - If archetype requires `pages` (web-app): for each page in `pages`, confirm `src/app/<page-name>/page.tsx` exists (or root page for `landing`)

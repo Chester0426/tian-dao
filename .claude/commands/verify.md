@@ -2,7 +2,7 @@
 description: "Run E2E tests and fix failures. Use after /change and before deploy as a quality gate."
 type: code-writing
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - EVENTS.yaml
 stack_categories: [testing, framework, analytics]
 requires_approval: false
@@ -17,7 +17,7 @@ Run E2E tests against the local dev server and fix any failures.
 
 ## Step 0: Read context
 
-- Read `idea/experiment.yaml` — understand pages (from golden_path), behaviors, stack
+- Read `experiment/experiment.yaml` — understand pages (from golden_path), behaviors, stack
 - Read `EVENTS.yaml` — understand tracked events
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`).
 - If `stack.testing` is NOT present in experiment.yaml, stop: "No testing stack configured. Add `testing: vitest` (or another test runner) to experiment.yaml `stack` and run `/change add tests` to set up testing, or run `npm run build` to verify the app compiles."

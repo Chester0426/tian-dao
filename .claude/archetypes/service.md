@@ -3,7 +3,7 @@ description: "Backend service with API endpoints, no browser UI"
 required_stacks: [framework, hosting]
 optional_stacks: [database, auth, analytics, payment, email, testing]
 excluded_stacks: [ui]
-required_idea_fields: [endpoints]
+required_experiment_fields: [endpoints]
 build_command: "npm run build"
 funnel_template: custom
 ---

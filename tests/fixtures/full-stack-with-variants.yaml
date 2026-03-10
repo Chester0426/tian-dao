@@ -1,6 +1,6 @@
 # Test fixture: Full-stack app (auth + database, no payment) with 2 variants
 # Tests experiment matrix support with variant messaging.
-idea:
+experiment:
   name: test-full-stack-variants
   type: web-app
 

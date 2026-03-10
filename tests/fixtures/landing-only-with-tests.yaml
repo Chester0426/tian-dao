@@ -1,6 +1,6 @@
 # Test fixture: Landing-only with Playwright testing (no auth)
 # Exercises the no-auth testing path — tests run as anonymous visitors.
-idea:
+experiment:
   name: test-landing-tests
   type: web-app
 

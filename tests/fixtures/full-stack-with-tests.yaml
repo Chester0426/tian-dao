@@ -1,6 +1,6 @@
 # Test fixture: Full-stack app with Playwright testing
 # Mirrors full-stack fixture + testing: playwright to exercise test stack coverage.
-idea:
+experiment:
   name: test-full-stack-tests
   type: web-app
 
