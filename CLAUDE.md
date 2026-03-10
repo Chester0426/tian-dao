@@ -6,10 +6,10 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 
 ## Rule 0: Scope Lock
 - Only build what is described in `idea/experiment.yaml`
-- If a feature isn't listed in `features`, don't build it
-- If a page isn't listed in `pages` (web-app) or an endpoint isn't listed in `endpoints` (service), don't create it
+- If a behavior isn't listed in `behaviors`, don't build it
+- Pages are derived from `golden_path` — don't create pages not referenced there
 - If you're unsure whether something is in scope, it isn't
-- To add a new feature, use the /change skill — it updates experiment.yaml first, then implements
+- To add a new behavior, use the /change skill — it updates experiment.yaml first, then implements
 - When asked to do something outside a defined skill (/spec, /bootstrap, /change, /deploy, /distribute, /harden, /iterate, /retro, /review, /rollback, /teardown, /verify), ask the user to clarify before proceeding
 
 ## Rule 1: PR-First Workflow
@@ -31,8 +31,8 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 ## Rule 3: Use Stack from experiment.yaml
 - Default stack: Next.js (App Router), Vercel, Supabase, PostHog, shadcn/ui
 - The optional `type` field in experiment.yaml selects a product archetype (default: `web-app`). Each archetype is defined at `.claude/archetypes/<type>.md` and specifies required stacks, file structure, and funnel shape.
-- The optional `stack.surface` field selects the acquisition surface type (default: inferred from `stack.hosting`). Surface stack files at `.claude/stacks/surface/<value>.md` define how the surface is generated and deployed.
-- For each stack category in experiment.yaml, there is a corresponding implementation file at `.claude/stacks/<category>/<value>.md`. Skills read these files to know which packages to install, which library files to create, and which patterns to follow.
+- Per-service values (`runtime`, `hosting`, `ui`, `testing`) live under `stack.services[]`. Shared values (`database`, `auth`, `analytics`, `payment`) live directly under `stack`.
+- For per-service values, the stack file is at `.claude/stacks/<category>/<value>.md`. The category-to-directory mapping: `runtime` → `framework/`, `hosting` → `hosting/`, `ui` → `ui/`, `testing` → `testing/`. Shared values use their key name directly (e.g., `stack.database: supabase` → `.claude/stacks/database/supabase.md`).
 - To add support for a new technology (e.g., Firebase), create the corresponding stack file — don't modify skill files.
 - Do not add frameworks or libraries not listed in experiment.yaml `stack` section
 - Exception: small utility packages (clsx, date-fns, zod) are fine
@@ -90,7 +90,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 src/
   app/              # Pages and API routes (see framework stack file)
     api/            # API route handlers (all mutations go here)
-    <page-name>/    # One folder per experiment.yaml page
+    <page-name>/    # One folder per page derived from golden_path
       page.tsx      # Page component
   components/       # Reusable UI components (see UI stack file)
     ui/             # UI library components (auto-generated)
@@ -103,7 +103,7 @@ idea/               # experiment.yaml lives here
 > ```
 > src/
 >   app/
->     api/            # API route handlers (one per experiment.yaml endpoint)
+>     api/            # API route handlers
 >       <endpoint>/
 >         route.ts    # Route handler
 >   lib/              # Utilities
@@ -116,7 +116,7 @@ idea/               # experiment.yaml lives here
 
 ## Rule 8: Communication Style
 - Commit messages: imperative mood, ≤72 chars (e.g., "Add signup flow with email verification")
-- PR descriptions: bullet points, reference experiment.yaml features by name
+- PR descriptions: bullet points, reference experiment.yaml behaviors by ID
 - Fill in every section of the PR template — don't leave sections empty
 
 ## Rule 9: Framework Patterns
