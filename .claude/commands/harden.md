@@ -16,6 +16,11 @@ references:
 branch_prefix: chore
 modifies_specs: true
 ---
+
+> **Platform mode (`ASSAYER_API_URL`):** The hardening plan approval (Step 2)
+> remains interactive for session-resume in the web UI. No input-collection or
+> credential-collection points to skip.
+
 Transition this MVP to production quality mode: $ARGUMENTS
 
 ## Step 0: Validate preconditions

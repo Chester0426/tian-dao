@@ -8,6 +8,12 @@ references: []
 branch_prefix: feat
 modifies_specs: true
 ---
+
+> **Platform mode (`ASSAYER_API_URL`):** When running under the Assayer platform,
+> idea text and level are pre-configured in experiment.yaml. Input collection
+> steps auto-proceed, and research failures auto-select "override". Approval
+> gates (Step 6 CHECKPOINT) remain interactive for session-resume in the web UI.
+
 Transform an idea into a complete experiment specification: $ARGUMENTS
 
 ## Step 1: Parse Input
@@ -50,6 +56,9 @@ Display the parsed input and confirm before proceeding:
 
 Wait for user confirmation.
 
+> **Platform mode:** If `ASSAYER_API_URL` is set, auto-proceed — idea and level
+> are pre-configured by the platform. Do not prompt interactively.
+
 ## Step 1.5: Input Sufficiency Check
 
 After confirming the idea text and level, assess 3 information dimensions in the parsed input:
@@ -77,6 +86,9 @@ For each dimension, classify as:
 - Show inferences — let user confirm or correct
 - Merge follow-up answers with original input, then continue to Step 2 (no re-check)
 - `proceed` escape hatch — user can skip and let AI infer everything
+
+> **Platform mode:** If `ASSAYER_API_URL` is set, auto-use the "proceed" escape
+> hatch for any missing dimensions. Do not prompt interactively.
 
 ### Output: All present/inferable (merged into Confirm)
 
@@ -168,6 +180,9 @@ If 2+ dimensions are `fail`: stop and tell the user:
 > 2. Say "override" to proceed anyway (research will be marked as low-confidence)
 
 Wait for the user to revise, override, or abandon.
+
+> **Platform mode:** If `ASSAYER_API_URL` is set, auto-select "override" and
+> proceed with low-confidence research. Do not prompt interactively.
 
 ## Step 3: Generate Hypotheses
 
