@@ -88,7 +88,7 @@ class TestCheck2bArchetypeFrontmatterKeys:
             "required_stacks": ["framework"],
             "optional_stacks": ["database"],
             "excluded_stacks": [],
-            "required_idea_fields": ["pages"],
+            "required_experiment_fields": ["pages"],
             "build_command": "npm run build",
             "funnel_template": "standard",
         }

@@ -1,6 +1,6 @@
 # Test fixture: Landing-only page with 2 variants, no auth, no database
 # Minimal configuration with experiment matrix — just variant landing pages.
-idea:
+experiment:
   name: test-landing-variants
   type: web-app
 

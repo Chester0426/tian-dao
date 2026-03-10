@@ -1,6 +1,6 @@
 # Test fixture: Minimal CLI — commands only, no database/testing
 # Validates that cli archetype skips pages, endpoints, hosting, and UI requirements.
-idea:
+experiment:
   name: test-cli-minimal
   type: cli
 

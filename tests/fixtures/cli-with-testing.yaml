@@ -1,6 +1,6 @@
 # Test fixture: CLI with testing — covers commander + vitest combination
 # Validates that cli archetype works with the testing stack.
-idea:
+experiment:
   name: test-cli-with-testing
   type: cli
 

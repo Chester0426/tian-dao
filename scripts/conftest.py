@@ -23,7 +23,7 @@ def tmp_template_dir(tmp_path):
 
     (tmp_path / "tests" / "fixtures").mkdir(parents=True)
     (tmp_path / ".github" / "workflows").mkdir(parents=True)
-    (tmp_path / "idea").mkdir()
+    (tmp_path / "experiment").mkdir()
     (tmp_path / "scripts").mkdir()
 
     return tmp_path
@@ -98,10 +98,10 @@ def fake_fixture(
     stack=None,
     events=None,
     assertions=None,
-    extra_idea=None,
+    extra_experiment=None,
 ):
     """Generate a test fixture .yaml file."""
-    idea = {
+    experiment = {
         "name": name,
         "type": fixture_type,
         "title": "Test App",
@@ -116,15 +116,15 @@ def fake_fixture(
         "stack": stack or {"services": [{"name": "web", "runtime": "nextjs", "hosting": "vercel", "ui": "shadcn"}], "analytics": "posthog"},
     }
     if pages is not None:
-        idea["pages"] = pages
+        experiment["pages"] = pages
     elif fixture_type == "web-app":
-        idea["pages"] = [{"name": "landing", "description": "Landing page"}]
+        experiment["pages"] = [{"name": "landing", "description": "Landing page"}]
 
-    if extra_idea:
-        idea.update(extra_idea)
+    if extra_experiment:
+        experiment.update(extra_experiment)
 
     fixture = {
-        "idea": idea,
+        "experiment": experiment,
         "events": events or {"standard_funnel": [], "custom_events": []},
         "assertions": assertions or {
             "min_pages": 1,

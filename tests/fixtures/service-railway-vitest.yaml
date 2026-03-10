@@ -1,6 +1,6 @@
 # Test fixture: Service on Railway with Vitest — covers hosting/railway and testing/vitest
 # Validates that service archetype works with non-Vercel hosting and non-Playwright testing.
-idea:
+experiment:
   name: test-service-railway-vitest
   type: service
 

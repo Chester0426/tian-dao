@@ -45,7 +45,7 @@ jobs:
           python3 -c "
           import yaml, sys
           errors = []
-          for f in ['idea/experiment.yaml', 'EVENTS.yaml']:
+          for f in ['experiment/experiment.yaml', 'EVENTS.yaml']:
               try:
                   with open(f) as fh:
                       yaml.safe_load(fh)

@@ -1,6 +1,6 @@
 # Test fixture: CLI with detached surface
 # Validates that cli archetype with surface: detached gets a site/index.html marketing page.
-idea:
+experiment:
   name: test-surface-cli
   type: cli
 

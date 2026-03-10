@@ -1,6 +1,6 @@
 # Test fixture: Full-stack app (mirrors quickbill example)
 # All stack categories present: auth, payment, database, analytics, etc.
-idea:
+experiment:
   name: test-full-stack
   type: web-app
 

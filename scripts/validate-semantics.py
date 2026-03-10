@@ -40,7 +40,7 @@ Checks:
   36. (removed)
   37. Change Classification Before Dependent Checks — classification step precedes classification-dependent checks
   38. Ads.yaml Schema Validation — channel-aware required keys, creative constraints, budget limits
-  39. Ads.yaml Campaign Name Matches experiment.yaml Name — campaign_name starts with idea.name
+  39. Ads.yaml Campaign Name Matches experiment.yaml Name — campaign_name starts with experiment.name
   40. Distribute Skill Prose Event Names — distribute.md contains feedback_submitted event definition
   41. Distribution Docs References Exist — docs/*.md files referenced in distribute.md or distribution stack files exist
   42. Distribute Skill Validates Analytics Stack — distribute.md preconditions validate stack.analytics
@@ -161,7 +161,7 @@ def check_3_fixture_validation(
     Args:
         fixture_files: list of fixture file paths
         fixture_data: mapping of filepath -> parsed YAML dict
-        get_required_fields_fn: callable(type) -> list[str] for required idea fields
+        get_required_fields_fn: callable(type) -> list[str] for required experiment fields
 
     Returns:
         (errors, fixture_type_map) where fixture_type_map maps filepath -> archetype type
@@ -181,50 +181,50 @@ def check_3_fixture_validation(
             errors.append(f"[3] {ff}: fixture must be a YAML mapping")
             continue
 
-        for key in ["idea", "events", "assertions"]:
+        for key in ["experiment", "events", "assertions"]:
             if key not in fixture:
                 errors.append(f"[3] {ff}: missing required key '{key}'")
 
-        idea = fixture.get("idea", {})
-        if not isinstance(idea, dict):
-            errors.append(f"[3] {ff}: 'idea' must be a mapping")
+        experiment = fixture.get("experiment", {})
+        if not isinstance(experiment, dict):
+            errors.append(f"[3] {ff}: 'experiment' must be a mapping")
             continue
 
-        name = idea.get("name", "")
+        name = experiment.get("name", "")
         if not re.match(r"^[a-z][a-z0-9-]*$", str(name)):
             errors.append(
-                f"[3] {ff}: idea.name '{name}' must be lowercase, start with "
+                f"[3] {ff}: experiment.name '{name}' must be lowercase, start with "
                 f"a letter, and use only a-z, 0-9, hyphens"
             )
 
-        fixture_type = idea.get("type", "web-app")
+        fixture_type = experiment.get("type", "web-app")
         fixture_type_map[ff] = fixture_type
         fixture_required = get_required_fields_fn(fixture_type)
 
         for field in fixture_required:
-            if not idea.get(field):
-                errors.append(f"[3] {ff}: idea.{field} is missing or empty")
+            if not experiment.get(field):
+                errors.append(f"[3] {ff}: experiment.{field} is missing or empty")
 
         if "pages" in fixture_required:
-            pages = idea.get("pages", [])
+            pages = experiment.get("pages", [])
             if isinstance(pages, list):
                 has_landing = any(
                     isinstance(p, dict) and p.get("name") == "landing" for p in pages
                 )
                 if not has_landing:
-                    errors.append(f"[3] {ff}: idea.pages must include a 'landing' entry")
+                    errors.append(f"[3] {ff}: experiment.pages must include a 'landing' entry")
         else:
             pages = []
 
         assertions = fixture.get("assertions", {})
         if isinstance(assertions, dict):
-            stack = idea.get("stack", {})
+            stack = experiment.get("stack", {})
             has_payment = "payment" in stack if isinstance(stack, dict) else False
             payment_required = assertions.get("payment_events_required", False)
             if payment_required and not has_payment:
                 errors.append(
                     f"[3] {ff}: assertions.payment_events_required is true but "
-                    f"idea.stack has no payment entry"
+                    f"experiment.stack has no payment entry"
                 )
 
             skippable = assertions.get("skippable_events", [])
@@ -243,7 +243,7 @@ def check_3_fixture_validation(
                                 f"assertions.skippable_events"
                             )
             else:
-                fixture_stack = idea.get("stack", {})
+                fixture_stack = experiment.get("stack", {})
                 effective_surface = fixture_stack.get("surface")
                 if effective_surface is None:
                     effective_surface = "co-located" if "hosting" in fixture_stack else "detached"
@@ -261,47 +261,47 @@ def check_3_fixture_validation(
             if min_pages is not None and isinstance(pages, list):
                 if len(pages) < min_pages:
                     errors.append(
-                        f"[3] {ff}: idea has {len(pages)} page(s) but "
+                        f"[3] {ff}: experiment has {len(pages)} page(s) but "
                         f"assertions.min_pages is {min_pages}"
                     )
 
-            endpoints = idea.get("endpoints", [])
+            endpoints = experiment.get("endpoints", [])
             min_endpoints = assertions.get("min_endpoints")
             if min_endpoints is not None and isinstance(endpoints, list):
                 if len(endpoints) < min_endpoints:
                     errors.append(
-                        f"[3] {ff}: idea has {len(endpoints)} endpoint(s) but "
+                        f"[3] {ff}: experiment has {len(endpoints)} endpoint(s) but "
                         f"assertions.min_endpoints is {min_endpoints}"
                     )
 
-            commands = idea.get("commands", [])
+            commands = experiment.get("commands", [])
             min_commands = assertions.get("min_commands")
             if min_commands is not None and isinstance(commands, list):
                 if len(commands) < min_commands:
                     errors.append(
-                        f"[3] {ff}: idea has {len(commands)} command(s) but "
+                        f"[3] {ff}: experiment has {len(commands)} command(s) but "
                         f"assertions.min_commands is {min_commands}"
                     )
 
-            idea_variants = idea.get("variants")
+            experiment_variants = experiment.get("variants")
             has_variants_assertion = assertions.get("has_variants")
             variant_count_assertion = assertions.get("variant_count")
 
-            if idea_variants is not None:
-                if not isinstance(idea_variants, list):
-                    errors.append(f"[3] {ff}: idea.variants must be a list")
-                elif len(idea_variants) < 2:
-                    errors.append(f"[3] {ff}: idea.variants must have at least 2 entries")
+            if experiment_variants is not None:
+                if not isinstance(experiment_variants, list):
+                    errors.append(f"[3] {ff}: experiment.variants must be a list")
+                elif len(experiment_variants) < 2:
+                    errors.append(f"[3] {ff}: experiment.variants must have at least 2 entries")
                 else:
                     variant_slugs_seen: set[str] = set()
-                    for vi, vv in enumerate(idea_variants):
+                    for vi, vv in enumerate(experiment_variants):
                         if not isinstance(vv, dict):
-                            errors.append(f"[3] {ff}: idea.variants[{vi}] must be a mapping")
+                            errors.append(f"[3] {ff}: experiment.variants[{vi}] must be a mapping")
                             continue
                         for vfield in ["slug", "headline", "subheadline", "cta", "pain_points"]:
                             if not vv.get(vfield):
                                 errors.append(
-                                    f"[3] {ff}: idea.variants[{vi}].{vfield} is missing or empty"
+                                    f"[3] {ff}: experiment.variants[{vi}].{vfield} is missing or empty"
                                 )
                         vslug = vv.get("slug", "")
                         if vslug in variant_slugs_seen:
@@ -310,26 +310,26 @@ def check_3_fixture_validation(
                         vpp = vv.get("pain_points", [])
                         if isinstance(vpp, list) and len(vpp) != 3:
                             errors.append(
-                                f"[3] {ff}: idea.variants[{vi}].pain_points must have exactly 3 items"
+                                f"[3] {ff}: experiment.variants[{vi}].pain_points must have exactly 3 items"
                             )
 
                 if has_variants_assertion is not None and not has_variants_assertion:
                     errors.append(
-                        f"[3] {ff}: idea has variants but assertions.has_variants is false"
+                        f"[3] {ff}: experiment has variants but assertions.has_variants is false"
                     )
                 if (
                     variant_count_assertion is not None
-                    and isinstance(idea_variants, list)
-                    and len(idea_variants) != variant_count_assertion
+                    and isinstance(experiment_variants, list)
+                    and len(experiment_variants) != variant_count_assertion
                 ):
                     errors.append(
-                        f"[3] {ff}: idea has {len(idea_variants)} variant(s) but "
+                        f"[3] {ff}: experiment has {len(experiment_variants)} variant(s) but "
                         f"assertions.variant_count is {variant_count_assertion}"
                     )
             else:
                 if has_variants_assertion:
                     errors.append(
-                        f"[3] {ff}: assertions.has_variants is true but idea has no variants field"
+                        f"[3] {ff}: assertions.has_variants is true but experiment has no variants field"
                     )
 
         events = fixture.get("events", {})
@@ -339,7 +339,7 @@ def check_3_fixture_validation(
                 if pf:
                     errors.append(
                         f"[3] {ff}: events.payment_funnel is non-empty but "
-                        f"idea.stack has no payment entry"
+                        f"experiment.stack has no payment entry"
                     )
 
     return errors, fixture_type_map
@@ -483,8 +483,8 @@ def check_7_fixture_stack_coverage(
         fixture = fixture_data.get(ff, {})
         if not isinstance(fixture, dict):
             continue
-        idea = fixture.get("idea", {})
-        stack = idea.get("stack", {})
+        experiment = fixture.get("experiment", {})
+        stack = experiment.get("stack", {})
         if isinstance(stack, dict):
             pairs = {f"{k}/{v}" for k, v in stack.items()}
             fixture_stack_coverage[ff] = pairs
@@ -1066,7 +1066,7 @@ def main() -> int:
             skill_contents[sf] = f.read()
 
     # Required fields for experiment.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
-    BASE_REQUIRED_IDEA_FIELDS = [
+    BASE_REQUIRED_EXPERIMENT_FIELDS = [
         "name",
         "type",
         "description",
@@ -1078,20 +1078,20 @@ def main() -> int:
     ]
 
 
-    def get_required_idea_fields(idea_type: str | None = None) -> list[str]:
+    def get_required_experiment_fields(experiment_type: str | None = None) -> list[str]:
         """Return required experiment.yaml fields based on archetype type."""
-        effective = idea_type if idea_type else "web-app"
+        effective = experiment_type if experiment_type else "web-app"
         archetype_path = f".claude/archetypes/{effective}.md"
         extra = ["pages"]  # fallback if archetype file missing
         if os.path.isfile(archetype_path):
             fm = parse_frontmatter(archetype_path)
-            if fm and "required_idea_fields" in fm:
-                extra = fm["required_idea_fields"]
-        return BASE_REQUIRED_IDEA_FIELDS + extra
+            if fm and "required_experiment_fields" in fm:
+                extra = fm["required_experiment_fields"]
+        return BASE_REQUIRED_EXPERIMENT_FIELDS + extra
 
 
     # Default for web-app — used by Check 6 (consistency with Makefile)
-    REQUIRED_IDEA_FIELDS = get_required_idea_fields("web-app")
+    REQUIRED_EXPERIMENT_FIELDS = get_required_experiment_fields("web-app")
 
     # ---------------------------------------------------------------------------
     # Check 1: Import Completeness in TSX Templates
@@ -1189,43 +1189,43 @@ def main() -> int:
                 continue
 
             # Check required top-level keys
-            for key in ["idea", "events", "assertions"]:
+            for key in ["experiment", "events", "assertions"]:
                 if key not in fixture:
                     error(f"[3] {ff}: missing required key '{key}'")
 
-            idea = fixture.get("idea", {})
-            if not isinstance(idea, dict):
-                error(f"[3] {ff}: 'idea' must be a mapping")
+            experiment = fixture.get("experiment", {})
+            if not isinstance(experiment, dict):
+                error(f"[3] {ff}: 'experiment' must be a mapping")
                 continue
 
-            # Validate idea.name format
-            name = idea.get("name", "")
+            # Validate experiment.name format
+            name = experiment.get("name", "")
             if not re.match(r"^[a-z][a-z0-9-]*$", str(name)):
                 error(
-                    f"[3] {ff}: idea.name '{name}' must be lowercase, start with "
+                    f"[3] {ff}: experiment.name '{name}' must be lowercase, start with "
                     f"a letter, and use only a-z, 0-9, hyphens"
                 )
 
             # Resolve per-fixture archetype required fields
-            fixture_type = idea.get("type", "web-app")
+            fixture_type = experiment.get("type", "web-app")
             fixture_type_map[ff] = fixture_type
-            fixture_required = get_required_idea_fields(fixture_type)
+            fixture_required = get_required_experiment_fields(fixture_type)
 
-            # Validate required idea fields
+            # Validate required experiment fields
             for field in fixture_required:
-                if not idea.get(field):
-                    error(f"[3] {ff}: idea.{field} is missing or empty")
+                if not experiment.get(field):
+                    error(f"[3] {ff}: experiment.{field} is missing or empty")
 
             # Validate golden_path includes landing (only for archetypes requiring golden_path)
             if "golden_path" in fixture_required:
-                golden_path = idea.get("golden_path", [])
+                golden_path = experiment.get("golden_path", [])
                 if isinstance(golden_path, list):
                     has_landing = any(
                         isinstance(entry, dict) and entry.get("page") == "landing"
                         for entry in golden_path
                     )
                     if not has_landing:
-                        error(f"[3] {ff}: idea.golden_path must include a 'landing' entry")
+                        error(f"[3] {ff}: experiment.golden_path must include a 'landing' entry")
                     # Derive pages from golden_path for downstream checks
                     pages = [
                         {"name": entry.get("page")}
@@ -1243,13 +1243,13 @@ def main() -> int:
                 else:
                     pages = []
             elif "pages" in fixture_required:
-                pages = idea.get("pages", [])
+                pages = experiment.get("pages", [])
                 if isinstance(pages, list):
                     has_landing = any(
                         isinstance(p, dict) and p.get("name") == "landing" for p in pages
                     )
                     if not has_landing:
-                        error(f"[3] {ff}: idea.pages must include a 'landing' entry")
+                        error(f"[3] {ff}: experiment.pages must include a 'landing' entry")
             else:
                 pages = []  # no pages for service archetype
 
@@ -1257,13 +1257,13 @@ def main() -> int:
             assertions = fixture.get("assertions", {})
             if isinstance(assertions, dict):
                 # If no payment stack, payment_funnel events should not be required
-                stack = idea.get("stack", {})
+                stack = experiment.get("stack", {})
                 has_payment = "payment" in stack if isinstance(stack, dict) else False
                 payment_required = assertions.get("payment_events_required", False)
                 if payment_required and not has_payment:
                     error(
                         f"[3] {ff}: assertions.payment_events_required is true but "
-                        f"idea.stack has no payment entry"
+                        f"experiment.stack has no payment entry"
                     )
 
                 # Signup and landing event checks — archetype-aware
@@ -1287,7 +1287,7 @@ def main() -> int:
                     # Non-web-app (service, cli, etc.): determine which events must be skippable
                     # visit_landing is skippable only when surface is none;
                     # when a surface is configured, visit_landing fires on the surface page
-                    fixture_stack = idea.get("stack", {})
+                    fixture_stack = experiment.get("stack", {})
                     effective_surface = fixture_stack.get("surface")
                     if effective_surface is None:
                         effective_surface = "co-located" if "hosting" in fixture_stack else "detached"
@@ -1306,49 +1306,49 @@ def main() -> int:
                 if min_pages is not None and isinstance(pages, list):
                     if len(pages) < min_pages:
                         error(
-                            f"[3] {ff}: idea has {len(pages)} page(s) but "
+                            f"[3] {ff}: experiment has {len(pages)} page(s) but "
                             f"assertions.min_pages is {min_pages}"
                         )
 
                 # Validate min_endpoints matches actual endpoint count
-                endpoints = idea.get("endpoints", [])
+                endpoints = experiment.get("endpoints", [])
                 min_endpoints = assertions.get("min_endpoints")
                 if min_endpoints is not None and isinstance(endpoints, list):
                     if len(endpoints) < min_endpoints:
                         error(
-                            f"[3] {ff}: idea has {len(endpoints)} endpoint(s) but "
+                            f"[3] {ff}: experiment has {len(endpoints)} endpoint(s) but "
                             f"assertions.min_endpoints is {min_endpoints}"
                         )
 
                 # Validate min_commands matches actual command count
-                commands = idea.get("commands", [])
+                commands = experiment.get("commands", [])
                 min_commands = assertions.get("min_commands")
                 if min_commands is not None and isinstance(commands, list):
                     if len(commands) < min_commands:
                         error(
-                            f"[3] {ff}: idea has {len(commands)} command(s) but "
+                            f"[3] {ff}: experiment has {len(commands)} command(s) but "
                             f"assertions.min_commands is {min_commands}"
                         )
 
                 # Validate variant assertions and structure
-                idea_variants = idea.get("variants")
+                experiment_variants = experiment.get("variants")
                 has_variants_assertion = assertions.get("has_variants")
                 variant_count_assertion = assertions.get("variant_count")
 
-                if idea_variants is not None:
+                if experiment_variants is not None:
                     # Fixture has variants — validate structure
-                    if not isinstance(idea_variants, list):
-                        error(f"[3] {ff}: idea.variants must be a list")
-                    elif len(idea_variants) < 2:
+                    if not isinstance(experiment_variants, list):
+                        error(f"[3] {ff}: experiment.variants must be a list")
+                    elif len(experiment_variants) < 2:
                         error(
-                            f"[3] {ff}: idea.variants must have at least 2 entries"
+                            f"[3] {ff}: experiment.variants must have at least 2 entries"
                         )
                     else:
                         variant_slugs_seen: set[str] = set()
-                        for vi, vv in enumerate(idea_variants):
+                        for vi, vv in enumerate(experiment_variants):
                             if not isinstance(vv, dict):
                                 error(
-                                    f"[3] {ff}: idea.variants[{vi}] must be a mapping"
+                                    f"[3] {ff}: experiment.variants[{vi}] must be a mapping"
                                 )
                                 continue
                             for vfield in [
@@ -1356,7 +1356,7 @@ def main() -> int:
                             ]:
                                 if not vv.get(vfield):
                                     error(
-                                        f"[3] {ff}: idea.variants[{vi}].{vfield} "
+                                        f"[3] {ff}: experiment.variants[{vi}].{vfield} "
                                         f"is missing or empty"
                                     )
                             vslug = vv.get("slug", "")
@@ -1368,25 +1368,25 @@ def main() -> int:
                             vpp = vv.get("pain_points", [])
                             if isinstance(vpp, list) and len(vpp) != 3:
                                 error(
-                                    f"[3] {ff}: idea.variants[{vi}].pain_points "
+                                    f"[3] {ff}: experiment.variants[{vi}].pain_points "
                                     f"must have exactly 3 items"
                                 )
 
                     # Validate has_variants assertion
                     if has_variants_assertion is not None and not has_variants_assertion:
                         error(
-                            f"[3] {ff}: idea has variants but "
+                            f"[3] {ff}: experiment has variants but "
                             f"assertions.has_variants is false"
                         )
 
                     # Validate variant_count assertion
                     if (
                         variant_count_assertion is not None
-                        and isinstance(idea_variants, list)
-                        and len(idea_variants) != variant_count_assertion
+                        and isinstance(experiment_variants, list)
+                        and len(experiment_variants) != variant_count_assertion
                     ):
                         error(
-                            f"[3] {ff}: idea has {len(idea_variants)} variant(s) "
+                            f"[3] {ff}: experiment has {len(experiment_variants)} variant(s) "
                             f"but assertions.variant_count is "
                             f"{variant_count_assertion}"
                         )
@@ -1395,7 +1395,7 @@ def main() -> int:
                     if has_variants_assertion:
                         error(
                             f"[3] {ff}: assertions.has_variants is true but "
-                            f"idea has no variants field"
+                            f"experiment has no variants field"
                         )
 
             # Validate events structure
@@ -1407,7 +1407,7 @@ def main() -> int:
                     if pf:
                         error(
                             f"[3] {ff}: events.payment_funnel is non-empty but "
-                            f"idea.stack has no payment entry"
+                            f"experiment.stack has no payment entry"
                         )
     else:
         # No fixture directory is not an error — fixtures are optional pre-creation
@@ -1514,7 +1514,7 @@ def main() -> int:
                 if f.strip()
             ]
             mk_fields_set = set(mk_fields)
-            sem_fields_set = set(REQUIRED_IDEA_FIELDS)
+            sem_fields_set = set(REQUIRED_EXPERIMENT_FIELDS)
 
             for field in sorted(mk_fields_set - sem_fields_set):
                 error(
@@ -1558,8 +1558,8 @@ def main() -> int:
                     continue
             if not isinstance(fixture, dict):
                 continue
-            idea = fixture.get("idea", {})
-            stack = idea.get("stack", {})
+            experiment = fixture.get("experiment", {})
+            stack = experiment.get("stack", {})
             if isinstance(stack, dict):
                 pairs: set[str] = set()
                 # Map per-service keys to stack file directories
@@ -1777,8 +1777,8 @@ def main() -> int:
                     continue
             if not isinstance(fixture, dict):
                 continue
-            idea = fixture.get("idea", {})
-            stack = idea.get("stack", {})
+            experiment = fixture.get("experiment", {})
+            stack = experiment.get("stack", {})
             if isinstance(stack, dict):
                 fixture_stacks_13.append(stack)
 
@@ -1939,8 +1939,8 @@ def main() -> int:
                         continue
                 if not isinstance(fixture, dict):
                     continue
-                idea = fixture.get("idea", {})
-                stack = idea.get("stack", {})
+                experiment = fixture.get("experiment", {})
+                stack = experiment.get("stack", {})
                 if not isinstance(stack, dict):
                     continue
 
@@ -2119,9 +2119,9 @@ def main() -> int:
         # Look for text indicating the Test type can add testing to experiment.yaml stack
         has_testing_addition = bool(
             re.search(
-                r"(?i)(?:test.*(?:add|update).*(?:idea\.yaml|stack).*testing|"
-                r"testing.*(?:idea\.yaml|stack)|"
-                r"stack\.testing.*idea\.yaml)",
+                r"(?i)(?:test.*(?:add|update).*(?:experiment\.yaml|idea\.yaml|stack).*testing|"
+                r"testing.*(?:experiment\.yaml|idea\.yaml|stack)|"
+                r"stack\.testing.*(?:experiment\.yaml|idea\.yaml))",
                 change_content_25,
             )
         )
@@ -2551,7 +2551,7 @@ def main() -> int:
     # Check 38: Ads.yaml Schema Validation
     # ---------------------------------------------------------------------------
 
-    ads_yaml_path = "idea/ads.yaml"
+    ads_yaml_path = "experiment/ads.yaml"
     if os.path.isfile(ads_yaml_path):
         with open(ads_yaml_path) as f:
             try:
@@ -2568,8 +2568,8 @@ def main() -> int:
     # Check 39: Ads.yaml Campaign Name Matches experiment.yaml Name
     # ---------------------------------------------------------------------------
 
-    if os.path.isfile(ads_yaml_path) and os.path.isfile("idea/experiment.yaml"):
-        with open("idea/experiment.yaml") as f:
+    if os.path.isfile(ads_yaml_path) and os.path.isfile("experiment/experiment.yaml"):
+        with open("experiment/experiment.yaml") as f:
             idea_data_39 = yaml.safe_load(f)
 
         if os.path.isfile(ads_yaml_path):

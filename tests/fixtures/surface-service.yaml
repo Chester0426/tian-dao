@@ -1,6 +1,6 @@
 # Test fixture: Service with co-located surface
 # Validates that service archetype with surface: co-located gets a root HTML page.
-idea:
+experiment:
   name: test-surface-service
   type: service
 

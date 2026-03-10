@@ -1,6 +1,6 @@
 # Test fixture: Auth without database
 # Exercises the auth/supabase standalone client path (no database: supabase).
-idea:
+experiment:
   name: test-auth-only
   type: web-app
 

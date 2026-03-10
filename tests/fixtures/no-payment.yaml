@@ -1,6 +1,6 @@
 # Test fixture: Auth + database but no payment stack
 # Tests that payment_funnel events are absent when stack.payment is missing.
-idea:
+experiment:
   name: test-no-payment
   type: web-app
 

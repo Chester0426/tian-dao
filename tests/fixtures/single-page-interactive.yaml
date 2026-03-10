@@ -1,7 +1,7 @@
 # Test fixture: Landing-only with an interactive feature (calculator)
 # Tests that activate event IS required (unlike landing-only) because
 # the page has an interactive feature that delivers value.
-idea:
+experiment:
   name: test-interactive
   type: web-app
 

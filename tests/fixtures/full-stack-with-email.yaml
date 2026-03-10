@@ -1,6 +1,6 @@
 # Test fixture: Full-stack app with email (extends full-stack with email: resend)
 # All stack categories present including email for retention automation
-idea:
+experiment:
   name: test-full-stack-email
   type: web-app
 
