@@ -175,13 +175,15 @@ Read `.claude/spec-manifest.json`. If the file does not exist, skip this step en
 
 For each hypothesis in `spec-manifest.json` where `status` is `"testing"` (not `"resolved"`):
 
-1. **Map metric**: match `success_metric` to the closest funnel metric from Step 2 data (e.g., "CTA click rate" → visit_landing-to-signup conversion, "signup rate" → signup_start count)
-2. **Compare**: actual value vs `threshold`
-3. **Verdict**:
+1. **Dependency check**: if the hypothesis has `depends_on[]`, check whether any parent hypothesis has verdict `REJECTED`. If so, set this hypothesis's verdict to `BLOCKED` and skip metric comparison.
+2. **Map metric**: match `success_metric` to the closest funnel metric from Step 2 data (e.g., "CTA click rate" → visit_landing-to-signup conversion, "signup rate" → signup_start count)
+3. **Compare**: actual value vs `threshold`
+4. **Verdict**:
    - `CONFIRMED` — actual >= threshold
    - `REJECTED` — actual < threshold AND sample size >= 30
    - `INCONCLUSIVE` — sample size < 30
-4. **Confidence tag** based on sample size:
+   - `BLOCKED` — a parent in `depends_on[]` was REJECTED
+5. **Confidence tag** based on sample size:
    - <30: "insufficient data"
    - 30-100: "directional signal"
    - 100-500: "reliable"
@@ -191,12 +193,12 @@ Output:
 ```
 Hypothesis Verdicts
 ───────────────────
-  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE]  ([confidence] — [N] [unit])
-  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE]  ([confidence] — [N] [unit])
+  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE / BLOCKED ⊘ (parent: h-XX)]  ([confidence] — [N] [unit])
+  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE / BLOCKED ⊘ (parent: h-XX)]  ([confidence] — [N] [unit])
   ...
 ```
 
-If ALL testable hypotheses are CONFIRMED and verdict from Step 3 is SCALE, note:
+If ALL testable hypotheses are CONFIRMED (excluding BLOCKED) and verdict from Step 3 is SCALE, note:
 > All hypotheses confirmed. This experiment has validated its core assumptions. Consider graduating with `/harden`.
 
 ## Step 4: Diagnose the funnel
@@ -238,7 +240,24 @@ Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / thre
 
 - If experiment level < dimension level, show "—" for that row with "(not tested at this level)"
 - Confidence per-dimension is based on sample size (same tags as Step 3.5)
-- Thresholds come from spec-manifest.json `hypotheses[].threshold` mapped by category, or from EVENTS.yaml funnel benchmarks if no spec-manifest exists
+- Threshold sourcing (in priority order): (1) `funnel.<dimension>.threshold` from experiment.yaml, (2) spec-manifest.json `hypotheses[].threshold` mapped by category, (3) EVENTS.yaml funnel benchmarks as fallback
+
+#### Custom funnel mapping (service/cli archetypes)
+
+When `funnel_template` is `custom`, map custom funnel events to the 4 standard dimensions for consistent Scorecard output:
+
+| Custom Stage | Dimension |
+|-------------|-----------|
+| `api_call` / `command_run` | REACH |
+| `activate` | DEMAND |
+| `pay_*` | MONETIZE |
+| `retain_return` | RETAIN |
+
+Apply these dimension labels in the Scorecard output so that the 4-column structure (REACH, DEMAND, MONETIZE, RETAIN) remains consistent regardless of archetype.
+
+#### Decision Framework Reference
+
+The `decision_framework` field in experiment.yaml `funnel` section is human-readable documentation of the experiment's decision criteria. The actual verdict logic uses the two-tier approach: pace-based overall verdict (Step 3) + per-dimension Scorecard ratios (Step 4). The `decision_framework` field serves as operator context — display it in the Step 7 summary for reference but do not use it to override the algorithmic verdict.
 
 ### Bottleneck
 
@@ -373,15 +392,16 @@ Write `.claude/iterate-manifest.json`:
       "metric_name": "<mapped metric>",
       "actual_value": "<value>",
       "threshold": "<threshold>",
-      "verdict": "<CONFIRMED|REJECTED|INCONCLUSIVE>",
+      "verdict": "<CONFIRMED|REJECTED|INCONCLUSIVE|BLOCKED>",
+      "blocked_by": "<parent hypothesis id or null>",
       "sample_size": 0,
       "confidence_level": "<insufficient data|directional signal|reliable|high confidence>"
     }
   ],
   "funnel_scores": {
-    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0 },
-    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0 },
-    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0 },
+    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
+    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
+    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
     "retain": null
   }
 }
