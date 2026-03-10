@@ -23,9 +23,9 @@ Level definitions:
 
 ### Fallback
 If `$ARGUMENTS` is empty or contains only a level flag:
-- Check if `idea/experiment.yaml` exists and has non-TODO `problem` and `solution` fields.
+- Check if `idea/experiment.yaml` exists and has non-TODO `thesis` and `description` fields.
   If so, extract the idea text from those fields and confirm with the user:
-  > Found existing problem/solution in experiment.yaml. Using this as the idea input:
+  > Found existing thesis/description in experiment.yaml. Using this as the idea input:
   > "[extracted text]"
   > Proceed? (yes/no)
 - If experiment.yaml doesn't exist or fields are still TODO: stop with:
@@ -110,13 +110,12 @@ Generate 5-10 hypotheses spanning these categories:
 ### Hypothesis fields
 Each hypothesis must have:
 ```yaml
-- id: h_<category>_<n>           # e.g., h_demand_1
+- id: h-01                       # Sequential zero-padded: h-01, h-02, ...
   category: demand               # demand | reach | feasibility | monetize | retain
   statement: "..."               # Testable claim with specific numbers
-  test_method: "..."             # How to test — either "research" or an experiment action
   success_metric: "..."          # What to measure
   threshold: "..."               # Pass/fail number (e.g., ">5% CTR", ">=50 signups")
-  priority_score: 8              # 1-10, higher = test first
+  priority_score: 80             # 0-100, higher = test first
   experiment_level: 1            # Minimum level needed to test this (1, 2, or 3)
   depends_on: []                 # List of hypothesis IDs this depends on
   status: pending                # pending | resolved
@@ -129,9 +128,9 @@ Each hypothesis must have:
 - Minimum 5 hypotheses after filtering. If fewer, add more at the selected level.
 - At least one hypothesis per category that applies to the selected level:
   - Level 1: demand, reach required
-  - Level 2: demand, reach, feasibility, retain required
+  - Level 2: demand, reach, feasibility, monetize, retain required
   - Level 3: all five categories required
-- `monetize` hypotheses only appear at Level 3
+- `monetize` hypotheses appear at Level 2+
 - Sort by `priority_score` descending
 
 ## Step 4: Derive Behaviors
@@ -142,12 +141,29 @@ For each hypothesis, derive 1-3 behaviors that, if observed, would validate or i
 
 ### Behavior fields
 ```yaml
-- id: b_<n>                      # Sequential: b_1, b_2, ...
-  hypothesis_id: h_demand_1      # Which hypothesis this validates
+- id: b-01                      # Sequential zero-padded: b-01, b-02, ...
+  hypothesis_id: h-01           # Which hypothesis this validates
   given: "A visitor lands on the landing page"
   when: "They read the headline and see the CTA"
   then: "They click the CTA button"
+  tests:                         # 1-3 verifiable assertions
+    - "Landing page renders CTA button"
+    - "Clicking CTA navigates to signup"
   level: 1                       # Matches the hypothesis level
+```
+
+For system or scheduled behaviors, add `actor` and `trigger`:
+```yaml
+- id: b-05
+  actor: system                  # system | cron (default: user, omit for user behaviors)
+  trigger: "stripe webhook checkout.session.completed"
+  hypothesis_id: h-03
+  given: "..."
+  when: "..."
+  then: "..."
+  tests:
+    - "..."
+  level: 3
 ```
 
 ### Rules
@@ -155,6 +171,8 @@ For each hypothesis, derive 1-3 behaviors that, if observed, would validate or i
 - Behaviors must be observable and measurable (map to analytics events or database state)
 - Use concrete user actions, not abstract concepts ("clicks the CTA" not "shows interest")
 - Behaviors replace the traditional `features` list — each behavior IS a feature requirement
+- Each behavior must have 1-3 `tests` entries — verifiable assertions about the behavior
+- System/cron behaviors should be derived from monetize or operational hypotheses
 
 ## Step 5: Generate Variants
 
@@ -180,111 +198,109 @@ Generate 3-5 offer variants. Each variant is a different messaging angle for the
 - Each variant targets a different emotional angle (e.g., time-saving vs cost-saving vs status)
 - `pain_points` must be specific to the target user, not generic
 - If Level 3 AND monetize hypotheses exist: add `pricing_amount` and `pricing_model` fields to each variant
-- First variant gets `default: true`
 
 ## Step 6: Assemble experiment.yaml
 
-Build the complete experiment.yaml with these sections:
+Build the complete experiment.yaml with these 7 sections:
 
-### 6a: Identity
+### Section 1 — Identity
 ```yaml
 name: <slugified-name>
-title: "<Human Title — Tagline>"
-owner: <from existing experiment.yaml or ask user>
-template_repo: magpiexyz-lab/mvp-template
-type: web-app
+type: web-app                    # web-app | service | cli | agent
 level: <selected level>
 status: draft
 ```
 
-### 6b: Intent
+### Section 2 — Intent
 ```yaml
-problem: |
-  <Refined from idea + research findings>
+description: |
+  <2-3 sentences, refined from idea + research>
 
-solution: |
-  <Refined from idea + research findings>
-
-target_user: "<Specific ICP from research>"
-thesis: "<One-sentence testable claim: If [action], then [outcome], as measured by [metric]>"
+thesis: "<If [action], then [outcome], as measured by [metric]>"
+target_user: "<Specific ICP>"
 
 distribution: |
-  <Channels identified from reach hypotheses + research>
-```
+  <Channels from reach hypotheses>
 
-### 6c: Hypotheses
-```yaml
 hypotheses:
-  <all hypotheses from Step 3>
+  <all from Step 3>
 ```
+- `description` merges problem + solution into one field
+- `thesis` is required
+- `hypotheses` are inline under Intent
 
-### 6d: Behaviors
+### Section 3 — Behaviors
 ```yaml
 behaviors:
-  <all behaviors from Step 4>
+  <all from Step 4, with tests[] and optional actor/trigger>
 ```
 
-### 6e: Journey
-Derive pages, golden_path, and features from behaviors:
-
+### Section 4 — Journey
+Derive golden_path from behaviors:
 ```yaml
-pages:
-  - name: landing
-    purpose: "Validate demand — present offer, capture interest"
-  # Add pages required by Level 2+ behaviors (e.g., dashboard, settings)
-
 golden_path:
-  - page: landing
-    action: "<from demand behavior>"
+  - step: "<description>"         # e.g., "Visit landing page"
     event: visit_landing
+    page: landing
   # Continue through behavior chain to value moment
-  - page: <value page>
-    action: "<value-delivering action>"
+  - step: "<value-delivering action>"
     event: activate
-    value_moment: true
+    page: <value page>
 target_clicks: <N>
-
-features:
-  # Derive from behaviors — each behavior's "then" becomes a feature
-  - "<feature derived from behavior b_1>"
-  - "<feature derived from behavior b_2>"
 ```
+- `step:` replaces the old `action:` field
+- Pages are derived from golden_path — no separate `pages` section
 
-### 6f: Variants
+### Section 5 — Variants
 ```yaml
 variants:
-  <all variants from Step 5>
+  <all from Step 5>
 ```
 
-### 6g: Funnel
+### Section 6 — Funnel
 ```yaml
-primary_metric: "<from demand hypothesis threshold>"
-target_value: "<from demand hypothesis threshold>"
-measurement_window: "<reasonable window for the level>"
-
 funnel:
-  thresholds:
-    visit_to_cta: "<from demand hypothesis>"
-    cta_to_signup: "<from reach/retain hypothesis, if applicable>"
-    signup_to_activate: "<from feasibility hypothesis, if applicable>"
-    activate_to_pay: "<from monetize hypothesis, if applicable>"
-  decision_framework: |
-    CONTINUE if: [conditions based on hypothesis thresholds]
-    PIVOT if: [conditions]
-    KILL if: [conditions]
+  reach:
+    metric: "<from reach hypothesis>"
+    threshold: "<threshold>"
+    available_from: L1
+  demand:
+    metric: "<from demand hypothesis>"
+    threshold: "<threshold>"
+    available_from: L1
+  monetize:
+    metric: "<from monetize hypothesis>"
+    threshold: "<threshold>"
+    available_from: L2
+  retain:
+    metric: "<from retain hypothesis>"
+    threshold: "<threshold>"
+    available_from: L3
+
+decision_framework:
+  scale: "<condition>"
+  refine: "<condition>"
+  pivot: "<condition>"
+  kill: "<condition>"
 ```
 
-### 6h: Stack
+### Section 7 — Stack + Deploy
 Stack is deterministic from level:
 
 **Level 1:**
 ```yaml
 stack:
-  framework: nextjs
-  hosting: vercel
+  services:
+    - name: app
+      runtime: nextjs
+      hosting: vercel
+      ui: shadcn
+      testing: playwright
   analytics: posthog
-  ui: shadcn
-  testing: playwright
+
+deploy:
+  url: null
+  repo: null
 ```
 
 **Level 2:** Level 1 +
@@ -300,14 +316,6 @@ stack:
 If monetize hypotheses exist at Level 3, also add:
 ```yaml
   payment: stripe
-```
-
-### 6i: Deploy (preserve from existing or use defaults)
-```yaml
-deploy:
-  vercel_team: "Magpiexyz Ltd"
-  supabase_org: "Magpiexyz Labs"
-  supabase_region: us-east-1
 ```
 
 ### CHECKPOINT
@@ -347,18 +355,19 @@ Write `.claude/spec-manifest.json` with the full research and hypothesis details
     "icp_identified": { "finding": "...", "sources": [...], "confidence": "...", "verdict": "..." }
   },
   "hypotheses": [
-    { "id": "...", "category": "...", "statement": "...", "test_method": "...", "success_metric": "...", "threshold": "...", "priority_score": 8, "experiment_level": 1, "depends_on": [], "status": "..." }
+    { "id": "...", "category": "...", "statement": "...", "success_metric": "...", "threshold": "...", "priority_score": 80, "experiment_level": 1, "depends_on": [], "status": "..." }
   ],
   "behaviors": [
-    { "id": "...", "hypothesis_id": "...", "given": "...", "when": "...", "then": "...", "level": 1 }
+    { "id": "...", "hypothesis_id": "...", "given": "...", "when": "...", "then": "...", "tests": ["..."], "level": 1 }
   ],
   "variants": [
     { "slug": "...", "headline": "...", "headline_word_diff_vs_others": ">30%" }
   ],
   "decision_framework": {
-    "continue_if": "...",
-    "pivot_if": "...",
-    "kill_if": "..."
+    "scale": "...",
+    "refine": "...",
+    "pivot": "...",
+    "kill": "..."
   }
 }
 ```
@@ -389,14 +398,13 @@ Level:        [N] — [level name]
 Hypotheses:   [N] ([N resolved from research], [N pending])
 Behaviors:    [N] (given/when/then)
 Variants:     [N]
-Stack:        [framework, hosting, ...]
+Stack:        [services: app(runtime, hosting, ...), shared: ...]
 Status:       draft
 
 Next: Run /bootstrap to scaffold the app, or edit idea/experiment.yaml to adjust.
 ```
 
 ## Do NOT
-- Use `features` instead of `behaviors` with given/when/then — behaviors ARE the feature specification
 - Add behaviors not traceable to a hypothesis
 - Add stack components not required by the selected level
 - Generate fewer than 3 variants or fewer than 5 hypotheses
@@ -404,7 +412,7 @@ Next: Run /bootstrap to scaffold the app, or edit idea/experiment.yaml to adjust
 - Modify any file other than `idea/experiment.yaml` and `.claude/spec-manifest.json`
 - Skip the user approval checkpoint in Step 6
 - Proceed past any STOP point without explicit user confirmation
-- Add `monetize` category hypotheses at Level 1 or Level 2
+- Add `monetize` category hypotheses at Level 1
 - Add `payment: stripe` to stack unless Level 3 with monetize hypotheses
 - Add `auth: supabase` to stack at Level 1
 - Add `database: supabase` to stack at Level 1
