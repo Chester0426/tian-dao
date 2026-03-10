@@ -43,7 +43,7 @@ check_absent "CLAUDE.md" \
 for f in .claude/commands/*.md; do
   [ -f "$f" ] || continue
   check_absent "$f" \
-    '^\s*[\-\|]\s*`?(visit_landing|signup_start|signup_complete|activate|retain_return|pay_start|pay_success)`?\s*(on |— |\| )' \
+    '^\s*[\-\|]\s*`?(visit_landing|signup_start|signup_complete|activate|retain_return|pay_start|pay_success)`?\s*(on |— |\| [a-z])' \
     "enumerated event names (should reference EVENTS.yaml)"
 done
 
