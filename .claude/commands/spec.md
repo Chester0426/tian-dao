@@ -280,7 +280,7 @@ Build the complete experiment.yaml with these 7 sections:
 ### Section 1 — Identity
 ```yaml
 name: <slugified-name>
-type: web-app                    # web-app | service | cli | agent
+type: web-app                    # web-app | service | cli
 level: <selected level>
 status: draft
 ```

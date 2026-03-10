@@ -27,14 +27,18 @@ Levels are nested: L2 includes L1, L3 includes L2. Upgrade without rebuild.
 | **web-app** | Landing page + variants + analytics | + functional pages + DB | + auth + payments |
 | **service** | Landing page + API docs + "Get API Key" CTA | + real API routes + DB | + auth + rate limit + billing |
 | **cli** | Landing page + npx stub (opens browser) | + real CLI commands + backend API + DB | + auth token + cloud sync + billing |
-| **agent** | Landing page + agent description | + agent execution route + results page + DB | + auth + usage tracking + billing |
 
 **All archetypes at L1 are the same: a Next.js landing page.** Differentiation starts at L2.
+
+> **Agent experiments** use `type: web-app` with `hosting: railway` and `ai: anthropic`.
+> An "AI agent" is a web-app whose core behavior is an AI invocation (execution route + results page).
+> `/spec` detects agent-like ideas and generates appropriate behaviors and stack choices — no separate archetype needed.
+> Rationale: agent experiments need zero different skill steps vs web-app — the differences are content (variant copy describes agent capabilities) and stack (Railway for long-running tasks, AI SDK dependency).
 
 ### Stack Principles
 
 - **Runtime is always Next.js.** API routes serve as backend. No Hono/Express during validation.
-- **Hosting varies by need.** Vercel (default) for web-app/service. Railway for agents and real-time (persistent runtime). Determined at `/spec` time from type + behavior analysis.
+- **Hosting varies by need.** Vercel (default) for most experiments. Railway for long-running tasks and real-time (persistent runtime). Determined at `/spec` time from behavior analysis.
 - **`type` controls generation, not stack.** All archetypes use the same stack structure. `type` determines what `/bootstrap` creates (pages, routes, artifacts).
 - **Code grows from L1 to production without rewrite.** Same runtime across all levels. Switching hosting (Vercel→Railway) is a config change, not a code change.
 - **`services[]` array from Day 1.** V1 has one service. V3+ can add more. Zero schema migration.
@@ -157,8 +161,8 @@ Login OAuth (Supabase Auth) is independent from API OAuth (Google/Meta Ads). API
 
 ```
 Assayer Platform   →  Vercel (assayer.io) + Supabase
-Experiment (web)   →  Vercel (exp-name.assayer.io)
-Experiment (agent) →  Railway (exp-name.assayer.io)
+Experiment (default) →  Vercel (exp-name.assayer.io)
+Experiment (long-running) →  Railway (exp-name.assayer.io)
 ```
 
 All experiments share one PostHog project. `global_properties` distinguishes by experiment.
@@ -219,7 +223,7 @@ Supporting (unchanged): `/review`, `/rollback`
 ```yaml
 # 1. Identity
 name: ai-invoice-tool                    # kebab-case
-type: web-app                            # web-app | service | cli | agent
+type: web-app                            # web-app | service | cli
 level: 1                                 # 1 (Pitch), 2 (Prototype), 3 (Product)
 status: draft
 # quality: production                    # Build config — toggles TDD, implementer, spec review
@@ -318,7 +322,7 @@ decision_framework:
 services:
   - name: app
     runtime: nextjs                      # always Next.js for validation
-    hosting: vercel                      # or railway (agents, real-time)
+    hosting: vercel                      # or railway (long-running, real-time)
     ui: shadcn
     testing: playwright
 database: supabase                       # L2+ (shared across services)
@@ -462,7 +466,7 @@ CREATE TABLE experiments (
   user_id uuid NOT NULL REFERENCES auth.users(id),
   name text NOT NULL,
   experiment_type text NOT NULL DEFAULT 'web-app'
-    CHECK (experiment_type IN ('web-app', 'service', 'cli', 'agent')),
+    CHECK (experiment_type IN ('web-app', 'service', 'cli')),
   idea_text text NOT NULL,
   status text NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'active', 'paused', 'completed', 'archived')),
@@ -893,7 +897,7 @@ Step 1 -- Describe:
 |  Or try an example:                                         |
 |  [AI resume builder] [Meal prep planner] [SaaS analytics]   |
 |                                                             |
-|  Type: [web-app v] [service] [cli] [agent]                  |
+|  Type: [web-app v] [service] [cli]                          |
 |  Level: [L1 Pitch v]  [L2 Prototype]  [L3 Product]         |
 |                                                             |
 |  [Generate Spec]                                            |
