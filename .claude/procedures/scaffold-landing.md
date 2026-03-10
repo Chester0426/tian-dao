@@ -8,7 +8,7 @@
 ## Instructions
 
 Resolve the surface type: if `stack.surface` is set in experiment.yaml, use it.
-Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
+Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
 Read the surface stack file at `.claude/stacks/surface/<value>.md`.
 
 - **surface: none**: report "surface: none — no landing page needed" and stop.
