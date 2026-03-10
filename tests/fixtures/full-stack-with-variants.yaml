@@ -29,6 +29,9 @@ idea:
         - "Manual invoicing wastes hours every week"
         - "Chasing payments is exhausting"
         - "Existing tools are overkill for solo freelancers"
+      promise: "Create and send invoices in under 60 seconds"
+      proof: "Used by 500+ freelancers in beta"
+      urgency: "Every day without invoicing costs you billable hours"
       default: true
     - slug: simplicity
       headline: "Dead-Simple Invoicing for Freelancers"
@@ -38,6 +41,9 @@ idea:
         - "FreshBooks and QuickBooks are too complex"
         - "You just need to send an invoice, not run accounting"
         - "Spreadsheet invoices look unprofessional"
+      promise: "Professional invoices without the learning curve"
+      proof: "Built by freelancers, for freelancers"
+      urgency: "Tax season is coming — get your invoicing sorted now"
 
   pages:
     - name: landing

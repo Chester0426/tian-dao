@@ -56,6 +56,66 @@ idea:
     ui: shadcn
     payment: stripe
 
+  level: 3
+  thesis: "If freelancers can create invoices in under 60 seconds, at least 10 will send a paid invoice within 2 weeks"
+
+  hypotheses:
+    - id: h_demand_1
+      category: demand
+      statement: "At least 5% of landing visitors will click the CTA"
+      test_method: "A/B landing page with analytics"
+      success_metric: "CTA click-through rate"
+      threshold: ">5% CTR"
+      priority_score: 9
+      experiment_level: 1
+      depends_on: []
+      status: pending
+    - id: h_feasibility_1
+      category: feasibility
+      statement: "Invoice creation works in under 60 seconds"
+      test_method: "Build and measure time-to-complete"
+      success_metric: "Median time to first sent invoice"
+      threshold: "<60 seconds"
+      priority_score: 8
+      experiment_level: 2
+      depends_on: [h_demand_1]
+      status: pending
+    - id: h_monetize_1
+      category: monetize
+      statement: "At least 20% of active users will start checkout"
+      test_method: "Stripe integration with analytics"
+      success_metric: "Checkout start rate"
+      threshold: ">20% of active users"
+      priority_score: 7
+      experiment_level: 3
+      depends_on: [h_feasibility_1]
+      status: pending
+
+  behaviors:
+    - id: b_1
+      hypothesis_id: h_demand_1
+      given: "A visitor lands on the landing page"
+      when: "They see the CTA"
+      then: "They click the CTA button"
+      level: 1
+    - id: b_2
+      hypothesis_id: h_feasibility_1
+      given: "A logged-in user is on the invoice-create page"
+      when: "They fill in line items and click send"
+      then: "An invoice is created and a payment link is generated"
+      level: 2
+
+  funnel:
+    thresholds:
+      visit_to_cta: ">5%"
+      cta_to_signup: ">15%"
+      signup_to_activate: ">30%"
+      activate_to_pay: ">20%"
+    decision_framework: |
+      CONTINUE if: CTR >5% AND signup >15%
+      PIVOT if: CTR >3% but signup <10%
+      KILL if: CTR <3% after 200 visitors
+
 events:
   standard_funnel:
     - event: visit_landing
