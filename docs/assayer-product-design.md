@@ -312,11 +312,12 @@ deploy:
 **`/spec` phases:**
 
 1. **Parse** — idea text + level (default 1). Validate >= 20 chars.
-2. **Pre-flight research** — 4 dimensions: market, problem, competition, ICP. Verdict per dimension (pass/caution/fail). Stop on 2+ failures.
-3. **Hypotheses** — 5-10 across demand/reach/feasibility/monetize/retain. Filter by level. Priority 0-100. L1: demand+reach required. L2: +feasibility+retain. L3: all five. Monetize at L2+.
-4. **Behaviors** — given/when/then + `tests[]` array. User behaviors default. System behaviors: `actor: system` + `trigger` field.
-5. **Variants** — 3-5 angles, >30% headline word difference. L3 + monetize: add `pricing_amount`, `pricing_model`.
-6. **Stack/funnel** — Stack from level (Section 1 table). Hosting from type + behavior analysis. Funnel thresholds from highest-priority hypothesis per dimension.
+2. **Input sufficiency** — Assess 4 dimensions (target user, problem, solution shape, testable outcome). Each: present / inferable / missing. All present → zero delay. 1-2 missing → one follow-up round with "proceed" escape. 3-4 missing → ask user to elaborate.
+3. **Pre-flight research** — 4 dimensions: market, problem, competition, ICP. Verdict per dimension (pass/caution/fail). Stop on 2+ failures.
+4. **Hypotheses** — 5-10 across demand/reach/feasibility/monetize/retain. Filter by level. Priority 0-100. L1: demand+reach required. L2: +feasibility+retain. L3: all five. Monetize at L2+.
+5. **Behaviors** — given/when/then + `tests[]` array. User behaviors default. System behaviors: `actor: system` + `trigger` field.
+6. **Variants** — 3-5 angles, >30% headline word difference. L3 + monetize: add `pricing_amount`, `pricing_model`.
+7. **Stack/funnel** — Stack from level (Section 1 table). Hosting from type + behavior analysis. Funnel thresholds from highest-priority hypothesis per dimension.
 
 **Manifest:** `.claude/spec-manifest.json` with research, hypotheses, cluster data. For `/iterate`. Not user-facing.
 

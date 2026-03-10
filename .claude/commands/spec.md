@@ -50,6 +50,86 @@ Display the parsed input and confirm before proceeding:
 
 Wait for user confirmation.
 
+## Step 1.5: Input Sufficiency Check
+
+After confirming the idea text and level, assess 4 information dimensions in the parsed input:
+
+| Dimension | What to look for | Example (sufficient) |
+|-----------|-----------------|---------------------|
+| **Target user** | A describable person, not just "people" or "users" | "freelancers billing <5 clients/month" |
+| **Problem** | A stated pain with some specificity | "wastes 2-3 hours/week on manual invoicing" |
+| **Solution shape** | A proposed mechanism, not just a category | "single-page tool that generates invoices from time logs" |
+| **Testable outcome** | Something measurable implied | "10 users send a paid invoice in 2 weeks" |
+
+For each dimension, classify as:
+- **✓ present** — explicitly stated in the input
+- **~ inferable** — can be reasonably derived (mark as assumption)
+- **✗ missing** — cannot be determined
+
+### Decision logic
+
+- **All 4 present/inferable** → show assumptions inline with the Step 1 Confirm (zero added latency), proceed to Step 2
+- **1-2 missing** → ONE follow-up message asking exactly what's missing, with `proceed` escape hatch
+- **3-4 missing** → input too vague, ask user to elaborate (no escape hatch)
+
+### Rules
+- Maximum ONE round of follow-up — never enter a Q&A loop
+- Inference-first — if you can reasonably infer, don't ask
+- Show inferences — let user confirm or correct
+- Merge follow-up answers with original input, then continue to Step 2 (no re-check)
+- `proceed` escape hatch — user can skip and let AI infer everything
+
+### Output: All present/inferable (merged into Confirm)
+
+When all 4 dimensions are present or inferable, merge the sufficiency check into the Step 1 Confirm display:
+
+```
+**Idea:** Freelancers billing <5 clients waste 2-3 hours on invoicing...
+**Level:** 2 — Interactive MVP
+
+Understanding:
+✓ Target user: freelance designers billing 1-5 clients/month
+✓ Problem: 2-3 hours/week wasted on manual invoicing
+✓ Solution: single-page tool, invoice in <60 seconds
+~ Success signal: (inferred) 10+ users complete a paid invoice
+
+Proceed with this? (yes / change level / rephrase)
+```
+
+### Output: 1-2 missing
+
+```
+I have enough to start, but a couple specifics would sharpen the spec:
+
+✓ Target user: freelancers (inferred: billing few clients)
+✓ Solution: invoice generation tool
+✗ Problem: What specific pain does manual invoicing cause?
+   (e.g., "wastes 3 hours/week" or "clients pay late")
+✗ Success signal: What would prove this works?
+   (e.g., "10 users send a paid invoice in 2 weeks")
+
+Answer these, or say "proceed" to let me infer.
+```
+
+Wait for user response. Merge answers (or inferences if user said "proceed") with original input, then continue to Step 2.
+
+### Output: 3-4 missing
+
+```
+The idea is too vague to generate a useful spec. Please provide more detail:
+
+✗ Target user: Who specifically has this problem?
+✗ Problem: What pain are they experiencing?
+✗ Solution: What would the tool actually do?
+✗ Success signal: How would you know it's working?
+
+Example: "Freelancers billing <5 clients waste 2-3 hours/week on manual invoicing.
+A single-page tool that generates invoices from time logs. Success = 10 users
+send a paid invoice in 2 weeks."
+```
+
+Wait for user to elaborate, then restart from Step 1 with the enriched input.
+
 ## Step 2: Pre-flight Research
 
 Conduct desk research across 4 dimensions. For each, produce a structured finding:
