@@ -1,0 +1,54 @@
+# Test fixture: Service with production quality — validates quality: production + vitest + service
+# Validates that harden/change/verify correctly handle TDD path for service archetype.
+experiment:
+  name: test-production-service
+  type: service
+  quality: production
+
+  description: |
+    A production-grade currency conversion API with specification tests
+    and TDD workflow for service archetype.
+
+  thesis: "If we provide a reliable currency conversion API, then developers will integrate it, as measured by API calls per day"
+  target_user: Developers integrating currency features
+
+  distribution: |
+    API docs shared in developer communities.
+
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A developer calls the convert endpoint"
+      when: "They provide two currencies and an amount"
+      then: "They receive the converted amount"
+      tests:
+        - "Convert endpoint returns correct conversion"
+      level: 1
+
+  endpoints:
+    - name: convert
+      purpose: Currency conversion between two currencies
+    - name: rates
+      purpose: List current exchange rates
+
+
+  stack:
+    services:
+      - name: api
+        runtime: nextjs
+        hosting: vercel
+        testing: vitest
+    analytics: posthog
+
+events:
+  standard_funnel:
+    - event: activate
+      trigger: User completes a successful currency conversion via the API
+    - event: retain_return
+      trigger: User makes a request after 24+ hours since last call
+  custom_events: []
+
+assertions:
+  payment_events_required: false
+  skippable_events: [visit_landing, signup_start, signup_complete]
+  min_endpoints: 2
