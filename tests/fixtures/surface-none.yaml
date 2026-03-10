@@ -1,6 +1,6 @@
 # Test fixture: Service with no surface
 # Validates that surface: none skips surface-related steps and funnel starts at activate.
-idea:
+experiment:
   name: test-surface-none
   type: service
 

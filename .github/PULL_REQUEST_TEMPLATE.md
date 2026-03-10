@@ -21,7 +21,7 @@
 ## Checklist
 
 ### Scope
-- [ ] Only builds/changes what's in `idea/experiment.yaml`
+- [ ] Only builds/changes what's in `experiment/experiment.yaml`
 - [ ] No new features, libraries, or frameworks beyond scope
 - [ ] No unrelated changes bundled into this PR
 

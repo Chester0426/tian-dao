@@ -1,6 +1,6 @@
 # Test fixture: Service with database + auth — API endpoints with persistent storage
 # Validates that service archetype works with database and auth stacks.
-idea:
+experiment:
   name: test-service-with-db
   type: service
 

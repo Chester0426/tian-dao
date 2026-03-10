@@ -1,7 +1,7 @@
 # Test fixture: Auth + testing without database (partial assumes)
 # Exercises the testing stack's partial-assumes path: auth present, database absent.
 # Tests use the No-Auth Fallback because database (an assumed dependency) is missing.
-idea:
+experiment:
   name: test-auth-tests
   type: web-app
 

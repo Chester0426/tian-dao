@@ -1,7 +1,7 @@
 # Test fixture: Database (supabase) without auth, with Playwright testing
 # Exercises the no-auth-fallback testing path with database present —
 # verifies that no-auth CI template handles database env vars correctly.
-idea:
+experiment:
   name: test-db-only-tests
   type: web-app
 
