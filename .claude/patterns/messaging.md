@@ -1,11 +1,11 @@
 # Conversion Messaging Framework
 
 Shared copy and structure rules for landing pages (`/bootstrap`) and ad campaigns (`/distribute`).
-Both skills derive conversion copy from `idea.yaml` — this file ensures they say the same thing.
+Both skills derive conversion copy from `experiment.yaml` — this file ensures they say the same thing.
 
 ## Section A: Copy Derivation Rules
 
-Derive all conversion copy from idea.yaml fields. Never use raw field values as headlines.
+Derive all conversion copy from experiment.yaml fields. Never use raw field values as headlines.
 
 ### Headline
 
@@ -42,9 +42,9 @@ creative decision by `frontend-design`, not a fixed checklist):
 
 - **Value proposition** — headline + subheadline (derived from Section A rules)
 - **CTA** — the call-to-action (derived from Section A rules)
-- **Pain points** — derived from idea.yaml `problem` — aspects of the pain to activate
-- **Features** — derived from idea.yaml `features` — capabilities to showcase
-- **Social proof** — testimonials, logos, metrics (if available in idea.yaml or inferable)
+- **Pain points** — derived from experiment.yaml `problem` — aspects of the pain to activate
+- **Features** — derived from experiment.yaml `features` — capabilities to showcase
+- **Social proof** — testimonials, logos, metrics (if available in experiment.yaml or inferable)
 
 `frontend-design` decides which elements to include, how to arrange them, how
 many times CTA appears, and what additional sections the page needs (comparison
@@ -67,7 +67,7 @@ Rules ensuring ad-to-landing consistency:
 
 ## Section D: Variant Messaging Rules
 
-When idea.yaml has a `variants` field, these rules extend Sections A–C:
+When experiment.yaml has a `variants` field, these rules extend Sections A–C:
 
 ### Variant Copy Source
 - Each variant defines its own `headline`, `subheadline`, `cta`, and `pain_points`.
@@ -76,7 +76,7 @@ When idea.yaml has a `variants` field, these rules extend Sections A–C:
 
 ### Landing Page Structure
 - Each variant uses the **same** page structure (chosen by AI at bootstrap). Variant fields slot into the shared layout.
-- Variant fields slot into Hero and Pain Points. Features section is shared across all variants (from idea.yaml `features`).
+- Variant fields slot into Hero and Pain Points. Features section is shared across all variants (from experiment.yaml `features`).
 
 ### Default Variant
 - The variant with `default: true` (or the first in the list) renders at root `/`.

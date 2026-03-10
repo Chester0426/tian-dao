@@ -4,7 +4,7 @@ set -euo pipefail
 # consistency-check.sh — Verify facts live in canonical sources, not in rules/skills
 #
 # Canonical (facts SHOULD appear here):
-#   EVENTS.yaml, .claude/stacks/**/*.md, idea/idea.yaml
+#   EVENTS.yaml, .claude/stacks/**/*.md, idea/experiment.yaml
 #
 # Reference-only (facts should NOT appear here):
 #   CLAUDE.md, .claude/commands/*.md

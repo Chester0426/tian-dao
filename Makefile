@@ -13,19 +13,19 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 	@echo ""
 	@echo "AI skills (run in Claude Code):"
-	@echo "  /bootstrap       Scaffold the full MVP from idea.yaml"
+	@echo "  /bootstrap       Scaffold the full MVP from experiment.yaml"
 	@echo "  /change ...      Make a change (e.g., /change fix the signup button)"
 	@echo "  /iterate         Review metrics and get recommendations"
 	@echo "  /retro           Run a retrospective and file feedback"
-	@echo "  /distribute      Generate distribution campaign config from idea.yaml"
+	@echo "  /distribute      Generate distribution campaign config from experiment.yaml"
 	@echo "  /verify          Run E2E tests and fix failures"
 	@echo "  /deploy          Deploy to Vercel + Supabase (first-time setup)"
 	@echo "  /review          Automated review-fix loop (maintainers only)"
 
-validate: ## Check idea.yaml for valid YAML, TODOs, name format, and structure
-	@echo "Validating idea/idea.yaml..."
-	@if [ ! -f idea/idea.yaml ]; then \
-		echo "Error: idea/idea.yaml not found. Copy the example: cp idea/idea.example.yaml idea/idea.yaml"; \
+validate: ## Check experiment.yaml for valid YAML, TODOs, name format, and structure
+	@echo "Validating idea/experiment.yaml..."
+	@if [ ! -f idea/experiment.yaml ]; then \
+		echo "Error: idea/experiment.yaml not found. Copy the example: cp idea/experiment.example.yaml idea/experiment.yaml"; \
 		exit 1; \
 	fi
 	@command -v python3 >/dev/null 2>&1 || { \
@@ -38,15 +38,15 @@ validate: ## Check idea.yaml for valid YAML, TODOs, name format, and structure
 		echo "Fix: run 'pip3 install pyyaml' (if that fails: 'pip3 install --user pyyaml' or 'brew install python-pyyaml')"; \
 		exit 1; \
 	}
-	@python3 -c "import yaml; yaml.safe_load(open('idea/idea.yaml'))" 2>/dev/null || { \
-		echo "Error: idea/idea.yaml has invalid YAML syntax."; \
+	@python3 -c "import yaml; yaml.safe_load(open('idea/experiment.yaml'))" 2>/dev/null || { \
+		echo "Error: idea/experiment.yaml has invalid YAML syntax."; \
 		echo "Check for indentation errors or missing colons."; \
 		exit 1; \
 	}
-	@if grep -q 'TODO' idea/idea.yaml; then \
+	@if grep -q 'TODO' idea/experiment.yaml; then \
 		echo ""; \
 		echo "Found TODO placeholders that need to be filled in:"; \
-		grep -n 'TODO' idea/idea.yaml; \
+		grep -n 'TODO' idea/experiment.yaml; \
 		echo ""; \
 		echo "Replace every TODO before running make bootstrap."; \
 		exit 1; \
@@ -65,7 +65,7 @@ validate: ## Check idea.yaml for valid YAML, TODOs, name format, and structure
 	if [ "$$STACK_WARN" -eq 2 ]; then \
 		echo "Validation passed with warnings — review above."; \
 	else \
-		echo "Validation passed — idea.yaml and EVENTS.yaml look good."; \
+		echo "Validation passed — experiment.yaml and EVENTS.yaml look good."; \
 	fi; \
 	if [ -f package.json ]; then \
 		echo "Note: project is already bootstrapped. Open Claude Code and run /change to make changes."; \
@@ -156,8 +156,8 @@ deploy: ## Deploy to Vercel (first run will prompt to link project)
 		echo "Error: No package.json found. Run /bootstrap first."; \
 		exit 1; \
 	fi
-	@if [ -f idea/idea.yaml ]; then \
-		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/idea.yaml')); print(d.get('stack',{}).get('hosting',''))" 2>/dev/null); \
+	@if [ -f idea/experiment.yaml ]; then \
+		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/experiment.yaml')); print(d.get('stack',{}).get('hosting',''))" 2>/dev/null); \
 		if [ -n "$$HOSTING" ] && [ "$$HOSTING" != "vercel" ]; then \
 			echo "Warning: stack.hosting is '$$HOSTING', but this Makefile only has a Vercel deploy command."; \
 			echo "To deploy: replace 'npx vercel deploy --prod' on the last line of the deploy target with your hosting provider's CLI command (e.g., 'npx netlify deploy --prod', 'fly deploy')."; \
@@ -184,10 +184,10 @@ setup-prod: ## Link Vercel + Supabase for production debugging
 	@npx vercel link || { echo "Error: run 'npx vercel login' first, then retry."; exit 1; }
 	@echo ""
 	@echo "Linking Supabase project..."
-	@if [ ! -f idea/idea.yaml ]; then \
-		echo "Error: idea/idea.yaml not found."; exit 1; \
+	@if [ ! -f idea/experiment.yaml ]; then \
+		echo "Error: idea/experiment.yaml not found."; exit 1; \
 	fi
-	@REF=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/idea.yaml')); print(d.get('supabase_project_ref',''))" 2>/dev/null); \
+	@REF=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/experiment.yaml')); print(d.get('supabase_project_ref',''))" 2>/dev/null); \
 	if [ -n "$$REF" ]; then \
 		npx supabase link --project-ref "$$REF"; \
 	else \
@@ -226,7 +226,7 @@ clean: ## Remove generated files (lets you re-run bootstrap)
 	rm -rf e2e playwright.config.ts test-results playwright-report blob-report  # testing/playwright
 	rm -rf tests vitest.config.ts                          # testing/vitest
 	@echo "Cleaned. You can now open Claude Code and run /bootstrap again."
-	@echo "Note: idea/idea.yaml, EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
+	@echo "Note: idea/experiment.yaml, EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
 
 clean-all: ## Remove everything including migrations (full reset)
 	@echo "This will delete ALL generated files including database migrations."

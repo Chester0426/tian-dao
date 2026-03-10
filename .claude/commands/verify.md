@@ -2,7 +2,7 @@
 description: "Run E2E tests and fix failures. Use after /change and before deploy as a quality gate."
 type: code-writing
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - EVENTS.yaml
 stack_categories: [testing, framework, analytics]
 requires_approval: false
@@ -17,11 +17,11 @@ Run E2E tests against the local dev server and fix any failures.
 
 ## Step 0: Read context
 
-- Read `idea/idea.yaml` — understand pages, features, stack
+- Read `idea/experiment.yaml` — understand pages, features, stack
 - Read `EVENTS.yaml` — understand tracked events
-- Read the archetype file at `.claude/archetypes/<type>.md` (type from idea.yaml, default `web-app`).
-- If `stack.testing` is NOT present in idea.yaml, stop: "No testing stack configured. Add `testing: vitest` (or another test runner) to idea.yaml `stack` and run `/change add tests` to set up testing, or run `npm run build` to verify the app compiles."
-- If `stack.testing` is present in idea.yaml, read `.claude/stacks/testing/<value>.md`. It specifies the test runner, test command, prerequisites, and configuration file. Do NOT hardcode any specific test runner. Then, while still inside this `stack.testing` guard:
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`).
+- If `stack.testing` is NOT present in experiment.yaml, stop: "No testing stack configured. Add `testing: vitest` (or another test runner) to experiment.yaml `stack` and run `/change add tests` to set up testing, or run `npm run build` to verify the app compiles."
+- If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`. It specifies the test runner, test command, prerequisites, and configuration file. Do NOT hardcode any specific test runner. Then, while still inside this `stack.testing` guard:
   - Determine the test command (`playwright` → `npx playwright test`, `vitest` → `npx vitest run`, other → per stack file)
   - Verify the configuration file exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest). If not: "No test configuration found. Run `/change add tests` to set up testing."
   - Verify the required dev packages are in package.json devDependencies. If not: "Test runner is not installed. Run `npm install -D <packages listed in the stack file>`."
@@ -90,7 +90,7 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
 After tests complete (whether all pass or after Step 6): if `STARTED_SUPABASE=true`, run `npx supabase stop` to shut down the local Supabase instance this skill started.
 
 ## Do NOT
-- Modify idea.yaml or EVENTS.yaml
+- Modify experiment.yaml or EVENTS.yaml
 - Add new features — only fix what tests expose
 - Run tests against production (always use local dev server)
 - Skip the build verification step

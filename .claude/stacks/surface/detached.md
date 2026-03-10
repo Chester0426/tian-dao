@@ -42,7 +42,7 @@ founder proud to share the URL.
 
 > _Mirrors `.claude/patterns/design.md` Quality bar — keep in sync._
 
-**Content inventory from idea.yaml** (raw material — page architecture is a
+**Content inventory from experiment.yaml** (raw material — page architecture is a
 creative decision by `frontend-design`, not a fixed mapping):
 - `name` — product identity
 - `title` — core value proposition

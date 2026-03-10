@@ -3,7 +3,7 @@
 Follow this procedure when implementing features, fixes, or hardening under `quality: production` mode.
 
 > **Scope:** This pattern is consumed by the implementer agent (`agents/implementer.md`)
-> when `quality: production` is set in idea.yaml. It is not used in MVP mode.
+> when `quality: production` is set in experiment.yaml. It is not used in MVP mode.
 
 ## Red-Green-Refactor Cycle
 
@@ -24,7 +24,7 @@ satisfies the specification — skip to REFACTOR and move on.
 Specification tests are the primary approach in production mode. They define
 what the code SHOULD do, not what it currently DOES.
 
-- Derive test cases from idea.yaml `features`, `golden_path`, and `critical_flows`
+- Derive test cases from experiment.yaml `features`, `golden_path`, and `critical_flows`
 - Each test asserts correct behavior for a specific input/scenario
 - If code fails a specification test, that is a real bug — fix the code
 - Do NOT write characterization tests (tests that merely snapshot current behavior)

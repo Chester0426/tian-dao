@@ -9,7 +9,7 @@ You fill in a YAML file describing your idea. Claude Code builds the app, deploy
 ## Your workflow
 
 ```
-idea.yaml → make validate → /bootstrap → merge PR → /verify
+experiment.yaml → make validate → /bootstrap → merge PR → /verify
                                                         │
                     ┌───────────────────────────────────┘
                     │
@@ -57,7 +57,7 @@ Do this once. Ask a technical teammate to help if needed.
 
 ### 1. Describe your idea
 
-Edit `idea/idea.yaml` — replace every `TODO` with your actual content. See `idea/idea.example.yaml` (the QuickBill example) for reference.
+Edit `idea/experiment.yaml` — replace every `TODO` with your actual content. See `idea/experiment.example.yaml` (the QuickBill example) for reference.
 
 Key fields:
 - **name** — a short slug for your project (used in analytics, e.g., `quick-bill`)
@@ -75,7 +75,7 @@ Run `make validate` to check for errors before continuing.
 
 Open Claude Code and type `/bootstrap`. Claude will:
 
-1. Read your idea.yaml and present a build plan
+1. Read your experiment.yaml and present a build plan
 2. **Wait for your approval** — nothing happens until you say yes
 3. Generate the full app and open a pull request
 
@@ -108,7 +108,7 @@ After merging, run `/verify` in Claude Code. It runs tests automatically and fix
 
 | Skill | What it does | Waits for approval? |
 |-------|-------------|---------------------|
-| `/bootstrap` | Generate the full app from idea.yaml | Yes |
+| `/bootstrap` | Generate the full app from experiment.yaml | Yes |
 | `/change [description]` | Add a feature, fix a bug, polish UI, fix analytics, add tests | Yes |
 | `/verify` | Run tests and auto-fix failures | No |
 | `/deploy` | Deploy to hosting + database (first-time setup) | Yes |
@@ -120,7 +120,7 @@ After merging, run `/verify` in Claude Code. It runs tests automatically and fix
 
 ## Common issues
 
-1. **`make validate` fails with TODOs** — open idea.yaml and replace every `TODO`
+1. **`make validate` fails with TODOs** — open experiment.yaml and replace every `TODO`
 2. **`/bootstrap` fails** — run `gh auth login` to authenticate GitHub CLI
 3. **`/verify` fails** — make sure Docker Desktop is running (for supabase projects)
 4. **Build fails** — check that `.env.local` has all variables from `.env.example`
@@ -135,4 +135,4 @@ For 20+ more issues, see [docs/troubleshooting.md](docs/troubleshooting.md).
 - [docs/technical-reference.md](docs/technical-reference.md) — Project structure, migrations, branch protection, stack and archetype reference, extending the template
 - [docs/google-ads-setup.md](docs/google-ads-setup.md) — Google Ads setup for /distribute
 
-**Default stack:** Next.js (App Router), Supabase (database & auth), PostHog (analytics), Vercel (hosting), shadcn/ui, Playwright (testing). Override any of these in idea.yaml `stack`.
+**Default stack:** Next.js (App Router), Supabase (database & auth), PostHog (analytics), Vercel (hosting), shadcn/ui, Playwright (testing). Override any of these in experiment.yaml `stack`.

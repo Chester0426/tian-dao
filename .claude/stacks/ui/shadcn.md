@@ -14,7 +14,7 @@ clean:
 gitignore: []
 ---
 # UI: shadcn/ui
-> Used when idea.yaml has `stack.ui: shadcn`
+> Used when experiment.yaml has `stack.ui: shadcn`
 
 ## Packages (devDependencies)
 ```bash

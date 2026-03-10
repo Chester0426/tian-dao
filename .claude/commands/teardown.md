@@ -2,7 +2,7 @@
 description: "Tear down cloud infrastructure created by /deploy. Use when ending an experiment."
 type: analysis-only
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - .claude/deploy-manifest.json
   - CLAUDE.md
 stack_categories: [hosting, database, analytics, payment]
@@ -19,7 +19,7 @@ This skill is hosting-agnostic: it reads `hosting.provider` and `database.provid
 
 1. Read `.claude/deploy-manifest.json`. If missing, stop: "No deploy manifest found.
    Run `/deploy` first, or delete resources manually via each provider's dashboard."
-2. Read `idea/idea.yaml` — extract `name` for confirmation prompt.
+2. Read `idea/experiment.yaml` — extract `name` for confirmation prompt.
 3. Read `hosting.provider` and `database.provider` from the manifest. Load the corresponding
    stack files at `.claude/stacks/hosting/<provider>.md` and `.claude/stacks/database/<provider>.md`.
 4. Check CLI installation and auth — read each stack file's `## Deploy Interface > Prerequisites`
@@ -168,7 +168,7 @@ Wait for the agent to complete. Include the scanner's output table in the Step 5
 
 **What's preserved:**
 - All source code on main branch
-- idea.yaml, EVENTS.yaml (experiment definition)
+- experiment.yaml, EVENTS.yaml (experiment definition)
 - Migration files (can re-deploy with /deploy)
 
 To re-deploy this experiment: run `/deploy` again.
@@ -176,7 +176,7 @@ To re-deploy this experiment: run `/deploy` again.
 
 ## Do NOT
 
-- Delete source code, idea.yaml, or git history
+- Delete source code, experiment.yaml, or git history
 - Delete without user confirmation (name + data check)
 - Block on partial failures — report and continue
 - Delete .env.example (that's a template, not credentials)

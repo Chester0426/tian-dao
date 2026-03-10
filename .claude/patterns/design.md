@@ -10,18 +10,18 @@ Two non-negotiable rules that prevent real usability issues:
 
 ## Design Decisions
 
-Before generating pages, derive design constraints from idea.yaml and establish
+Before generating pages, derive design constraints from experiment.yaml and establish
 visual direction. `frontend-design` is the recommended executor for visual
 decisions (see `### Recommended executor`); skills decide when and how to
 invoke it.
 
 > Skip this section if `stack.surface` resolves to `none`.
 > (Inference: `stack.hosting` present → `co-located`; absent → `detached`.
-> Explicit `stack.surface` in idea.yaml overrides inference.)
+> Explicit `stack.surface` in experiment.yaml overrides inference.)
 
 ### Design constraints
 
-Three hard constraints must be derived from idea.yaml's product domain before
+Three hard constraints must be derived from experiment.yaml's product domain before
 any visual decisions are made. These compress ~100 open decisions to ~10:
 
 1. **Color direction** — dark, light, or neutral. Infer from product domain
@@ -33,7 +33,7 @@ any visual decisions are made. These compress ~100 open decisions to ~10:
    Infer from archetype and funnel (web-app with waitlist → conversion;
    service with API → documentation; CLI → demonstration).
 
-These constraints, along with idea.yaml content, are inputs to the visual
+These constraints, along with experiment.yaml content, are inputs to the visual
 executor.
 
 ### Quality bar

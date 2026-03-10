@@ -12,11 +12,11 @@ funnel_template: web
 
 Browser-based application with URL-routed pages, UI components, and optional
 user authentication. This is the default archetype when `type` is absent from
-idea.yaml.
+experiment.yaml.
 
 ## Structure
 
-Each idea.yaml `pages` entry maps to a route folder:
+Each experiment.yaml `pages` entry maps to a route folder:
 
 ```
 src/app/<page-name>/page.tsx
@@ -38,7 +38,7 @@ surface — `visit_landing` fires here.
 5. `retain_return` — user returns after initial activation
 
 Payment funnel events (`pay_start`, `pay_success`) are added when
-`stack.payment` is present in idea.yaml.
+`stack.payment` is present in experiment.yaml.
 
 ## Conventions
 

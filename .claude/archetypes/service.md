@@ -12,11 +12,11 @@ funnel_template: custom
 
 Backend service that handles API requests with no browser-based UI.
 The primary unit of work is the **endpoint** (not the page). Use this
-archetype when `type: service` is set in idea.yaml.
+archetype when `type: service` is set in experiment.yaml.
 
 ## Structure
 
-Each idea.yaml `endpoints` entry maps to an API route:
+Each experiment.yaml `endpoints` entry maps to an API route:
 
 ```
 src/app/api/<endpoint>/route.ts

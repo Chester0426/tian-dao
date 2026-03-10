@@ -5,25 +5,25 @@
 ## make validate errors
 
 **"TODO placeholders"**
-Open `idea/idea.yaml` and replace every `TODO` with your actual content. See `idea/idea.example.yaml` for a complete example.
+Open `idea/experiment.yaml` and replace every `TODO` with your actual content. See `idea/experiment.example.yaml` for a complete example.
 
 **"invalid YAML syntax"**
-Check `idea/idea.yaml` for indentation errors or missing colons. YAML requires consistent spacing (2 spaces, no tabs). Use a YAML validator if unsure.
+Check `idea/experiment.yaml` for indentation errors or missing colons. YAML requires consistent spacing (2 spaces, no tabs). Use a YAML validator if unsure.
 
 **"PyYAML is not installed"**
 Run `pip3 install pyyaml` to install the required Python YAML library.
 
 **"name must be lowercase"**
-The `name` field in idea.yaml must start with a letter and use only lowercase letters, numbers, and hyphens (e.g., `my-experiment-1`).
+The `name` field in experiment.yaml must start with a letter and use only lowercase letters, numbers, and hyphens (e.g., `my-experiment-1`).
 
 **"pages must include landing"**
-Add an entry with `name: landing` to the `pages` list in idea.yaml. Every web-app experiment needs a landing page.
+Add an entry with `name: landing` to the `pages` list in experiment.yaml. Every web-app experiment needs a landing page.
 
 **"commands is required" or "endpoints is required"**
-For `type: service`, idea.yaml needs an `endpoints` list instead of `pages`. For `type: cli`, it needs a `commands` list. See `.claude/archetypes/` for the required fields per type.
+For `type: service`, experiment.yaml needs an `endpoints` list instead of `pages`. For `type: cli`, it needs a `commands` list. See `.claude/archetypes/` for the required fields per type.
 
 **"excluded stack" error**
-Some stacks are not compatible with certain archetypes. For example, `type: cli` cannot use `hosting`, `ui`, `auth`, `payment`, or `email`. Remove the excluded stacks from your idea.yaml.
+Some stacks are not compatible with certain archetypes. For example, `type: cli` cannot use `hosting`, `ui`, `auth`, `payment`, or `email`. Remove the excluded stacks from your experiment.yaml.
 
 ## /bootstrap errors
 
@@ -31,7 +31,7 @@ Some stacks are not compatible with certain archetypes. For example, `type: cli`
 Make sure you're in a cloned repo. Run `git init` or clone your repo first.
 
 **"uncommitted changes"**
-Commit your idea.yaml changes first: `git add idea/idea.yaml && git commit -m "Fill in idea.yaml"`. The branch setup requires a clean working tree.
+Commit your experiment.yaml changes first: `git add idea/experiment.yaml && git commit -m "Fill in experiment.yaml"`. The branch setup requires a clean working tree.
 
 **"GitHub CLI is not authenticated"**
 Run `gh auth login` and follow the prompts to authenticate.
@@ -76,10 +76,10 @@ Check that the Supabase Vercel Integration is connected (Vercel Project > Integr
 Add the Supabase Vercel Integration at [vercel.com/integrations/supabase](https://vercel.com/integrations/supabase) to auto-inject Supabase env vars. For other variables (Stripe, etc.), add them manually in Vercel Project > Settings > Environment Variables.
 
 **Stripe — "API key missing" at runtime**
-If you have `payment: stripe` in idea.yaml, add your Stripe keys to Vercel environment variables. Find them in Stripe Dashboard > Developers > API keys.
+If you have `payment: stripe` in experiment.yaml, add your Stripe keys to Vercel environment variables. Find them in Stripe Dashboard > Developers > API keys.
 
 **Resend — emails not sending**
-If you have `email: resend` in idea.yaml, add `RESEND_API_KEY` and `CRON_SECRET` to Vercel environment variables. Get your API key from [resend.com](https://resend.com) > API Keys.
+If you have `email: resend` in experiment.yaml, add `RESEND_API_KEY` and `CRON_SECRET` to Vercel environment variables. Get your API key from [resend.com](https://resend.com) > API Keys.
 
 **Branch already exists**
 The branch setup handles this automatically by appending `-2`, `-3`, etc.

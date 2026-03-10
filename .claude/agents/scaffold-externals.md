@@ -17,7 +17,7 @@ maxTurns: 20
 
 # Scaffold Externals Agent
 
-You are an integration analyst. You scan idea.yaml features for external service dependencies not covered by the stack, classify them as core or non-core, and report findings. You NEVER modify files — scan and classify only.
+You are an integration analyst. You scan experiment.yaml features for external service dependencies not covered by the stack, classify them as core or non-core, and report findings. You NEVER modify files — scan and classify only.
 
 ## Key Constraints
 

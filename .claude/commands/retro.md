@@ -2,7 +2,7 @@
 description: "Use at the end of an experiment or when the measurement window ends. Files structured feedback as a GitHub Issue."
 type: analysis-only
 reads:
-  - idea/idea.yaml
+  - idea/experiment.yaml
   - EVENTS.yaml
 stack_categories: []
 requires_approval: false
@@ -14,7 +14,7 @@ Run a structured retrospective for the current experiment and file it as a GitHu
 
 ## Step 1: Gather Automated Data
 
-Verify `idea/idea.yaml` exists. If not, stop and tell the user: "No experiment found — `idea/idea.yaml` is missing. Make sure you're in the right project directory."
+Verify `idea/experiment.yaml` exists. If not, stop and tell the user: "No experiment found — `idea/experiment.yaml` is missing. Make sure you're in the right project directory."
 
 Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
 
@@ -27,14 +27,14 @@ Collect these data points and present a summary before asking questions:
    - Run `gh pr list --state all --limit 50` — report PR counts (merged, open, closed)
 
 2. **App scope**
-   - Count primary units based on archetype (read `.claude/archetypes/<type>.md`, type from idea.yaml, default `web-app`):
+   - Count primary units based on archetype (read `.claude/archetypes/<type>.md`, type from experiment.yaml, default `web-app`):
      - web-app: count page directories in `src/app/` (excluding `api/`)
      - service: count API route directories (e.g., `src/app/api/` or `src/routes/`)
      - cli: count command modules in `src/commands/`
    - Count production dependencies from `package.json` (if it exists)
 
 3. **Spec files**
-   - Read `idea/idea.yaml` — extract experiment name, title, target user, primary metric, target value, measurement window
+   - Read `idea/experiment.yaml` — extract experiment name, title, target user, primary metric, target value, measurement window
    - Read `EVENTS.yaml` — list events being tracked
 
 Present the summary and then proceed to Step 2.
@@ -69,7 +69,7 @@ Compile all data into a structured document with these sections:
 
 1. **Experiment Summary** — name, problem, solution, target user, outcome, metric results
 2. **Timeline & Activity** — commits, PRs, pages built, scope delivered vs planned
-3. **Stack Used** — from idea.yaml `stack`
+3. **Stack Used** — from experiment.yaml `stack`
 4. **Team Assessment** — answers to Q2-Q4
 5. **Template Improvement Suggestions** — specific, actionable changes mapped to template components (e.g., "Add X to the bootstrap skill", "Change Y in CLAUDE.md Rule Z")
 
@@ -77,7 +77,7 @@ Show the full retro to the user before filing.
 
 ## Step 4: File as GitHub Issue
 
-1. Read `template_repo` from `idea/idea.yaml`
+1. Read `template_repo` from `idea/experiment.yaml`
 2. If `template_repo` is not set, ask the user: "Where should I file this retro? Enter a repo in `owner/repo` format, or say 'skip' to print it to the terminal instead."
 3. If the user says "skip", print the retro to the terminal and stop.
 
@@ -103,10 +103,10 @@ gh issue create \
 After filing the retro, guide the user:
 - If the archetype is `web-app` or `service` and cloud infrastructure was deployed: "If you're done with this experiment, run `/teardown` to remove cloud resources (Vercel, Supabase, etc.)."
 - If the archetype is `cli`: "CLI tools have no cloud infrastructure to tear down. If you want to unpublish the npm package, run `npm unpublish <name>` (within 72 hours of publish) or deprecate it with `npm deprecate <name> \"Experiment concluded\"`."
-- For all archetypes: "Your source code, idea.yaml, and experiment history are preserved on the main branch."
+- For all archetypes: "Your source code, experiment.yaml, and experiment history are preserved on the main branch."
 
 ## Do NOT
 - Modify any code files
 - Create branches or PRs
-- Change idea.yaml, EVENTS.yaml, or any spec file
+- Change experiment.yaml, EVENTS.yaml, or any spec file
 - Install or remove packages

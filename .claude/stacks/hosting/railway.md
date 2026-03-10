@@ -14,7 +14,7 @@ clean:
 gitignore: []
 ---
 # Hosting: Railway
-> Used when idea.yaml has `stack.hosting: railway`
+> Used when experiment.yaml has `stack.hosting: railway`
 > Assumes: nothing (framework-agnostic — works with any Node.js framework)
 
 ## Deployment
@@ -130,7 +130,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
 ### Config Gathering
 
 - **CLI command:** `railway whoami` — shows current account info
-- Railway uses projects (no team/org concept for selection). No idea.yaml field needed.
+- Railway uses projects (no team/org concept for selection). No experiment.yaml field needed.
 
 ### Project Setup
 

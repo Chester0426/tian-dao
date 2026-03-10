@@ -26,7 +26,7 @@ Checks:
   22. Bootstrap Payment-Database Dependency — bootstrap validates payment requires database
   23. Testing CI Template Payment Env Vars — testing CI template includes payment env vars when ci.yml does
   24. Testing No-Auth Fallback CI Template — testing stack no-auth fallback includes CI job template
-  25. Change Test Type Testing Stack Addition — change skill Test type permits adding testing to idea.yaml stack
+  25. Change Test Type Testing Stack Addition — change skill Test type permits adding testing to experiment.yaml stack
   26. Testing Env Frontmatter Assumes Dependency — testing stack env frontmatter excludes assumes-dependent vars
   27. Auth Template Post-Auth Redirects — auth page templates contain router.push/redirect after auth success
   28. Change Assumes Validation Matches Bootstrap — change skill value-matches assumes, not just category-exists
@@ -40,7 +40,7 @@ Checks:
   36. (removed)
   37. Change Classification Before Dependent Checks — classification step precedes classification-dependent checks
   38. Ads.yaml Schema Validation — channel-aware required keys, creative constraints, budget limits
-  39. Ads.yaml Campaign Name Matches idea.yaml Name — campaign_name starts with idea.name
+  39. Ads.yaml Campaign Name Matches experiment.yaml Name — campaign_name starts with idea.name
   40. Distribute Skill Prose Event Names — distribute.md contains feedback_submitted event definition
   41. Distribution Docs References Exist — docs/*.md files referenced in distribute.md or distribution stack files exist
   42. Distribute Skill Validates Analytics Stack — distribute.md preconditions validate stack.analytics
@@ -891,7 +891,7 @@ def check_38_ads_yaml_schema(ads_data: dict, ads_path: str) -> list[str]:
 
 
 def check_39_ads_campaign_name(ads_data: dict, idea_data: dict, ads_path: str) -> list[str]:
-    """Check 39: ads.yaml campaign_name matches idea.yaml name."""
+    """Check 39: ads.yaml campaign_name matches experiment.yaml name."""
     errors: list[str] = []
     idea_name = idea_data.get("name", "")
     campaign_name = ads_data.get("campaign_name", "")
@@ -899,7 +899,7 @@ def check_39_ads_campaign_name(ads_data: dict, idea_data: dict, ads_path: str) -
         if not str(campaign_name).startswith(str(idea_name)):
             errors.append(
                 f"[39] {ads_path}: campaign_name '{campaign_name}' does not start with "
-                f"idea.yaml name '{idea_name}'"
+                f"experiment.yaml name '{idea_name}'"
             )
     return errors
 
@@ -1065,7 +1065,7 @@ def main() -> int:
         with open(sf) as f:
             skill_contents[sf] = f.read()
 
-    # Required fields for idea.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
+    # Required fields for experiment.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
     BASE_REQUIRED_IDEA_FIELDS = [
         "name",
         "title",
@@ -1083,7 +1083,7 @@ def main() -> int:
 
 
     def get_required_idea_fields(idea_type: str | None = None) -> list[str]:
-        """Return required idea.yaml fields based on archetype type."""
+        """Return required experiment.yaml fields based on archetype type."""
         effective = idea_type if idea_type else "web-app"
         archetype_path = f".claude/archetypes/{effective}.md"
         extra = ["pages"]  # fallback if archetype file missing
@@ -1515,7 +1515,7 @@ def main() -> int:
 
         # Collect category/value pairs from stack file paths
         # Exclude distribution/ — distribution is not a bootstrap stack category;
-        # it's a runtime choice made at /distribute time and has no idea.yaml stack entry.
+        # it's a runtime choice made at /distribute time and has no experiment.yaml stack entry.
         stack_pairs = set()
         for sf in stack_files:
             pair = sf.replace(".claude/stacks/", "").replace(".md", "")
@@ -1968,7 +1968,7 @@ def main() -> int:
         with open(bootstrap_path_22) as f:
             bootstrap_content_22 = f.read()
 
-        # Find the Phase 1 Step 3 validation section (a numbered list item: "3. **Validate idea.yaml**")
+        # Find the Phase 1 Step 3 validation section (a numbered list item: "3. **Validate experiment.yaml**")
         validate_section_match = re.search(
             r"(?i)(?:###?\s*|\d+\.\s*(?:\*\*)?)Validate idea\.yaml(?:\*\*)?\s*\n(.*?)(?=\n\d+\.\s*\*\*|\n###?\s|\n##\s|\Z)",
             bootstrap_content_22,
@@ -1987,13 +1987,13 @@ def main() -> int:
             )
             if not has_db_check:
                 error(
-                    f"[22] {bootstrap_path_22}: Validate idea.yaml section "
+                    f"[22] {bootstrap_path_22}: Validate experiment.yaml section "
                     f"doesn't validate that `stack.payment` requires "
                     f"`stack.database` to also be present"
                 )
         else:
             error(
-                f"[22] {bootstrap_path_22}: could not find Validate idea.yaml "
+                f"[22] {bootstrap_path_22}: could not find Validate experiment.yaml "
                 f"section to check payment-database dependency"
             )
 
@@ -2066,7 +2066,7 @@ def main() -> int:
                 )
 
     # ---------------------------------------------------------------------------
-    # Check 25: Change Skill Test Type Permits Adding Testing to idea.yaml Stack
+    # Check 25: Change Skill Test Type Permits Adding Testing to experiment.yaml Stack
     # ---------------------------------------------------------------------------
 
     change_path_25 = ".claude/commands/change.md"
@@ -2074,7 +2074,7 @@ def main() -> int:
         with open(change_path_25) as f:
             change_content_25 = f.read()
 
-        # Look for text indicating the Test type can add testing to idea.yaml stack
+        # Look for text indicating the Test type can add testing to experiment.yaml stack
         has_testing_addition = bool(
             re.search(
                 r"(?i)(?:test.*(?:add|update).*(?:idea\.yaml|stack).*testing|"
@@ -2086,7 +2086,7 @@ def main() -> int:
         if not has_testing_addition:
             error(
                 f"[25] {change_path_25}: Test type constraints do not address "
-                f"adding `testing` to idea.yaml stack section"
+                f"adding `testing` to experiment.yaml stack section"
             )
 
     # ---------------------------------------------------------------------------
@@ -2523,11 +2523,11 @@ def main() -> int:
                 error(e)
 
     # ---------------------------------------------------------------------------
-    # Check 39: Ads.yaml Campaign Name Matches idea.yaml Name
+    # Check 39: Ads.yaml Campaign Name Matches experiment.yaml Name
     # ---------------------------------------------------------------------------
 
-    if os.path.isfile(ads_yaml_path) and os.path.isfile("idea/idea.yaml"):
-        with open("idea/idea.yaml") as f:
+    if os.path.isfile(ads_yaml_path) and os.path.isfile("idea/experiment.yaml"):
+        with open("idea/experiment.yaml") as f:
             idea_data_39 = yaml.safe_load(f)
 
         if os.path.isfile(ads_yaml_path):
@@ -2593,7 +2593,7 @@ def main() -> int:
                     )
 
     # ---------------------------------------------------------------------------
-    # Check 42: Distribute Skill Validates Analytics Stack in idea.yaml
+    # Check 42: Distribute Skill Validates Analytics Stack in experiment.yaml
     # ---------------------------------------------------------------------------
 
     distribute_path_42 = ".claude/commands/distribute.md"
@@ -2621,7 +2621,7 @@ def main() -> int:
             if not has_analytics_validation:
                 error(
                     f"[42] {distribute_path_42}: preconditions section does not "
-                    f"validate that `stack.analytics` is present in idea.yaml "
+                    f"validate that `stack.analytics` is present in experiment.yaml "
                     f"before proceeding"
                 )
         else:
@@ -2695,7 +2695,7 @@ def main() -> int:
         with open(bootstrap_path_44) as f:
             bootstrap_content_44 = f.read()
 
-        # Find the "Validate idea.yaml" section (Step 3)
+        # Find the "Validate experiment.yaml" section (Step 3)
         validate_section_match = re.search(
             r"##.*(?:Step 3|Validate idea\.yaml).*?\n(.*?)(?=\n## |\Z)",
             bootstrap_content_44,
@@ -2712,13 +2712,13 @@ def main() -> int:
             )
             if not has_variant_validation:
                 error(
-                    f"[44] {bootstrap_path_44}: Step 3 (Validate idea.yaml) does not "
+                    f"[44] {bootstrap_path_44}: Step 3 (Validate experiment.yaml) does not "
                     f"contain variant validation logic (expected mention of variants "
                     f"with present/list/slug/at least 2)"
                 )
         else:
             error(
-                f"[44] {bootstrap_path_44}: could not find 'Validate idea.yaml' "
+                f"[44] {bootstrap_path_44}: could not find 'Validate experiment.yaml' "
                 f"section (Step 3) to check variant validation"
             )
 

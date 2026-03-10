@@ -33,7 +33,7 @@ Create a root route handler (`GET /`) that returns a complete HTML marketing
 page. The route path depends on the framework stack file (e.g.,
 `src/app/route.ts` for Next.js, root handler in entry point for Hono).
 
-**Content inventory from idea.yaml** (raw material — page architecture is a
+**Content inventory from experiment.yaml** (raw material — page architecture is a
 creative decision by `frontend-design`, not a fixed mapping):
 - `name` — product identity
 - `title` — core value proposition
@@ -46,7 +46,7 @@ creative decision by `frontend-design`, not a fixed mapping):
 `frontend-design` decides which sections to include, in what order, and with
 what visual treatment. A conversion-optimized page may need pain points,
 social proof, pricing, or comparison sections that don't directly map to a
-single idea.yaml field. The content inventory is input, not structure.
+single experiment.yaml field. The content inventory is input, not structure.
 
 **Inline analytics snippet (if `stack.analytics` is present):** Embed a
 `<script>` tag to fire `visit_landing` with UTM properties on page load

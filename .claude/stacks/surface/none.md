@@ -24,5 +24,5 @@ Skip all surface-related steps.
 - Skip surface deployment in deploy
 - `visit_landing` event is not wired — funnel starts at `activate`
 - `/distribute` stops with: "No surface configured. Ad campaigns require a
-  surface URL. Add `stack.surface: co-located` or `detached` to idea.yaml,
+  surface URL. Add `stack.surface: co-located` or `detached` to experiment.yaml,
   or distribute manually."

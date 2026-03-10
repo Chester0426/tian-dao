@@ -21,7 +21,7 @@ clean:
 gitignore: [.next/, out/]
 ---
 # Framework: Next.js (App Router)
-> Used when idea.yaml has `stack.framework: nextjs`
+> Used when experiment.yaml has `stack.framework: nextjs`
 
 ## Packages
 ```bash
@@ -58,7 +58,7 @@ src/
     api/            # API route handlers (all mutations go here)
       <resource>/
         route.ts    # Route handler
-    <page-name>/    # One folder per idea.yaml page
+    <page-name>/    # One folder per experiment.yaml page
       page.tsx      # Page component
   components/       # Reusable UI components
     ui/             # UI library components (auto-generated)

@@ -16,7 +16,7 @@ clean:
 gitignore: []
 ---
 # AI: Anthropic (Claude SDK)
-> Used when idea.yaml has `stack.ai: anthropic`
+> Used when experiment.yaml has `stack.ai: anthropic`
 > Assumes: None — works with any framework
 
 ## Packages

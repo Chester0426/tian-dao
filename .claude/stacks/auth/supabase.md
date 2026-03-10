@@ -6,8 +6,8 @@ packages:
 files:
   - src/app/auth/callback/route.ts
   - src/app/auth/reset-password/page.tsx
-  - src/app/signup/page.tsx  # conditional: only if "signup" in idea.yaml pages
-  - src/app/login/page.tsx  # conditional: only if "login" in idea.yaml pages
+  - src/app/signup/page.tsx  # conditional: only if "signup" in experiment.yaml pages
+  - src/app/login/page.tsx  # conditional: only if "login" in experiment.yaml pages
   - src/components/nav-bar.tsx
   - src/lib/supabase-auth.ts  # conditional: only when stack.database is NOT supabase
   - src/lib/supabase-auth-server.ts  # conditional: only when stack.database is NOT supabase
@@ -23,7 +23,7 @@ clean:
 gitignore: []
 ---
 # Auth: Supabase Auth
-> Used when idea.yaml has `stack.auth: supabase`
+> Used when experiment.yaml has `stack.auth: supabase`
 > Assumes: `framework/nextjs` (server-side auth check uses `NextResponse`)
 
 ## Packages
@@ -135,7 +135,7 @@ import { createAuthClient as createClient } from "@/lib/supabase-auth";
 ```
 The rest of the component code remains identical — only the import changes.
 
-### `src/app/signup/page.tsx` — Signup page (if `signup` is in idea.yaml pages)
+### `src/app/signup/page.tsx` — Signup page (if `signup` is in experiment.yaml pages)
 
 #### When `stack.database` is also `supabase` (shared client):
 ```tsx
@@ -186,7 +186,7 @@ export default function SignupPage() {
       return;
     }
     trackSignupComplete({ method: "email" });
-    router.push("/"); // Redirect to landing — bootstrap will update to the first non-auth page from idea.yaml
+    router.push("/"); // Redirect to landing — bootstrap will update to the first non-auth page from experiment.yaml
   }
 
   return success ? (
@@ -229,7 +229,7 @@ This aliasing keeps the rest of the component code identical — only the import
 
 #### OAuth buttons (conditional: only when `stack.auth_providers` is present)
 
-When generating the signup page and `stack.auth_providers` exists in idea.yaml,
+When generating the signup page and `stack.auth_providers` exists in experiment.yaml,
 add these elements below the email/password form:
 
 1. Import the `handleOAuthLogin` function (from the OAuth section below)
@@ -260,7 +260,7 @@ The `handleOAuthLogin` function (in the "OAuth / Social Login" section below) an
 
 When `stack.auth_providers` is absent, do not add OAuth buttons — email/password only.
 
-### `src/app/login/page.tsx` — Login page (if `login` is in idea.yaml pages)
+### `src/app/login/page.tsx` — Login page (if `login` is in experiment.yaml pages)
 
 Follows the same structure as the signup page above, with these differences:
 - Calls `supabase.auth.signInWithPassword()` instead of `signUp()`
@@ -298,7 +298,7 @@ function LoginForm() {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (authError) { setError(authError.message); return; }
-    router.push("/"); // Redirect to landing — bootstrap will update to the first non-auth page from idea.yaml
+    router.push("/"); // Redirect to landing — bootstrap will update to the first non-auth page from experiment.yaml
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
@@ -404,7 +404,7 @@ The rest of the component code (Suspense wrapper, confirmed banner, `createClien
 
 #### OAuth buttons (conditional: only when `stack.auth_providers` is present)
 
-When generating the login page and `stack.auth_providers` exists in idea.yaml,
+When generating the login page and `stack.auth_providers` exists in experiment.yaml,
 add the same OAuth button block used in the signup page (see signup OAuth buttons section above)
 below the email/password form. Use the same `handleOAuthLogin` function and separator pattern.
 Fire `trackSignupStart({ method: "<provider>" })` before the OAuth redirect — the analytics
@@ -458,7 +458,7 @@ export function NavBar() {
         APP_NAME
       </Link>
       <div className="flex items-center gap-2">
-        {/* Bootstrap adds page links here from idea.yaml pages */}
+        {/* Bootstrap adds page links here from experiment.yaml pages */}
         {loading ? (
           <Button variant="outline" disabled className="min-w-[70px]">
             &nbsp;
@@ -490,7 +490,7 @@ import { createAuthClient as createClient } from "@/lib/supabase-auth";
 ```
 
 Notes:
-- Bootstrap replaces `APP_NAME` with idea.yaml `name` and adds page-specific navigation links
+- Bootstrap replaces `APP_NAME` with experiment.yaml `name` and adds page-specific navigation links
 - `getSession()` on mount sets initial auth state; `onAuthStateChange()` reacts to login/logout
 - Loading state prevents flash of "Log in" button before auth state is known
 - `router.refresh()` after logout clears server-side cached session data
@@ -566,7 +566,7 @@ When the OAuth flow completes, Supabase redirects to `/auth/callback` with an au
 
 ### Enabling a provider
 
-When `stack.auth_providers` is declared in idea.yaml:
+When `stack.auth_providers` is declared in experiment.yaml:
 - `/bootstrap` generates OAuth buttons for each listed provider
 - `/deploy` collects credentials and configures providers via Management API
 
@@ -722,13 +722,13 @@ curl -s -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
 
 > **Note:** The `uri_allow_list` wildcard (`https://<url>/**`) already covers `/auth/callback` — no additional deploy changes are needed when adding OAuth providers.
 
-The `/deploy` skill also configures email subject lines in the same PATCH call, using the app's short title from idea.yaml (e.g., "Confirm your MyApp account"). This prevents default Supabase confirmation emails from looking like spam. To customize manually: Supabase Dashboard → Authentication → Email Templates.
+The `/deploy` skill also configures email subject lines in the same PATCH call, using the app's short title from experiment.yaml (e.g., "Confirm your MyApp account"). This prevents default Supabase confirmation emails from looking like spam. To customize manually: Supabase Dashboard → Authentication → Email Templates.
 
 The access token is read from `~/.supabase/access-token` (created by `supabase login`). If unavailable, generate one at supabase.com/dashboard/account/tokens.
 
 ## OAuth Provider Configuration
 
-When `stack.auth_providers` is declared in idea.yaml, `/deploy` configures each provider
+When `stack.auth_providers` is declared in experiment.yaml, `/deploy` configures each provider
 via the same Management API PATCH call used for redirect URLs and email subjects:
 
 ```bash

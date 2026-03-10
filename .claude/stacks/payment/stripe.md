@@ -21,7 +21,7 @@ clean:
 gitignore: []
 ---
 # Payment: Stripe
-> Used when idea.yaml has `stack.payment: stripe`
+> Used when experiment.yaml has `stack.payment: stripe`
 
 ## Packages
 ```bash

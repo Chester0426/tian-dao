@@ -11,7 +11,7 @@
 ### Step 5: API routes
 - Create the API routes directory per the framework stack file
 - Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
-- If idea.yaml features imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.
+- If experiment.yaml features imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.
 - For the webhook handler's `// TODO: Update user's payment status in database` comment: resolve it using the database schema you planned in Phase 1. If no payments/subscriptions table was planned, add one to the migration in Step 6 and return here to wire the webhook update after the table exists.
 - Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
 - Follow the hosting stack file for rate limiting guidance in auth and payment API route handlers. Mention any limitations in the PR body so the user knows to address them before production
@@ -36,9 +36,9 @@ These routes must:
 - Read the external stack file (`.claude/stacks/external/<service-slug>.md`) for API patterns and code templates
 
 ### Step 6: Database schema (if needed)
-If `stack.database` is present and idea.yaml features require persistent data:
+If `stack.database` is present and experiment.yaml features require persistent data:
 - Follow the schema management approach from the database stack file
-- Create the initial migration with all tables needed for idea.yaml features. Migration numbering is based on the current branch state — concurrent branches may create conflicting numbers, which should be resolved by renumbering at merge time.
+- Create the initial migration with all tables needed for experiment.yaml features. Migration numbering is based on the current branch state — concurrent branches may create conflicting numbers, which should be resolved by renumbering at merge time.
 - If `stack.payment` is present and a payments/subscriptions table was created: return to the webhook handler (`src/app/api/webhooks/stripe/route.ts`) and resolve the `// TODO: Update user's payment status in database` using the new table before proceeding to Step 7.
 - If `stack.email` is present and the nudge route requires activation tracking: add `activated_at timestamptz` and `nudge_sent_at timestamptz` columns to the user-related table (or create a `user_status` table if no user table exists beyond Supabase auth). The nudge cron queries this to find un-activated, un-nudged users.
 - Also create `src/lib/types.ts` with TypeScript types matching the table schemas
@@ -51,7 +51,7 @@ If no features require database tables, skip this step.
 
 ### Step 7b: Test scaffolding (if stack.testing is present)
 
-If `stack.testing` is present in idea.yaml:
+If `stack.testing` is present in experiment.yaml:
 - Read the testing stack file at `.claude/stacks/testing/<value>.md`
 - Read the archetype file at `.claude/archetypes/<type>.md` to determine the archetype
 
@@ -61,7 +61,7 @@ If `stack.testing` is present in idea.yaml:
 
 **If archetype is `web-app`:**
 - Check assumes: for each `category/value` in the testing stack file's `assumes` list, verify
-  it matches idea.yaml `stack`. If all match → use full templates. If any unmet → use No-Auth
+  it matches experiment.yaml `stack`. If all match → use full templates. If any unmet → use No-Auth
   Fallback templates.
 - Install packages: `npm install -D @playwright/test && npx playwright install chromium`
 - If using the full-auth path: install Supabase CLI (`npm install -D supabase`) and if
@@ -70,7 +70,7 @@ If `stack.testing` is present in idea.yaml:
   - `playwright.config.ts` (full or no-auth)
   - `e2e/helpers.ts` (full or no-auth)
   - If full-auth path: `e2e/global-setup.ts` and `e2e/global-teardown.ts`
-- Generate `e2e/smoke.spec.ts` with one page-load test per idea.yaml page:
+- Generate `e2e/smoke.spec.ts` with one page-load test per experiment.yaml page:
   ```ts
   test("[page name] loads", async ({ page }) => {
     await page.goto("/[route]");
@@ -78,7 +78,7 @@ If `stack.testing` is present in idea.yaml:
   });
   ```
   These are page-load smoke tests only — not full funnel tests with selectors.
-- If idea.yaml has `variants`, also generate a smoke test per variant route:
+- If experiment.yaml has `variants`, also generate a smoke test per variant route:
   ```ts
   test("variant [slug] loads", async ({ page }) => {
     await page.goto("/v/[slug]");
@@ -87,8 +87,8 @@ If `stack.testing` is present in idea.yaml:
   ```
 - If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
   - Read the funnel test template from the testing stack file
-  - If idea.yaml has `golden_path`: use it as the funnel sequence. Each step with an `action` becomes a test step. Read actual page source files for selectors. Steps with `value_moment: true` get an additional assertion that the action produces a visible result (not just page load).
-  - If idea.yaml has no `golden_path`: fall back to reading idea.yaml pages and EVENTS.yaml to determine funnel sequence
+  - If experiment.yaml has `golden_path`: use it as the funnel sequence. Each step with an `action` becomes a test step. Read actual page source files for selectors. Steps with `value_moment: true` get an additional assertion that the action produces a visible result (not just page load).
+  - If experiment.yaml has no `golden_path`: fall back to reading experiment.yaml pages and EVENTS.yaml to determine funnel sequence
   - Read actual page source files (created in Step 4) to extract real selectors
   - Generate tests: landing content → activate action (if applicable) → login → core value pages
   - For landing page CTA and success-message selectors, use `.first()` — the CTA appears at least twice on landing pages (messaging.md Section B), so selectors will match 2+ elements. Other pages have unique selectors and don't need `.first()`.
@@ -107,7 +107,7 @@ If `stack.testing` is present in idea.yaml:
 - Generate `tests/smoke.test.ts` per the testing stack file's "Bootstrap Smoke Tests > Service Smoke Tests" template:
   - Import `app` from `../src/index` (the framework's exported app instance)
   - Health check test: `app.request("/api/health")` → assert status 200
-  - One test per idea.yaml `endpoints` entry: `app.request("/api/<endpoint>")` → assert `not.toBe(500)`
+  - One test per experiment.yaml `endpoints` entry: `app.request("/api/<endpoint>")` → assert `not.toBe(500)`
   - POST endpoints use empty JSON body — verifies route registration, not input validation
   - For frameworks without an exported `app` instance or `app.request()` (e.g., Virtuals ACP, Next.js): use the testing stack file's fallback guidance — test handler functions directly by importing from the path defined by the framework stack file
 - Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
@@ -120,14 +120,14 @@ If `stack.testing` is present in idea.yaml:
   - Helper `runCli(args)` that runs `node dist/index.js ${args}` via `execSync`, returns `{ stdout, exitCode }`
   - `--version` test: assert exit 0 + semver pattern
   - `--help` test: assert exit 0 + "Usage:" in output
-  - One test per idea.yaml `commands` entry: `<command> --help` → assert exit 0 + command name in output
+  - One test per experiment.yaml `commands` entry: `<command> --help` → assert exit 0 + command name in output
   - Note: requires `npm run build` first — CI runs build before test
 - Add `test`, `test:watch`, and `test:coverage` scripts to `package.json`
 - Add CI step per the testing stack file's "CI Integration" section
 
-### Step 7c: Critical flow integration tests (if critical_flows present in idea.yaml)
+### Step 7c: Critical flow integration tests (if critical_flows present in experiment.yaml)
 
-If idea.yaml has `critical_flows`:
+If experiment.yaml has `critical_flows`:
 - If vitest is not already installed (check `package.json` devDependencies): install `vitest`
 - Create `tests/flows.test.ts` with one test per critical_flow:
   - Each test calls the relevant API endpoint(s) with test payloads
@@ -140,11 +140,11 @@ If idea.yaml has `critical_flows`:
 - Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
 - These tests are NOT run during bootstrap — only created (same as funnel tests)
 
-If idea.yaml has no `critical_flows`: skip this step entirely.
+If experiment.yaml has no `critical_flows`: skip this step entirely.
 
 NOTE: Tests are NOT run during bootstrap — only created
 
-If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
+If `stack.testing` is NOT present in experiment.yaml: skip this step entirely.
 
 ### Step 8: Verify before shipping
 > **Note:** This step is executed by the bootstrap lead, not this subagent.
@@ -158,7 +158,7 @@ If `stack.testing` is NOT present in idea.yaml: skip this step entirely.
 
 ### Step 8b: Spec compliance check
 
-Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these before proceeding to the PR:
+Re-read `.claude/current-plan.md` and `idea/experiment.yaml` now. Verify each of these before proceeding to the PR:
 
 **Archetype-specific structure checks:**
 - If archetype requires `pages` (web-app): for each page in `pages`, confirm `src/app/<page-name>/page.tsx` exists (or root page for `landing`)
@@ -186,13 +186,13 @@ Re-read `.claude/current-plan.md` and `idea/idea.yaml` now. Verify each of these
 ### Step 9: Commit, push, open PR
 > **Note:** This step is executed by the bootstrap lead, not this subagent.
 - You are already on a feature branch (created in Step 0). Do not create another branch.
-- Stage all new files and commit: "Bootstrap MVP scaffold from idea.yaml"
+- Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
 - Push and open PR using the `.github/PULL_REQUEST_TEMPLATE.md` format:
-  - **Summary**: plain-English explanation — "Full MVP scaffold generated from idea.yaml" with key highlights
+  - **Summary**: plain-English explanation — "Full MVP scaffold generated from experiment.yaml" with key highlights
   - **How to Test**: "After merging: [If hosting is Vercel: 1) Import your repo at vercel.com/new, 2) Connect Supabase via the Vercel integration (vercel.com/integrations/supabase) — it walks you through creating a Supabase project; database migrations are applied automatically during the first build, [If stack.payment is present: add Stripe env vars manually in Vercel Project → Settings → Environment Variables,] 3) Verify: visit your production URL and check each page] [If hosting is not Vercel: read the hosting stack file's PR Instructions for deployment steps] [If archetype is CLI: run `npm run build && node dist/index.js --help` to verify the CLI works] For local verification: run `/verify` in Claude Code (auto-fixes failures), or `make verify-local` from terminal"
   - **What Changed**: list every file created and its purpose
-  - **Why**: reference the idea.yaml problem/solution
-  - **Checklist — Scope**: check all boxes (only built what's in idea.yaml)
+  - **Why**: reference the experiment.yaml problem/solution
+  - **Checklist — Scope**: check all boxes (only built what's in experiment.yaml)
   - **Checklist — Analytics**: list every event wired and which page fires it
   - **Checklist — Build**: confirm build passes, no hardcoded secrets, .env.example created
 - Add a prominent note at the top of the PR body with post-merge instructions: database setup (from database stack file), environment variable setup (from .env.example)

@@ -7,7 +7,7 @@
 
 ## Instructions
 
-Resolve the surface type: if `stack.surface` is set in idea.yaml, use it.
+Resolve the surface type: if `stack.surface` is set in experiment.yaml, use it.
 Otherwise infer: `stack.hosting` present → `co-located`; absent → `detached`.
 Read the surface stack file at `.claude/stacks/surface/<value>.md`.
 
@@ -30,7 +30,7 @@ Apply the preloaded `frontend-design` guidelines (injected via skills) with:
 - The quality bar from design.md: "Create a world-class, conversion-optimized
   landing page. The visual quality must match a $50K agency page — not
   adequate, exceptional."
-- The full content of idea.yaml (product context)
+- The full content of experiment.yaml (product context)
 - Copy derivation rules from messaging.md Section A (headline = outcome for
   target_user, CTA = action verb + outcome)
 - Content inventory from messaging.md Section B (raw material, not structure)
@@ -54,7 +54,7 @@ varies by archetype:
   page component. Must fire `visit_landing` on mount with EVENTS.yaml properties.
 - If `variants`: write `src/components/landing-content.tsx` — a shared
   `LandingContent` component that accepts variant props (headline, subheadline,
-  cta, pain_points). Features section is shared across variants (from idea.yaml
+  cta, pain_points). Features section is shared across variants (from experiment.yaml
   `features`). The structural routing files (variants.ts, root page, dynamic
   route) are created by the pages subagent running in parallel — they will
   exist at build time.

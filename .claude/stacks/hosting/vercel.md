@@ -15,7 +15,7 @@ clean:
 gitignore: [.vercel/]
 ---
 # Hosting: Vercel
-> Used when idea.yaml has `stack.hosting: vercel`
+> Used when experiment.yaml has `stack.hosting: vercel`
 > Assumes: `framework/nextjs` (references `NEXT_PUBLIC_` env var prefix convention)
 
 ## Deployment
@@ -127,7 +127,7 @@ Simple in-memory counters do not persist across serverless invocations on Vercel
 
 For auth and payment API routes:
 - Add `// TODO: Add production rate limiting (e.g., Upstash Redis)` comment at the top of the route handler
-- If idea.yaml `stack` includes a rate-limiting service (e.g., Upstash), use that instead
+- If experiment.yaml `stack` includes a rate-limiting service (e.g., Upstash), use that instead
 - Mention this limitation in the PR body so the user knows to address it before production
 
 ## Security Headers
@@ -179,7 +179,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
 ### Config Gathering
 
 - **CLI command:** `vercel teams list` — lists available teams (or personal account)
-- **idea.yaml field:** `deploy.vercel_team` — if set, skip the prompt
+- **experiment.yaml field:** `deploy.vercel_team` — if set, skip the prompt
 
 ### Project Setup
 
@@ -197,7 +197,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
 
 ### Domain Setup
 
-1. Construct domain: `<name>.<domain>` (default parent domain: `draftlabs.org`; override with `deploy.domain` in idea.yaml)
+1. Construct domain: `<name>.<domain>` (default parent domain: `draftlabs.org`; override with `deploy.domain` in experiment.yaml)
 2. Add domain:
    ```bash
    vercel domains add <name>.<domain> --scope "<team>"
