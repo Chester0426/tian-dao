@@ -14,6 +14,17 @@ idea:
   distribution: |
     Internal team distribution via API docs.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A user calls the shorten endpoint"
+      when: "They provide a long URL"
+      then: "They receive a shortened URL"
+      tests:
+        - "Shorten endpoint returns a short URL"
+        - "Resolve endpoint redirects to original URL"
+      level: 1
+
   endpoints:
     - name: shorten
       purpose: Create a shortened URL from a long URL

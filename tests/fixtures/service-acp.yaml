@@ -14,6 +14,16 @@ idea:
   distribution: |
     Listed on Virtuals Protocol ACP marketplace for agent-to-agent discovery.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "An ACP task arrives for token analysis"
+      when: "The agent processes the task"
+      then: "A risk report is generated and returned"
+      tests:
+        - "Token analysis endpoint returns risk report"
+      level: 1
+
   endpoints:
     - name: analyze-token
       purpose: Multi-source token risk analysis and report generation

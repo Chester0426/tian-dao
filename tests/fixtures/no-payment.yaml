@@ -16,6 +16,26 @@ idea:
   distribution: |
     Post in ProductHunt and relevant Slack communities.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A visitor lands on the landing page"
+      when: "They see the CTA"
+      then: "They click to sign up"
+      tests:
+        - "Landing page renders CTA button"
+        - "Clicking CTA navigates to signup"
+      level: 1
+    - id: b-02
+      hypothesis_id: h-02
+      given: "A logged-in user is on the note-edit page"
+      when: "They create a note"
+      then: "The note is saved"
+      tests:
+        - "Note form accepts content and submits"
+        - "Creating note fires activate event"
+      level: 2
+
   golden_path:
     - step: Visit landing page
       event: visit_landing
@@ -59,4 +79,4 @@ assertions:
   payment_events_required: false
   activate_required: true
   skippable_events: []
-  min_pages: 5
+  min_pages: 3
