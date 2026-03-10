@@ -26,7 +26,7 @@
 
 ## How it works
 
-Every command shows a plan and waits for your approval before changing anything.
+Every command that writes code shows a plan and waits for your approval before changing anything.
 
 ```
     /spec "your idea"  ─or─  edit experiment.yaml manually
@@ -69,7 +69,7 @@ Every command shows a plan and waits for your approval before changing anything.
 - **3 experiment levels** — L1 landing test, L2 interactive MVP, L3 full MVP — match effort to conviction
 - **12 slash commands** — from `/spec` through `/teardown`, the full experiment lifecycle
 - **22 pluggable stack files** — swap frameworks, databases, hosting, and more without changing skills
-- **19 specialized agents** — design critic, security attacker/defender, UX journeyer, accessibility scanner, and more run in parallel on every `/verify`
+- **19 specialized agents** — design critic, security attacker/defender, UX journeyer, accessibility scanner, and more run across the lifecycle
 - **Production mode** — set `quality: production` for TDD, per-task implementer agents, and spec review
 - **Full deploy + teardown** — one command to go live, one command to clean up
 
@@ -134,7 +134,7 @@ Every command shows a plan and waits for your approval before changing anything.
 | Auth | supabase | supabase |
 | UI | shadcn | shadcn |
 | Analytics | posthog | posthog |
-| Testing | playwright, vitest | playwright |
+| Testing | playwright, vitest | — |
 | Payment | stripe | — |
 | Distribution | google-ads, reddit, twitter | — |
 | Email | resend | — |
@@ -180,7 +180,7 @@ docs/                # Prerequisites, troubleshooting, technical reference
 5. **`/deploy` fails** — run `vercel login` and `npx supabase login` first
 6. **Deployment broken?** — run `/rollback` for instant recovery to the previous deployment
 
-For 20+ more issues, see [docs/troubleshooting.md](docs/troubleshooting.md).
+For more issues, see [docs/troubleshooting.md](docs/troubleshooting.md) (25 items total).
 
 ## Documentation
 
