@@ -11,6 +11,13 @@ references: []
 branch_prefix: chore
 modifies_specs: false
 ---
+
+> **Platform mode (`ASSAYER_API_URL`):** When running under the Assayer platform,
+> this skill has no approval gates (analysis-only). Funnel numbers are parsed
+> from `$ARGUMENTS` structured data. Qualitative data is read from `$ARGUMENTS`
+> if provided, skipped without prompting if absent. Timeline is derived from
+> deploy manifest `created_at` + experiment.yaml.
+
 Review the experiment's progress and recommend what to do next.
 
 This skill does NOT write code. It helps you decide what action to take, then points you to the right skill to execute it.
@@ -76,9 +83,17 @@ Tell the user how to get the numbers. See the analytics stack file's "Dashboard 
 
 Ask the user to provide funnel numbers — for each event in the funnel (from `standard_funnel` for web-app or `custom_events` for service/cli, plus `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
 
+> **Platform mode:** If `ASSAYER_API_URL` is set, parse funnel numbers from
+> `$ARGUMENTS` structured data (JSON with event counts). Do not prompt
+> interactively.
+
 ### 2c: Ask for qualitative data
 
 Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask the user to provide whatever they have. Not all of these will be available — use what you get:
+
+> **Platform mode:** If `ASSAYER_API_URL` is set, read qualitative data from
+> `$ARGUMENTS` if provided. Proceed without prompting if absent. Do not prompt
+> interactively.
 
 1. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty and not already fetched in 2a, ask for counts of each custom event. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
 
@@ -110,6 +125,11 @@ Before diagnosing details, assess overall experiment health. This verdict is the
 
 From the data gathered in Step 2, determine:
 - **Time elapsed**: ask the user how many days the experiment has been running and the total planned duration. Calculate `time_pct = elapsed_days / total_days`.
+
+> **Platform mode:** If `ASSAYER_API_URL` is set, derive timeline from deploy
+> manifest `created_at` field and experiment.yaml planned duration in
+> `$ARGUMENTS`. Do not prompt interactively.
+
 - **Target progress**: extract the target from experiment.yaml `thesis` (e.g., "10+ will complete at least one paid invoice within 2 weeks" → target = 10 paid invoices). Compare against the closest matching funnel metric. Calculate `target_pct = achieved / target_number`.
 - **Pace**: `pace = target_pct / time_pct`. A pace of 1.0 means exactly on track; >1.0 means ahead; <1.0 means behind.
 - **Budget progress (if ads running)**: if the user provided ads spend data, calculate `budget_pct = spent / total_budget`.
