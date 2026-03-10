@@ -16,7 +16,7 @@
 - /iterate has per-hypothesis verdicts (PR #264)
 - Deploy interface is hosting-agnostic (PRs #176-178)
 - Skills are stateless transformers — return JSON, caller handles persistence
-- `ASSAYER_API_URL` is purely a platform-mode signal (skip interactive prompts), NOT for skills to call APIs
+- Skills are stateless transformers — they check env vars before prompting, no platform-mode signal needed
 
 ### True Gaps (2)
 
@@ -779,7 +779,6 @@ Verdict 卡片：
   - "Regenerate" 按钮 — 确认对话框后生成新 key
 - CLI 连接说明：
   "Set these environment variables in your experiment repo:"
-  ASSAYER_API_URL=https://assayer.io
   ASSAYER_API_KEY=<your-key>
 
 ### Billing Section（placeholder）

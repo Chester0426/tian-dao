@@ -15,13 +15,6 @@ references:
 branch_prefix: chore
 modifies_specs: true
 ---
-
-> **Platform mode (`ASSAYER_API_URL`):** When running under the Assayer platform,
-> the distribution channel is read from `ASSAYER_DISTRIBUTION_CHANNEL` env var
-> instead of prompting. Credentials are read from env vars — error if missing.
-> Approval gates (Step 6 config review, Step 9d campaign creation) remain
-> interactive for session-resume in the web UI.
-
 Generate a distribution campaign configuration from experiment.yaml and implement distribution tracking.
 
 > If `experiment/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `experiment/ads.yaml` to regenerate from scratch.
@@ -45,10 +38,6 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
    1. List available channels by scanning `.claude/stacks/distribution/*.md` (strip the `.md` extension to get channel names)
    2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
    3. Read the selected channel's stack file at `.claude/stacks/distribution/<channel>.md`
-
-   > **Platform mode:** If `ASSAYER_API_URL` is set, read the channel from
-   > `ASSAYER_DISTRIBUTION_CHANNEL` env var instead of prompting. If the env var
-   > is missing, stop with error. Do not prompt interactively.
 
 7. **Policy check:**
    1. Read experiment.yaml `description`
@@ -333,10 +322,6 @@ Campaign metadata (`campaign_id`, `campaign_url`) is committed to the feature br
    4. As each credential is provided, save it: `mkdir -p <dir> && echo "$VALUE" > <path>`
    5. After all credentials are saved → proceed to **9d**
    6. If the user cannot set up credentials now, offer: "Type **skip** to skip campaign creation. You can create the campaign manually after merging the PR — see the channel's stack file 'Setup Instructions'. Or re-run `/distribute` later — Step 9b checks for `campaign_id` and picks up where you left off." If skipped, jump to Step 9f (manual fallback).
-
-> **Platform mode:** If `ASSAYER_API_URL` is set, read credential values from
-> environment variables instead of interactive setup. If any required credential
-> env var is missing, stop with error — do not prompt interactively.
 
 ### 9d: STOP for approval
 

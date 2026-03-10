@@ -16,17 +16,11 @@ references:
 branch_prefix: change
 modifies_specs: true
 ---
-
-> **Platform mode (`ASSAYER_API_URL`):** When running under the Assayer platform,
-> `$ARGUMENTS` is always pre-provided with a structured change description.
-> If `$ARGUMENTS` is still empty, error — do not prompt interactively.
-> Approval gates (Phase 1 plan approval) remain interactive for session-resume.
-
 Make a change to the existing app: $ARGUMENTS
 
 ## Step 0: Pre-flight checks (before branch creation)
 
-- If `$ARGUMENTS` is empty or unclear: stop and ask the user to describe what they want to change. **Platform mode:** If `ASSAYER_API_URL` is set, `$ARGUMENTS` is always pre-provided; if still empty, stop with error — do not prompt interactively.
+- If `$ARGUMENTS` is empty or unclear: stop and ask the user to describe what they want to change.
 - If `$ARGUMENTS` contains `#<number>` or is just a number: read the GitHub issue via `gh issue view <number>` and use its content as the change description. If `gh issue view` fails (issue not found, permission denied, or network error), tell the user: "Could not read issue #<number>. Describe the change directly, or check `gh auth status` and retry."
 - Verify `package.json` exists. If not, stop and tell the user: "No app found. Run `/bootstrap` first, or if you already have a bootstrap PR open, merge it before running `/change`."
 - Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."

@@ -86,10 +86,8 @@ AI-calling skills (`/spec`, `/iterate`): validate with zod, retry once on parse 
 **Three-layer model:**
 
 1. **Pre-collection** — Web UI gathers all input-collection data (idea text, level, change description, external service decisions) before invoking the skill. The skill receives these as pre-filled context, skipping interactive prompts.
-2. **Credential injection** — Platform pre-configures credentials as environment variables in the Cloud Run container. Skills detect platform mode via `ASSAYER_API_URL` and skip interactive credential collection.
+2. **Credential injection** — Platform pre-configures credentials as environment variables in the Cloud Run container. Skills check for env vars before prompting — standard behavior, no mode signal needed.
 3. **Session resume** — For approval gates (deploy plan, bootstrap plan), the skill runs until it hits a gate, streams output to the web UI, pauses, and resumes when the user approves or requests changes.
-
-`ASSAYER_API_URL` is the platform-mode signal: when set, skills skip interactive credential collection (layer 2). Approval gates (layer 3) are preserved — they use the session resume pattern regardless of mode.
 
 ### experiment.yaml vs idea.yaml
 
@@ -460,7 +458,6 @@ POST metrics/sync → cache
 ### Env Vars
 
 ```
-ASSAYER_API_URL=https://assayer.io    # platform-mode signal — skills skip interactive prompts when set
 ASSAYER_API_KEY=<service-key>         # backend service key for protecting API routes
 ```
 

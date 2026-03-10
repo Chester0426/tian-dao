@@ -11,12 +11,6 @@ references: []
 branch_prefix: ""
 modifies_specs: false
 ---
-
-> **Platform mode (`ASSAYER_API_URL`):** All teardown interactions are approval
-> gates (irreversible operations). Name confirmation (Step 1) and data deletion
-> confirmation (Step 2) remain interactive for session-resume in the web UI.
-> No input-collection or credential-collection points to skip.
-
 Tear down the cloud infrastructure created by `/deploy`.
 
 This skill is hosting-agnostic: it reads `hosting.provider` and `database.provider` from the deploy manifest, loads the corresponding stack files, and executes teardown commands from their `## Deploy Interface > Teardown` sections.
