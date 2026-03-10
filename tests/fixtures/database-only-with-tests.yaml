@@ -16,6 +16,25 @@ idea:
   distribution: |
     Share in data communities and forums.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A visitor lands on the landing page"
+      when: "They click browse"
+      then: "They navigate to the browse page"
+      tests:
+        - "Landing page renders browse CTA"
+      level: 1
+    - id: b-02
+      hypothesis_id: h-02
+      given: "A visitor is on the browse page"
+      when: "They apply a filter"
+      then: "The data list updates"
+      tests:
+        - "Browse page renders filter controls"
+        - "Applying filter fires activate event"
+      level: 1
+
   golden_path:
     - step: Visit landing page
       event: visit_landing

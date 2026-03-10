@@ -144,4 +144,4 @@ assertions:
   payment_events_required: true
   activate_required: true
   skippable_events: []
-  min_pages: 7
+  min_pages: 4

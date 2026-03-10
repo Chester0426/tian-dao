@@ -14,6 +14,17 @@ idea:
   distribution: |
     API docs shared in developer communities.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A developer calls the bookmarks endpoint"
+      when: "They create a bookmark with a URL"
+      then: "The bookmark is saved to SQLite"
+      tests:
+        - "POST /bookmarks creates a bookmark"
+        - "GET /bookmarks returns saved bookmarks"
+      level: 1
+
   endpoints:
     - name: bookmarks
       purpose: List and create bookmarks

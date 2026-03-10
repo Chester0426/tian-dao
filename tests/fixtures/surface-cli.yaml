@@ -14,6 +14,16 @@ idea:
   distribution: |
     Detached surface page deployed to Vercel drives npm installs.
 
+  behaviors:
+    - id: b-01
+      hypothesis_id: h-01
+      given: "A developer runs the stats command"
+      when: "They are in a git repository"
+      then: "They see commit statistics"
+      tests:
+        - "Stats command outputs commit counts"
+      level: 1
+
   commands:
     - name: stats
       purpose: Show commit statistics for the current repository
