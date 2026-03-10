@@ -1,12 +1,32 @@
 # Experiment Template
 
 ![CI](https://github.com/magpiexyz-lab/mvp-template/actions/workflows/ci.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## What is this
+**Describe an idea in YAML. Claude Code builds, deploys, and instruments it — under an hour from zero to live MVP with analytics.**
 
-You describe an idea — or let `/spec` generate the full design from a sentence. Claude Code builds the app, deploys it, and helps you iterate with real user data. The whole cycle — from idea to live experiment with analytics — takes under an hour. Three experiment levels (L1 landing test, L2 interactive MVP, L3 full MVP) let you match effort to conviction.
+## See it in action
 
-## Your workflow
+```
+> /spec "invoicing tool for freelancers"
+✓ Generated experiment/experiment.yaml (L2 interactive MVP, 4 behaviors, 2 variants)
+
+> /bootstrap
+✓ Built app — PR #42 opened: https://github.com/you/quick-bill/pull/42
+  → Review and merge the PR
+
+> /verify
+✓ 10 agents passed (design, security, UX, accessibility, performance, spec)
+
+> /deploy
+✓ Live at https://quick-bill.vercel.app
+  Supabase project: quick-bill-prod
+  PostHog dashboard ready — share the link and watch the funnel
+```
+
+## How it works
+
+Every command shows a plan and waits for your approval before changing anything.
 
 ```
     /spec "your idea"  ─or─  edit experiment.yaml manually
@@ -43,101 +63,113 @@ You describe an idea — or let `/spec` generate the full design from a sentence
                 (web-app / service)      (cli)
 ```
 
-Every command that writes code shows you a plan first and waits for your approval before changing anything.
+## What you get
 
-## First-time setup
+- **3 archetypes** — web-app, service, cli — each with tailored build, deploy, and test pipelines
+- **3 experiment levels** — L1 landing test, L2 interactive MVP, L3 full MVP — match effort to conviction
+- **12 slash commands** — from `/spec` through `/teardown`, the full experiment lifecycle
+- **22 pluggable stack files** — swap frameworks, databases, hosting, and more without changing skills
+- **19 specialized agents** — design critic, security attacker/defender, UX journeyer, accessibility scanner, and more run in parallel on every `/verify`
+- **Production mode** — set `quality: production` for TDD, per-task implementer agents, and spec review
+- **Full deploy + teardown** — one command to go live, one command to clean up
 
-Do this once. Ask a technical teammate to help if needed.
+## Quick start
 
-1. **Install tools** — Python, Node.js, GitHub CLI, and optionally Docker. See [docs/prerequisites.md](docs/prerequisites.md).
-2. **Create service accounts** — Claude Code, GitHub, and the services your stack uses. See [docs/prerequisites.md](docs/prerequisites.md).
-3. **Open Claude Code** in this repo folder.
+1. **Install prerequisites** — Python, Node.js, GitHub CLI. See [docs/prerequisites.md](docs/prerequisites.md).
+2. **Spec your idea** — open Claude Code in this repo and run `/spec "your idea"`.
+   `/spec` picks the right experiment level automatically, or specify one: L1 (landing), L2 (interactive), L3 (full).
+3. **Build, verify, deploy:**
+   ```
+   /bootstrap      # generates app, opens PR — review and merge
+   /verify         # runs 10 agents, auto-fixes failures
+   /deploy         # pushes to production
+   ```
 
-## Step by step
+## Experiment levels
 
-### 0. Spec your experiment (recommended)
+| Level | What it builds | When to use |
+|-------|---------------|-------------|
+| **L1** Landing test | Landing page measuring interest. No backend. | Unvalidated idea — test demand first |
+| **L2** Interactive MVP | Working app with core features and database | Some signal — test usability |
+| **L3** Full MVP | Auth, payments, full feature set | High conviction — test willingness to pay |
 
-Run `/spec 'your idea'` in Claude Code. It transforms a problem statement into a complete `experiment.yaml` with hypotheses, behaviors, variants, and stack choices.
-
-Three experiment levels control scope:
-- **L1 (Landing test)** — A landing page that measures interest. No backend, no auth. Fastest to ship.
-- **L2 (Interactive MVP)** — A working app with core features. Database and basic flows, but no auth or payments.
-- **L3 (Full MVP)** — Everything: auth, payments, full feature set. Use when conviction is high.
-
-`/spec` picks the right level based on your idea, or you can specify one. The output is a ready-to-validate `experiment.yaml`.
-
-**Alternative:** Skip `/spec` and manually edit `experiment.yaml` (see Step 1).
-
-### 1. Describe your idea
-
-Edit `experiment/experiment.yaml` — replace every `TODO` with your actual content. See `experiment/experiment.example.yaml` (the QuickBill example) for reference. If you used `/spec`, this step is already done.
-
-Key fields:
-- **name** — a short slug for your project (used in analytics, e.g., `quick-bill`)
-- **type** — what you're building: `web-app` (default), `service` (API only), or `cli` (command-line tool)
-- **level** — experiment scope: `L1` (landing test), `L2` (interactive MVP), or `L3` (full MVP)
-- **pages / endpoints / commands** — what your app contains (depends on type). Claude builds exactly these, no more.
-- **behaviors** — specific user actions the experiment measures (up to ~5)
-- **thesis** — your testable prediction with success criteria and the metric that tells you if this worked
-- **funnel** — conversion thresholds that define success
-- **stack** — technologies to use. The defaults work for most experiments.
-
-Advanced fields (generated by `/spec`):
-- **hypotheses** — testable predictions with success criteria
-- **variants** — A/B messaging variants for landing pages
-
-Run `make validate` to check for errors before continuing.
-
-### 2. Build
-
-Open Claude Code and type `/bootstrap`. Claude will:
-
-1. Read your experiment.yaml and present a build plan
-2. **Wait for your approval** — nothing happens until you say yes
-3. Generate the full app and open a pull request
-
-Review the PR on GitHub and merge it to `main`.
-
-### 3. Verify (recommended)
-
-After merging, run `/verify` in Claude Code. It runs tests automatically and fixes any failures it finds.
-
-> Docker Desktop must be running for projects with `stack.database: supabase`.
-
-### 4. Deploy
-
-- **web-app / service:** Run `/deploy` in Claude Code. You'll need `vercel login` and `npx supabase login` done first (one-time). For non-Vercel hosting, see your stack file at `.claude/stacks/hosting/`.
-- **cli:** Publish with `npm publish` or create a GitHub Release. No `/deploy` needed.
-
-### 5. Iterate
-
-1. **Share with users** — your app is live after merging and deploying
-2. **Distribute (optional, web-app only)** — run `/distribute` to generate ad campaign configs
-3. **Check analytics** — wait a few days, then look at your dashboards
-4. **Get recommendations** — run `/iterate` for Claude to analyze your funnel
-5. **Make changes** — run `/change [description]` to add features, fix bugs, or polish
-6. **Verify and merge** — run `/verify`, then merge the PR
-7. **Repeat** — keep iterating until you hit your target or the measurement window ends
-8. **Graduate to production (optional)** — run `/harden` to add specification tests to critical paths
-9. **Retrospective** — run `/retro` when the experiment ends
-10. **Tear down (web-app / service)** — run `/teardown` to remove cloud resources
+`/spec` picks the level based on your idea, or you can override it.
 
 ## Skills reference
 
+**Build**
+
 | Skill | What it does | Waits for approval? |
 |-------|-------------|---------------------|
-| `/spec 'idea'` | Generate experiment.yaml with hypotheses, behaviors, variants from a problem statement | Yes |
+| `/spec "idea"` | Generate experiment.yaml from a problem statement | Yes |
 | `/bootstrap` | Generate the full app from experiment.yaml | Yes |
-| `/change [description]` | Add a feature, fix a bug, polish UI, fix analytics, add tests | Yes |
-| `/verify` | Run tests and auto-fix failures | No |
-| `/deploy` | Deploy to hosting + database (first-time setup) | Yes |
-| `/distribute` | Generate ad campaign config (web-app only) | Yes |
-| `/iterate` | Analyze metrics, recommend next steps (no code changes) | No |
-| `/harden` | Add specification tests to critical paths (production quality mode) | Yes |
-| `/retro` | Run a retrospective and file feedback as GitHub issue | No |
-| `/teardown` | Remove cloud resources (Vercel project, Supabase project) | Yes |
-| `/rollback` | Roll back to previous deployment (emergency, no PR) | Yes |
+| `/change [desc]` | Add a feature, fix a bug, polish UI, fix analytics | Yes |
+| `/verify` | Run agents and auto-fix failures | No |
+| `/harden` | Add specification tests to critical paths | Yes |
+
+**Ship**
+
+| Skill | What it does | Waits for approval? |
+|-------|-------------|---------------------|
+| `/deploy` | Deploy to hosting + database | Yes |
+| `/distribute` | Generate ad campaign config | Yes |
+| `/rollback` | Roll back to previous deployment (emergency) | Yes |
+| `/teardown` | Remove all cloud resources | Yes |
+
+**Learn**
+
+| Skill | What it does | Waits for approval? |
+|-------|-------------|---------------------|
+| `/iterate` | Analyze metrics, recommend next steps | No |
+| `/retro` | Run retrospective, file feedback as GitHub issue | No |
 | `/review` | Automated review-fix loop *(maintainers only)* | Yes |
+
+## Supported stacks
+
+| Category | Options | Default |
+|----------|---------|---------|
+| Framework | nextjs, hono, commander, virtuals-acp | nextjs |
+| Hosting | vercel, railway | vercel |
+| Database | supabase, sqlite | supabase |
+| Auth | supabase | supabase |
+| UI | shadcn | shadcn |
+| Analytics | posthog | posthog |
+| Testing | playwright, vitest | playwright |
+| Payment | stripe | — |
+| Distribution | google-ads, reddit, twitter | — |
+| Email | resend | — |
+| AI | anthropic | — |
+| Surface | co-located, detached, none | — |
+
+Override any default in `experiment.yaml` under `stack`. To add a new technology, create a stack file at `.claude/stacks/<category>/<name>.md`.
+
+## Automated review
+
+Every `/verify` triggers up to 10 specialized agents in parallel:
+
+**Quality** — design-critic, ux-journeyer, performance-reporter, accessibility-scanner
+**Security** — security-defender, security-attacker, security-fixer
+**Production** — spec-reviewer *(when `quality: production`)*
+**Build** — build-info-collector, observer
+
+`/bootstrap` adds 7 more scaffold agents (setup, init, libs, pages, externals, landing, wire) that build the app in parallel. 19 agents total across the system.
+
+## Project structure
+
+```
+.claude/
+  commands/          # 12 slash command definitions
+  agents/            # 19 agent specifications
+  stacks/            # 22 pluggable stack files (12 categories)
+  archetypes/        # 3 product archetypes (web-app, service, cli)
+  patterns/          # Reusable patterns (verify, security, TDD, design)
+experiment/
+  experiment.yaml    # Single source of truth for what to build
+  experiment.example.yaml  # QuickBill reference example
+scripts/             # Validators and CI checks
+tests/fixtures/      # 25 test fixtures for CI
+docs/                # Prerequisites, troubleshooting, technical reference
+```
 
 ## Common issues
 
@@ -150,11 +182,17 @@ After merging, run `/verify` in Claude Code. It runs tests automatically and fix
 
 For 20+ more issues, see [docs/troubleshooting.md](docs/troubleshooting.md).
 
-## More docs
+## Documentation
 
 - [docs/prerequisites.md](docs/prerequisites.md) — Full setup instructions
 - [docs/troubleshooting.md](docs/troubleshooting.md) — All known issues
-- [docs/technical-reference.md](docs/technical-reference.md) — Project structure, migrations, branch protection, stack and archetype reference, extending the template
-- [docs/google-ads-setup.md](docs/google-ads-setup.md) — Google Ads setup for /distribute
+- [docs/technical-reference.md](docs/technical-reference.md) — Project structure, migrations, stack and archetype reference
+- [docs/google-ads-setup.md](docs/google-ads-setup.md) — Google Ads setup for `/distribute`
 
-**Default stack:** Next.js (App Router), Supabase (database & auth), PostHog (analytics), Vercel (hosting), shadcn/ui, Playwright (testing). Override any of these in experiment.yaml `stack`.
+## Contributing
+
+All changes go through pull requests — never commit directly to `main`. CI runs validation across 25 test fixtures on every PR. See [CLAUDE.md](CLAUDE.md) for the full rule set.
+
+## License
+
+MIT
