@@ -12,7 +12,7 @@ Read these files:
 
 1. `scripts/check-inventory.md` — canonical list of all automated checks
 2. `CLAUDE.md`
-3. `idea/idea.example.yaml`
+3. `idea/experiment.example.yaml`
 4. `EVENTS.yaml`
 
 ---
@@ -29,7 +29,7 @@ one per dimension below. Construct each agent's prompt from:
 > **Shared context instruction** — include verbatim in every subagent prompt:
 >
 > Before reviewing, read these files:
-> `scripts/check-inventory.md`, `CLAUDE.md`, `idea/idea.example.yaml`, `EVENTS.yaml`.
+> `scripts/check-inventory.md`, `CLAUDE.md`, `idea/experiment.example.yaml`, `EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 ### Dimension A: Cross-File Consistency
@@ -48,7 +48,7 @@ one per dimension below. Construct each agent's prompt from:
 ### Dimension B: Edge Case Robustness
 
 **Focus**: Find configurations where skills or stack files would produce broken output. Examples:
-- A skill assumes auth exists but the idea.yaml has no `stack.auth`
+- A skill assumes auth exists but the experiment.yaml has no `stack.auth`
 - A code template hard-codes a path that changes based on stack choices
 - A conditional branch in a skill handles 2 of 3 possible states
 - An edge case not covered by the test fixtures
