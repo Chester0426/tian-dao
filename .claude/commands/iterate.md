@@ -425,10 +425,14 @@ If the diagnosis reveals a need to change direction:
 - Propose messaging or positioning changes that preserve what works
 - The user should run `/change` to adjust copy/CTA/targeting, NOT rebuild from scratch
 
-### Major pivot or stop (verdict is NO-GO)
-- Present the case: "The Step 3 verdict is NO-GO. The data suggests [current approach] isn't working because [reason]. Consider targeting [new user] or solving [different problem]."
-- Do NOT update experiment.yaml for major pivots — the user should think about this and manually edit experiment.yaml
-- Remind them: "After updating experiment.yaml, run `make clean` then `/bootstrap` to start a new experiment (or in a fresh repo), or `/change ...` to iteratively shift the existing one."
+### Stop (verdict is KILL)
+- Present the case: "The Step 3 verdict is KILL. The data suggests [current approach] isn't working because [reason]."
+- Recommend immediate actions:
+  1. Stop spending on ads/distribution — further traffic is unlikely to change the outcome
+  2. Run `/retro` to file a retrospective while findings are fresh
+  3. Run `/teardown` to remove cloud infrastructure (Vercel, Supabase, etc.) and stop ongoing costs
+  4. If pivoting: edit experiment.yaml with a new thesis/target_user, then `make clean` and `/bootstrap` to start fresh (or in a new repo)
+- Do NOT update experiment.yaml automatically — the user should decide whether to pivot or stop
 
 ### On track (verdict is SCALE)
 - Say so clearly: "The Step 3 verdict is SCALE. You're on track. [X] of [target from thesis] achieved with [Y days] remaining."

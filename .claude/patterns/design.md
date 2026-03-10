@@ -16,7 +16,7 @@ decisions (see `### Recommended executor`); skills decide when and how to
 invoke it.
 
 > Skip this section if `stack.surface` resolves to `none`.
-> (Inference: `stack.hosting` present → `co-located`; absent → `detached`.
+> (Inference: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
 > Explicit `stack.surface` in experiment.yaml overrides inference.)
 
 ### Design constraints
