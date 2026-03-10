@@ -10,7 +10,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - If a page isn't listed in `pages` (web-app) or an endpoint isn't listed in `endpoints` (service), don't create it
 - If you're unsure whether something is in scope, it isn't
 - To add a new feature, use the /change skill — it updates experiment.yaml first, then implements
-- When asked to do something outside a defined skill (/bootstrap, /change, /deploy, /distribute, /harden, /iterate, /retro, /review, /rollback, /teardown, /verify), ask the user to clarify before proceeding
+- When asked to do something outside a defined skill (/spec, /bootstrap, /change, /deploy, /distribute, /harden, /iterate, /retro, /review, /rollback, /teardown, /verify), ask the user to clarify before proceeding
 
 ## Rule 1: PR-First Workflow
 - Never commit directly to `main`
