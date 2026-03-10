@@ -128,6 +128,14 @@ if variants is not None:
             print(f"Error: variants[{i}].pain_points must have exactly 3 items")
             sys.exit(1)
 
+        # Optional enrichment fields (promise, proof, urgency)
+        for enrich_field in ["promise", "proof", "urgency"]:
+            enrich_val = v.get(enrich_field)
+            if enrich_val is not None:
+                if not isinstance(enrich_val, str) or not enrich_val.strip():
+                    print(f"Error: variants[{i}].{enrich_field} must be a non-empty string (or remove it)")
+                    sys.exit(1)
+
         if v.get("default"):
             default_count += 1
 
@@ -238,6 +246,138 @@ if critical_flows is not None:
         if not flow_verify or not isinstance(flow_verify, str):
             print(f"Error: critical_flows[{i}].verify is missing or empty")
             sys.exit(1)
+
+# --- Level validation (optional, /spec field) ---
+level = data.get("level")
+if level is not None:
+    if not isinstance(level, int) or isinstance(level, bool) or level not in (1, 2, 3):
+        print("Error: level must be 1, 2, or 3")
+        sys.exit(1)
+
+# --- Thesis validation (optional, /spec field) ---
+thesis = data.get("thesis")
+if thesis is not None:
+    if not isinstance(thesis, str) or not thesis.strip():
+        print("Error: thesis must be a non-empty string")
+        sys.exit(1)
+
+# --- Hypotheses validation (optional, /spec field) ---
+hypotheses = data.get("hypotheses")
+hypothesis_ids = set()
+if hypotheses is not None:
+    if not isinstance(hypotheses, list):
+        print("Error: hypotheses must be a list"); sys.exit(1)
+
+    VALID_CATEGORIES = {"demand", "reach", "feasibility", "monetize", "retain"}
+    VALID_STATUSES = {"pending", "resolved"}
+    depends_to_check = []  # (index, list_of_dep_ids)
+
+    for i, h in enumerate(hypotheses):
+        if not isinstance(h, dict):
+            print(f"Error: hypotheses[{i}] must be a mapping"); sys.exit(1)
+
+        # Required string fields
+        for field in ["id", "category", "statement", "test_method", "success_metric", "threshold"]:
+            if not h.get(field) or not isinstance(h.get(field), str):
+                print(f"Error: hypotheses[{i}].{field} is missing or empty"); sys.exit(1)
+
+        h_id = h["id"]
+        if not re.fullmatch(r"h_[a-z]+_\d+", h_id):
+            print(f'Error: hypotheses[{i}].id "{h_id}" must match h_<category>_<n>'); sys.exit(1)
+
+        if h["category"] not in VALID_CATEGORIES:
+            print(f'Error: hypotheses[{i}].category "{h["category"]}" must be: {", ".join(sorted(VALID_CATEGORIES))}'); sys.exit(1)
+
+        # Required int fields
+        ps = h.get("priority_score")
+        if not isinstance(ps, int) or isinstance(ps, bool) or not (1 <= ps <= 10):
+            print(f"Error: hypotheses[{i}].priority_score must be integer 1-10"); sys.exit(1)
+
+        el = h.get("experiment_level")
+        if not isinstance(el, int) or isinstance(el, bool) or el not in (1, 2, 3):
+            print(f"Error: hypotheses[{i}].experiment_level must be 1, 2, or 3"); sys.exit(1)
+
+        status = h.get("status")
+        if not isinstance(status, str) or status not in VALID_STATUSES:
+            print(f'Error: hypotheses[{i}].status must be: {", ".join(sorted(VALID_STATUSES))}'); sys.exit(1)
+
+        # Unique ID
+        if h_id in hypothesis_ids:
+            print(f"Error: duplicate hypothesis id: {h_id}"); sys.exit(1)
+        hypothesis_ids.add(h_id)
+
+        # depends_on (optional)
+        deps = h.get("depends_on")
+        if deps is not None:
+            if not isinstance(deps, list):
+                print(f"Error: hypotheses[{i}].depends_on must be a list"); sys.exit(1)
+            depends_to_check.append((i, deps))
+
+    # Second pass: depends_on references exist
+    for i, deps in depends_to_check:
+        for dep_id in deps:
+            if dep_id not in hypothesis_ids:
+                print(f'Error: hypotheses[{i}].depends_on references unknown id "{dep_id}"'); sys.exit(1)
+
+    # Cross-field: experiment_level <= top-level level
+    if level is not None:
+        for i, h in enumerate(hypotheses):
+            if h.get("experiment_level", 0) > level:
+                print(f"Error: hypotheses[{i}].experiment_level ({h['experiment_level']}) exceeds top-level level ({level})"); sys.exit(1)
+
+# --- Behaviors validation (optional, /spec field) ---
+behaviors = data.get("behaviors")
+if behaviors is not None:
+    if not isinstance(behaviors, list):
+        print("Error: behaviors must be a list"); sys.exit(1)
+
+    behavior_ids = set()
+    for i, b in enumerate(behaviors):
+        if not isinstance(b, dict):
+            print(f"Error: behaviors[{i}] must be a mapping"); sys.exit(1)
+
+        for field in ["id", "hypothesis_id", "given", "when", "then"]:
+            if not b.get(field) or not isinstance(b.get(field), str):
+                print(f"Error: behaviors[{i}].{field} is missing or empty"); sys.exit(1)
+
+        b_id = b["id"]
+        if not re.fullmatch(r"b_\d+", b_id):
+            print(f'Error: behaviors[{i}].id "{b_id}" must match b_<n>'); sys.exit(1)
+
+        if b_id in behavior_ids:
+            print(f"Error: duplicate behavior id: {b_id}"); sys.exit(1)
+        behavior_ids.add(b_id)
+
+        b_level = b.get("level")
+        if not isinstance(b_level, int) or isinstance(b_level, bool) or b_level not in (1, 2, 3):
+            print(f"Error: behaviors[{i}].level must be 1, 2, or 3"); sys.exit(1)
+
+        # Cross-ref: hypothesis_id must exist if hypotheses section present
+        h_id_ref = b["hypothesis_id"]
+        if hypotheses is not None:
+            if h_id_ref not in hypothesis_ids:
+                print(f'Error: behaviors[{i}].hypothesis_id "{h_id_ref}" not found in hypotheses'); sys.exit(1)
+        elif hypothesis_ids is not None:
+            # hypotheses absent but behaviors reference them — soft warning
+            print(f'  Warning: behaviors[{i}].hypothesis_id "{h_id_ref}" — hypotheses section is absent')
+            warnings = True
+
+# --- Funnel validation (optional, /spec field) ---
+funnel = data.get("funnel")
+if funnel is not None:
+    if not isinstance(funnel, dict):
+        print("Error: funnel must be a mapping"); sys.exit(1)
+
+    thresholds = funnel.get("thresholds")
+    if not isinstance(thresholds, dict) or not thresholds:
+        print("Error: funnel.thresholds is required and must be a non-empty mapping"); sys.exit(1)
+    for k, v in thresholds.items():
+        if not isinstance(v, str) or not v.strip():
+            print(f'Error: funnel.thresholds.{k} must be a non-empty string'); sys.exit(1)
+
+    df = funnel.get("decision_framework")
+    if not isinstance(df, str) or not df.strip():
+        print("Error: funnel.decision_framework is required and must be a non-empty string"); sys.exit(1)
 
 if not data.get("template_repo"):
     print(
