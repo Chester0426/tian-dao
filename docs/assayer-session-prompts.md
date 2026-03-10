@@ -383,16 +383,11 @@ Bootstrap 完成后：
 
 创建 `src/lib/api-auth.ts`：
 
-两层认证：
-1. Supabase Auth（用户会话）— 所有前端请求通过 cookie
-2. API Key（服务间调用）— Authorization: Bearer <ASSAYER_API_KEY>
+Supabase Auth（用户会话）— 所有前端请求通过 cookie
 
 提供中间件：
-- withAuth(handler) → 验证 Supabase 会话或 API key
+- withAuth(handler) → 验证 Supabase 会话
 - getCurrentUser(request) → 返回 authenticated user 或 null
-
-环境变量添加到 .env.example：
-- ASSAYER_API_KEY=<generate-random-key>
 
 ## Rate Limiting
 
@@ -772,15 +767,6 @@ Verdict 卡片：
 - GitHub OAuth 连接状态（同上）
 - 状态通过 Supabase Auth user.identities 获取
 
-### API Access Section
-- 显示用户的 API key（用于 CLI 连接 Assayer API）
-  - 显示时默认遮蔽 ****
-  - "Show" 按钮揭示完整 key
-  - "Regenerate" 按钮 — 确认对话框后生成新 key
-- CLI 连接说明：
-  "Set these environment variables in your experiment repo:"
-  ASSAYER_API_KEY=<your-key>
-
 ### Billing Section（placeholder）
 - Card: "Billing — Coming Soon"
 - "Free plan: 5 active experiments"
@@ -925,7 +911,6 @@ Verdict 卡片：
 
 ### API Keys
 - ANTHROPIC_API_KEY (Claude API for AI spec generation)
-- ASSAYER_API_KEY (自生成: openssl rand -hex 32)
 
 ## 运行 /deploy
 
@@ -944,7 +929,6 @@ Verdict 卡片：
 - POSTHOG_PERSONAL_API_KEY
 - POSTHOG_PROJECT_ID
 - ANTHROPIC_API_KEY
-- ASSAYER_API_KEY
 - GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET
 - GITHUB_CLIENT_ID + GITHUB_CLIENT_SECRET
 
