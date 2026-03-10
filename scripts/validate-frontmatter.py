@@ -52,7 +52,7 @@ ARCHETYPE_REQUIRED_KEYS = [
     "required_stacks",
     "optional_stacks",
     "excluded_stacks",
-    "required_idea_fields",
+    "required_experiment_fields",
     "build_command",
     "funnel_template",
 ]

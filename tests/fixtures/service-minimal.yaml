@@ -1,6 +1,6 @@
 # Test fixture: Minimal service — API endpoints only, no auth/database/payment
 # Validates that service archetype skips pages, landing page, and UI requirements.
-idea:
+experiment:
   name: test-service-minimal
   type: service
 

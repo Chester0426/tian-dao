@@ -2,7 +2,7 @@
 description: "Tear down cloud infrastructure created by /deploy. Use when ending an experiment."
 type: analysis-only
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - .claude/deploy-manifest.json
   - CLAUDE.md
 stack_categories: [hosting, database, analytics, payment]
@@ -25,7 +25,7 @@ This skill is hosting-agnostic: it reads `hosting.provider` and `database.provid
 
 1. Read `.claude/deploy-manifest.json`. If missing, stop: "No deploy manifest found.
    Run `/deploy` first, or delete resources manually via each provider's dashboard."
-2. Read `idea/experiment.yaml` — extract `name` for confirmation prompt.
+2. Read `experiment/experiment.yaml` — extract `name` for confirmation prompt.
 3. Read `hosting.provider` and `database.provider` from the manifest. Load the corresponding
    stack files at `.claude/stacks/hosting/<provider>.md` and `.claude/stacks/database/<provider>.md`.
 4. Check CLI installation and auth — read each stack file's `## Deploy Interface > Prerequisites`

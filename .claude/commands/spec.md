@@ -32,7 +32,7 @@ Level definitions:
 
 ### Fallback
 If `$ARGUMENTS` is empty or contains only a level flag:
-- Check if `idea/experiment.yaml` exists and has non-TODO `thesis` and `description` fields.
+- Check if `experiment/experiment.yaml` exists and has non-TODO `thesis` and `description` fields.
   If so, extract the idea text from those fields and confirm with the user:
   > Found existing thesis/description in experiment.yaml. Using this as the idea input:
   > "[extracted text]"
@@ -431,7 +431,7 @@ If the user requests changes, revise the YAML and present it again. Repeat until
 After the user approves:
 
 ### 7a: Write experiment.yaml
-Write the approved YAML to `idea/experiment.yaml`.
+Write the approved YAML to `experiment/experiment.yaml`.
 
 ### 7b: Write spec-manifest.json
 Write `.claude/spec-manifest.json` with the full research and hypothesis details:
@@ -467,7 +467,7 @@ Write `.claude/spec-manifest.json` with the full research and hypothesis details
 ### 7c: Validate
 1. Verify experiment.yaml is valid YAML:
    ```bash
-   python3 -c "import yaml; yaml.safe_load(open('idea/experiment.yaml'))"
+   python3 -c "import yaml; yaml.safe_load(open('experiment/experiment.yaml'))"
    ```
 2. Verify spec-manifest.json is valid JSON:
    ```bash
@@ -493,7 +493,7 @@ Variants:     [N]
 Stack:        [services: app(runtime, hosting, ...), shared: ...]
 Status:       draft
 
-Next: Run /bootstrap to scaffold the app, or edit idea/experiment.yaml to adjust.
+Next: Run /bootstrap to scaffold the app, or edit experiment/experiment.yaml to adjust.
 ```
 
 ## Do NOT
@@ -501,7 +501,7 @@ Next: Run /bootstrap to scaffold the app, or edit idea/experiment.yaml to adjust
 - Add stack components not required by the selected level
 - Generate fewer than 3 variants or fewer than 5 hypotheses
 - Produce hypotheses without a testable numeric threshold
-- Modify any file other than `idea/experiment.yaml` and `.claude/spec-manifest.json`
+- Modify any file other than `experiment/experiment.yaml` and `.claude/spec-manifest.json`
 - Skip the user approval checkpoint in Step 6
 - Proceed past any STOP point without explicit user confirmation
 - Add `monetize` category hypotheses at Level 1

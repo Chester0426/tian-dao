@@ -21,7 +21,7 @@ You are a performance auditor. Measure bundle sizes from the build output. You *
 
 ## Archetype Gate
 
-Read `idea/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
+Read `experiment/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
 
 If archetype is **not** `web-app`, skip all checks and report:
 

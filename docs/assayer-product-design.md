@@ -95,7 +95,7 @@ AI-calling skills (`/spec`, `/iterate`): validate with zod, retry once on parse 
 
 | | Assayer platform | Per-experiment |
 |---|---|---|
-| File | `idea/idea.yaml` | `idea/experiment.yaml` |
+| File | `experiment/idea.yaml` | `experiment/experiment.yaml` |
 | Defines | Dashboard, API, auth (assayer.io) | Landing page / demo (exp-name.assayer.io) |
 | Written by | Us | `/spec` (generated) |
 | Read by | `/bootstrap` for platform | `/bootstrap` for experiment |
@@ -109,7 +109,7 @@ Supabase = single source of truth. Skills return JSON; caller persists. CLI: sta
 ### Workspace Lifecycle (CLI)
 
 1. `mkdir exp-name && cd exp-name && git init`
-2. `/spec` → `idea/experiment.yaml`
+2. `/spec` → `experiment/experiment.yaml`
 3. `/bootstrap` → project code
 4. `/deploy` → live URL
 5. Failure: workspace is disposable — re-run from failed step
@@ -216,7 +216,7 @@ Supporting (unchanged): `/review`, `/rollback`
 
 ### `/spec` — Idea + Level → experiment.yaml
 
-**Model:** Opus | **Input:** `{ idea: string, level?: 1|2|3 }` | **Output:** `idea/experiment.yaml`
+**Model:** Opus | **Input:** `{ idea: string, level?: 1|2|3 }` | **Output:** `experiment/experiment.yaml`
 
 **experiment.yaml schema** (7 sections):
 
@@ -784,8 +784,8 @@ pages:
 ### Skill-to-Skill Data Flow
 
 ```
-/spec        → writes idea/experiment.yaml + .claude/spec-manifest.json
-/bootstrap   → reads idea/experiment.yaml
+/spec        → writes experiment/experiment.yaml + .claude/spec-manifest.json
+/bootstrap   → reads experiment/experiment.yaml
 /iterate     → reads .claude/spec-manifest.json → writes .claude/iterate-manifest.json
 ```
 
@@ -863,7 +863,7 @@ Variants (3):
   "ai-magic"      Your AI Invoicing Assistant
   "cost-cutter"   Cut Invoicing Costs by 80%
 
-Wrote idea/experiment.yaml
+Wrote experiment/experiment.yaml
 Run /bootstrap to scaffold, or edit experiment.yaml first to adjust.
 To test at L2/L3, run: /spec "AI-powered invoice tool" --level 2
 ```

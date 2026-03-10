@@ -1,6 +1,6 @@
 # Test fixture: Landing-only page, no auth, no payment, no database
 # Minimal configuration — just a static marketing page with analytics.
-idea:
+experiment:
   name: test-landing-only
   type: web-app
 

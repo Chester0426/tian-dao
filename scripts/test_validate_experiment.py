@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for level ↔ stack validation in validate-idea.py."""
+"""Tests for level ↔ stack validation in validate-experiment.py."""
 
 import copy
 import os
@@ -10,7 +10,7 @@ import pytest
 import yaml
 
 
-SCRIPT = os.path.join(os.path.dirname(__file__), "validate-idea.py")
+SCRIPT = os.path.join(os.path.dirname(__file__), "validate-experiment.py")
 
 # Minimal valid experiment.yaml base — no level, no forbidden stack keys
 BASE_YAML = {
@@ -36,11 +36,11 @@ BASE_YAML = {
 
 
 def run_validator(yaml_data: dict) -> subprocess.CompletedProcess:
-    """Write yaml_data to a temp dir and run validate-idea.py."""
+    """Write yaml_data to a temp dir and run validate-experiment.py."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        idea_dir = os.path.join(tmpdir, "idea")
-        os.makedirs(idea_dir)
-        yaml_path = os.path.join(idea_dir, "experiment.yaml")
+        experiment_dir = os.path.join(tmpdir, "experiment")
+        os.makedirs(experiment_dir)
+        yaml_path = os.path.join(experiment_dir, "experiment.yaml")
         with open(yaml_path, "w") as f:
             yaml.dump(yaml_data, f)
         return subprocess.run(

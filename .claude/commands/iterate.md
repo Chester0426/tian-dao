@@ -2,9 +2,9 @@
 description: "Use when you have analytics data and want to decide what to do next. Analysis only — no code changes."
 type: analysis-only
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - EVENTS.yaml
-  - idea/ads.yaml
+  - experiment/ads.yaml
 stack_categories: [analytics]
 requires_approval: false
 references: []
@@ -24,12 +24,12 @@ This skill does NOT write code. It helps you decide what action to take, then po
 
 ## Step 1: Read the experiment definition
 
-- Verify `idea/experiment.yaml` exists. If not, stop and tell the user: "No experiment found. Create `idea/experiment.yaml` from the template first, then run `/bootstrap`."
+- Verify `experiment/experiment.yaml` exists. If not, stop and tell the user: "No experiment found. Create `experiment/experiment.yaml` from the template first, then run `/bootstrap`."
 - If `package.json` does not exist, stop and tell the user: "No app found. Run `/bootstrap` first to create the app, then run `/iterate` to review its progress."
 - Run `npm run build`. If it fails, stop and tell the user: "The app has build errors. Run `/change fix build errors` to repair the codebase first, then return to `/iterate`."
 - Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
 - Check if `stack.analytics` is present in experiment.yaml. If not, warn: "No analytics stack configured — skipping auto-query. You can provide funnel numbers manually in Step 2b, or add `analytics: posthog` to experiment.yaml `stack` and run `/change add analytics` for automated tracking." Skip Step 2a entirely and proceed to Step 2b.
-- Read `idea/experiment.yaml` — understand the hypothesis:
+- Read `experiment/experiment.yaml` — understand the hypothesis:
   - What are we building? (`name`, `description`)
   - For whom? (`target_user`)
   - What does success look like? (`thesis`, `funnel` thresholds)
@@ -109,7 +109,7 @@ Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask 
    - `activate` count per variant (if available)
    - Which variant is getting the most traffic and which has the best conversion?
 
-6. **Ads data (if /distribute has been run)** — if `idea/ads.yaml` exists:
+6. **Ads data (if /distribute has been run)** — if `experiment/ads.yaml` exists:
    - Total spend so far
    - Clicks and CTR
    - Cost per click (CPC)
@@ -275,7 +275,7 @@ Dimension-specific recommendations:
 
 ### Ads Performance (if ads.yaml exists)
 
-If `idea/ads.yaml` exists and the user provided ads data in Step 2, include this table:
+If `experiment/ads.yaml` exists and the user provided ads data in Step 2, include this table:
 
 ```
 ## Ads Performance
@@ -288,7 +288,7 @@ If `idea/ads.yaml` exists and the user provided ads data in Step 2, include this
 | Paid activations | [N] | >=[thresholds.expected_activations from ads.yaml] | [status] |
 ```
 
-Read `idea/ads.yaml` to populate threshold values. Use the user-provided ads data for actual values.
+Read `experiment/ads.yaml` to populate threshold values. Use the user-provided ads data for actual values.
 
 ### Variant Winner Analysis (if experiment.yaml has `variants`)
 
@@ -348,9 +348,9 @@ Present recommendations in priority order (highest impact first).
 
 ### Ads Decision (if ads.yaml exists and day 7 or budget exhausted)
 
-If `idea/ads.yaml` exists but the user reported no ads data in Step 2 (campaign not yet launched), skip this section and instead note: "Ads config generated but campaign not yet launched. Create the campaign in your distribution channel's platform using `idea/ads.yaml`, then return to `/iterate` after a few days of data."
+If `experiment/ads.yaml` exists but the user reported no ads data in Step 2 (campaign not yet launched), skip this section and instead note: "Ads config generated but campaign not yet launched. Create the campaign in your distribution channel's platform using `experiment/ads.yaml`, then return to `/iterate` after a few days of data."
 
-If `idea/ads.yaml` exists and the campaign has been running for the full `budget.duration_days` or `budget.total_budget_cents` is exhausted, present a go/no-go decision:
+If `experiment/ads.yaml` exists and the campaign has been running for the full `budget.duration_days` or `budget.total_budget_cents` is exhausted, present a go/no-go decision:
 
 | Signal | Interpretation | Action |
 |--------|---------------|--------|
@@ -361,7 +361,7 @@ If `idea/ads.yaml` exists and the campaign has been running for the full `budget
 | 0 activations, <50 clicks, <1% CTR | Targeting problem | Revise targeting in ads.yaml, re-run `/distribute` |
 | 0 activations, <50 clicks, >1% CTR | Budget/time problem | Extend budget or experiment duration |
 
-Read `thresholds.go_signal` and `thresholds.no_go_signal` from `idea/ads.yaml` and use them as the primary decision criteria. The table above provides additional diagnostic detail.
+Read `thresholds.go_signal` and `thresholds.no_go_signal` from `experiment/ads.yaml` and use them as the primary decision criteria. The table above provides additional diagnostic detail.
 
 ### Save analysis for /change context
 

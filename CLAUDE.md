@@ -1,11 +1,11 @@
 # CLAUDE.md — Experiment Template Rules (v1.0)
 
-Read `idea/experiment.yaml` before every task. It is the single source of truth for what to build.
+Read `experiment/experiment.yaml` before every task. It is the single source of truth for what to build.
 
 Rules are in priority order. When two rules conflict, the lower-numbered rule wins.
 
 ## Rule 0: Scope Lock
-- Only build what is described in `idea/experiment.yaml`
+- Only build what is described in `experiment/experiment.yaml`
 - If a behavior isn't listed in `behaviors`, don't build it
 - Pages are derived from `golden_path` — don't create pages not referenced there
 - If you're unsure whether something is in scope, it isn't
@@ -96,7 +96,7 @@ src/
     ui/             # UI library components (auto-generated)
   lib/              # Utilities
     analytics.*     # Analytics tracking (see analytics stack file for filename)
-idea/               # experiment.yaml lives here
+experiment/           # experiment.yaml lives here
 ```
 > This tree shows the default layout (Next.js). See your framework stack file for the actual file structure and extensions.
 > For `type: service`, the structure replaces page folders with API routes only:
@@ -108,7 +108,7 @@ idea/               # experiment.yaml lives here
 >         route.ts    # Route handler
 >   lib/              # Utilities
 >     analytics.*     # Server-side analytics only for services
-> idea/               # experiment.yaml lives here
+> experiment/           # experiment.yaml lives here
 > ```
 - One component per file
 - Colocate page-specific components in the page's folder

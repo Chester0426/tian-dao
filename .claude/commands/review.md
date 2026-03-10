@@ -5,7 +5,7 @@ reads:
   - CLAUDE.md
   - EVENTS.yaml
   - scripts/check-inventory.md
-  - idea/experiment.example.yaml
+  - experiment/experiment.example.yaml
 stack_categories: []
 requires_approval: false
 references:
@@ -23,7 +23,7 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 - Read `CLAUDE.md`
 - Read `EVENTS.yaml`
 - Read `scripts/check-inventory.md`
-- Read `idea/experiment.example.yaml` (for understanding template structure)
+- Read `experiment/experiment.example.yaml` (for understanding template structure)
 - **Check open observation issues** (use current repo via `gh`):
   ```bash
   gh issue list --label observation --state open --limit 10 --json number,title,body
@@ -108,7 +108,7 @@ agent's prompt from:
 > **Shared context instruction** — include verbatim in every subagent prompt:
 >
 > Before reviewing, read these files:
-> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `idea/experiment.example.yaml`, `EVENTS.yaml`.
+> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `experiment/experiment.example.yaml`, `EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 **Dimension A: Cross-File Consistency**

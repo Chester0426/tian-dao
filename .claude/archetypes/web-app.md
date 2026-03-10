@@ -3,7 +3,7 @@ description: "Web application with browser-based pages, UI components, and user 
 required_stacks: [framework, hosting]
 optional_stacks: [database, auth, analytics, ui, payment, email, testing]
 excluded_stacks: []
-required_idea_fields: [golden_path]
+required_experiment_fields: [golden_path]
 build_command: "npm run build"
 funnel_template: web
 ---

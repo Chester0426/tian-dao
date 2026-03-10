@@ -3,7 +3,7 @@
 Every skill reads this baseline context before executing its specific logic.
 
 ## Required Context (always read)
-1. `idea/experiment.yaml` — single source of truth (scope, features, stack, metrics)
+1. `experiment/experiment.yaml` — single source of truth (scope, features, stack, metrics)
 2. `EVENTS.yaml` — canonical analytics event list
 3. Archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
 
@@ -15,7 +15,7 @@ For each category in experiment.yaml `stack`:
 - `.claude/current-plan.md` — persisted plan from previous session
 - `.claude/iterate-manifest.json` — analysis from last /iterate run
 - `.claude/deploy-manifest.json` — resources from last /deploy run
-- `idea/on-touch.yaml` — modules deferred for hardening
+- `experiment/on-touch.yaml` — modules deferred for hardening
 
 ## How to Reference
 Skills should say: "Read context per `.claude/patterns/read-context.md`" instead of

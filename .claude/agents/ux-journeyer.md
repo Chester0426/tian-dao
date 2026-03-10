@@ -34,7 +34,7 @@ Run `npx playwright --version`. If it fails, return:
 
 ### 2. Read Context
 
-- Read `idea/experiment.yaml` — golden_path, behaviors, thesis, target_user
+- Read `experiment/experiment.yaml` — golden_path, behaviors, thesis, target_user
 - Read `EVENTS.yaml` — standard_funnel events (these define the expected journey steps)
 - Read `.claude/current-plan.md` if it exists — check for an explicit Golden Path field
 

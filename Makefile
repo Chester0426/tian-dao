@@ -23,9 +23,9 @@ help: ## Show this help message
 	@echo "  /review          Automated review-fix loop (maintainers only)"
 
 validate: ## Check experiment.yaml for valid YAML, TODOs, name format, and structure
-	@echo "Validating idea/experiment.yaml..."
-	@if [ ! -f idea/experiment.yaml ]; then \
-		echo "Error: idea/experiment.yaml not found. Copy the example: cp idea/experiment.example.yaml idea/experiment.yaml"; \
+	@echo "Validating experiment/experiment.yaml..."
+	@if [ ! -f experiment/experiment.yaml ]; then \
+		echo "Error: experiment/experiment.yaml not found. Copy the example: cp experiment/experiment.example.yaml experiment/experiment.yaml"; \
 		exit 1; \
 	fi
 	@command -v python3 >/dev/null 2>&1 || { \
@@ -38,15 +38,15 @@ validate: ## Check experiment.yaml for valid YAML, TODOs, name format, and struc
 		echo "Fix: run 'pip3 install pyyaml' (if that fails: 'pip3 install --user pyyaml' or 'brew install python-pyyaml')"; \
 		exit 1; \
 	}
-	@python3 -c "import yaml; yaml.safe_load(open('idea/experiment.yaml'))" 2>/dev/null || { \
-		echo "Error: idea/experiment.yaml has invalid YAML syntax."; \
+	@python3 -c "import yaml; yaml.safe_load(open('experiment/experiment.yaml'))" 2>/dev/null || { \
+		echo "Error: experiment/experiment.yaml has invalid YAML syntax."; \
 		echo "Check for indentation errors or missing colons."; \
 		exit 1; \
 	}
-	@if grep -q 'TODO' idea/experiment.yaml; then \
+	@if grep -q 'TODO' experiment/experiment.yaml; then \
 		echo ""; \
 		echo "Found TODO placeholders that need to be filled in:"; \
-		grep -n 'TODO' idea/experiment.yaml; \
+		grep -n 'TODO' experiment/experiment.yaml; \
 		echo ""; \
 		echo "Replace every TODO before running make bootstrap."; \
 		exit 1; \
@@ -71,12 +71,12 @@ validate: ## Check experiment.yaml for valid YAML, TODOs, name format, and struc
 		echo "Note: project is already bootstrapped. Open Claude Code and run /change to make changes."; \
 	fi
 
-distribute: ## Validate idea/ads.yaml (valid YAML, schema, budget limits)
-	@if [ ! -f idea/ads.yaml ]; then echo "No idea/ads.yaml found. Run /distribute in Claude Code to generate it."; exit 0; fi; \
-	python3 -c "import yaml; yaml.safe_load(open('idea/ads.yaml'))" 2>/dev/null || { echo "Error: idea/ads.yaml has invalid YAML syntax."; exit 1; }; \
+distribute: ## Validate experiment/ads.yaml (valid YAML, schema, budget limits)
+	@if [ ! -f experiment/ads.yaml ]; then echo "No experiment/ads.yaml found. Run /distribute in Claude Code to generate it."; exit 0; fi; \
+	python3 -c "import yaml; yaml.safe_load(open('experiment/ads.yaml'))" 2>/dev/null || { echo "Error: experiment/ads.yaml has invalid YAML syntax."; exit 1; }; \
 	python3 -c "\
 	import yaml, sys; \
-	data = yaml.safe_load(open('idea/ads.yaml')); \
+	data = yaml.safe_load(open('experiment/ads.yaml')); \
 	channel = data.get('channel', 'google-ads'); \
 	universal_req = ['campaign_name','project_name','landing_url','budget','targeting','conversions','guardrails','thresholds']; \
 	errors = [f'missing required key: {k}' for k in universal_req if k not in data]; \
@@ -121,7 +121,7 @@ distribute: ## Validate idea/ads.yaml (valid YAML, schema, budget limits)
 	errors += ['thresholds.go_signal must be a non-empty string'] if th_ok and (not th.get('go_signal') or not isinstance(th.get('go_signal'), str)) else []; \
 	errors += ['thresholds.no_go_signal must be a non-empty string'] if th_ok and (not th.get('no_go_signal') or not isinstance(th.get('no_go_signal'), str)) else []; \
 	[print(f'  - {e}') for e in errors] if errors else None; \
-	sys.exit(1) if errors else print(f'idea/ads.yaml looks good — valid {channel} schema.'); \
+	sys.exit(1) if errors else print(f'experiment/ads.yaml looks good — valid {channel} schema.'); \
 	"
 
 supabase-start: ## Start local Supabase for testing (requires Docker)
@@ -156,8 +156,8 @@ deploy: ## Deploy to Vercel (first run will prompt to link project)
 		echo "Error: No package.json found. Run /bootstrap first."; \
 		exit 1; \
 	fi
-	@if [ -f idea/experiment.yaml ]; then \
-		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/experiment.yaml')); print(d.get('stack',{}).get('hosting',''))" 2>/dev/null); \
+	@if [ -f experiment/experiment.yaml ]; then \
+		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('experiment/experiment.yaml')); print(d.get('stack',{}).get('hosting',''))" 2>/dev/null); \
 		if [ -n "$$HOSTING" ] && [ "$$HOSTING" != "vercel" ]; then \
 			echo "Warning: stack.hosting is '$$HOSTING', but this Makefile only has a Vercel deploy command."; \
 			echo "To deploy: replace 'npx vercel deploy --prod' on the last line of the deploy target with your hosting provider's CLI command (e.g., 'npx netlify deploy --prod', 'fly deploy')."; \
@@ -184,10 +184,10 @@ setup-prod: ## Link Vercel + Supabase for production debugging
 	@npx vercel link || { echo "Error: run 'npx vercel login' first, then retry."; exit 1; }
 	@echo ""
 	@echo "Linking Supabase project..."
-	@if [ ! -f idea/experiment.yaml ]; then \
-		echo "Error: idea/experiment.yaml not found."; exit 1; \
+	@if [ ! -f experiment/experiment.yaml ]; then \
+		echo "Error: experiment/experiment.yaml not found."; exit 1; \
 	fi
-	@REF=$$(python3 -c "import yaml; d=yaml.safe_load(open('idea/experiment.yaml')); print(d.get('supabase_project_ref',''))" 2>/dev/null); \
+	@REF=$$(python3 -c "import yaml; d=yaml.safe_load(open('experiment/experiment.yaml')); print(d.get('supabase_project_ref',''))" 2>/dev/null); \
 	if [ -n "$$REF" ]; then \
 		npx supabase link --project-ref "$$REF"; \
 	else \
@@ -226,7 +226,7 @@ clean: ## Remove generated files (lets you re-run bootstrap)
 	rm -rf e2e playwright.config.ts test-results playwright-report blob-report  # testing/playwright
 	rm -rf tests vitest.config.ts                          # testing/vitest
 	@echo "Cleaned. You can now open Claude Code and run /bootstrap again."
-	@echo "Note: idea/experiment.yaml, EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
+	@echo "Note: experiment/experiment.yaml, EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
 
 clean-all: ## Remove everything including migrations (full reset)
 	@echo "This will delete ALL generated files including database migrations."

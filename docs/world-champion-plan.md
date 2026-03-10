@@ -104,7 +104,7 @@ description: "Roll back to the previous production deployment. Emergency use —
 type: analysis-only
 reads:
   - .claude/deploy-manifest.json
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
 stack_categories: [hosting]
 requires_approval: true
 references:
@@ -226,12 +226,12 @@ modifies_specs: false
 - **Manual cleanup:** None needed — verify doesn't modify infrastructure
 
 ### /distribute failure
-- **State saved:** `idea/ads.yaml` (campaign config)
+- **State saved:** `experiment/ads.yaml` (campaign config)
 - **Recovery:** Re-run `/distribute` — reads existing ads.yaml
-- **Manual cleanup:** Delete `idea/ads.yaml` to regenerate
+- **Manual cleanup:** Delete `experiment/ads.yaml` to regenerate
 
 ### /harden failure
-- **State saved:** `idea/on-touch.yaml`, specification tests on feature branch
+- **State saved:** `experiment/on-touch.yaml`, specification tests on feature branch
 - **Recovery:** Re-run `/harden` on the same branch — completed modules already have tests
 - **Manual cleanup:** `git checkout main && git branch -d <branch-name>`
 
@@ -313,7 +313,7 @@ modifies_specs: false
 
 4. **`.claude/commands/distribute.md`** — Add a recovery note at the top after the description:
    ```
-   > If `idea/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `idea/ads.yaml` to regenerate from scratch.
+   > If `experiment/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `experiment/ads.yaml` to regenerate from scratch.
    ```
 
 **Acceptance criteria:**
@@ -589,7 +589,7 @@ modifies_specs: false
 Every skill reads this baseline context before executing its specific logic.
 
 ## Required Context (always read)
-1. `idea/experiment.yaml` — single source of truth (scope, features, stack, metrics)
+1. `experiment/experiment.yaml` — single source of truth (scope, features, stack, metrics)
 2. `EVENTS.yaml` — canonical analytics event list
 3. Archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
 
@@ -601,7 +601,7 @@ For each category in experiment.yaml `stack`:
 - `.claude/current-plan.md` — persisted plan from previous session
 - `.claude/iterate-manifest.json` — analysis from last /iterate run
 - `.claude/deploy-manifest.json` — resources from last /deploy run
-- `idea/on-touch.yaml` — modules deferred for hardening
+- `experiment/on-touch.yaml` — modules deferred for hardening
 
 ## How to Reference
 Skills should say: "Read context per `.claude/patterns/read-context.md`" instead of

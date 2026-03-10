@@ -2,7 +2,7 @@
 description: "Use at the end of an experiment or when the measurement window ends. Files structured feedback as a GitHub Issue."
 type: analysis-only
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - EVENTS.yaml
 stack_categories: []
 requires_approval: false
@@ -14,7 +14,7 @@ Run a structured retrospective for the current experiment and file it as a GitHu
 
 ## Step 1: Gather Automated Data
 
-Verify `idea/experiment.yaml` exists. If not, stop and tell the user: "No experiment found — `idea/experiment.yaml` is missing. Make sure you're in the right project directory."
+Verify `experiment/experiment.yaml` exists. If not, stop and tell the user: "No experiment found — `experiment/experiment.yaml` is missing. Make sure you're in the right project directory."
 
 Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
 
@@ -34,7 +34,7 @@ Collect these data points and present a summary before asking questions:
    - Count production dependencies from `package.json` (if it exists)
 
 3. **Spec files**
-   - Read `idea/experiment.yaml` — extract experiment name, description, target user, thesis, funnel thresholds
+   - Read `experiment/experiment.yaml` — extract experiment name, description, target user, thesis, funnel thresholds
    - Read `EVENTS.yaml` — list events being tracked
 
 Present the summary and then proceed to Step 2.

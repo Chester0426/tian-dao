@@ -3,7 +3,7 @@ description: "Command-line tool distributed via package registry, no server host
 required_stacks: [framework]
 optional_stacks: [database, analytics, testing]
 excluded_stacks: [hosting, ui, auth, payment, email]
-required_idea_fields: [commands]
+required_experiment_fields: [commands]
 build_command: "npm run build"
 funnel_template: custom
 ---

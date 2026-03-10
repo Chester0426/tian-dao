@@ -35,12 +35,12 @@
 - **Manual cleanup:** None needed — verify doesn't modify infrastructure
 
 ### /distribute failure
-- **State saved:** `idea/ads.yaml` (campaign config)
+- **State saved:** `experiment/ads.yaml` (campaign config)
 - **Recovery:** Re-run `/distribute` — reads existing ads.yaml
-- **Manual cleanup:** Delete `idea/ads.yaml` to regenerate
+- **Manual cleanup:** Delete `experiment/ads.yaml` to regenerate
 
 ### /harden failure
-- **State saved:** `idea/on-touch.yaml`, specification tests on feature branch
+- **State saved:** `experiment/on-touch.yaml`, specification tests on feature branch
 - **Recovery:** Re-run `/harden` on the same branch — completed modules already have tests
 - **Manual cleanup:** `git checkout main && git branch -d <branch-name>`
 

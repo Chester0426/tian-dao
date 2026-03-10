@@ -2,9 +2,9 @@
 description: "Generate distribution campaign config from experiment.yaml. Requires a deployed MVP."
 type: code-writing
 reads:
-  - idea/experiment.yaml
+  - experiment/experiment.yaml
   - EVENTS.yaml
-  - idea/ads.yaml
+  - experiment/ads.yaml
 stack_categories: [analytics, hosting, distribution, ui, framework]
 requires_approval: true
 references:
@@ -24,9 +24,9 @@ modifies_specs: true
 
 Generate a distribution campaign configuration from experiment.yaml and implement distribution tracking.
 
-> If `idea/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `idea/ads.yaml` to regenerate from scratch.
+> If `experiment/ads.yaml` already exists from a previous run, this skill reads it and presents it for approval. Delete `experiment/ads.yaml` to regenerate from scratch.
 
-This skill generates `idea/ads.yaml` with targeting, ad creative, budgets, and thresholds, then adds UTM/click ID capture and a feedback widget to the deployed app. The channel is selected at runtime — each channel has a stack file at `.claude/stacks/distribution/<channel>.md` with format constraints, targeting model, policy restrictions, and config schema. Phase 1 is manual — the human creates the campaign in the channel's ad platform using the generated config.
+This skill generates `experiment/ads.yaml` with targeting, ad creative, budgets, and thresholds, then adds UTM/click ID capture and a feedback widget to the deployed app. The channel is selected at runtime — each channel has a stack file at `.claude/stacks/distribution/<channel>.md` with format constraints, targeting model, policy restrictions, and config schema. Phase 1 is manual — the human creates the campaign in the channel's ad platform using the generated config.
 
 ## Step 0: Archetype check and branch setup
 
@@ -36,11 +36,11 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
 
 ## Step 1: Validate preconditions
 
-1. Verify `idea/experiment.yaml` exists and is complete. If not, stop: "No experiment found. Create `idea/experiment.yaml` from the template first, then run `/bootstrap`."
+1. Verify `experiment/experiment.yaml` exists and is complete. If not, stop: "No experiment found. Create `experiment/experiment.yaml` from the template first, then run `/bootstrap`."
 2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
 3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
-5. Verify the app is deployed: check `landing_url` in existing `idea/ads.yaml`, or check `surface_url` (then `canonical_url`) in `.claude/deploy-manifest.json`, or ask the user for the deployed URL. For CLI archetype, the surface URL IS the target URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live surface page. Run `/deploy` first, then re-run `/distribute`."
+5. Verify the app is deployed: check `landing_url` in existing `experiment/ads.yaml`, or check `surface_url` (then `canonical_url`) in `.claude/deploy-manifest.json`, or ask the user for the deployed URL. For CLI archetype, the surface URL IS the target URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live surface page. Run `/deploy` first, then re-run `/distribute`."
 6. **Channel selection:**
    1. List available channels by scanning `.claude/stacks/distribution/*.md` (strip the `.md` extension to get channel names)
    2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
@@ -58,7 +58,7 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
    5. Non-blocking — the user can confirm to proceed or switch channel
 8. Verify `stack.analytics` is present in experiment.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to experiment.yaml `stack` and run `/bootstrap` first."
 9. Verify the analytics stack is configured: read the analytics stack file's `env` frontmatter. If `env.client` lists a client env var, check that it appears in `.env.example`. If the env var is not found in `.env.example`, stop: "Analytics is not configured. Verify `.env.example` contains the analytics client key, or run `/bootstrap` first to scaffold the app with analytics." If `env.client` is empty, the stack uses hardcoded keys (e.g., PostHog's shared publishable key) — skip this check.
-10. If `idea/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
+10. If `experiment/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
 
 ## Step 1.5: Load hypothesis context
 
@@ -70,7 +70,7 @@ Store as hypothesis context for Step 3. If the file does not exist, skip — all
 
 ## Step 2: Research targeting
 
-Read `idea/experiment.yaml`: `description`, `target_user`, `name`, `behaviors`.
+Read `experiment/experiment.yaml`: `description`, `target_user`, `name`, `behaviors`.
 
 Read the selected channel's stack file "Targeting Model" section, then generate targeting research appropriate for the channel:
 
@@ -157,7 +157,7 @@ When experiment.yaml has a `variants` field, generate per-variant creative:
 - Each variant's landing URL includes `utm_content={slug}` (e.g., `?utm_source={source}&utm_medium={medium}&utm_campaign={campaign_name}&utm_content=speed`)
 - Each variant's landing URL points to `/v/{slug}` (e.g., `https://example.vercel.app/v/speed?...`)
 - Follow messaging.md Section D: ad headlines for a variant match that variant's landing page headline
-- See `idea/ads.example.yaml` for schema format examples
+- See `experiment/ads.example.yaml` for schema format examples
 
 ## Step 4: Generate thresholds
 
@@ -205,7 +205,7 @@ No-go signal: 0 activations after $[half-budget] spend, or <1% CTR after 500 imp
 
 ## Step 5: Generate ads.yaml
 
-Write the complete `idea/ads.yaml` file. Include `channel: <selected-channel>` as the first field. Follow the selected channel's stack file "Config Schema" section for the channel-specific structure. See `idea/ads.example.yaml` for full schema examples across channels.
+Write the complete `experiment/ads.yaml` file. Include `channel: <selected-channel>` as the first field. Follow the selected channel's stack file "Config Schema" section for the channel-specific structure. See `experiment/ads.example.yaml` for full schema examples across channels.
 
 Present the full config for review.
 
@@ -290,7 +290,7 @@ Also include analytics dashboard setup instructions (read the analytics stack fi
 
 Before running verify.md, validate that distribute artifacts were created:
 
-1. **ads.yaml**: verify `idea/ads.yaml` exists (Glob). If missing, stop — "ads.yaml was not generated. Re-run Step 5."
+1. **ads.yaml**: verify `experiment/ads.yaml` exists (Glob). If missing, stop — "ads.yaml was not generated. Re-run Step 5."
 2. **UTM capture**: Grep for `utm_source` in the landing page file. If no match, warn — "UTM capture may not be wired on the landing page (Step 7a)."
 3. **Feedback widget**: verify feedback widget component exists (Glob `src/components/*feedback*`). If missing, warn — "Feedback widget not found (Step 7c)."
 
@@ -311,14 +311,14 @@ Campaign metadata (`campaign_id`, `campaign_url`) is committed to the feature br
 
 ### 9a: Check API support
 
-1. Read `channel` from `idea/ads.yaml`
+1. Read `channel` from `experiment/ads.yaml`
 2. Read the channel's stack file at `.claude/stacks/distribution/<channel>.md`
 3. If the stack file contains an "API Campaign Creation" section → proceed to **9b**
 4. If not (e.g., reddit) → skip to **9f** (manual fallback)
 
 ### 9b: Check for existing campaign
 
-1. If `idea/ads.yaml` has a `campaign_id` field → campaign already created (idempotent), skip to **9g**
+1. If `experiment/ads.yaml` has a `campaign_id` field → campaign already created (idempotent), skip to **9g**
 2. If not → proceed to **9c**
 
 ### 9c: Check credentials
@@ -357,12 +357,12 @@ Show a campaign creation preview:
 ### 9e: Create campaign via API
 
 1. Read the "API Procedure" subsection from the channel's "API Campaign Creation" section
-2. Follow the procedure step-by-step, using the credentials from **9c** and the config from `idea/ads.yaml`
+2. Follow the procedure step-by-step, using the credentials from **9c** and the config from `experiment/ads.yaml`
 3. Campaign is created in **PAUSED** status (safety — user enables after verifying tracking)
 4. On success:
    - Extract the campaign ID and dashboard URL from the response (see "Response Handling" subsection)
-   - Add `campaign_id: <id>` and `campaign_url: <url>` to `idea/ads.yaml`
-   - Commit the updated `idea/ads.yaml` to the current feature branch and push (updates the open PR)
+   - Add `campaign_id: <id>` and `campaign_url: <url>` to `experiment/ads.yaml`
+   - Commit the updated `experiment/ads.yaml` to the current feature branch and push (updates the open PR)
 5. On failure:
    - Read the "Error Handling" subsection for guidance on the specific error
    - Report the error to the user
@@ -374,7 +374,7 @@ Only reached when:
 - (a) The channel's stack file has no "API Campaign Creation" section (e.g., reddit), or
 - (b) The API call in **9e** failed
 
-> Create the campaign manually using the config in `idea/ads.yaml`.
+> Create the campaign manually using the config in `experiment/ads.yaml`.
 > See the channel's stack file "Setup Instructions" section for step-by-step guidance.
 > The PR from Step 8 is ready to merge — it contains the distribution code (UTM capture, feedback widget, ads.yaml) independent of campaign creation. Merge it now, then create the campaign manually.
 
@@ -388,7 +388,7 @@ Only reached when:
 ## Do NOT
 
 - Create a campaign via API without showing the approval preview (Step 9d) — real money is at stake
-- Create a campaign if `campaign_id` already exists in `idea/ads.yaml` — campaigns are idempotent
+- Create a campaign if `campaign_id` already exists in `experiment/ads.yaml` — campaigns are idempotent
 - Skip credential setup — if credentials are missing, guide the user through setup; do not fall back to manual campaign creation
 - Hardcode credential file paths — read from the channel's stack file "Credential Files" subsection
 - Modify experiment.yaml — this skill reads it but does not change it
