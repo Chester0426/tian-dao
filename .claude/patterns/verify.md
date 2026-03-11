@@ -11,14 +11,16 @@ If no scope is specified, the default is `full`.
 
 | Scope      | Agents spawned                                                              |
 |------------|-----------------------------------------------------------------------------|
-| `full`     | build-info, design-critic\*, ux-journeyer\*, security pair, perf\*\*, a11y\*\*, spec-reviewer\*\*\* |
-| `security` | build-info, security pair, spec-reviewer\*\*\*                              |
+| `full`     | build-info, design-critic\*, ux-journeyer\*, behavior-verifier, security pair, perf\*\*, a11y\*\*, spec-reviewer\*\*\* |
+| `security` | build-info, behavior-verifier, security pair, spec-reviewer\*\*\*           |
 | `visual`   | build-info, design-critic\*, ux-journeyer\*, perf\*\*, a11y\*\*            |
 | `build`    | build-info only                                                             |
 
 \* = skip if archetype is NOT `web-app`
 \*\* = web-app only (existing gate)
 \*\*\* = quality: production only (existing gate)
+
+behavior-verifier runs for all archetypes (web-app, service, cli) — it has archetype-specific procedures internally.
 
 Build & Lint Loop, Auto-Observe, and Save Notable Patterns ALWAYS run regardless of scope.
 
@@ -91,6 +93,10 @@ Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No add
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). No additional context needed.
+
+### behavior-verifier (if scope is `full` or `security`)
+
+Spawn the `behavior-verifier` agent (`subagent_type: behavior-verifier`). No additional context needed.
 
 ### performance-reporter (if scope is `full` or `visual`, AND archetype is `web-app`)
 
