@@ -2,7 +2,7 @@
 assumes: [database/supabase, auth/supabase, analytics/posthog]
 packages:
   runtime: []
-  dev: ["@playwright/test"]
+  dev: ["@playwright/test", "@axe-core/playwright", "pixelmatch", "pngjs"]
 files:
   - playwright.config.ts
   - e2e/global-setup.ts  # conditional: only when all assumes are met
