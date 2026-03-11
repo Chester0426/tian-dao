@@ -23,9 +23,9 @@ You are a compliance auditor. Check for the **presence** of required security co
 
 Read `experiment/experiment.yaml` to determine the archetype (`type` field, default: `web-app`):
 
-- **web-app**: D1–D5
-- **service**: D1, D2, D3, D5 (skip D4)
-- **cli**: D1, D2 only
+- **web-app**: D1–D6
+- **service**: D1, D2, D3, D5, D6 (skip D4)
+- **cli**: D1, D2, D6
 
 ## Checks
 
@@ -60,6 +60,18 @@ Acceptable alternatives by quality level:
   - Vercel Edge Config for simple threshold checks
   - Any external counter store (Redis, DynamoDB, etc.)
 
+**D6. Dependency Vulnerabilities**
+
+Run `npm audit --audit-level=high --json`. Parse the JSON output.
+
+- 0 high/critical vulnerabilities → pass
+- ≥1 high/critical vulnerability → FAIL — list CVE numbers and affected packages
+- Skip if no `package-lock.json` exists
+
+> **Report-only.** D6 findings are NOT passed to security-fixer. Dependency updates require `npm audit fix` (package management), not code changes. The fixer cannot resolve these.
+
+Applies to ALL archetypes (web-app, service, cli).
+
 ## Anti-patterns (do NOT flag)
 
 - Framework-handled protections (e.g., Next.js automatic CSRF, React XSS escaping)
@@ -74,3 +86,4 @@ Acceptable alternatives by quality level:
 | D3. Database RLS | pass/FAIL/skip | <file:line if FAIL> |
 | D4. Client/server boundary | pass/FAIL/skip | <file:line if FAIL> |
 | D5. Rate limiting | pass/FAIL | <file:line if FAIL> |
+| D6. Dependency vulnerabilities | pass/FAIL/skip | <CVE + package if FAIL> |
