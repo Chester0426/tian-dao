@@ -51,7 +51,7 @@ Phase 1: Assayer Repo + Spec
 Phase 2: Bootstrap + Core Infrastructure
   Session 3: /bootstrap → full scaffold
   Session 4: Error schema + API auth middleware
-  Session 5: Experiments + Hypotheses + Clusters CRUD  ─┐ parallelizable
+  Session 5: Experiments + Hypotheses CRUD              ─┐ parallelizable
   Session 6: Research + Offers + Metrics + AI Spec     ─┘
 
 Phase 3: Feature Build
@@ -257,8 +257,8 @@ quality: production
 - POST /api/experiments/:id/spec → AI spec generation (system actor)
 
 ### 数据模型覆盖
-设计文档的 9 张表必须被至少一个 behavior 引用：
-experiments, clusters, hypotheses, hypothesis_dependencies, research_results, variants, experiment_metrics, experiment_decisions, ai_usage
+设计文档的 8 张表必须被至少一个 behavior 引用：
+experiments, hypotheses, hypothesis_dependencies, research_results, variants, experiment_metrics, experiment_decisions, ai_usage
 
 ### Pages 覆盖
 golden_path 必须包含所有 5 个页面：landing, dashboard, new-experiment, experiment (detail), settings
@@ -312,9 +312,8 @@ funnel:
 - [ ] experiment/[id] — 详情页 with tabs (overview, hypotheses, variants, data, insights)
 - [ ] settings — 账户 + 安全 + billing placeholder
 
-### 数据库（9 张表）
+### 数据库（8 张表）
 - [ ] experiments (user_id, name, type, status, level, decision, deployed_url, archived_at)
-- [ ] clusters (experiment_id, cluster_key, level, stimulus_format)
 - [ ] hypotheses (experiment_id, hypothesis_key, category, statement, threshold, status)
 - [ ] hypothesis_dependencies (hypothesis_id, depends_on_id)
 - [ ] research_results (experiment_id, query, summary, verdict)
@@ -405,7 +404,7 @@ withAuth(withRateLimit("spec", 10, 60000)(withErrorHandler(handler)))
 
 ---
 
-## Session 5: Experiments + Hypotheses + Clusters CRUD
+## Session 5: Experiments + Hypotheses CRUD
 
 **Repo:** `assayer-io`
 **Produces:** 1 PR (change/experiments-crud)
@@ -415,7 +414,7 @@ withAuth(withRateLimit("spec", 10, 60000)(withErrorHandler(handler)))
 ```
 你是世界冠军级别的后端工程师。你的任务是实现 Assayer 的核心数据 CRUD API。
 
-/change 实现 experiments、hypotheses 和 clusters 的 CRUD API 路由
+/change 实现 experiments 和 hypotheses 的 CRUD API 路由
 
 ## 精确路由规格（设计文档 Section 4）
 
@@ -433,10 +432,6 @@ DELETE /api/experiments/:id       — 软删除（设置 archived_at = now()）
 POST   /api/experiments/:id/hypotheses  — 存储（mode=append 默认, mode=replace 先删后插）
                                           Body: { hypotheses: [...], mode?: "append"|"replace" }
 GET    /api/experiments/:id/hypotheses  — 列表（包含 depends_on 关系）
-
-### Clusters
-POST   /api/experiments/:id/clusters    — 存储（同上 mode 模式）
-GET    /api/experiments/:id/clusters    — 列表
 
 ## Zod Schema
 

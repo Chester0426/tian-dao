@@ -358,7 +358,7 @@ deploy:
 6. **Variants** — 3-5 angles, >30% headline word difference. L3 + monetize: add `pricing_amount`, `pricing_model`.
 7. **Stack/funnel** — Stack from level (Section 1 table). Hosting from type + behavior analysis. Funnel thresholds from highest-priority hypothesis per dimension.
 
-**Manifest:** `.claude/spec-manifest.json` with research, hypotheses, cluster data. For `/iterate`. Not user-facing.
+**Manifest:** `.claude/spec-manifest.json` with research, hypotheses. For `/iterate`. Not user-facing.
 
 ### `/iterate` — Scorecard + Per-Hypothesis Verdicts
 
@@ -471,6 +471,9 @@ CREATE TABLE experiments (
   status text NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'active', 'paused', 'completed', 'archived')),
   experiment_level integer CHECK (experiment_level IN (1, 2, 3)),
+  stimulus_format text,                          -- L2 only
+  estimated_days integer DEFAULT 0,
+  recommended_ad_budget numeric DEFAULT 0,
   variable_being_tested text,
   budget numeric DEFAULT 0,
   budget_spent numeric DEFAULT 0,
@@ -494,29 +497,6 @@ ALTER TABLE experiments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY experiments_user_isolation ON experiments
   FOR ALL USING (auth.uid() = user_id);
 
--- Clusters (first-class entity from /spec)
-CREATE TABLE clusters (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  experiment_id uuid NOT NULL REFERENCES experiments(id) ON DELETE CASCADE,
-  cluster_key text NOT NULL,                    -- "c-01"
-  experiment_level integer NOT NULL CHECK (experiment_level IN (1, 2, 3)),
-  stimulus_format text,                        -- L2 only: "calculator", "configurator", etc.
-  estimated_cost numeric DEFAULT 0,
-  estimated_days integer DEFAULT 0,
-  recommended_ad_budget numeric DEFAULT 0,
-  caution text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(experiment_id, cluster_key)
-);
-
-CREATE INDEX idx_clusters_experiment_id ON clusters(experiment_id);
-
-ALTER TABLE clusters ENABLE ROW LEVEL SECURITY;
-CREATE POLICY clusters_user_isolation ON clusters
-  FOR ALL USING (
-    experiment_id IN (SELECT id FROM experiments WHERE user_id = auth.uid())
-  );
-
 -- Hypotheses
 CREATE TABLE hypotheses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -536,7 +516,6 @@ CREATE TABLE hypotheses (
     CHECK (automation_type IN ('research', 'experiment', 'manual')),
   status text NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'testing', 'passed', 'failed', 'skipped')),
-  cluster_id uuid REFERENCES clusters(id),
   resolved_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -544,8 +523,6 @@ CREATE TABLE hypotheses (
 );
 
 CREATE INDEX idx_hypotheses_experiment_id ON hypotheses(experiment_id);
-CREATE INDEX idx_hypotheses_cluster_id ON hypotheses(cluster_id);
-
 ALTER TABLE hypotheses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY hypotheses_user_isolation ON hypotheses
   FOR ALL USING (
@@ -764,7 +741,7 @@ pages:
 | 4 | Update Assayer `idea.yaml` | manual edit | #1-2 |
 | 5 | `/bootstrap` Assayer platform | /bootstrap | #4 |
 | 6 | `/change`: error schema + API key auth | /change | #5 |
-| 7 | `/change`: experiments + hypotheses + clusters CRUD | /change | #6 |
+| 7 | `/change`: experiments + hypotheses CRUD | /change | #6 |
 | 8 | `/change`: research + offers + metrics + AI spec endpoint | /change | #6 |
 | 9 | `/change`: new experiment page (AI generation + editing) | /change | #7-8 |
 | 10 | `/change`: dashboard + experiment detail pages | /change | #7-8 |
