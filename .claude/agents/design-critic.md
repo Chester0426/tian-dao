@@ -64,6 +64,31 @@ inline Node.js script using Playwright API to:
 - Take a second full-page screenshot at **375x812** viewport (mobile)
 - Save to `/tmp/visual-review/<page-name>-mobile.png`
 
+### 4.5. Visual Regression Baseline Check
+
+Check if `.verify-baseline/` directory exists in the project root.
+
+**If `.verify-baseline/` exists:**
+
+1. Check `pixelmatch` and `pngjs` availability:
+   ```bash
+   node -e "require('pixelmatch'); require('pngjs')"
+   ```
+   If this fails → skip visual regression, report: "pixelmatch/pngjs not installed — skipping visual regression check."
+
+2. If available, write an inline Node.js script to pixel-diff each screenshot:
+   - For each page screenshot in `/tmp/visual-review/`:
+     - Load the current screenshot and the corresponding baseline from `.verify-baseline/`
+     - Use `pixelmatch` to compute pixel difference percentage
+     - If diff exceeds **5%** → mark page as `REGRESSION-CHECK`
+   - 5% threshold filters noise from dynamic content (timestamps, random demo data)
+
+3. Pages marked `REGRESSION-CHECK` get extra scrutiny in Layer 2 — any visual regression must be intentional.
+
+**If `.verify-baseline/` does not exist:**
+
+Note: "First run — no baseline exists. Will save baseline after review."
+
 ### 5. Review Each Screenshot
 
 Use the Read tool to view each screenshot. Apply three review layers.
@@ -127,6 +152,15 @@ For any section rated below 8/10 in Layer 2, or any Layer 1/Layer 3 failure:
 
 This is a single pass — get it right the first time. Budget is 50 turns total.
 
+After all fixes are complete, save current screenshots as the new baseline:
+
+```bash
+mkdir -p .verify-baseline
+cp /tmp/visual-review/*.png .verify-baseline/
+```
+
+> **Note:** `.verify-baseline/` should be added to `.gitignore` — baselines are machine-specific (different rendering engines, font availability). Each developer/CI environment maintains its own baseline.
+
 ### 7. Cleanup
 
 ```bash
@@ -160,6 +194,11 @@ Weakest section: <name> (<score>/10)
 ### Layer 3: Anti-pattern Rejection
 - <anti-pattern>: pass/triggered — <detail>
 ...
+
+### Visual Regression
+- Baseline: present / created (first run)
+- Pages checked: N
+- REGRESSION-CHECK: <list of pages with >5% diff, or "none">
 
 **Verdict:** pass / fixed / unresolved
 **Fixes applied:** <list if any>
