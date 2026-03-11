@@ -20,6 +20,8 @@ Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not fo
 
 If `package.json` does not exist, warn: "No app found — this retro will be based on your qualitative feedback only. If you want to include analytics data, run `/bootstrap` and `/deploy` first."
 
+If `.claude/iterate-manifest.json` exists, read it and extract the `verdict`, `bottleneck`, and `recommendations` fields. Include in the summary: "Last `/iterate` analysis: verdict **[verdict]**, bottleneck: [bottleneck.diagnosis]." This context will inform Q1 follow-up.
+
 Collect these data points and present a summary before asking questions:
 
 1. **Git activity**

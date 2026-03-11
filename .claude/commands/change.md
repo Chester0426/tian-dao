@@ -113,9 +113,11 @@ Present the plan using the template for the classified type from `.claude/proced
 > Plan ready. How would you like to proceed?
 > 1. **approve** — continue implementation now
 > 2. **approve and clear** — save plan, then clear context for a fresh start
-> 3. Or tell me what to change
+> 3. **skip** — cancel this change and delete the feature branch
+> 4. Or tell me what to change
 
 DO NOT proceed to Phase 2 until the user explicitly replies with approval.
+If the user selects "skip": run `git checkout main && git branch -D <branch-name>`, tell the user "Change cancelled. Branch deleted. Run `/change` again when ready." and stop.
 If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
 Save the approved plan to `.claude/current-plan.md` with YAML frontmatter:
@@ -205,6 +207,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
   1. Build & lint loop (max 3 attempts)
   2. Save notable patterns (if you fixed errors)
   3. Template observation review (ALWAYS — even if no errors were fixed)
+- **Note**: If `quality: production` is set in experiment.yaml, `/verify` automatically spawns spec-reviewer as an additional parallel agent (regardless of scope). spec-reviewer validates all behaviors are implemented and specification tests are present. No extra action needed — just be aware it runs.
 - Re-read `.claude/current-plan.md` to verify implementation matches the approved plan. Check that every item in the plan has been addressed.
 - Type-specific checks:
   - **Feature**: trace the user flow — can a user discover, use, and complete the feature? Verify all new analytics events fire.
@@ -237,7 +240,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description. Note: this deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
 - **Save planning patterns**: If this change revealed planning-relevant patterns (auth flow interactions, stack integration quirks, codebase conventions discovered during exploration, schema design patterns), save a brief entry to auto memory under a "Planning Patterns" heading. These get consulted during future Phase 1 exploration via `.claude/procedures/plan-exploration.md` Step 5.
-- Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."
+- Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After merging this PR to `main`, bump the version in `package.json` and run `npm publish` to release the update. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."
 
 ## Do NOT
 - Add more than what `$ARGUMENTS` describes — one change per PR

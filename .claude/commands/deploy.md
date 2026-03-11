@@ -489,8 +489,9 @@ Print a deployment summary:
 4. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources
 [If service archetype]
 1. Share the API endpoint URL with target users (see `.claude/archetypes/service.md` Distribution section)
-2. After collecting data, run `/iterate` to analyze metrics and decide what to change
-3. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources
+2. If the service has a surface (co-located or detached): run `/distribute` to generate ad campaign config (only if using paid ads)
+3. After collecting data, run `/iterate` to analyze metrics and decide what to change
+4. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources
 [If cli archetype]
 1. The surface is now deployed, but the CLI binary is NOT published yet. Publish via `npm publish` (to npm registry) or create a GitHub Release for binary distribution. See `.claude/archetypes/cli.md` for details.
 2. After publishing and collecting usage data, run `/iterate` to analyze metrics and decide what to change

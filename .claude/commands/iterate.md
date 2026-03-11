@@ -322,7 +322,7 @@ Common patterns:
 
 | One variant clearly wins | `/change` to consolidate — remove losing variant, make winner the sole landing page |
 | No variant winner | Extend test for more data, or `/change` to try a new messaging angle |
-| Verdict is SCALE with strong metrics | Suggest `/harden` to graduate: "Your metrics indicate product-market fit. Run `/harden` to add TDD coverage to critical paths before scaling." |
+| Verdict is SCALE with strong metrics | If `quality: production` is NOT set: suggest `/harden` to graduate: "Your metrics indicate product-market fit. Run `/harden` to add TDD coverage to critical paths before scaling." If `quality: production` is already set: suggest `/change` for scaling features or `/harden <module>` for targeted hardening. |
 | Production incident | `/rollback` to revert deploy, then `/change fix <root cause>` |
 
 Present recommendations in priority order (highest impact first).
@@ -418,7 +418,9 @@ If the diagnosis reveals a need to change direction:
 ### On track (verdict is SCALE)
 - Say so clearly: "The Step 3 verdict is SCALE. You're on track. [X] of [target from thesis] achieved with [Y days] remaining."
 - Recommend: keep going, focus on distribution, or run `/change improve conversion` to improve conversion
-- If the experiment shows strong, sustained traction: suggest `/harden` as a graduation step: "Consider graduating to production quality: run `/harden` to add TDD coverage to critical paths before scaling. This adds specification tests to auth, payment, and core business logic."
+- If the experiment shows strong, sustained traction:
+  - If `quality: production` is NOT set in experiment.yaml: suggest `/harden` as a graduation step: "Consider graduating to production quality: run `/harden` to add TDD coverage to critical paths before scaling. This adds specification tests to auth, payment, and core business logic."
+  - If `quality: production` is already set: suggest scaling actions: "Already in production quality mode. Consider `/change` to add scaling features, or `/harden <module>` to harden a specific module."
 
 ## Step 7: Summarize next steps
 
