@@ -83,8 +83,7 @@ State: "Verification scope: **[scope]**"
      - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
      - Resume at the step indicated by `checkpoint`:
        - `phase2-step5` → Step 5 (update specs)
-       - `phase2-step6` → Step 6 (specs done, implement)
-       - `phase2-step6-data` / `phase2-step6-api` / `phase2-step6-ui` → Step 6 at sub-step
+       - `phase2-step6` → Step 6 (specs done, implement — re-read the plan to determine which type constraints apply)
        - `phase2-step7` → Step 7 (implementation done, verify)
        - `phase2-step8` → Step 8 (verification done, commit/PR)
      - Tell user: "Resuming from [checkpoint]. Type: [type], Scope: [scope]."

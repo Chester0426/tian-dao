@@ -24,6 +24,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 1. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first."
 2. Verify on `main` branch with clean working tree (`git status --porcelain` is empty). If not, stop: "Switch to main with a clean working tree before deploying."
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
+3a. If `quality: production` is set in experiment.yaml and `stack.testing` is present: run the test command from the testing stack file (e.g., `npm test`). If tests fail, stop: "Specification tests are failing. Run `/verify` to fix test failures before deploying."
 3b. **Recovery check:** If `.claude/deploy-manifest.json` exists, read it and report:
     "Previous deploy detected (deployed_at: <timestamp>). Resources may already exist.
     `/deploy` is idempotent — re-running will reuse existing resources and update configuration.

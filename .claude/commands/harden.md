@@ -95,7 +95,7 @@ DO NOT proceed until the user explicitly replies with approval.
        reason: "Read-only GET, no mutations"
    ```
    Remove entries when a module gets spec tests via `/change` or a subsequent `/harden` run.
-7. Run full verification (verify.md — all agents including spec-reviewer)
+7. Run full verification: `/verify` with **scope: full** (the default scope). This spawns all agents including spec-reviewer (conditional on `quality: production`, which Step 3.2 just set).
 8. Commit, push, open PR
 
 Key design decisions:
