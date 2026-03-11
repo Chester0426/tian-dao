@@ -46,7 +46,13 @@
      - Add tracking calls per EVENTS.yaml
      - Checkpoint: `npm run build` — final verification
 
-  Update `.claude/current-plan.md` after each completed step by marking it done (prefix with `[x]`). This enables session recovery if context is lost mid-implementation.
+  Update `.claude/current-plan.md` after each completed step:
+  - Mark the step done in the plan body (prefix with `[x]`)
+  - Update `checkpoint` in YAML frontmatter:
+    - After Data layer: `phase2-step6-data`
+    - After API layer: `phase2-step6-api`
+    - After UI/Output layer: `phase2-step6-ui`
+    - After Analytics wiring: `phase2-step7`
 
   For Simple (single-layer) features: implement directly without sub-steps — the existing implementation flow below provides sufficient structure.
 

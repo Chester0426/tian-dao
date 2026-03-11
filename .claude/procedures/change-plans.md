@@ -39,17 +39,25 @@
 - [table]: [key columns with types] — RLS: [policy summary]
 - Indexes: [columns indexed and why, or "primary key only"]
 - [Note existing tables from exploration if relevant]
+- Done when: [one-line, e.g., "migration applies, types compile, RLS blocks unauthenticated reads"]
 
 **API Contract:**
 - `[METHOD] /api/[route]` — req: `{ [fields] }` → res: `{ [shape] }` | `4xx: { error: string }`
 - [Pagination: cursor/offset if list endpoint, or omit]
+- Done when: [one-line, e.g., "route returns 200 with valid input, 422 with missing fields"]
 
 **Component Tree:** (web-app only — skip for service/cli)
 - [PageComponent] → [ChildComponent] → [GrandchildComponent]
 - Reuses: [existing components found during exploration, or "none"]
+- Done when: [one-line, e.g., "page renders with mock data, components receive props"]
 
 **Data Flow:**
-- [user action] → [client component] → [API route] → [DB operation] → [response] → [UI update]
+1. Entry: [how user discovers feature — nav link, CTA, URL, redirect]
+2. [interaction step] → [component/route] → [what happens]
+3. [next step] → [component/route] → [what happens]
+4. Terminal: [success state — confirmation, redirect, data displayed]
+5. Error path: [trigger] → [API error response] → [UI recovery — toast, inline, redirect]
+- Done when: [one-line, e.g., "user can complete full flow from entry to confirmation"]
 
 ### Approaches (Multi-layer only — skip for Simple)
 
@@ -70,6 +78,17 @@
 | ... | ... | ... |
 
 (2-5 items. For Simple features with no notable risks, write "Low risk — isolated, single-layer change.")
+
+### Edge Cases (Multi-layer only — skip for Simple)
+
+| Input/State | Expected Behavior |
+|-------------|-------------------|
+| [empty state — no data yet] | [what the UI/API shows] |
+| [boundary — max length, zero, negative] | [validation or handling] |
+| [concurrent — double submit, race condition] | [idempotency or guard] |
+| [missing data — deleted reference, expired token] | [graceful degradation] |
+
+(3-7 items. Focus on states a real user hits in the first week.)
 
 **Questions:**
 - [any ambiguities, or "None"]
@@ -96,12 +115,14 @@
 **Integration Architecture:**
 - Client → [API route] → [service SDK/REST call] → [response handling]
 - Auth: [how the service authenticates — API key / OAuth / webhook signature]
+- Done when: [one-line, e.g., "API route calls service, returns transformed response, handles auth"]
 
 **Error Handling Strategy:**
 - Timeout: [approach — e.g., 10s timeout, show retry button]
 - Rate limit: [approach — e.g., exponential backoff, queue]
 - Invalid response: [approach — e.g., fallback UI, error toast]
 - Service down: [approach — e.g., graceful degradation, cached data]
+- Done when: [one-line, e.g., "each error path shows user-friendly message, no unhandled rejections"]
 
 ### Risks & Mitigations
 
@@ -111,6 +132,17 @@
 | ... | ... | ... |
 
 (2-5 items.)
+
+### Edge Cases
+
+| Input/State | Expected Behavior |
+|-------------|-------------------|
+| [empty state — no data yet] | [what the UI/API shows] |
+| [boundary — max length, zero, negative] | [validation or handling] |
+| [concurrent — double submit, race condition] | [idempotency or guard] |
+| [missing data — deleted reference, expired token] | [graceful degradation] |
+
+(3-7 items. Focus on states a real user hits in the first week.)
 
 **Questions:**
 - [any ambiguities, or "None"]

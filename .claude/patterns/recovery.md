@@ -5,11 +5,29 @@
 2. **State checkpoints**: Skills save progress so re-runs skip completed steps
 3. **Partial cleanup guidance**: When re-run isn't possible, document manual cleanup
 
+## Frontmatter-Based Resume
+
+When `.claude/current-plan.md` has YAML frontmatter, skills resume at the exact
+checkpoint without re-deriving classification or stack.
+
+| Field | Purpose |
+|-------|---------|
+| `skill` | Which skill (`change` / `bootstrap`) |
+| `type` | Change classification — skip re-classification |
+| `scope` | Verification scope — skip re-derivation |
+| `archetype` | Product archetype — skip experiment.yaml type read |
+| `branch` | Git branch — informational |
+| `stack` | All category/value pairs — skip stack resolution |
+| `checkpoint` | Exact resume position |
+| `context_files` | Files to re-read on resume — full state reconstruction |
+
+**Backward compatible:** No frontmatter → current behavior (skip Phase 1, start at Phase 2 beginning).
+
 ## Per-Skill Recovery Matrix
 
 ### /bootstrap failure
-- **State saved:** `.claude/current-plan.md` (plan), `package.json` (installed packages)
-- **Recovery:** Re-run `/bootstrap` — Step 4 precondition detects partial bootstrap and continues
+- **State saved:** `.claude/current-plan.md` with frontmatter (archetype, stack, checkpoint), `package.json` (installed packages)
+- **Recovery:** Re-run `/bootstrap` — Step 4 reads frontmatter checkpoint and resumes at exact phase
 - **Manual cleanup:** If you want to start fresh: `git checkout main && make clean`
 
 ### /deploy failure (most common)
@@ -25,8 +43,8 @@
 - **Nuclear option:** Run `/teardown` (reads manifest, deletes everything in reverse)
 
 ### /change failure
-- **State saved:** `.claude/current-plan.md` on feature branch
-- **Recovery:** Re-run `/change` on the same branch — Step 4 detects existing plan and resumes Phase 2
+- **State saved:** `.claude/current-plan.md` with frontmatter (type, scope, archetype, stack, checkpoint) on feature branch
+- **Recovery:** Re-run `/change` on the same branch — Step 4 reads frontmatter checkpoint and resumes at exact step
 - **Manual cleanup:** `git checkout main && git branch -d <branch-name>`
 
 ### /verify failure

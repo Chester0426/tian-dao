@@ -126,7 +126,21 @@ DO NOT write any code, create any files, or run any install commands during this
       Wait for user confirmation before proceeding.
 
 4. **Check preconditions**
-   - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`: a previous session completed Phase 1 (plan approved) but Phase 2 was not finished. Tell the user: "Found a previously approved plan in `.claude/current-plan.md`. Resuming Phase 2 implementation on this branch. Skipping Phase 1 planning." Then skip the rest of Phase 1 and jump directly to Phase 2: Step 1.
+   - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`:
+     1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
+        - Parse `archetype`, `stack`, and `checkpoint` from frontmatter
+        - Use these values directly — do NOT re-resolve archetype or stack
+        - Read archetype file and stack files using frontmatter values
+        - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
+        - Resume at the phase indicated by `checkpoint`:
+          - `phase2-setup` → Setup Phase
+          - `phase2-design` → Design Phase (setup done)
+          - `phase2-scaffold` → Parallel Scaffold Phase (design done)
+          - `phase2-wire` → Wire Phase (scaffold done)
+          - `phase2-verify` → Verify Phase (wire done)
+          - `phase2-pr` → Commit/Push/PR (verify done)
+        - Tell user: "Resuming bootstrap from [checkpoint]. Archetype: [archetype]."
+     2. If no frontmatter (old format): fall back to current behavior — skip Phase 1, jump to Phase 2: Step 1.
    - If `package.json` exists AND the `src/` directory contains application files (check for any `.ts` or `.tsx` files): stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
    - If `package.json` exists but the `src/` directory does NOT contain application files: warn the user: "A previous bootstrap may have partially completed. I'll continue from the beginning — packages may be reinstalled." Note: the branch name `feat/bootstrap` may already exist from the previous attempt. If so, this run will use `feat/bootstrap-2` — you can delete the old branch later with `git branch -d feat/bootstrap`. Then proceed.
 
@@ -206,12 +220,37 @@ DO NOT write any code, create any files, or run any install commands during this
    ```
 
 6. **STOP.** End your response here. Say:
-   > Does this plan look right? Reply **approve** to proceed, or tell me what to change.
+   > Plan ready. How would you like to proceed?
+   > 1. **approve** — continue implementation now
+   > 2. **approve and clear** — save plan, then clear context for a fresh start
+   > 3. Or tell me what to change
 
    DO NOT proceed to Phase 2 until the user explicitly replies with approval.
    If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-7. **Save the approved plan.** Write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for checkpoint verification. If `golden_path` was derived (not already in experiment.yaml), write it back to `experiment/experiment.yaml` after approval.
+7. **Save the approved plan.** Write the plan to `.claude/current-plan.md` with YAML frontmatter:
+
+   ```yaml
+   ---
+   skill: bootstrap
+   archetype: [from experiment.yaml type, default web-app]
+   branch: feat/bootstrap
+   stack: { [category]: [value], ... }
+   checkpoint: phase2-setup
+   context_files:
+     - experiment/experiment.yaml
+     - EVENTS.yaml
+     - .claude/archetypes/[archetype].md
+     - [each .claude/stacks/<category>/<value>.md read in Step 2]
+   ---
+   ```
+
+   Then append the plan body. The frontmatter enables resume-after-clear without re-deriving archetype or stack. If `golden_path` was derived (not already in experiment.yaml), write it back to `experiment/experiment.yaml` after approval.
+
+   If the user replied **"approve and clear"** or **"2"**:
+     1. Save the plan with frontmatter (same as above)
+     2. Tell the user: "Plan saved. Run `/clear`, then re-run `/bootstrap`. I'll resume at the checkpoint."
+     3. STOP — do NOT proceed to Phase 2.
 
 ## Phase 2: Implement (only after the user has approved)
 
@@ -259,6 +298,8 @@ Run `npm audit --audit-level=critical`. If critical vulnerabilities are found, w
 > "Critical npm vulnerabilities detected. Run `npm audit fix` after bootstrap completes."
 Continue regardless — this is non-blocking during bootstrap.
 
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
+
 ### Design Phase
 
 Spawn a subagent via Agent with:
@@ -272,6 +313,8 @@ Spawn a subagent via Agent with:
 
 The subagent returns its completion report directly as the result.
 Wait for design to complete before proceeding.
+
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-scaffold`.
 
 ### Parallel Scaffold Phase
 
@@ -375,6 +418,8 @@ as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.
 If still failing after 2 attempts: defer to lead's verify phase after wire
 completes.
 
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-wire`.
+
 ### Wire Phase
 
 Spawn a subagent via Agent with:
@@ -393,6 +438,8 @@ Spawn a subagent via Agent with:
      in the prompt so the wire subagent has context
   4. Follow CLAUDE.md Rules 1, 4, 5, 6, 7, 8, 10, 12
 
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-verify`.
+
 ### Verify Phase
 
 After the wire subagent completes, the lead runs verify.md directly.
@@ -403,6 +450,8 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
 1. Build & lint loop (max 3 attempts)
 2. Save notable patterns (if you fixed errors)
 3. Template observation review (ALWAYS — even if no errors were fixed)
+
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-pr`.
 
 ### Commit, Push, Open PR
 

@@ -75,7 +75,20 @@ State: "Verification scope: **[scope]**"
 
 ## Step 4: Check type-specific preconditions
 
-- If `.claude/current-plan.md` exists and the current branch starts with `change/`: a previous session completed Phase 1 (plan approved) but Phase 2 was not finished. Tell the user: "Found a previously approved plan in `.claude/current-plan.md`. Resuming Phase 2 implementation on this branch. Skipping Phase 1 planning." Then skip the rest of Phase 1 and jump directly to Phase 2: Step 5.
+- If `.claude/current-plan.md` exists and the current branch starts with `change/`:
+  1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
+     - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter
+     - Use these values directly — do NOT re-classify or re-resolve stack
+     - Read archetype file and stack files using frontmatter values
+     - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
+     - Resume at the step indicated by `checkpoint`:
+       - `phase2-step5` → Step 5 (update specs)
+       - `phase2-step6` → Step 6 (specs done, implement)
+       - `phase2-step6-data` / `phase2-step6-api` / `phase2-step6-ui` → Step 6 at sub-step
+       - `phase2-step7` → Step 7 (implementation done, verify)
+       - `phase2-step8` → Step 8 (verification done, commit/PR)
+     - Tell user: "Resuming from [checkpoint]. Type: [type], Scope: [scope]."
+  2. If no frontmatter (old format): fall back to current behavior — skip Phase 1, jump to Step 5.
 > **If resuming from a failed /change:** see `.claude/patterns/recovery.md`. The plan in `.claude/current-plan.md` persists across sessions.
 - For analytics changes: verify the analytics library file exists (see analytics stack file for expected path). If it doesn't, stop and tell the user: "Analytics library not found. Run `/bootstrap` first."
 - If `$ARGUMENTS` mentions payment or the change will add `payment` to the stack: verify `stack.auth` and `stack.database` are present in experiment.yaml. If `stack.auth` is missing, stop: "Payment requires authentication. Add `auth: supabase` (or another auth provider) to experiment.yaml `stack` first." If `stack.database` is missing, stop: "Payment requires a database. Add `database: supabase` (or another database provider) to experiment.yaml `stack` first."
@@ -98,12 +111,39 @@ Present the plan using the template for the classified type from `.claude/proced
 **Validate the plan against the codebase**: Before presenting the plan to the user, follow `.claude/procedures/plan-validation.md`. If validation flags conflicts, adjust the plan or add items to the Questions section prefixed with "[Validation]".
 
 ### STOP. End your response here. Say:
-> Does this plan look right? Reply **approve** to proceed, or tell me what to change.
+> Plan ready. How would you like to proceed?
+> 1. **approve** — continue implementation now
+> 2. **approve and clear** — save plan, then clear context for a fresh start
+> 3. Or tell me what to change
 
 DO NOT proceed to Phase 2 until the user explicitly replies with approval.
 If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
 
-Save the approved plan: write the plan you presented above to `.claude/current-plan.md`. This file persists the plan across context compression and serves as the reference for verification.
+Save the approved plan to `.claude/current-plan.md` with YAML frontmatter:
+
+```yaml
+---
+skill: change
+type: [classification from Step 3]
+scope: [verification scope from Step 3]
+archetype: [from experiment.yaml type, default web-app]
+branch: [current git branch name]
+stack: { [category]: [value], ... }
+checkpoint: phase2-step5
+context_files:
+  - experiment/experiment.yaml
+  - EVENTS.yaml
+  - .claude/archetypes/[archetype].md
+  - [each .claude/stacks/<category>/<value>.md read in Step 2]
+---
+```
+
+Then append the plan body. The frontmatter enables resume-after-clear without re-deriving classification, scope, or stack.
+
+If the user replied **"approve and clear"** or **"2"**:
+  1. Save the plan with frontmatter (same as above)
+  2. Tell the user: "Plan saved. Run `/clear`, then re-run `/change [original $ARGUMENTS]`. I'll resume at the checkpoint."
+  3. STOP — do NOT proceed to Phase 2.
 
 ---
 
@@ -116,6 +156,10 @@ Save the approved plan: write the plan you presented above to `.claude/current-p
 - **Analytics**: if the user approved custom events, add them to `custom_events` in EVENTS.yaml following the `<object>_<action>` naming convention with all properties.
 - **Fix / Polish**: do NOT modify experiment.yaml or EVENTS.yaml.
 - **Test**: do NOT modify EVENTS.yaml. If adding tests for the first time (no `stack.testing` in experiment.yaml and no `playwright.config.ts` on disk), add `testing: <value>` to experiment.yaml `stack` section. Do not modify other parts of experiment.yaml.
+
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step6`.
+
+> **Checkpoint update:** Edit only the `checkpoint:` line in the frontmatter — single-line edit, not a full file rewrite.
 
 ### Step 6: Make changes (type-specific)
 
@@ -155,6 +199,8 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
 
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
+
 ### Step 7: Verify
 - Follow the verification procedure in `.claude/patterns/verify.md` with **scope: [scope from Step 3]**:
   1. Build & lint loop (max 3 attempts)
@@ -173,6 +219,8 @@ Follow the procedure in `.claude/procedures/change-test.md`.
     - If archetype requires `endpoints`: confirm API route exists for each endpoint in experiment.yaml `endpoints` (path depends on framework stack file)
     - If archetype requires `commands` (cli): confirm `src/commands/<command-name>.ts` exists for each entry in the experiment.yaml command list
     - For each behavior in `behaviors`, confirm the implementation addresses it. For each event in `EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
+
+Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
 ### Step 8: Commit, push, open PR
 - You are already on a feature branch (created in Step 0). Do not create another branch.
