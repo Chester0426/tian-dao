@@ -296,7 +296,7 @@ POSTHOG_PROJECT_ID=$(curl -s "https://us.i.posthog.com/api/projects/" \
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashboards/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "<idea.name> Experiment", "description": "Auto-created by /deploy for <idea.name>"}'
+  -d '{"name": "<project-name> Experiment", "description": "Auto-created by /deploy for <project-name>"}'
 ```
 
 Extract the dashboard `id` from the response. Then create funnel insight. **Choose the funnel series based on the archetype's `funnel_template`:**
@@ -309,15 +309,15 @@ Extract the dashboard `id` from the response. Then create funnel insight. **Choo
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "<idea.name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+  -d '{"name": "<project-name> Funnel", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<archetype-appropriate EventsNode entries>], "filterTestAccounts": true, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<project-name>"], "operator": "exact", "type": "event"}]}]}}}}'
 ```
 
-If experiment.yaml has `variants` (web-app only): create a second funnel insight named `<idea.name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
+If experiment.yaml has `variants` (web-app only): create a second funnel insight named `<project-name> Funnel by Variant` on the same dashboard, with the same series and filters as above, plus a breakdown:
 ```bash
 curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/insights/" \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "<idea.name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<idea.name>"], "operator": "exact", "type": "event"}]}]}}}}'
+  -d '{"name": "<project-name> Funnel by Variant", "dashboards": [<dashboard_id>], "query": {"kind": "InsightVizNode", "source": {"kind": "FunnelsQuery", "series": [<same web-app series>], "filterTestAccounts": true, "breakdownFilter": {"breakdown": "variant", "breakdown_type": "event"}, "properties": {"type": "AND", "values": [{"type": "AND", "values": [{"key": "project_name", "value": ["<project-name>"], "operator": "exact", "type": "event"}]}]}}}}'
 ```
 Include `pay_start` and `pay_success` in the series if `stack.payment` is present. This lets the user compare conversion rates between variant landing pages — the core purpose of the variants feature.
 
@@ -464,16 +464,16 @@ Print a deployment summary:
 
 [If PostHog dashboard was auto-created] **Analytics dashboard:** <dashboard_url>
 [If PostHog dashboard was NOT auto-created] **Analytics dashboard (manual):**
-  1. Go to PostHog → Dashboards → New dashboard → name it "<idea.name> Experiment"
-  2. Add a Funnel insight: visit_landing → signup_start → signup_complete → activate [→ pay_start → pay_success if payment]. Filter by project_name = "<idea.name>".
-  If experiment.yaml has `variants`: add a second Funnel insight with the same events, but add Breakdown → Event property → `variant`. Name it "<idea.name> Funnel by Variant".
+  1. Go to PostHog → Dashboards → New dashboard → name it "<project-name> Experiment"
+  2. Add a Funnel insight: visit_landing → signup_start → signup_complete → activate [→ pay_start → pay_success if payment]. Filter by project_name = "<project-name>".
+  If experiment.yaml has `variants`: add a second Funnel insight with the same events, but add Breakdown → Event property → `variant`. Name it "<project-name> Funnel by Variant".
   3. Add a Trend insight: all standard_funnel events, daily, last 14 days, filtered by project_name.
 
-**Scheduled digest (recommended):** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
+**Scheduled digest (recommended):** In PostHog → Dashboards → "<project-name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
 
 **Monitoring setup** (recommended):
 - **Health check alerts:** Set up uptime monitoring for `https://<canonical_url>/api/health` using a free service (e.g., UptimeRobot, Better Stack). Alert on non-200 responses. Check interval: 5 minutes.
-- **Analytics digest:** In PostHog → Dashboards → "<idea.name> Experiment" → click "Subscribe" (bell icon) → every 3 days → add your email.
+- **Analytics digest:** In PostHog → Dashboards → "<project-name> Experiment" → click "Subscribe" (bell icon) → every 3 days → add your email.
 - **Free tier quotas** (typical usage for MVPs with <1000 MAU):
   - Vercel: 100GB bandwidth/month (free tier) — typical MVP uses <1GB
   - Supabase: 500MB database, 1GB file storage, 50K monthly active users (free tier)

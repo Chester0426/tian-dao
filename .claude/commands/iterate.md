@@ -27,7 +27,7 @@ This skill does NOT write code. It helps you decide what action to take, then po
   - For whom? (`target_user`)
   - What does success look like? (`thesis`, `funnel` thresholds)
   - What behaviors exist? (`behaviors`)
-  - What is the scope? (pages from `golden_path` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_idea_fields`)
+  - What is the scope? (pages from `golden_path` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_experiment_fields`)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Note the `funnel_template` value:
   - `web` (web-app) — funnel events come from EVENTS.yaml `standard_funnel`
   - `custom` (service, cli) — funnel events come from EVENTS.yaml `custom_events` and the experiment's own event definitions

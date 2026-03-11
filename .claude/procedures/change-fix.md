@@ -14,7 +14,7 @@
 ## Implementation
 
 - If `quality: production` is set in experiment.yaml:
-  1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists, check if any files affected by the fix are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing the fix. Remove the entry from `experiment/on-touch.yaml` after tests are added.
+  1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists: first, remove any entries whose `path` no longer exists on disk (stale from deleted modules). Then check if any files affected by the fix are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing the fix. Remove the entry from `experiment/on-touch.yaml` after tests are added. If `on_touch` list is now empty, delete `experiment/on-touch.yaml`.
   2. Write regression test demonstrating the bug (fails on current code) per `patterns/tdd.md` § Regression Tests
   3. Fix root cause (minimal change)
   4. Verify test passes

@@ -36,7 +36,7 @@ Transition this MVP to production quality mode: $ARGUMENTS
        - `step3-reconcile` → Step 3.5 (all modules done, reconciliation)
        - `step3-verify` → Step 3.7 (run /verify)
        - `step3-pr` → Step 3.8 (commit/push/PR)
-     - Tell user: "Resuming /harden from [checkpoint]. [M of N] modules completed."
+     - Tell user: "Resuming /harden from [checkpoint]. [M of N] modules completed.\n  Done: [list completed module names]. Remaining: [list remaining module names].\n  Do NOT re-run completed modules."
   2. If no frontmatter (old format): fall back — scan for CRITICAL modules without test files and proceed from Step 3.4.
 - If on a `chore/harden-*` branch with existing specification tests but NO `.claude/current-plan.md`: a previous `/harden` may have partially completed. Tell the user: "Found existing hardening work on this branch. Scanning for modules that still need tests..." Then scan for CRITICAL modules without test files and proceed from Step 3.4.
 

@@ -58,7 +58,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
 
 3. **Validate experiment.yaml**
-   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_idea_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
+   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_experiment_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
    - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
    - If the archetype requires pages (web-app): verify `golden_path` includes at least one entry with `page: landing`
    - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
@@ -304,7 +304,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
 - If `stack.surface` is set in experiment.yaml, use it.
 - Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
 - If the archetype's `excluded_stacks` includes `hosting` and `stack.surface` is not set → `detached`.
-- If the archetype is `service` and surface should be none (no landing needed): `none`.
+- If the archetype is `service` and `stack.surface` is not set and the experiment has no `golden_path` (pure API, no user-facing landing needed): `none`.
 
 ### Design Phase
 
