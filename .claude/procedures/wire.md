@@ -9,6 +9,9 @@
 ## Steps
 
 ### Step 5: API routes
+
+If the archetype is `cli`: skip this step entirely — CLIs have no API routes or hosting stack.
+
 - Create the API routes directory per the framework stack file
 - Create `/api/health` endpoint per the hosting stack file's Health Check template. Add service-specific checks based on active stack: database connectivity check when `stack.database` is present, auth service check when `stack.auth` is present, analytics reachability check when `stack.analytics` is present, payment config check when `stack.payment` is present.
 - If experiment.yaml behaviors imply mutations (creating records, payments, etc.), create corresponding API route handlers. If `stack.payment` is present: for payment routes, use the templates from the payment stack file's "API Routes" section — these include auth-integration checks and webhook signature verification patterns that must not be omitted.

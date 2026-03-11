@@ -211,8 +211,10 @@ Present the full config for review.
 
 - Read the analytics stack file (`.claude/stacks/analytics/<value>.md`) to understand the tracking API
 - Ensure `visit_landing` event captures `utm_source`, `utm_medium`, `utm_campaign` from URL params
-- EVENTS.yaml has these as optional properties on `visit_landing` — the landing page must parse them from `window.location.search` and pass them to the tracking call
-- Update the landing page to parse URL params and include them in the visit tracking call
+- EVENTS.yaml has these as optional properties on `visit_landing` — the surface must parse them from URL params and pass them to the tracking call
+- **web-app**: parse from `window.location.search` in the landing page component
+- **service (co-located)**: parse from the request URL in the root route handler and embed in the HTML response's tracking script
+- **cli (detached) or service (detached)**: add an inline `<script>` in `site/index.html` that parses `window.location.search` and fires the tracking call via the analytics snippet
 
 - When experiment.yaml has `variants`, also capture `utm_content` from URL params alongside UTM params. This maps to the variant slug and enables per-variant attribution in analytics (e.g., filter `visit_landing` by `utm_content = "speed"` to see paid traffic for the speed variant).
 
@@ -247,7 +249,7 @@ custom_events:
         description: What activation action preceded this (from experiment.yaml thesis)
 ```
 
-Add a `FeedbackWidget` component at `src/components/feedback-widget.tsx`:
+**web-app**: Add a `FeedbackWidget` component at `src/components/feedback-widget.tsx`:
 
 - Uses shadcn `Dialog`, `Button`, `Label`, `Textarea`, and `Select` components (read the UI stack file for import conventions)
 - Appears after the user completes the activation action (triggered via prop callback)
@@ -255,6 +257,10 @@ Add a `FeedbackWidget` component at `src/components/feedback-widget.tsx`:
 - Fires `feedback_submitted` custom event via `track()` from the analytics library (see analytics stack file for the import path and `track()` usage)
 - Fields: "How did you find us?" (select: Google Search, Social Media, Friend/Referral, Other), "Any feedback?" (textarea)
 - Non-blocking: user can dismiss without submitting
+
+**service (co-located)**: Add a feedback form section to the root route's HTML response. Use inline HTML form + `<script>` that fires `feedback_submitted` via the analytics snippet. Style with inline CSS — no React/shadcn dependency.
+
+**cli (detached) or service (detached)**: Add a feedback form section to `site/index.html`. Use inline HTML form + `<script>` that fires `feedback_submitted` via the analytics snippet. Style with inline CSS.
 
 ### 7d: Demo mode recommendation
 
@@ -281,7 +287,7 @@ Before running verify.md, validate that distribute artifacts were created:
 
 1. **ads.yaml**: verify `experiment/ads.yaml` exists (Glob). If missing, stop — "ads.yaml was not generated. Re-run Step 5."
 2. **UTM capture**: Grep for `utm_source` in the landing page file. If no match, warn — "UTM capture may not be wired on the landing page (Step 7a)."
-3. **Feedback widget**: verify feedback widget component exists (Glob `src/components/*feedback*`). If missing, warn — "Feedback widget not found (Step 7c)."
+3. **Feedback widget**: if archetype is `web-app`, verify feedback widget component exists (Glob `src/components/*feedback*`). If archetype is `service` or `cli`, verify feedback form exists in the surface file (Grep for `feedback` in the surface file — `site/index.html` for detached, root route handler for co-located). If missing, warn — "Feedback widget not found (Step 7c)."
 
 If any check returns "stop", halt before verify.md. Warnings are non-blocking — proceed and include in PR body.
 

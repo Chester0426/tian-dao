@@ -300,6 +300,12 @@ Continue regardless — this is non-blocking during bootstrap.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
 
+**Resolve surface type** (used by Design Phase and Landing subagent):
+- If `stack.surface` is set in experiment.yaml, use it.
+- Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
+- If the archetype's `excluded_stacks` includes `hosting` and `stack.surface` is not set → `detached`.
+- If the archetype is `service` and surface should be none (no landing needed): `none`.
+
 ### Design Phase
 
 Spawn a subagent via Agent with:

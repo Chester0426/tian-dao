@@ -48,11 +48,8 @@
 
   Update `.claude/current-plan.md` after each completed step:
   - Mark the step done in the plan body (prefix with `[x]`)
-  - Update `checkpoint` in YAML frontmatter:
-    - After Data layer: `phase2-step6-data`
-    - After API layer: `phase2-step6-api`
-    - After UI/Output layer: `phase2-step6-ui`
-    - After Analytics wiring: `phase2-step7`
+  - Keep `checkpoint: phase2-step6` in YAML frontmatter throughout Step 6 (resumption re-reads the plan body to determine which layers are done)
+  - After all layers complete (including Analytics wiring): update checkpoint to `phase2-step7`
 
   For Simple (single-layer) features: implement directly without sub-steps — the existing implementation flow below provides sufficient structure.
 
