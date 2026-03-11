@@ -2,7 +2,7 @@
 
 Scannable reference listing all automated checks by name, grouped by validator.
 74 active checks consolidated into 70 inventory rows.
-Checks 3 and 7 are archetype-aware — they read `required_idea_fields` and `excluded_stacks` from archetype frontmatter.
+Checks 3 and 7 are archetype-aware — they read `required_experiment_fields` and `excluded_stacks` from archetype frontmatter.
 
 Last updated: 2026-03-03
 
@@ -20,7 +20,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 |------|-------------|
 | Require stack frontmatter keys | Every stack file must have all required keys (assumes, packages, files, env, ci_placeholders, clean, gitignore) |
 | Resolve assumes entries to existing stack files | Every `assumes` entry must point to an existing `.claude/stacks/<path>.md` |
-| Require archetype frontmatter keys | Every archetype file must have all required keys (description, required_stacks, optional_stacks, excluded_stacks, required_idea_fields, build_command, funnel_template) |
+| Require archetype frontmatter keys | Every archetype file must have all required keys (description, required_stacks, optional_stacks, excluded_stacks, required_experiment_fields, build_command, funnel_template) |
 | Require skill frontmatter keys | Every skill file must have all required keys (type, reads, stack_categories, requires_approval, references, branch_prefix, modifies_specs) |
 | Verify referenced file paths exist | Every `references` path in skill frontmatter must exist on disk |
 | Require verify.md in code-writing skill references | Code-writing skills must include verify.md in their `references` list |
