@@ -37,7 +37,7 @@ Store the fetched issues as `issue_list`.
 
 ### Step 2: Classify and triage
 
-Classify each issue into one of 9 types:
+Classify each issue into one of 10 types:
 
 **Actionable (proceed to Phase 2):**
 
@@ -56,6 +56,7 @@ Classify each issue into one of 9 types:
 | Environment | Comment: "This is an environment issue, not a template bug. [specific guidance]." Close. |
 | User error | Comment: "This appears to be project-specific. [explain why]. Reopen if you believe this is a template issue." Close. |
 | Duplicate | Comment: "Duplicate of #N." Close. |
+| Stale | The described problem no longer exists in current code. Verify with a lightweight check: (1) `git log --oneline --since="<issue_created_date>" -- <cited_file>` — if the file was modified since the issue was filed, (2) read the cited file and confirm the specific pattern/text described in the issue is gone or fixed. Only classify as Stale when evidence is clear; ambiguous cases should proceed to Phase 2. Comment: "Verified against current main — this was fixed in [commit/PR]. [brief explanation]." Close. |
 | Won't fix | Comment with rationale. Label `wontfix`. Close. |
 
 For non-actionable issues, execute the close/comment actions now:
@@ -89,6 +90,14 @@ executing the skill:
    that triggers the bug
 3. Identify the exact step and line where behavior diverges from expectation
 4. Record: `divergence_point` (file:line), `expected` behavior, `actual` behavior
+
+**Cannot reproduce:** If the simulation completes without finding a divergence
+point, the issue may have been fixed indirectly (e.g., by a refactor or a
+related fix that also covered this case). Downgrade the issue to non-actionable:
+comment with "Unable to reproduce against current main — the described behavior
+no longer occurs. [explain what was checked]. Reopen if the issue persists."
+Close the issue and remove it from the actionable list. Continue with remaining
+issues.
 
 ### Step 4: Blast radius analysis
 
