@@ -90,6 +90,17 @@ executing the skill:
    that triggers the bug
 3. Identify the exact step and line where behavior diverges from expectation
 4. Record: `divergence_point` (file:line), `expected` behavior, `actual` behavior
+5. **Validator evidence** (machine-verifiable baseline):
+   Run all 3 validators and capture output as `pre_fix_baseline`:
+   - `python3 scripts/validate-frontmatter.py 2>&1`
+   - `python3 scripts/validate-semantics.py 2>&1`
+   - `bash scripts/consistency-check.sh 2>&1`
+
+   Search validator output for errors citing the issue's file(s).
+   If a validator error corresponds to the divergence_point:
+   `reproduction = "validator-confirmed"` + the error line(s).
+   Otherwise: `reproduction = "simulation-only"` (acceptable for
+   prose/logic bugs that validators cannot catch).
 
 **Cannot reproduce:** If the simulation completes without finding a divergence
 point, the issue may have been fixed indirectly (e.g., by a refactor or a
@@ -113,6 +124,27 @@ The bug pattern found in Step 3 may exist in other template files:
 3. For each match: evaluate whether it has the same bug. Record matches as
    `blast_radius` entries with file:line and whether they are confirmed
    (same bug) or potential (similar pattern, different context)
+
+### Step 4b: Root-cause clustering (2+ issues only)
+
+Skip if only 1 actionable issue remains.
+
+Compare divergence points and causal patterns across all actionable issues:
+
+1. Group issues sharing the same root pattern (e.g., 3 issues all
+   caused by "missing archetype guard" = 1 cluster)
+2. For each cluster of 2+ issues:
+   - Designate the highest-severity issue as **primary**
+   - Mark others as **correlated**: "shares root cause with #N"
+   - Design ONE unified fix in Step 5 (not N separate fixes)
+3. Uncorrelated issues get individual fix designs as before
+
+Present in diagnosis report:
+```
+### Root-Cause Clusters
+- Cluster 1 (#A, #B): <shared pattern>. Primary: #A.
+- Uncorrelated: #C
+```
 
 ### Step 5: First-principles fix design
 
@@ -142,6 +174,44 @@ Design the fix using world-champion reasoning:
 Record: `root_cause`, `fix_plan` (per-file changes), `proposed_checks` (if any),
 `anti_pattern_review` (confirm none apply).
 
+### Step 5b: Adversarial challenge
+
+Launch a single Explore subagent to challenge each fix design:
+
+Prompt includes: all fix plans from Step 5 (root cause, fix plan,
+blast radius, anti-pattern review).
+
+**Fix Challenge Protocol** — for each fix, attempt to construct a
+scenario where the fix is wrong or insufficient. Default label is
+"sound"; challenger must produce evidence to dispute.
+
+Three challenge vectors:
+
+1. **Configuration counterexample**: Find an experiment.yaml
+   configuration (archetype + stack) where the fix would break.
+   Read fixtures in `tests/fixtures/*.yaml` for concrete configs.
+
+2. **Blast radius gap**: Are there files NOT in the blast radius
+   that share the pattern? Grep more broadly than Step 4.
+
+3. **Regression vector**: Would this fix break existing validator
+   checks? Read `scripts/check-inventory.md` and identify checks
+   touching the same files.
+
+Output per fix:
+```
+### Fix for Issue #N
+- **Label**: sound | challenged | needs-revision
+- **Challenge**: <what was tried>
+- **Evidence**: <file:line quotes or fixture names>
+- **Revision**: <if not sound: specific change to fix plan>
+```
+
+After the agent returns:
+- **sound**: proceed as designed
+- **needs-revision**: incorporate revision, note in diagnosis report
+- **challenged**: present to user at STOP gate; let user decide
+
 Present a diagnosis report for all actionable issues:
 
 ```
@@ -149,11 +219,13 @@ Present a diagnosis report for all actionable issues:
 
 **Root cause:** <1-2 sentences>
 **Divergence point:** <file:line>
+**Reproduction:** validator-confirmed (<error>) | simulation-only
 **Blast radius:** N files affected (M confirmed, K potential)
 **Fix plan:**
 - <file>: <what changes>
 **Proposed validator check:** <name> in <script> | none
 **Anti-pattern review:** None apply / <which one was close and why it doesn't apply>
+**Adversarial check:** sound | revised (<what changed>) | challenged (<summary>)
 ```
 
 **STOP. Present the diagnosis report to the user and wait for approval before
@@ -177,6 +249,12 @@ For each issue in severity order (HIGH first):
 
 1. Implement the fix per the approved fix plan from Step 5
 2. If a validator check was proposed: implement it in the target script
+2b. If the bug involves a configuration not covered by existing test
+    fixtures (identified in Step 5b or by checking `tests/fixtures/`):
+    create a minimal fixture following existing naming conventions.
+    Include only the stack/archetype config needed to trigger the bug
+    pattern, with assertions that catch it. Skip if triggering config
+    is already covered.
 3. Run all 3 validators:
    - `python3 scripts/validate-frontmatter.py`
    - `python3 scripts/validate-semantics.py`
@@ -193,6 +271,21 @@ If new validator checks were added:
 - Run all 3 validators
 - Record `final_errors`
 - If `final_errors` > 0 for checks that passed before Step 7: stop and report regression
+
+### Step 8b: Side-effect scan
+
+For issues closed as "cannot reproduce" in Step 3 or non-actionable
+in Step 2: if any file modified in Steps 7-8 is cited in the issue,
+comment: "This may have been addressed by the fix in PR #<number>
+(for #<primary>). Verify and reopen if the issue persists."
+
+For other open issues not in the current batch:
+```bash
+gh issue list --state open --limit 10 --json number,title,body
+```
+If any reference files modified in this PR: note under a
+"### Potentially Resolved" section in the PR body (do NOT close —
+the fix was not designed for them).
 
 ### Step 9: Commit, push, open PR
 
@@ -220,6 +313,41 @@ Files checked, confirmed matches fixed, potential matches evaluated.
 ### Validator Additions
 New checks added (if any), with name, target script, and pass/fail criteria.
 If none: "No new checks — pattern is unlikely to recur."
+
+### Validator Evidence
+| Issue | Pre-Fix Errors | Post-Fix Errors | Delta |
+|-------|---------------|-----------------|-------|
+| #N    | <cited errors or "none"> | <errors or "none"> | -K |
+
+### Adversarial Review
+| Issue | Label | Challenge Summary |
+|-------|-------|-------------------|
+| #N    | sound | Tested 3 fixture configs, no breakage |
+
+### Cross-Issue Correlation
+- Cluster 1: #A, #B — shared root cause: <pattern>. Single fix.
+- Uncorrelated: #C
+(Or: "Single issue — no correlation analysis")
+
+### Potentially Resolved
+(From Step 8b, or "None — no side-effect matches detected")
+
+### Step 10: Save resolution patterns
+
+For each resolved issue, evaluate:
+
+1. **Resolution pattern** (accelerates future diagnosis):
+   Save to auto memory under "Resolution Patterns" heading:
+   - Issue type + root cause pattern (1 line)
+   - What to check first when this pattern recurs (1 line)
+   - Example: "Missing archetype guard → grep for archetype-conditional
+     language in cited file, check all 3 archetypes have branches"
+
+2. **Universal template pitfall** (prevents recurrence across projects):
+   Note in auto memory: "Consider adding Known Pitfall to <file>."
+   Do NOT edit stack/pattern files inline — that's scope creep.
+
+Skip if: trivial fix (typo) unlikely to recur.
 
 ## Do NOT
 
