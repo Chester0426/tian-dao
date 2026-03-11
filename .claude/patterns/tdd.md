@@ -108,6 +108,13 @@ Skip tests for:
 - Framework boilerplate (routing config, middleware wiring, provider setup)
 - Third-party library behavior (trust the library)
 
+**Classification rule:** When a file falls into BOTH a skip category AND a
+must-test category, the must-test category wins. Route handlers that perform
+input validation, data mutations, authorization checks, or return domain-specific
+error responses are NOT "framework boilerplate" regardless of how thin the handler
+appears. Only pure pass-through wiring with zero logic (e.g., re-export, middleware
+registration order) qualifies as framework boilerplate.
+
 Test only:
 
 - Business logic (calculations, state machines, multi-step workflows)

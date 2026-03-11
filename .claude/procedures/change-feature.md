@@ -20,7 +20,7 @@
      - Independent tasks → spawn implementer agents in parallel (isolation: "worktree")
      - Dependent tasks (B imports A) → sequential execution
      - Tell user: "N tasks, M parallel / K sequential"
-  4. For each task: spawn implementer agent (`agents/implementer.md`, isolation: "worktree") → specification test (RED) → minimal code (GREEN) → refactor → commit
+  4. For each task: you MUST spawn an implementer agent (`agents/implementer.md`, isolation: "worktree") → specification test (RED) → minimal code (GREEN) → refactor → commit. You MUST NOT implement any planned task directly — every task goes through an implementer agent with the full RED→GREEN→REFACTOR cycle. No exceptions for "trivial," "wiring," or "already tested elsewhere."
   5. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
   6. Continue to Step 7
 - If `quality` is absent or `mvp` (default):

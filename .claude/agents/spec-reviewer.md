@@ -28,9 +28,9 @@ You verify that what was built matches what was specified. You are precise — f
 
 Read `experiment/experiment.yaml` `type` field (default: `web-app`):
 
-- **web-app**: checks S1-S6
-- **service**: S1, S2 (endpoints not pages), S3, S4 (skip golden_path page/CTA checks), S5, S6
-- **cli**: S1, S2 (commands not pages), S5, S6 (skip S3, S4)
+- **web-app**: checks S1-S7
+- **service**: S1, S2 (endpoints not pages), S3, S4 (skip golden_path page/CTA checks), S5, S6, S7
+- **cli**: S1, S2 (commands not pages), S5, S6, S7 (skip S3, S4)
 
 ## Checks
 
@@ -60,6 +60,15 @@ Each behavior with `actor: system/cron` is implemented and has a test. Missing i
 
 Every plan item is addressed in source code. Unaddressed item is a FAIL.
 
+**S7. TDD compliance**
+> Skip if `quality` is absent or not `production` in experiment.yaml.
+> Skip if no `.claude/current-plan.md` exists.
+
+For each task in the plan: a specification test file (`*.test.*` or `*.spec.*`)
+MUST exist covering that task's target module. A task with production code but
+no corresponding spec test indicates TDD was bypassed — this is a FAIL regardless
+of whether the code is functionally correct.
+
 ## Output Contract
 
 ```
@@ -71,6 +80,7 @@ Every plan item is addressed in source code. Unaddressed item is a FAIL.
 | S4. Golden path | pass/FAIL/skip | <unreachable steps if FAIL> |
 | S5. System/cron behaviors | pass/FAIL/skip | <missing tests if FAIL> |
 | S6. Plan completion | pass/FAIL/skip | <unaddressed items if FAIL> |
+| S7. TDD compliance | pass/FAIL/skip | <tasks missing spec tests if FAIL> |
 
 ## Verdict
 <PASS | FAIL>
