@@ -155,3 +155,8 @@ After a successful verification where you fixed any errors (build, lint, visual,
    - **Project-specific** (unique to this codebase): save a brief entry to your auto memory
      with the error, cause, and fix
 2. Skip if: the error was a simple typo or something unlikely to recur
+3. **Planning patterns**: If the change revealed patterns useful for future planning (distinct from error-fix patterns — these capture architectural knowledge):
+   - Auth flow interactions (e.g., "OAuth callback must be registered before adding social login pages")
+   - Stack integration quirks that affected architecture (e.g., "Supabase RLS requires service role key for admin operations")
+   - Codebase conventions that future plans should follow (e.g., "this project co-locates API types in a shared types.ts")
+   - Save to auto memory under "Planning Patterns" heading

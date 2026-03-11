@@ -194,6 +194,13 @@ DO NOT write any code, create any files, or run any install commands during this
    - [If service] Endpoint smoke tests for: /api/health, [list each endpoint]
    - [If cli] Command smoke tests for: --version, --help, [list each command] --help
 
+   **Technical Decisions:**
+   - Data model: [for each table — key columns, relationships, RLS approach]
+   - API patterns: [REST conventions, error shape, pagination approach if applicable]
+   - Auth flow: [if stack.auth present — signup → verify → session approach]
+   - State management: [client-side approach — server components vs client state]
+   - (Or: "Standard defaults — no notable architectural decisions for this MVP")
+
    **Questions:**
    - [any ambiguities — or "None"]
    ```

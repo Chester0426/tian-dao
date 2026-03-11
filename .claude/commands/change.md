@@ -13,6 +13,8 @@ references:
   - .claude/patterns/observe.md
   - .claude/patterns/messaging.md
   - .claude/patterns/design.md
+  - .claude/procedures/plan-exploration.md
+  - .claude/procedures/plan-validation.md
 branch_prefix: change
 modifies_specs: true
 ---
@@ -37,6 +39,7 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references. If the archetype is `cli`, new capabilities map to subcommand modules (`src/commands/`), not page folders or API routes. Skip Fake Door, landing page, and API route references.
 - Resolve the stack: read experiment.yaml `stack`. For each category, read `.claude/stacks/<category>/<value>.md`. If a stack file doesn't exist for a given value, generate it: read `.claude/stacks/TEMPLATE.md` for the schema, read existing files in the same category as reference, and create `.claude/stacks/<category>/<value>.md` with complete frontmatter and code templates. Run `python3 scripts/validate-frontmatter.py` to verify (max 2 fix attempts). If validation fails, stop: "Could not generate a valid stack file for `<category>/<value>`. Create it manually using TEMPLATE.md as a guide." File an observation per `.claude/patterns/observe.md` for the missing stack file.
 - Scan `src/app/` to understand the current page structure and codebase state
+- **Explore codebase for planning context**: Follow `.claude/procedures/plan-exploration.md`. Exploration depth depends on the change type — do a preliminary classification from $ARGUMENTS keywords (adds/creates/new → Feature depth, replaces/upgrades/integrate → Upgrade depth, fixes/broken/bug → Fix depth, polish/improve/visual → Polish depth, analytics/tracking → Analytics depth, test/spec/e2e → Test depth). Store results in working memory for Phase 1. If auto memory has a "Planning Patterns" section, read it and incorporate relevant patterns into the exploration.
 - If `.claude/iterate-manifest.json` exists, read it for context:
   - Include the verdict, bottleneck, and recommendations in the plan (Phase 1)
   - Reference: "This change addresses the [bottleneck.stage] bottleneck identified by /iterate ([bottleneck.diagnosis])"
@@ -90,7 +93,9 @@ State: "Verification scope: **[scope]**"
 
 DO NOT write any code, create any files, or run any install commands during this phase.
 
-Present the plan using the template for the classified type from `.claude/procedures/change-plans.md`.
+Present the plan using the template for the classified type from `.claude/procedures/change-plans.md`. Populate "How" sections using exploration results from Step 2.
+
+**Validate the plan against the codebase**: Before presenting the plan to the user, follow `.claude/procedures/plan-validation.md`. If validation flags conflicts, adjust the plan or add items to the Questions section prefixed with "[Validation]".
 
 ### STOP. End your response here. Say:
 > Does this plan look right? Reply **approve** to proceed, or tell me what to change.
@@ -184,6 +189,7 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
 - Delete `.claude/current-plan.md` — the plan is now captured in the PR description. Note: this deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
+- **Save planning patterns**: If this change revealed planning-relevant patterns (auth flow interactions, stack integration quirks, codebase conventions discovered during exploration, schema design patterns), save a brief entry to auto memory under a "Planning Patterns" heading. These get consulted during future Phase 1 exploration via `.claude/procedures/plan-exploration.md` Step 5.
 - Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."
 
 ## Do NOT

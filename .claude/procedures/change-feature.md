@@ -24,6 +24,34 @@
   5. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
   6. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
+- **MVP Task Breakdown** (Multi-layer features only — skip for Simple):
+  Break the implementation into checkpointed steps. Each step ends with a `npm run build` gate.
+
+  1. **Data layer** (if database changes needed):
+     - Create migration file, TypeScript types, server-side DB helpers
+     - Checkpoint: `npm run build` — types must compile
+
+  2. **API layer** (if new routes needed):
+     - Create API route handlers with zod validation
+     - Wire to database helpers from step 1
+     - Checkpoint: `npm run build` — routes must compile
+
+  3. **UI/Output layer**:
+     - web-app: Create page components, wire to API routes
+     - service: Wire response formatting, add error responses
+     - cli: Create command handlers, wire to lib functions
+     - Checkpoint: `npm run build` — full app must compile
+
+  4. **Analytics wiring**:
+     - Add tracking calls per EVENTS.yaml
+     - Checkpoint: `npm run build` — final verification
+
+  Update `.claude/current-plan.md` after each completed step by marking it done (prefix with `[x]`). This enables session recovery if context is lost mid-implementation.
+
+  For Simple (single-layer) features: implement directly without sub-steps — the existing implementation flow below provides sufficient structure.
+
+  This task breakdown supersedes the Sub-step 6a/6b flow at the end of this file for Multi-layer features.
+
 - If adding `payment` to experiment.yaml `stack`: verify both `stack.auth` and `stack.database` are also present. If `stack.auth` is missing, stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to experiment.yaml `stack` first." If `stack.database` is missing, stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
 - If the change requires a stack category whose library files don't exist yet (e.g., `payment: stripe` was just added to experiment.yaml but `src/lib/stripe.ts` is missing): install the packages listed in the stack file's "Packages" section, create the library files from its "Files to Create" section, and add its environment variables to `.env.example` — before proceeding to routes and pages. If any install command fails, stop and show the error — the user must fix the environment issue, then retry the failed install command on this branch (do NOT re-run `/change`).
 - If `golden_path` was updated in Step 5 and `e2e/funnel.spec.ts` exists: update the funnel test to match the new golden_path. Read the new/modified page source for selectors. Do not rewrite unaffected test steps.
@@ -36,7 +64,7 @@
 
 - Create or modify API routes for any new mutations (see framework stack file for route conventions). Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
 - If database tables are needed: create a migration following the database stack file (next sequential number, `IF NOT EXISTS`), add TypeScript types, add post-merge instructions to PR body (CI auto-applies migrations on merge; otherwise `make migrate` or Supabase Dashboard). Note: concurrent branches may create conflicting migration numbers — resolve by renumbering the later-merged migration at merge time.
-- **If Multi-layer**: implement in two sub-steps with an intermediate build check:
+- **If Multi-layer** (fallback — only if the MVP Task Breakdown above was skipped, e.g., for Simple features that grew during implementation): implement in two sub-steps with an intermediate build check:
   - Sub-step 6a — Data and server layer (migrations, types, API routes)
   - Re-read `.claude/current-plan.md` to confirm sub-step 6a output aligns with the approved plan.
   - Checkpoint: run `npm run build`. Fix errors before proceeding. If still broken after 2 attempts, proceed to Sub-step 6b without retrying — Step 7 (verification) has its own 3-attempt retry budget.
