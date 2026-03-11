@@ -57,6 +57,19 @@ Determine the type from `$ARGUMENTS`:
 
 State the classification before proceeding: "I'm treating this as a **[type]** change."
 
+Map the classification to a verification scope for Step 7:
+
+| Type      | Verification Scope |
+|-----------|--------------------|
+| Feature   | `full`             |
+| Upgrade   | `full`             |
+| Fix       | `security`         |
+| Polish    | `visual`           |
+| Analytics | `build`            |
+| Test      | `build`            |
+
+State: "Verification scope: **[scope]**"
+
 ## Step 4: Check type-specific preconditions
 
 - If `.claude/current-plan.md` exists and the current branch starts with `change/`: a previous session completed Phase 1 (plan approved) but Phase 2 was not finished. Tell the user: "Found a previously approved plan in `.claude/current-plan.md`. Resuming Phase 2 implementation on this branch. Skipping Phase 1 planning." Then skip the rest of Phase 1 and jump directly to Phase 2: Step 5.
@@ -132,13 +145,13 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 
 > **CHECKPOINT — VERIFICATION GATE**
 > Implementation is complete. You MUST now execute Step 7 in full.
-> Re-read `.claude/patterns/verify.md` and follow every section:
-> build loop, parallel review (5 agents), security fix cycle, auto-observe.
+> Re-read `.claude/patterns/verify.md` and follow every section applicable to the verification scope from Step 3:
+> build loop, scoped parallel review, security fix cycle (if applicable), auto-observe.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
 
 ### Step 7: Verify
-- Follow the FULL verification procedure in `.claude/patterns/verify.md`:
+- Follow the verification procedure in `.claude/patterns/verify.md` with **scope: [scope from Step 3]**:
   1. Build & lint loop (max 3 attempts)
   2. Save notable patterns (if you fixed errors)
   3. Template observation review (ALWAYS — even if no errors were fixed)
@@ -148,7 +161,7 @@ Follow the procedure in `.claude/procedures/change-test.md`.
   - **Fix**: trace the bug report's user flow through code to confirm it's fixed.
   - **Polish**: open each changed file and confirm analytics imports and event calls are intact.
   - **Analytics**: re-trace each standard funnel event through the code to confirm it now fires correctly.
-  - **Production quality (if `quality: production`)**: verify.md spawns all agents (existing 5 + spec-reviewer). Pass experiment.yaml + `.claude/current-plan.md` to spec-reviewer.
+  - **Production quality (if `quality: production`)**: verify.md spawns spec-reviewer in addition to scope-determined agents. Pass experiment.yaml + `.claude/current-plan.md` to spec-reviewer.
   - **Test**: verify test discovery works by running the testing stack file's test command in dry-run/list mode (e.g., `npx playwright test --list` for Playwright, `npx vitest run --reporter=verbose` for Vitest). If test discovery fails, treat it as a build error — fix the test files and re-run. If still failing after the verify.md retry budget, report to the user with the error output.
   - **Feature (spec compliance)**: Re-read `.claude/current-plan.md` and `experiment/experiment.yaml`. Verify implementation matches the archetype's primary units:
     - If archetype requires pages: confirm `src/app/<page-name>/page.tsx` exists for each unique page referenced in experiment.yaml `golden_path`
@@ -183,5 +196,5 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 - Add custom analytics events without user approval
 - Add error-state tests — funnel happy path only (Rule 4)
 - Mock services in tests — the whole point is testing real integrations
-- Skip Step 7 verification (verify.md must run in full — build, design-critic, security, auto-observe)
+- Skip Step 7 verification (verify.md must run with the classified scope — build loop and auto-observe always run; review agents run per scope)
 - Commit to main directly

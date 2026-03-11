@@ -4,6 +4,24 @@ Run this procedure after making code changes and before committing.
 
 > **Do NOT skip this procedure.** Do NOT claim the build passes without running it. Do NOT commit without a passing build. There are no exceptions.
 
+## Scope Parameter
+
+This procedure accepts an optional **scope** that controls which review agents run.
+If no scope is specified, the default is `full`.
+
+| Scope      | Agents spawned                                                              |
+|------------|-----------------------------------------------------------------------------|
+| `full`     | build-info, design-critic\*, ux-journeyer\*, security pair, perf\*\*, a11y\*\*, spec-reviewer\*\*\* |
+| `security` | build-info, security pair, spec-reviewer\*\*\*                              |
+| `visual`   | build-info, design-critic\*, ux-journeyer\*, perf\*\*, a11y\*\*            |
+| `build`    | build-info only                                                             |
+
+\* = skip if archetype is NOT `web-app`
+\*\* = web-app only (existing gate)
+\*\*\* = quality: production only (existing gate)
+
+Build & Lint Loop, Auto-Observe, and Save Notable Patterns ALWAYS run regardless of scope.
+
 ## Build & Lint Loop (max 3 attempts)
 
 > **Budget rationale:** 3 attempts allows iterative refinement with error feedback.
@@ -45,8 +63,9 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
 ## Parallel Review (after build passes)
 
-Spawn **up to seven agents simultaneously** using parallel Agent tool calls. All
-agents read already-built code and have no data dependencies on each other.
+Spawn review agents simultaneously using parallel Agent tool calls based on the
+current **scope** (default: `full` — see Scope Parameter above). All agents read
+already-built code and have no data dependencies on each other.
 
 ### build-info-collector
 
@@ -57,31 +76,31 @@ in this verification run. Collect the diff and summaries."
 
 If no errors were fixed, pass: "No build errors were fixed."
 
-### design-critic
+### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `design-critic` agent (`subagent_type: design-critic`). No additional context needed.
 
-### security-defender
+### security-defender (if scope is `full` or `security`)
 
 Spawn the `security-defender` agent (`subagent_type: security-defender`). No additional context needed.
 
-### security-attacker
+### security-attacker (if scope is `full` or `security`)
 
 Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No additional context needed.
 
-### ux-journeyer
+### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). No additional context needed.
 
-### performance-reporter (if archetype is `web-app`)
+### performance-reporter (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `performance-reporter` agent (`subagent_type: performance-reporter`). No additional context needed.
 
-### accessibility-scanner (if archetype is `web-app`)
+### accessibility-scanner (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `accessibility-scanner` agent (`subagent_type: accessibility-scanner`). No additional context needed.
 
-### spec-reviewer (if `quality: production` in experiment.yaml)
+### spec-reviewer (if scope is `full` or `security`, AND `quality: production` in experiment.yaml)
 
 Read `experiment/experiment.yaml`. If `quality` field is set to `production`:
 Spawn the `spec-reviewer` agent (`subagent_type: spec-reviewer`). Pass: "Read `.claude/agents/spec-reviewer.md` and execute all checks. Read `experiment/experiment.yaml` and `.claude/current-plan.md` (if it exists) as input. Return the output contract table and verdict."
@@ -90,7 +109,7 @@ If `quality` is absent or not `production`, skip this agent.
 
 **Wait for all agents to complete before continuing.**
 
-## Merge Security Results
+## Merge Security Results (if scope is `full` or `security`)
 
 Combine security-defender and security-attacker outputs:
 
@@ -100,9 +119,9 @@ Combine security-defender and security-attacker outputs:
    in the Defender table, but the Attacker finding drives the fix).
 3. The merged list is the input to security-fixer.
 
-## Parallel Fix Cycles (if needed)
+## Parallel Fix Cycles (if scope is `full` or `security`, and security agents reported issues)
 
-If security agents reported no issues, skip this section.
+If security agents were not spawned (scope is `visual` or `build`), or reported no issues, skip this section.
 
 ### security-fixer (if merged security has issues)
 
