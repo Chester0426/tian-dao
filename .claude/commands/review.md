@@ -146,7 +146,7 @@ Files to read:
 - Glob `.claude/agents/*.md` — read each agent definition
 
 After reading: for each potential finding, identify the test fixture(s) whose
-`idea.stack` configuration matches the edge case (e.g., a finding about missing
+`experiment.stack` configuration matches the edge case (e.g., a finding about missing
 `stack.auth` → use fixtures that lack auth). Record the fixture name(s) alongside
 the finding. If no fixture covers the edge case, note "no fixture coverage" —
 this itself may be a finding worth reporting.

@@ -14,7 +14,7 @@
 ## Implementation
 
 - If `quality: production` is set in experiment.yaml:
-  1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists, check if any files in the upgrade plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing upgrade code. Remove the entry from `experiment/on-touch.yaml` after tests are added.
+  1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists: first, remove any entries whose `path` no longer exists on disk (stale from deleted modules). Then check if any files in the upgrade plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing upgrade code. Remove the entry from `experiment/on-touch.yaml` after tests are added. If `on_touch` list is now empty, delete `experiment/on-touch.yaml`.
   2. Generate TDD tasks for the integration per `patterns/tdd.md`:
      - Credential storage/retrieval
      - Webhook signature validation (if applicable)

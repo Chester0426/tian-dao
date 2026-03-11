@@ -186,7 +186,7 @@ No-go signal: 0 activations after $[half-budget] spend, or <1% CTR after 500 imp
 
 ### Schema rules for ads.yaml
 - `channel`: the selected distribution channel (e.g., `google-ads`, `twitter`, `reddit`)
-- `campaign_name`: auto-generated following the channel's config schema pattern (e.g., `{idea.name}-search-v{N}` for google-ads, `{idea.name}-twitter-v{N}` for twitter)
+- `campaign_name`: auto-generated following the channel's config schema pattern (e.g., `{project-name}-search-v{N}` for google-ads, `{project-name}-twitter-v{N}` for twitter)
 - `budget.total_budget_cents`: defaults to 10000 ($100), max 50000 ($500) without explicit override
 - `budget.duration_days`: defaults to 14 (standard experiment window) unless overridden
 - `guardrails`: channel-specific — CPC channels require `max_cpc_cents`; other channels may use `max_cpe_cents` or just `auto_pause_rules`
