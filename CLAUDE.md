@@ -128,6 +128,7 @@ Follow the database patterns defined in your active database stack file (`.claud
 ## Rule 11: Memory
 - After fixing build errors in the verification procedure, save project-specific patterns to auto memory
 - Universal patterns that apply to any project with this stack belong in `.claude/stacks/<category>/<value>.md` — not in auto memory
+- Planning patterns (auth flow interactions, stack integration quirks, codebase conventions) are project-specific — save to auto memory under "Planning Patterns" heading, consulted during `/change` Phase 1 exploration
 - Auto memory is an accelerator, not a dependency — skills must function correctly with empty auto memory (fresh developer, fresh machine)
 
 ## Rule 12: Template Observations
