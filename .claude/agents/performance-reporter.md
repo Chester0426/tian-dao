@@ -1,6 +1,6 @@
 ---
 name: performance-reporter
-description: "Measures page bundle sizes from Next.js build output. Scan only — never fixes code."
+description: "Measures page bundle sizes, Core Web Vitals, and API response times. Scan only — never fixes code."
 model: sonnet
 tools:
   - Bash
@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 15
+maxTurns: 20
 ---
 
 # Performance Reporter
@@ -58,7 +58,52 @@ Check the shared chunks section of the build output (listed under "First Load JS
 
 If `.next/analyze` or a bundle analyzer output exists, reference it. Otherwise, rely on the build output summary.
 
+### P5. Lighthouse Core Web Vitals
+
+Check: `npx lighthouse --version`. If it fails → skip P5, report "Lighthouse not installed — skipping Core Web Vitals."
+
+If available:
+
+1. Start server on port **3095** (demo mode):
+   ```bash
+   DEMO_MODE=true NEXT_PUBLIC_DEMO_MODE=true npm run start -- -p 3095 &
+   ```
+   Poll `http://localhost:3095` until it responds (max 15 seconds, then abort).
+
+2. Read `experiment/experiment.yaml` to get the list of pages from `golden_path`.
+
+3. For each golden_path page:
+   ```bash
+   npx lighthouse http://localhost:3095/<route> --output=json --quiet --chrome-flags="--headless --no-sandbox" --only-categories=performance
+   ```
+
+4. Extract from JSON output:
+   - **LCP** (Largest Contentful Paint) — threshold: 2.5s (WARN if exceeded)
+   - **CLS** (Cumulative Layout Shift) — threshold: 0.1 (WARN if exceeded)
+   - **INP** (Interaction to Next Paint) — threshold: 200ms (WARN if exceeded, may be 0 for non-interactive pages)
+
+5. Cleanup:
+   ```bash
+   kill %1 2>/dev/null || true
+   ```
+
+### P6. API Route Response Time
+
+Scan `src/app/api/` for route handlers. If no API routes exist, skip P6.
+
+For each API route:
+
+```bash
+curl -w "%{time_total}" -o /dev/null -s http://localhost:3095/<api-route>
+```
+
+> If the server from P5 is not running (Lighthouse was skipped), start it on port 3095 for this check, then clean up after.
+
+Threshold: **500ms**. Any route exceeding 500ms is flagged as WARN.
+
 ## Output Contract
+
+**Bundle Sizes (P1-P4):**
 
 | Page | First Load JS | Status |
 |------|--------------|--------|
@@ -66,11 +111,33 @@ If `.next/analyze` or a bundle analyzer output exists, reference it. Otherwise, 
 | /signup | 215.4 kB | WARN (>200KB) |
 | ... | ... | ... |
 
+**Core Web Vitals (P5):**
+
+| Page | LCP | CLS | INP | Status |
+|------|-----|-----|-----|--------|
+| / | 1.2s | 0.05 | 120ms | pass |
+| /signup | 3.1s | 0.02 | 80ms | WARN (LCP >2.5s) |
+| ... | ... | ... | ... | ... |
+
+> If Lighthouse not installed: "Lighthouse not installed — skipping Core Web Vitals."
+
+**API Response Times (P6):**
+
+| Endpoint | Response Time | Status |
+|----------|--------------|--------|
+| /api/auth/signup | 120ms | pass |
+| /api/checkout | 620ms | WARN (>500ms) |
+| ... | ... | ... |
+
+> If no API routes: "No API routes found — skipping P6."
+
 **Summary:**
 - Total pages: N
 - Pages over 200KB threshold: N
 - Largest page: /path (size)
 - Shared JS (loaded by all pages): size
+- Core Web Vitals: N pages measured, N warnings (or "skipped")
+- API routes: N measured, N over 500ms threshold (or "skipped")
 
 If any pages exceed 200KB, add a note:
 
