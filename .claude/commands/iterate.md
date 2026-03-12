@@ -32,6 +32,7 @@ This skill does NOT write code. It helps you decide what action to take, then po
   - `web` (web-app) — funnel events come from EVENTS.yaml `standard_funnel`
   - `custom` (service, cli) — funnel events come from EVENTS.yaml `custom_events` and the experiment's own event definitions
 - Read `EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
+- If `.claude/spec-manifest.json` exists, read it for hypothesis context (used in Step 3.5 for per-hypothesis verdicts)
 
 ## Step 2: Gather funnel data and user feedback
 
@@ -236,6 +237,18 @@ When `funnel_template` is `custom`, map custom funnel events to the 4 standard d
 
 Apply these dimension labels in the Scorecard output so that the 4-column structure (REACH, DEMAND, MONETIZE, RETAIN) remains consistent regardless of archetype.
 
+#### Descriptive funnel labels by archetype
+
+Use these human-readable labels in the Scorecard output for service and cli archetypes:
+
+| Archetype | REACH | DEMAND | MONETIZE | RETAIN |
+|-----------|-------|--------|----------|--------|
+| web-app | Landing page visits | CTA clicks / signups | Payment starts | Return visits |
+| service | API adoption rate | Integration requests | API key upgrades | Monthly active integrations |
+| cli | Install rate | Daily active usage | Pro feature adoption | Update rate |
+
+These labels replace generic "REACH", "DEMAND" etc. in the Scorecard when the archetype is service or cli, making the output more meaningful to the operator.
+
 #### Decision Framework Reference
 
 The `decision_framework` field in experiment.yaml `funnel` section is human-readable documentation of the experiment's decision criteria. The actual verdict logic uses the two-tier approach: pace-based overall verdict (Step 3) + per-dimension Scorecard ratios (Step 4). The `decision_framework` field serves as operator context — display it in the Step 7 summary for reference but do not use it to override the algorithmic verdict.
@@ -349,6 +362,8 @@ Read `thresholds.go_signal` and `thresholds.no_go_signal` from `experiment/ads.y
 Write `.claude/iterate-manifest.json`:
 ```json
 {
+  "experiment_id": "<experiment.yaml name>",
+  "round": 1,
   "verdict": "<SCALE|KILL|PIVOT|REFINE|TOO_EARLY>",
   "bottleneck": {
     "stage": "<funnel stage name>",
@@ -388,6 +403,8 @@ Write `.claude/iterate-manifest.json`:
 }
 ```
 
+- `experiment_id`: populated from experiment.yaml `name` field. Identifies which experiment this analysis belongs to.
+- `round`: auto-incremented iteration counter. On first `/iterate` run, set to `1`. On subsequent runs, read existing `.claude/iterate-manifest.json` and set `round` to previous value + 1. This tracks how many iteration cycles the experiment has gone through.
 - `hypothesis_verdicts` and `funnel_scores` are only populated when spec-manifest.json exists. Omit both fields for experiments without /spec.
 - `bottleneck.dimension`, `bottleneck.ratio`, and `bottleneck.recommendation` are populated from the Validation Scorecard. For experiments without spec-manifest, populate from funnel analysis only (`dimension` and `ratio` may be null).
 
