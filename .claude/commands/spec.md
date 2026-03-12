@@ -8,6 +8,7 @@ references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
+  - .claude/patterns/spec-reasoning.md
 branch_prefix: feat
 modifies_specs: true
 ---
@@ -172,6 +173,35 @@ If 2+ dimensions are `fail`: stop and tell the user:
 
 Wait for the user to revise, override, or abandon.
 
+### STOP 1: Pre-flight Reasoning
+
+Before proceeding to hypothesis generation, apply spec-reasoning.md sections 1-2:
+
+1. **Market Sizing Reasoning** (section 1): Evaluate the pre-flight research against the market sizing checklist. For each item, note whether it passes, flags a concern, or fails.
+2. **Competitive Differentiation Reasoning** (section 2): Evaluate the competitive landscape against the differentiation checklist.
+
+Present the reasoning results:
+
+```
+Pre-flight Reasoning
+────────────────────
+Market Sizing:
+  [✓/⚠/✗] Addressable market identified: [assessment]
+  [✓/⚠/✗] Active spending: [assessment]
+  [✓/⚠/✗] Market signals: [assessment]
+  [✓/⚠/✗] Reachable via channels: [assessment]
+  [✓/⚠/✗] Not shrinking: [assessment]
+
+Competitive Differentiation:
+  [✓/⚠/✗] Competitors identified: [assessment]
+  [✓/⚠/✗] Gap articulated: [assessment]
+  [✓/⚠/✗] User-facing differentiation: [assessment]
+  [✓/⚠/✗] Not just cheaper: [assessment]
+  [✓/⚠/✗] Timing advantage: [assessment]
+```
+
+**STOP.** Wait for user confirmation before proceeding to Step 3.
+
 ## Step 3: Generate Hypotheses
 
 Generate 5-10 hypotheses spanning these categories:
@@ -210,6 +240,33 @@ Each hypothesis must have:
 - Maximum pending hypotheses: level minimum + 2. Extra hypotheses must test genuinely independent risks, not rephrasings of existing ones.
 - `monetize` hypotheses appear at Level 2+ but are only *required* at Level 3
 - Sort by `priority_score` descending
+
+### STOP 2: Hypothesis Quality Review
+
+Before deriving behaviors, apply spec-reasoning.md section 3:
+
+1. **Hypothesis Quality Reasoning** (section 3): Evaluate each hypothesis against the quality checklist.
+
+Present the hypotheses for review:
+
+```
+Hypothesis Quality Review
+─────────────────────────
+  [✓/⚠/✗] Numeric thresholds: [all have concrete numbers? any arbitrary round numbers?]
+  [✓/⚠/✗] Grounded thresholds: [based on benchmarks/data or guesswork?]
+  [✓/⚠/✗] Category coverage: [all required categories present?]
+  [✓/⚠/✗] No duplicates: [each tests independent risk?]
+  [✓/⚠/✗] Dependencies explicit: [depends_on correctly set?]
+  [✓/⚠/✗] Falsifiable: [each can clearly fail?]
+  [✓/⚠/✗] Level-appropriate: [no out-of-scope categories?]
+
+Hypotheses:
+  h-01 [CATEGORY] "statement" — threshold: [value]
+  h-02 [CATEGORY] "statement" — threshold: [value]
+  ...
+```
+
+**STOP.** Wait for user review before proceeding to Step 4.
 
 ## Step 4: Derive Behaviors
 
@@ -276,6 +333,31 @@ Generate 3-5 offer variants. Each variant is a different messaging angle for the
 - Each variant targets a different emotional angle (e.g., time-saving vs cost-saving vs status)
 - `pain_points` must be specific to the target user, not generic
 - If Level 3 AND monetize hypotheses exist: add `pricing_amount` and `pricing_model` fields to each variant
+
+### STOP 3: Variant Distinctiveness Review
+
+Before assembling the final experiment.yaml, apply spec-reasoning.md section 5:
+
+1. **Variant Distinctiveness Reasoning** (section 5): Evaluate each variant pair against the distinctiveness checklist.
+
+Present the variants for review:
+
+```
+Variant Distinctiveness Review
+──────────────────────────────
+  [✓/⚠/✗] >30% word difference: [pairwise comparison results]
+  [✓/⚠/✗] Different emotional angles: [angle per variant]
+  [✓/⚠/✗] Specific pain points: [concrete vs generic?]
+  [✓/⚠/✗] Action-oriented CTAs: [each starts with verb?]
+  [✓/⚠/✗] No obvious winner: [balanced quality?]
+
+Variants:
+  [slug] — "[headline]" (angle: [emotional angle])
+  [slug] — "[headline]" (angle: [emotional angle])
+  ...
+```
+
+**STOP.** Wait for user to choose variant strategy before proceeding to Step 6.
 
 ## Step 6: Assemble experiment.yaml
 
