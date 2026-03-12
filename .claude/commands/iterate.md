@@ -428,7 +428,7 @@ If the diagnosis reveals a need to change direction:
 - Recommend immediate actions:
   1. Stop spending on ads/distribution — further traffic is unlikely to change the outcome
   2. Run `/retro` to file a retrospective while findings are fresh
-  3. Run `/teardown` to remove cloud infrastructure (Vercel, Supabase, etc.) and stop ongoing costs
+  3. If you deployed the app (via `/deploy`), run `/teardown` to remove cloud infrastructure and stop ongoing costs. If you only bootstrapped without deploying, skip this step — there's no cloud infrastructure to clean up
   4. If pivoting: edit experiment.yaml with a new thesis/target_user, then `make clean` and `/bootstrap` to start fresh (or in a new repo)
 - Do NOT update experiment.yaml automatically — the user should decide whether to pivot or stop
 
