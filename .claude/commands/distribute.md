@@ -387,3 +387,80 @@ Only reached when:
 - Skip the config approval step (Step 6) — the operator must review targeting, ad creative, and budget before proceeding
 - Hardcode analytics import paths or provider names — always read the analytics stack file for the correct imports
 - Hardcode channel-specific constraints (char limits, click ID params, UTM values) — always read the distribution stack file for the selected channel
+
+---
+
+## 6-Adapter Reference
+
+The distribution system supports 6 adapters across paid and organic channels:
+
+| # | Adapter | Stack File | Config Output | Type |
+|---|---------|-----------|---------------|------|
+| 1 | twitter-organic | `distribution/twitter-organic.md` | `organic.yaml` | Organic |
+| 2 | reddit-organic | `distribution/reddit-organic.md` | `organic.yaml` | Organic |
+| 3 | email-resend | `distribution/email-campaign.md` | `campaign.yaml` | Organic |
+| 4 | google-ads | `distribution/google-ads.md` | `ads.yaml` | Paid |
+| 5 | meta-ads | `distribution/meta-ads.md` | `ads.yaml` | Paid |
+| 6 | twitter-ads | `distribution/twitter.md` | `ads.yaml` | Paid |
+
+> Note: `reddit.md` (Reddit Ads) exists as a stack file but is not in the 6-adapter list. It can be used as a 7th channel if needed.
+
+## Channel Selection Logic
+
+Channel availability depends on the experiment's plan tier and budget:
+
+**Free / PAYG plans** — organic channels only:
+- twitter-organic — post threads and value content
+- reddit-organic — community-first posts in target subreddits
+- email-resend — batch email to signup/waitlist audience
+
+**Pro / Team plans** — all 6 channels:
+- All organic channels above, plus:
+- google-ads — search intent targeting (CPC)
+- meta-ads — interest-based targeting (CPM)
+- twitter-ads — audience-based targeting (CPE/CPM)
+
+**Selection factors:**
+- Experiment type: B2B → LinkedIn (manual) + Google Ads + email; B2C → Meta Ads + Reddit + Twitter
+- Target audience: developer tools → Reddit + Twitter organic; consumer → Meta Ads + email
+- Budget constraints: <$100 → organic only; $100-500 → 1-2 paid channels; >$500 → multi-channel
+
+## Budget Allocation
+
+When running multiple channels simultaneously, allocate budget across paid channels:
+
+**Default split (no historical data):**
+
+| Channel | Allocation | Rationale |
+|---------|-----------|-----------|
+| Google Ads | 40% | Highest intent (search-based) |
+| Meta Ads | 30% | Broadest reach (interest-based) |
+| Twitter Ads | 15% | Engagement-focused |
+| Organic channels | 15% | Time investment, not budget |
+
+**Organic-only split (time allocation):**
+
+| Channel | Allocation | Rationale |
+|---------|-----------|-----------|
+| Twitter organic | 40% | Highest potential reach per post |
+| Reddit organic | 35% | Community trust, long-tail engagement |
+| Email campaign | 25% | Direct to known audience |
+
+**AI-suggested adjustments:**
+- If experiment targets developers: shift 10% from Meta to Reddit organic
+- If experiment is B2B SaaS: shift 10% from Twitter to Google Ads (higher intent)
+- If experiment is consumer app: shift 10% from Google to Meta (broader reach)
+- After first iteration: reallocate toward channels with lowest cost-per-activation
+
+## Config Generation
+
+Each adapter generates its corresponding config file from experiment data:
+
+1. Read experiment.yaml for `name`, `description`, `target_user`, `thesis`, `variants`
+2. Read the adapter's stack file for Config Schema section
+3. Generate targeting research (Step 2) appropriate to the channel type
+4. Generate ad creative / post content (Step 3) following the channel's format constraints
+5. Calculate thresholds (Step 4) based on the channel's cost model
+6. Write the config file (`ads.yaml`, `organic.yaml`, or `campaign.yaml`)
+
+When running `/distribute` multiple times for different channels, each config file is versioned: `ads.yaml` (first), `ads-v2.yaml` (second paid channel), `organic.yaml` (first organic), `organic-v2.yaml` (second organic), etc.
