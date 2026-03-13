@@ -313,18 +313,17 @@ branch: `feat/bootstrap-spec-enhancements`
 
 修改 spec.md，使 /spec skill：
 - 在执行推理时 import `.claude/patterns/spec-reasoning.md` 作为 shared reasoning rules（在文件中添加读取指令）
-- 包装为带 4 个 STOP points 的交互式流程：
-  1. Pre-flight results → **STOP**（等待用户确认方向）
-  2. Hypotheses → **STOP**（等待用户审核假设）
-  3. Variants → **STOP**（等待用户选择变体策略）
-  4. Final spec → **STOP**（用户最终确认）
+- 包装为带 3 个 STOP points 的交互式流程：
+  1. Pre-flight Reasoning → **STOP**（等待用户确认方向）
+  2. Hypothesis Quality Review → **STOP**（等待用户审核假设）
+  3. Variant Distinctiveness Review → **STOP**（等待用户选择变体策略）
 - Output format: `experiment.yaml`（CLI 不使用 `>>>EVENT:` — 那是 SSE streaming 专用格式）
 - Reuse spec-reasoning.md 的 6 个 reasoning sections，不重复定义
 
 **PR 2 验证**：
 1. `bootstrap.md` 中搜索 `"Vitest co-installation"` 能找到完整段落
 2. `spec.md` 中搜索 `"spec-reasoning.md"` 能找到引用
-3. `spec.md` 中搜索 `"STOP"` 能找到 4 个 stop points
+3. `spec.md` 中搜索 `"STOP"` 能找到 3 个 stop points
 
 ### PR 3: iterate.md + distribute.md 修改
 
@@ -345,14 +344,46 @@ branch: `feat/iterate-distribute-enhancements`
 **Output 定义** — iterate-manifest.json:
 ```json
 {
-  "experiment_id": "string",
-  "round": "number",
-  "per_hypothesis_verdicts": [
-    { "hypothesis_id": "string", "verdict": "CONFIRMED|REJECTED|INCONCLUSIVE", "evidence": "string" }
+  "experiment_id": "<experiment.yaml name>",
+  "round": 1,
+  "verdict": "<SCALE|KILL|PIVOT|REFINE|TOO_EARLY>",
+  "bottleneck": {
+    "stage": "<funnel stage name>",
+    "conversion": "<percentage>",
+    "diagnosis": "<one-line diagnosis>",
+    "dimension": "<REACH|DEMAND|ACTIVATE|MONETIZE|RETAIN>",
+    "ratio": 0.65,
+    "recommendation": "<dimension-specific recommendation>"
+  },
+  "recommendations": [
+    {
+      "action": "<what to do>",
+      "skill": "</change ...>",
+      "expected_impact": "<which metric improves>"
+    }
   ],
-  "experiment_verdict": "CONFIRMED|REJECTED|INCONCLUSIVE",
-  "bottleneck_dimension": "REACH|DEMAND|ACTIVATE|MONETIZE|RETAIN",
-  "recommended_action": "string"
+  "variant_winner": "<slug or null>",
+  "analyzed_at": "<ISO 8601>",
+  "hypothesis_verdicts": [
+    {
+      "hypothesis_id": "<id from spec-manifest>",
+      "metric_formula": "<metric.formula from hypothesis>",
+      "metric_operator": "<metric.operator from hypothesis>",
+      "computed_value": "<result of evaluating formula against event counts>",
+      "threshold": "<metric.threshold from hypothesis>",
+      "verdict": "<CONFIRMED|REJECTED|INCONCLUSIVE|BLOCKED>",
+      "blocked_by": "<parent hypothesis id or null>",
+      "sample_size": 0,
+      "confidence_level": "<insufficient data|directional signal|reliable|high confidence>"
+    }
+  ],
+  "funnel_scores": {
+    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "activate": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "retain": null
+  }
 }
 ```
 
@@ -383,7 +414,7 @@ branch: `feat/iterate-distribute-enhancements`
 
 **PR 3 验证**：
 1. `iterate.md` 中搜索 `"iterate-manifest.json"` 能找到 output 定义
-2. `iterate.md` 中搜索 `"per_hypothesis_verdicts"` 或 `"CONFIRMED"` 能找到 verdict 逻辑
+2. `iterate.md` 中搜索 `"hypothesis_verdicts"` 或 `"CONFIRMED"` 能找到 verdict 逻辑
 3. `iterate.md` 中搜索 `"service:"` 和 `"cli:"` 能找到 archetype-specific funnel mapping
 4. `distribute.md` 中搜索 `"meta-ads"` 和 `"twitter-organic"` 能找到 6 adapters
 5. `distribute.md` 中搜索 `"Free/PAYG"` 或 `"organic only"` 能找到 channel selection logic
@@ -471,6 +502,7 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
 6. Funnel thresholds — 这是 Assayer 平台自身的验证：
    - REACH: Ad CTR > 2%
    - DEMAND: Signup rate > 5%
+   - ACTIVATE: Spec completion rate > 40%
    - MONETIZE: Pro conversion > 3%
    - RETAIN: 30-day return > 30%
 
@@ -2297,7 +2329,7 @@ Metrics sync cron 调用 /iterate skill 逻辑（而非仅 inline decision frame
 - 读取 spec-manifest.json（由 skill-runner.js 在 Session 9 生成）
 - 运行 per-hypothesis verdict: 每个 hypothesis 独立判定 CONFIRMED / REJECTED / INCONCLUSIVE
 - 写入 hypotheses 表 status 字段（passed = CONFIRMED, failed = REJECTED, testing = INCONCLUSIVE）
-- 生成 iterate-manifest.json: { experiment_id, round, per_hypothesis_verdicts[], experiment_verdict, bottleneck_dimension, recommended_action }
+- 生成 iterate-manifest.json: { experiment_id, round, verdict, bottleneck, recommendations, variant_winner, analyzed_at, hypothesis_verdicts, funnel_scores }
 - Experiment-level verdict 由 per-hypothesis verdicts 聚合得出（all CONFIRMED → SCALE, any top-funnel REJECTED → KILL, etc.）
 
 ## 3. Verdict Engine
