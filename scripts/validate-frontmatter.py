@@ -54,7 +54,6 @@ ARCHETYPE_REQUIRED_KEYS = [
     "excluded_stacks",
     "required_experiment_fields",
     "build_command",
-    "funnel_template",
 ]
 
 

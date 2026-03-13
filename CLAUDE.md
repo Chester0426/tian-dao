@@ -24,8 +24,8 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Use the analytics library for all tracking calls — never call the analytics provider directly. See your analytics stack file (`.claude/stacks/analytics/<value>.md`) for the file path, exports, and import conventions.
 - Use typed event wrappers (see analytics stack file) for standard and payment funnel events — this provides compile-time validation. For custom events, use the generic `track()` function. For server-side events (webhooks, API routes), use `trackServerEvent(event, distinctId, properties?)` from the server analytics library — `distinctId` identifies the user (e.g., `user.id`; use `"server"` when no user context is available). Typed wrappers are client-side only.
 - The analytics library auto-attaches global properties defined in EVENTS.yaml `global_properties` to every event — these distinguish experiments in the shared analytics project.
-- Wire each `standard_funnel` event from EVENTS.yaml to its corresponding page. If no page provides a natural trigger for an event (e.g., no signup page), omit that event.
-- `payment_funnel` events from EVENTS.yaml are required only when `stack.payment` is present in experiment.yaml.
+- Wire each event from the EVENTS.yaml `events` map to its corresponding page, filtering by `requires` (match experiment stack) and `archetypes` (match experiment type). If no page provides a natural trigger for an event (e.g., no signup page), omit that event.
+- Events with `requires: [payment]` in EVENTS.yaml are included only when `stack.payment` is present in experiment.yaml.
 - If you rename the project in experiment.yaml (`name` field), update the analytics library constants — see your analytics stack file for which constants to change.
 
 ## Rule 3: Use Stack from experiment.yaml

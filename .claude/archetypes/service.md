@@ -5,7 +5,6 @@ optional_stacks: [database, auth, analytics, payment, email, testing]
 excluded_stacks: [ui]
 required_experiment_fields: [endpoints]
 build_command: "npm run build"
-funnel_template: custom
 ---
 
 # Service Archetype
@@ -31,21 +30,19 @@ live under `/api/*`.
 
 ## Funnel
 
-Services use `funnel_template: custom` for product-specific events. However,
-when a surface is configured (default: `co-located`), `visit_landing` fires
-on the surface — providing a complete acquisition → activation → retention
-funnel.
+Events are defined in EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack. The `api_call` event has `archetypes: [service]` — include it for service experiments.
+
+When a surface is configured (default: `co-located`), `visit_landing` fires on the surface — providing a complete acquisition → activation → retention funnel.
 
 Surface events (fired by the HTML surface page, not the API):
-1. `visit_landing` — user loads the surface page at the root URL
+1. `visit_landing` (reach) — user loads the surface page at the root URL
 
 Product events (suggestions, not requirements):
-1. `api_call` — a request hits an endpoint
-2. `activate` — user completes the core action via the API (maps to ACTIVATE dimension)
-3. `retain_return` — user makes a request after 24+ hours since last call
+1. `api_call` (reach, `archetypes: [service]`) — a request hits an endpoint
+2. `activate` (activate) — user completes the core action via the API
+3. `retain_return` (retain) — user makes a request after 24+ hours since last call
 
-Surface events use an inline PostHog snippet. Product events use
-`trackServerEvent()` from the server analytics library.
+Surface events use an inline PostHog snippet. Product events use `trackServerEvent()` from the server analytics library.
 
 ## Testing
 

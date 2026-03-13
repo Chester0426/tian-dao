@@ -31,7 +31,7 @@ For each entry in experiment.yaml `pages`:
   - Follow page conventions from the framework stack file
   - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate EVENTS.yaml event(s) on the correct trigger
   - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
-  - If a standard_funnel event from EVENTS.yaml has no matching page in experiment.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
+  - If an event from the EVENTS.yaml events map has no matching page in experiment.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page**: Do NOT generate the landing page content here — it is
   created by the landing-page subagent (see `scaffold-landing.md`). If
   experiment.yaml has `variants`, create only the structural routing files here:

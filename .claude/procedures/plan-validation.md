@@ -59,7 +59,7 @@ This check is **advisory only** — it flags opportunities, never auto-replaces.
 
 For each proposed new event:
 
-- Check `EVENTS.yaml` `custom_events` for conflicts with existing event names
+- Check the EVENTS.yaml `events` map for conflicts with existing event names
 - Verify the proposed name follows the `<object>_<action>` snake_case convention
 
 **If name conflict**: Auto-adjust — append a differentiating suffix and note: "Event `[name]` already exists in EVENTS.yaml. Renamed to `[new_name]`."

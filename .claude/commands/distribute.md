@@ -31,7 +31,7 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
 
 1. Verify `experiment/experiment.yaml` exists and is complete. If not, stop: "No experiment found. Create `experiment/experiment.yaml` from the template first, then run `/bootstrap`."
 2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
-3. Verify `EVENTS.yaml` contains a `custom_events` key that is a list (empty list `[]` is valid). If not, stop: "EVENTS.yaml is malformed — the `custom_events` key is missing or not a list. Run `make validate` to diagnose, or restore the file from the template."
+3. Verify `EVENTS.yaml` contains an `events` key that is a dict (flat map). If not, stop: "EVENTS.yaml is malformed — the `events` key is missing or not a dict. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
 5. Verify the app is deployed: check `landing_url` in existing `experiment/ads.yaml`, or check `surface_url` (then `canonical_url`) in `.claude/deploy-manifest.json`, or ask the user for the deployed URL. For CLI archetype, the surface URL IS the target URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live surface page. Run `/deploy` first, then re-run `/distribute`."
 6. **Channel selection:**
@@ -228,11 +228,11 @@ Present the full config for review.
 
 ### 7c: Feedback widget (post-activation)
 
-Add `feedback_submitted` to EVENTS.yaml `custom_events`:
+Add `feedback_submitted` to EVENTS.yaml `events` map:
 
 ```yaml
-custom_events:
-  - event: feedback_submitted
+  feedback_submitted:
+    funnel_stage: activate
     trigger: User submits post-activation feedback widget
     properties:
       source:

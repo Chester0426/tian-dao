@@ -5,7 +5,6 @@ optional_stacks: [database, auth, analytics, ui, payment, email, testing]
 excluded_stacks: []
 required_experiment_fields: [golden_path]
 build_command: "npm run build"
-funnel_template: web
 ---
 
 # Web App Archetype
@@ -27,18 +26,16 @@ Pages are React components rendered in the browser. The landing page
 
 ## Funnel
 
-Standard web funnel defined in EVENTS.yaml:
-The landing page serves as both the product entry point and the acquisition
-surface — `visit_landing` fires here.
+Events are defined in EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack.
 
-1. `visit_landing` — user loads the landing page
-2. `signup_start` — user begins the signup flow
-3. `signup_complete` — user finishes signup
-4. `activate` — user completes the core action for the first time (maps to ACTIVATE dimension)
-5. `retain_return` — user returns after initial activation
+Standard web funnel events:
+1. `visit_landing` (reach) — user loads the landing page
+2. `signup_start` (demand) — user begins the signup flow
+3. `signup_complete` (demand) — user finishes signup
+4. `activate` (activate) — user completes the core action for the first time
+5. `retain_return` (retain) — user returns after initial activation
 
-Payment funnel events (`pay_start`, `pay_success`) are added when
-`stack.payment` is present in experiment.yaml.
+Payment events (`pay_start`, `pay_success`) have `requires: [payment]` in EVENTS.yaml and are included when `stack.payment` is present in experiment.yaml.
 
 ## Conventions
 

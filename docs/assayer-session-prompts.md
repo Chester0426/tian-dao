@@ -420,7 +420,7 @@ branch: `feat/iterate-distribute-enhancements`
 **输出合约**（Session 2 验证）：
 ```
 experiment/experiment.yaml  → name: assayer, type: web-app, level: 3, quality: production, stack.database: supabase
-experiment/EVENTS.yaml      → 含 standard_funnel, payment_funnel, global_properties sections
+experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_properties sections
 ```
 
 **Prompt**:
@@ -475,8 +475,8 @@ experiment/EVENTS.yaml      → 含 standard_funnel, payment_funnel, global_prop
    - RETAIN: 30-day return > 30%
 
 7. 同时编写 EVENTS.yaml，定义：
-   - standard_funnel events（visit_landing, cta_click, signup_complete, etc.）
-   - payment_funnel events（checkout_started, payment_complete, subscription_created）
+   - events flat map with funnel_stage tags（visit_landing, cta_click, signup_complete, checkout_started, payment_complete, etc.）
+   - payment events have requires: [payment]
    - global_properties: { experiment_name: "assayer", experiment_id: "platform" }
    - 自定义 events：spec_generated, experiment_created, verdict_delivered, distribution_launched
 

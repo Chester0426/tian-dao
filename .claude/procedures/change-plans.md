@@ -188,18 +188,13 @@
 ```
 ## Audit Report
 
-### Standard Funnel Events
-| Event | Expected Location | Status | Issue |
-|-------|-------------------|--------|-------|
-| [event from EVENTS.yaml] | [page] | ✅/❌/⚠️ | [issue or —] |
+### Events
+| Event | Funnel Stage | Expected Location | Status | Issue |
+|-------|-------------|-------------------|--------|-------|
+| [event from EVENTS.yaml events map] | [funnel_stage] | [page] | ✅/❌/⚠️ | [issue or —] |
 
-### Custom Events
-| Event | Expected Location | Status | Issue |
-|-------|-------------------|--------|-------|
-| (from EVENTS.yaml custom_events) | ... | ... | ... |
-
-### Suggested Custom Events (if any)
-- [event_name] — fires when [trigger]
+### Suggested Events (if any)
+- [event_name] — fires when [trigger] (add to events map with funnel_stage)
 ```
 
 ## Test Plan Template

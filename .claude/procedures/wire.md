@@ -170,8 +170,7 @@ Re-read `.claude/current-plan.md` and `experiment/experiment.yaml` now. Verify e
 
 **Feature and analytics checks:**
 - For each behavior in `behaviors`: confirm the implementation addresses it
-- If `funnel_template` is `web` (web-app): for each standard_funnel event in `EVENTS.yaml`, confirm a tracking call exists in the appropriate page
-- If `funnel_template` is `custom` (service/cli): confirm custom_events tracking calls exist (if any are defined in EVENTS.yaml)
+- For each event in the EVENTS.yaml `events` map (filtered by `requires` matching experiment stack and `archetypes` matching experiment type), confirm a tracking call exists in the appropriate page/route/command
 - If archetype is `cli` and `stack.analytics` is present: confirm `analytics-server.ts` wraps `trackServerEvent()` with an opt-in consent check (see analytics stack file's "CLI Opt-In Consent" section). CLI telemetry must be opt-in per the CLI archetype contract.
 - If surface ≠ none and archetype is `service`: confirm root route exists and returns HTML (Content-Type: text/html)
 - If surface ≠ none and archetype is `cli`: confirm `site/index.html` exists

@@ -28,9 +28,7 @@ This skill does NOT write code. It helps you decide what action to take, then po
   - What does success look like? (`thesis`, `funnel` thresholds)
   - What behaviors exist? (`behaviors`)
   - What is the scope? (pages from `golden_path` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_experiment_fields`)
-- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Note the `funnel_template` value:
-  - `web` (web-app) — funnel events come from EVENTS.yaml `standard_funnel`
-  - `custom` (service, cli) — funnel events come from EVENTS.yaml `custom_events` and the experiment's own event definitions
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Events are defined in EVENTS.yaml as a flat map with `funnel_stage` tags — filter by `requires` (match stack) and `archetypes` (match experiment type).
 - Read `EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
 - If `.claude/spec-manifest.json` exists, read it for hypothesis context (used in Step 3.5 for per-hypothesis verdicts)
 
@@ -46,8 +44,8 @@ If the auto-query succeeds, present the results for user verification:
 ## Auto-fetched Funnel Data (last <N> days)
 | Event | Unique Users |
 |-------|-------------|
-| <first standard_funnel event> | <count> |
-| <second standard_funnel event> | <count> |
+| <first event from EVENTS.yaml> | <count> |
+| <second event from EVENTS.yaml> | <count> |
 | ... | ... |
 Source: Analytics Query API (project_name = "<name>")
 **Please verify.** Reply "looks good" to proceed, or provide corrections.
@@ -67,21 +65,19 @@ Tell the user how to get the numbers. See the analytics stack file's "Dashboard 
 > **How to get your funnel numbers:**
 > Follow the dashboard instructions in your analytics stack file (`.claude/stacks/analytics/<value>.md`).
 >
-> If `funnel_template` is `web` (web-app): create a funnel using events from EVENTS.yaml `standard_funnel` in the order listed, then append `payment_funnel` events if `stack.payment` is present.
->
-> If `funnel_template` is `custom` (service, cli): create a funnel using events from EVENTS.yaml `custom_events`. If `custom_events` is empty, use the typical events suggested in the archetype file (e.g., `api_call` → `activate` → `retain_return` for services, `command_run` → `activate` → `retain_return` for CLIs). Also include `payment_funnel` events if `stack.payment` is present.
+> Create a funnel using events from the EVENTS.yaml `events` map, filtered by `requires` (match experiment stack) and `archetypes` (match experiment type), ordered by funnel_stage (reach → demand → activate → monetize → retain).
 >
 > Filter by `project_name` equals your experiment.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
 > If you haven't deployed yet, the app isn't collecting data. For web-app and service archetypes, run `/deploy` first; for CLI archetypes, publish via `npm publish` or GitHub Releases (see the archetype file). Then return to `/iterate` after a few days of live traffic. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
-Ask the user to provide funnel numbers — for each event in the funnel (from `standard_funnel` for web-app or `custom_events` for service/cli, plus `payment_funnel` if `stack.payment` is present), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
+Ask the user to provide funnel numbers — for each event in the EVENTS.yaml `events` map (filtered by `requires` and `archetypes`), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
 
 ### 2c: Ask for qualitative data
 
 Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask the user to provide whatever they have. Not all of these will be available — use what you get:
 
-1. **Custom event numbers** — if EVENTS.yaml `custom_events` is non-empty and not already fetched in 2a, ask for counts of each custom event. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
+1. **Additional event numbers** — if EVENTS.yaml has events not already fetched in 2a (e.g., archetype-specific events), ask for counts of each. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
 
 2. **Timeline** — how far into the experiment timeline are we?
 
@@ -194,8 +190,8 @@ Analyze the data to find where the funnel breaks. Present a funnel visualization
 |-------|-------|-----------|-----------|
 | [1st funnel event] | [count] | — | [diagnosis] |
 | [2nd funnel event] | [count] | [%] | ⚠️/✅/❌ [specific diagnosis] |
-| ... (one row per funnel event — from standard_funnel or custom_events depending on archetype) | ... | ... | ... |
-| [payment_funnel events if stack.payment present] | ... | ... | ... |
+| ... (one row per event from EVENTS.yaml events map, filtered by requires/archetypes) | ... | ... | ... |
+| [monetize-stage events if stack.payment present] | ... | ... | ... |
 | [retain_return] | [count] | — | [retention diagnosis] |
 
 If `stack.payment` is absent from experiment.yaml, omit the `pay_start` and `pay_success` rows from the funnel table.
@@ -225,23 +221,9 @@ Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / thre
 - Confidence per-dimension is based on sample size (same tags as Step 3.5)
 - Threshold sourcing (in priority order): (1) `funnel.<dimension>.threshold` from experiment.yaml, (2) spec-manifest.json `hypotheses[].threshold` mapped by category, (3) EVENTS.yaml funnel benchmarks as fallback
 
-#### Custom funnel mapping (service/cli archetypes)
-
-When `funnel_template` is `custom`, map custom funnel events to the 5 standard dimensions for consistent Scorecard output:
-
-| Custom Stage | Dimension |
-|-------------|-----------|
-| `api_call` / `command_run` | REACH |
-| `signup_complete` | DEMAND |
-| `activate` | ACTIVATE |
-| `pay_*` | MONETIZE |
-| `retain_return` | RETAIN |
-
-Apply these dimension labels in the Scorecard output so that the 5-column structure (REACH, DEMAND, ACTIVATE, MONETIZE, RETAIN) remains consistent regardless of archetype.
-
 #### Descriptive funnel labels by archetype
 
-Use these human-readable labels in the Scorecard output for service and cli archetypes:
+Use these human-readable labels in the Scorecard output by archetype:
 
 | Archetype | REACH | DEMAND | ACTIVATE | MONETIZE | RETAIN |
 |-----------|-------|--------|----------|----------|--------|
@@ -327,7 +309,7 @@ Common patterns:
 | Low retention | `/change add [engagement hook]` |
 | Everything low | Reconsider `target_user` or `distribution` — may be a positioning problem, not a product problem |
 
-**Service/CLI bottleneck patterns (when `funnel_template` is `custom`):**
+**Service/CLI bottleneck patterns:**
 
 | Bottleneck | Typical Actions |
 |-----------|----------------|

@@ -154,7 +154,7 @@ If the user replied **"approve and clear"** or **"2"**:
 
 - **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey (adds a page to the main flow, changes a CTA destination, or changes a key step), update `golden_path` in experiment.yaml accordingly. Do NOT remove or modify existing behaviors.
 - **Upgrade**: do NOT modify experiment.yaml `behaviors` (the behavior already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
-- **Analytics**: if the user approved custom events, add them to `custom_events` in EVENTS.yaml following the `<object>_<action>` naming convention with all properties.
+- **Analytics**: if the user approved custom events, add them to the `events` map in EVENTS.yaml with appropriate `funnel_stage`, following the `<object>_<action>` naming convention with all properties.
 - **Fix / Polish**: do NOT modify experiment.yaml or EVENTS.yaml.
 - **Test**: do NOT modify EVENTS.yaml. If adding tests for the first time (no `stack.testing` in experiment.yaml and no `playwright.config.ts` on disk), add `testing: <value>` to experiment.yaml `stack` section. Do not modify other parts of experiment.yaml.
 

@@ -177,8 +177,7 @@ DO NOT write any code, create any files, or run any install commands during this
    Core = removing it prevents users from validating the thesis.
 
    **Analytics Events:**
-   - [For each EVENTS.yaml standard_funnel event, show: event_name on Page Name]
-   - [For each payment_funnel event if stack.payment present, show: event_name on page/route]
+   - [For each event in EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
 
    **Golden Path (from experiment.yaml):**
    | Step | Page | Event |
@@ -186,7 +185,7 @@ DO NOT write any code, create any files, or run any install commands during this
    | 1. [step] | [page] | [event] |
    Target: [target_clicks] clicks
 
-   If experiment.yaml has no `golden_path` field: derive one from behaviors + EVENTS.yaml standard_funnel,
+   If experiment.yaml has no `golden_path` field: derive one from behaviors + EVENTS.yaml events map,
    present it in the plan, and write it back to experiment.yaml after approval (Step 7).
 
    **System/Cron Behaviors (from experiment.yaml):**
@@ -418,7 +417,7 @@ Run combined verification after all four parallel subagents complete — these c
    - If archetype is `cli`: for each command in experiment.yaml `commands`, verify
      `src/commands/<command-name>.ts` exists
 3. **Analytics wiring** (if `stack.analytics` is present): for each
-   standard_funnel event in EVENTS.yaml, grep for the event name in `src/`
+   event in EVENTS.yaml events map, grep for the event name in `src/`
    to confirm a tracking call exists. Also verify analytics constants:
    grep `src/lib/analytics*.ts` for `PROJECT_NAME` —
    it must equal the actual experiment.yaml `name` value, not

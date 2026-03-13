@@ -40,14 +40,15 @@ experiment:
     surface: co-located
 
 events:
-  standard_funnel:
-    - event: visit_landing
-      trigger: User loads the surface page at the root URL
-    - event: activate
-      trigger: User completes a successful weather API call
-    - event: retain_return
-      trigger: User makes a request after 24+ hours since last call
-  custom_events: []
+  visit_landing:
+    funnel_stage: reach
+    trigger: User loads the surface page at the root URL
+  activate:
+    funnel_stage: activate
+    trigger: User completes a successful weather API call
+  retain_return:
+    funnel_stage: retain
+    trigger: User makes a request after 24+ hours since last call
 
 assertions:
   payment_events_required: false

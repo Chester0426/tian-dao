@@ -118,7 +118,7 @@ Notes:
 ```ts
 import { track } from "./analytics";
 
-// --- Standard funnel events (always generated) ---
+// --- Events (generated from EVENTS.yaml events map) ---
 
 export function trackVisitLanding(props?: { variant?: string; referrer?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string; gclid?: string; click_id?: string; utm_content?: string }) {
   track("visit_landing", props);
@@ -140,7 +140,7 @@ export function trackRetainReturn(props: { days_since_last: number }) {
   track("retain_return", props);
 }
 
-// --- Payment funnel events (only when stack.payment is present in experiment.yaml) ---
+// --- Payment events (only when requires: [payment] in EVENTS.yaml) ---
 
 export function trackPayStart(props: { plan: string; amount_cents: number }) {
   track("pay_start", props);
@@ -152,9 +152,9 @@ export function trackPaySuccess(props: { plan: string; amount_cents: number; pro
 ```
 
 Notes:
-- Bootstrap generates this file from EVENTS.yaml — the template above matches the default EVENTS.yaml. If custom events are added to EVENTS.yaml later, they use `track()` from `analytics.ts` directly (no typed wrapper needed).
+- Bootstrap generates this file from EVENTS.yaml — the template above matches the default EVENTS.yaml. Additional events added to the EVENTS.yaml `events` map use `track()` from `analytics.ts` directly (no typed wrapper needed for events added after bootstrap).
 - `trackVisitLanding` uses an optional props parameter since all its properties are optional in EVENTS.yaml.
-- Payment funnel functions (`trackPayStart`, `trackPaySuccess`) are only included when `stack.payment` is present in experiment.yaml. Omit them otherwise.
+- Payment event functions (`trackPayStart`, `trackPaySuccess`) are only included when the event has `requires: [payment]` in EVENTS.yaml and `stack.payment` is present in experiment.yaml. Omit them otherwise.
 - `trackPaySuccess` is exported for completeness but the webhook handler uses `trackServerEvent()` from `analytics-server.ts` instead (server-side). The client-side wrapper is available if a success page needs to track it.
 - Pages import from `@/lib/events` instead of calling `track()` directly — this provides compile-time validation of event names and property types.
 
@@ -261,7 +261,7 @@ When creating a new analytics stack file, document the equivalent endpoint patte
 ## Dashboard Navigation (for /iterate skill)
 How to pull funnel numbers from PostHog:
 1. Go to your PostHog dashboard -> **Insights** -> **New insight** -> **Funnel**
-2. Add these events in order: `visit_landing` -> `signup_start` -> `signup_complete` -> `activate` -> `pay_start` -> `pay_success`. If `stack.payment` is absent from experiment.yaml, omit `pay_start` and `pay_success` from the funnel.
+2. Add events from EVENTS.yaml `events` map in funnel_stage order (reach → demand → activate → monetize → retain). Filter by `requires` (match experiment stack) and `archetypes` (match experiment type). Omit events with `requires: [payment]` if `stack.payment` is absent.
 3. Add a filter: `project_name` equals your experiment.yaml `name` value
 4. Set the date range to match your experiment's start date
 5. Read the count at each funnel stage
@@ -295,7 +295,7 @@ Missing → fall back to manual input + show setup instructions.
 
 ### Query Procedure
 1. Read API key from `~/.posthog/personal-api-key`
-2. Build event list from EVENTS.yaml (`standard_funnel` + `payment_funnel` if `stack.payment` present in experiment.yaml + `custom_events`)
+2. Build event list from EVENTS.yaml `events` map (filter by `requires` matching experiment stack and `archetypes` matching experiment type)
 3. Determine experiment duration from experiment.yaml context (e.g., funnel thresholds, deploy date)
 4. Single HogQL query via curl:
 

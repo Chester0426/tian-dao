@@ -1021,7 +1021,7 @@ deploy:
 Per hypothesis: map `success_metric` → funnel metric, compare against `threshold`.
 Verdict: CONFIRMED / REJECTED / INCONCLUSIVE.
 
-**Custom funnel mapping:** For service/cli archetypes with `funnel_template: custom`, custom events map to the 5 standard dimensions: `api_call`/`command_run` → REACH, `signup_complete` → DEMAND, `activate` → ACTIVATE, `pay_*` → MONETIZE, `retain_return` → RETAIN.
+**Funnel stage mapping:** Each event in EVENTS.yaml has a `funnel_stage` tag (reach, demand, activate, monetize, retain) that directly maps it to the corresponding validation dimension. No separate mapping table is needed — the dimension is explicit on each event definition.
 
 ---
 

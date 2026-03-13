@@ -5,7 +5,6 @@ optional_stacks: [database, analytics, testing]
 excluded_stacks: [hosting, ui, auth, payment, email]
 required_experiment_fields: [commands]
 build_command: "npm run build"
-funnel_template: custom
 ---
 
 # CLI Archetype
@@ -28,23 +27,19 @@ no `src/app/` directory, and no `src/components/` directory. The `hosting`,
 
 ## Funnel
 
-CLIs use `funnel_template: custom` for product-specific events. However,
-when a surface is configured (default: `detached`), `visit_landing` fires
-on the surface — providing a complete acquisition → activation → retention
-funnel.
+Events are defined in EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack. The `command_run` event has `archetypes: [cli]` — include it for CLI experiments.
+
+When a surface is configured (default: `detached`), `visit_landing` fires on the surface — providing a complete acquisition → activation → retention funnel.
 
 Surface events (fired by the HTML marketing page, not the CLI):
-1. `visit_landing` — user loads the detached marketing page
+1. `visit_landing` (reach) — user loads the detached marketing page
 
 Product events (suggestions, not requirements):
-1. `command_run` — user executes a command
-2. `activate` — user completes the core action for the first time (maps to ACTIVATE dimension)
-3. `retain_return` — user runs the CLI again after 24+ hours since last use
+1. `command_run` (reach, `archetypes: [cli]`) — user executes a command
+2. `activate` (activate) — user completes the core action for the first time
+3. `retain_return` (retain) — user runs the CLI again after 24+ hours since last use
 
-Surface events use an inline PostHog snippet. Product events use opt-in
-`trackServerEvent()` from the server analytics library. Analytics must be
-opt-in — check for a consent flag or environment variable before sending
-any telemetry.
+Surface events use an inline PostHog snippet. Product events use opt-in `trackServerEvent()` from the server analytics library. Analytics must be opt-in — check for a consent flag or environment variable before sending any telemetry.
 
 ## Testing
 

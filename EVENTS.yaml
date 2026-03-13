@@ -3,6 +3,13 @@
 # All events are sent via the analytics library (see analytics stack file for path).
 # Every event automatically includes global_properties.
 # Event names are snake_case. Custom events should follow the pattern: <object>_<action>.
+#
+# Structure: flat map keyed by event name. Each event has:
+#   funnel_stage: reach|demand|activate|monetize|retain
+#   trigger: when this event fires
+#   properties: (optional) typed property definitions
+#   requires: (optional) stack dependencies, e.g. [payment]
+#   archetypes: (optional) archetype-specific events, e.g. [service]
 
 global_properties:
   project_name:
@@ -14,12 +21,12 @@ global_properties:
     type: string
     required: true
 
-# Standard funnel — every experiment with a surface tracks visit_landing.
-# Remaining events map to: activation → retention.
 # All properties marked required:true must be included in every track() call for that event.
 # Properties marked required:false are optional — include them when the data is available.
-standard_funnel:
-  - event: visit_landing
+
+events:
+  visit_landing:
+    funnel_stage: reach
     trigger: User loads the surface page (landing page for web-app, root URL for service, marketing page for CLI)
     properties:
       variant:
@@ -55,7 +62,8 @@ standard_funnel:
         required: false
         description: UTM content parameter from URL (variant attribution and ad creative tracking)
 
-  - event: signup_start
+  signup_start:
+    funnel_stage: demand
     trigger: User clicks "Sign up" or opens the registration form
     properties:
       method:
@@ -63,7 +71,8 @@ standard_funnel:
         required: true
         description: "Signup method: email, google, github"
 
-  - event: signup_complete
+  signup_complete:
+    funnel_stage: demand
     trigger: User successfully creates an account (after email verification if applicable)
     properties:
       method:
@@ -71,7 +80,8 @@ standard_funnel:
         required: true
         description: "Signup method: email, google, github"
 
-  - event: activate
+  activate:
+    funnel_stage: activate
     trigger: User completes the core action that delivers first value (defined by experiment.yaml thesis)
     properties:
       action:
@@ -83,7 +93,8 @@ standard_funnel:
         required: false
         description: "True when the feature is a Fake Door (intent tracking only, not real integration). Absent or false for real activations."
 
-  - event: retain_return
+  retain_return:
+    funnel_stage: retain
     trigger: User returns to the app after 24+ hours since last visit
     # See framework stack file's retain_return section for implementation details
     properties:
@@ -92,16 +103,10 @@ standard_funnel:
         required: true
         description: Days since previous visit (rounded down)
 
-# Note: The standard_funnel above applies to web-app archetypes (browser pages).
-# Funnel dimension mapping: visit_landing (REACH), cta_click/signup_complete (DEMAND),
-# activate (ACTIVATE), pay_start/pay_success (MONETIZE), retain_return (RETAIN).
-# Services (type: service) use funnel_template: custom — define events in custom_events.
-# Typical service events: api_call (REACH), signup_complete (DEMAND), activate (ACTIVATE), retain_return (RETAIN).
-# CLIs (type: cli) also use funnel_template: custom — typical events: command_run (REACH), activate (ACTIVATE), retain_return (RETAIN).
-
-# Payment funnel — only include when stack.payment is present in experiment.yaml
-payment_funnel:
-  - event: pay_start
+  # Payment events — only include when stack.payment is present in experiment.yaml
+  pay_start:
+    funnel_stage: monetize
+    requires: [payment]
     trigger: User clicks a payment/subscribe button and enters checkout
     properties:
       plan:
@@ -113,7 +118,9 @@ payment_funnel:
         required: true
         description: Price in cents (e.g., 999 for $9.99)
 
-  - event: pay_success
+  pay_success:
+    funnel_stage: monetize
+    requires: [payment]
     trigger: Payment confirmed (webhook or redirect callback)
     properties:
       plan:
@@ -129,12 +136,24 @@ payment_funnel:
         required: true
         description: "Payment provider: stripe, lemonsqueezy"
 
-# Custom events — add experiment-specific events below.
+  # Archetype-specific events
+  api_call:
+    funnel_stage: reach
+    archetypes: [service]
+    trigger: A request hits an API endpoint
+
+  command_run:
+    funnel_stage: reach
+    archetypes: [cli]
+    trigger: User executes a CLI command
+
+# Custom events — add experiment-specific events directly to the events map above.
 # Naming convention: <object>_<action> in snake_case (e.g., invoice_created, report_exported)
-# Follow the same format as standard_funnel events.
+# Include funnel_stage for each event.
 #
 # Example:
-#   - event: invoice_created
+#   invoice_created:
+#     funnel_stage: activate
 #     trigger: User creates a new invoice
 #     properties:
 #       currency:
@@ -145,6 +164,5 @@ payment_funnel:
 #         type: integer
 #         required: true
 #         description: Number of line items on the invoice
-
-# Start with an empty list. The /change and /distribute skills will add events here.
-custom_events: []
+#
+# The /change and /distribute skills add events directly to the events map.

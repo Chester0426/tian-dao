@@ -44,7 +44,7 @@ Checks:
   40. Distribute Skill Prose Event Names — distribute.md contains feedback_submitted event definition
   41. Distribution Docs References Exist — docs/*.md files referenced in distribute.md or distribution stack files exist
   42. Distribute Skill Validates Analytics Stack — distribute.md preconditions validate stack.analytics
-  43. Distribute Skill Validates EVENTS.yaml custom_events Structure — distribute.md preconditions validate custom_events is a list
+  43. Distribute Skill Validates EVENTS.yaml events Structure — distribute.md preconditions validate events is a dict
   44. Bootstrap Skill Validates Variants — bootstrap.md Step 3 contains variant validation logic
   45. visit_landing Has Variant Property — EVENTS.yaml visit_landing event includes variant property
   46. Iterate Skill Experiment Verdict — iterate.md contains verdict/GO/NO-GO with pace logic
@@ -335,12 +335,12 @@ def check_3_fixture_validation(
         events = fixture.get("events", {})
         if isinstance(events, dict):
             if not has_payment:
-                pf = events.get("payment_funnel", [])
-                if pf:
-                    errors.append(
-                        f"[3] {ff}: events.payment_funnel is non-empty but "
-                        f"experiment.stack has no payment entry"
-                    )
+                for ename, edef in events.items():
+                    if isinstance(edef, dict) and "payment" in (edef.get("requires") or []):
+                        errors.append(
+                            f"[3] {ff}: events.{ename} has requires: [payment] but "
+                            f"experiment.stack has no payment entry"
+                        )
 
     return errors, fixture_type_map
 
@@ -713,7 +713,7 @@ def check_33_phantom_event_names(
     skip_tokens = {
         "stack", "testing", "payment", "analytics", "database",
         "auth", "posthog", "supabase", "stripe", "nextjs",
-        "custom_events", "standard_funnel", "payment_funnel",
+        "funnel_stage", "events",
         "object_action", "track", "event_name",
         "name", "title", "owner", "problem", "solution",
         "target_user", "distribution", "thesis",
@@ -737,13 +737,16 @@ def check_33_phantom_event_names(
             elif isinstance(ydata, dict):
                 if "event" in ydata:
                     event_items = [ydata]
+                elif "funnel_stage" in ydata:
+                    # Single event definition in new flat format
+                    event_items = [ydata]
                 else:
-                    for section_key in ["custom_events", "standard_funnel", "payment_funnel"]:
-                        section_list = ydata.get(section_key, [])
-                        if isinstance(section_list, list):
-                            event_items.extend(
-                                item for item in section_list if isinstance(item, dict)
-                            )
+                    # Flat events map: each value is an event definition
+                    for key, val in ydata.items():
+                        if isinstance(val, dict) and ("trigger" in val or "funnel_stage" in val):
+                            edef = dict(val)
+                            edef["event"] = key
+                            event_items.append(edef)
             for item in event_items:
                 if "event" in item:
                     skill_defined_events.add(item["event"])
@@ -1256,7 +1259,7 @@ def main() -> int:
             # Validate assertions
             assertions = fixture.get("assertions", {})
             if isinstance(assertions, dict):
-                # If no payment stack, payment_funnel events should not be required
+                # If no payment stack, events with requires: [payment] should not exist
                 stack = experiment.get("stack", {})
                 has_payment = "payment" in stack if isinstance(stack, dict) else False
                 payment_required = assertions.get("payment_events_required", False)
@@ -1398,17 +1401,17 @@ def main() -> int:
                             f"experiment has no variants field"
                         )
 
-            # Validate events structure
+            # Validate events structure (flat map)
             events = fixture.get("events", {})
             if isinstance(events, dict):
-                # If no payment stack, payment_funnel should be absent or empty
+                # If no payment stack, events with requires: [payment] should not exist
                 if not has_payment:
-                    pf = events.get("payment_funnel", [])
-                    if pf:
-                        error(
-                            f"[3] {ff}: events.payment_funnel is non-empty but "
-                            f"experiment.stack has no payment entry"
-                        )
+                    for ename, edef in events.items():
+                        if isinstance(edef, dict) and "payment" in (edef.get("requires") or []):
+                            error(
+                                f"[3] {ff}: events.{ename} has requires: [payment] but "
+                                f"experiment.stack has no payment entry"
+                            )
     else:
         # No fixture directory is not an error — fixtures are optional pre-creation
         pass
@@ -2372,18 +2375,18 @@ def main() -> int:
             events_data = yaml.safe_load(f) or {}
 
         defined_events: set[str] = set()
-        for section in ["standard_funnel", "payment_funnel", "custom_events"]:
-            for ev in events_data.get(section, []) or []:
-                if isinstance(ev, dict) and "event" in ev:
-                    defined_events.add(ev["event"])
+        flat_events = events_data.get("events", {})
+        if isinstance(flat_events, dict):
+            for ename, edef in flat_events.items():
+                defined_events.add(ename)
 
         global_props = set((events_data.get("global_properties", {}) or {}).keys())
 
         event_props: set[str] = set()
-        for section in ["standard_funnel", "payment_funnel", "custom_events"]:
-            for ev in events_data.get(section, []) or []:
-                if isinstance(ev, dict):
-                    for prop_name in (ev.get("properties", {}) or {}).keys():
+        if isinstance(flat_events, dict):
+            for ename, edef in flat_events.items():
+                if isinstance(edef, dict):
+                    for prop_name in (edef.get("properties", {}) or {}).keys():
                         event_props.add(prop_name)
 
         for e in check_33_phantom_event_names(skill_contents, defined_events, global_props, event_props):
@@ -2602,14 +2605,14 @@ def main() -> int:
         # distribute.md must contain a YAML code block that defines feedback_submitted
         yaml_blocks = extract_code_blocks(distribute_content, {"yaml"})
         has_event_def = any(
-            "feedback_submitted" in block["code"] and "event:" in block["code"]
+            "feedback_submitted" in block["code"] and "funnel_stage:" in block["code"]
             for block in yaml_blocks
         )
         if not has_event_def:
             error(
                 f"[40] {distribute_path}: must contain a YAML code block "
                 f"defining the 'feedback_submitted' event (added to "
-                f"EVENTS.yaml custom_events during Step 7c)"
+                f"EVENTS.yaml events map during Step 7c)"
             )
 
     # ---------------------------------------------------------------------------
@@ -2673,7 +2676,7 @@ def main() -> int:
             )
 
     # ---------------------------------------------------------------------------
-    # Check 43: Distribute Skill Validates EVENTS.yaml custom_events Structure
+    # Check 43: Distribute Skill Validates EVENTS.yaml events Structure
     # ---------------------------------------------------------------------------
 
     distribute_path_43 = ".claude/commands/distribute.md"
@@ -2689,43 +2692,32 @@ def main() -> int:
         )
         if preconditions_match_43:
             preconditions_text_43 = preconditions_match_43.group(1)
-            # Check for custom_events validation near stop/list/malformed/missing context
-            has_custom_events_validation = bool(
+            # Check for events map validation near stop/dict/malformed/missing context
+            has_events_validation = bool(
                 re.search(
-                    r"custom_events",
+                    r"`events`.*(?:dict|map|stop|malformed|missing)",
                     preconditions_text_43,
+                    re.DOTALL,
                 )
             )
-            if has_custom_events_validation:
-                # Verify it's near a validation/stop context (within 200 chars)
-                ce_match = re.search(r"custom_events", preconditions_text_43)
-                if ce_match:
-                    start = max(0, ce_match.start() - 200)
-                    end = min(len(preconditions_text_43), ce_match.end() + 200)
-                    context = preconditions_text_43[start:end]
-                    has_validation_context = bool(
-                        re.search(
-                            r"(?i)stop|list|malformed|missing",
-                            context,
-                        )
+            if not has_events_validation:
+                # Fallback: check if it mentions validating events structure at all
+                has_events_validation = bool(
+                    re.search(
+                        r"events.*(?:dict|map)",
+                        preconditions_text_43,
                     )
-                    if not has_validation_context:
-                        error(
-                            f"[43] {distribute_path_43}: preconditions mention "
-                            f"`custom_events` but not near a stop/validation "
-                            f"context (expected 'stop', 'list', 'malformed', or "
-                            f"'missing' within 200 chars)"
-                        )
-            else:
+                )
+            if not has_events_validation:
                 error(
                     f"[43] {distribute_path_43}: preconditions section does not "
-                    f"validate that EVENTS.yaml `custom_events` is a well-formed "
-                    f"list before proceeding"
+                    f"validate that EVENTS.yaml `events` is a well-formed "
+                    f"dict before proceeding"
                 )
         else:
             error(
                 f"[43] {distribute_path_43}: could not find preconditions section "
-                f"(Step 1) to check custom_events validation"
+                f"(Step 1) to check events validation"
             )
 
     # ---------------------------------------------------------------------------
@@ -2774,15 +2766,10 @@ def main() -> int:
             events_data_45 = yaml.safe_load(f)
 
         if isinstance(events_data_45, dict):
-            standard_funnel = events_data_45.get("standard_funnel", [])
-            visit_landing_event = None
-            for ev in standard_funnel:
-                if isinstance(ev, dict) and ev.get("event") == "visit_landing":
-                    visit_landing_event = ev
-                    break
-
-            if visit_landing_event:
-                props = visit_landing_event.get("properties", {})
+            flat_events_45 = events_data_45.get("events", {})
+            if isinstance(flat_events_45, dict) and "visit_landing" in flat_events_45:
+                visit_landing_event = flat_events_45["visit_landing"]
+                props = visit_landing_event.get("properties", {}) if isinstance(visit_landing_event, dict) else {}
                 if not isinstance(props, dict) or "variant" not in props:
                     error(
                         f"[45] {events_path_45}: visit_landing event is missing "
@@ -2791,7 +2778,7 @@ def main() -> int:
             else:
                 error(
                     f"[45] {events_path_45}: visit_landing event not found "
-                    f"in standard_funnel"
+                    f"in events map"
                 )
 
     # ---------------------------------------------------------------------------

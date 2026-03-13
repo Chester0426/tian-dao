@@ -210,7 +210,7 @@ create policy "Service role only" on user_status
 
 ## Analytics Integration
 
-Welcome and nudge email sends fire server-side events via `trackServerEvent()`. Bootstrap adds the event definitions (`email_welcome_sent`, `email_nudge_sent`) to EVENTS.yaml `custom_events` when `stack.email` is present — see scaffold procedure Step 2 for the canonical event list and properties.
+Welcome and nudge email sends fire server-side events via `trackServerEvent()`. Bootstrap adds the event definitions (`email_welcome_sent`, `email_nudge_sent`) to the EVENTS.yaml `events` map when `stack.email` is present — see scaffold procedure Step 2 for the canonical event list and properties.
 
 ## Environment Variables
 
