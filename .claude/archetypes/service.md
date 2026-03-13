@@ -41,7 +41,7 @@ Surface events (fired by the HTML surface page, not the API):
 
 Product events (suggestions, not requirements):
 1. `api_call` — a request hits an endpoint
-2. `activate` — user completes the core action via the API
+2. `activate` — user completes the core action via the API (maps to ACTIVATE dimension)
 3. `retain_return` — user makes a request after 24+ hours since last call
 
 Surface events use an inline PostHog snippet. Product events use

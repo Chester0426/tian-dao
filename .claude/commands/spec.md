@@ -210,7 +210,7 @@ Generate 5-10 hypotheses spanning these categories:
 |----------|--------------|---------|
 | `demand` | Do people want this? | "At least N% of landing visitors will click the CTA" |
 | `reach` | Can we find these people? | "We can acquire N visitors from [channel] in [time]" |
-| `feasibility` | Can we build this? | "Core feature can be built with [stack] in [time]" |
+| `feasibility` | Can we build this? (maps to ACTIVATE dimension) | "Core feature can be built with [stack] in [time]" |
 | `monetize` | Will people pay? | "N% of active users will start a checkout" |
 | `retain` | Will people come back? | "N% of users return within 7 days" |
 
@@ -428,6 +428,10 @@ funnel:
     metric: "<from demand hypothesis>"
     threshold: "<threshold>"
     available_from: L1
+  activate:
+    metric: "<from feasibility hypothesis>"
+    threshold: "<threshold>"
+    available_from: L2
   monetize:
     metric: "<from monetize hypothesis>"
     threshold: "<threshold>"
