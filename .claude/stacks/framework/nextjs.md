@@ -7,10 +7,11 @@ files:
   - .nvmrc
   - eslint.config.mjs
   - src/app/layout.tsx
-  - src/app/page.tsx
-  - src/app/not-found.tsx
-  - src/app/error.tsx
-  - src/components/RetainTracker.tsx
+  - src/app/page.tsx              # conditional: web-app
+  - src/app/route.ts              # conditional: service with co-located surface
+  - src/app/not-found.tsx         # conditional: web-app
+  - src/app/error.tsx             # conditional: web-app
+  - src/components/RetainTracker.tsx  # conditional: web-app
 env:
   server: []
   client: []
@@ -48,6 +49,8 @@ export default tseslint.config(
 ```
 
 ## File Structure
+
+**web-app archetype:**
 ```
 src/
   app/              # App Router pages and API routes
@@ -64,6 +67,19 @@ src/
     ui/             # UI library components (auto-generated)
   lib/              # Utilities (analytics, database clients, types, etc.)
 ```
+
+**service archetype:** No page folders, no UI components, no `src/components/` directory.
+```
+src/
+  app/              # App Router — API routes only
+    layout.tsx      # Root layout (minimal — required by Next.js App Router)
+    route.ts        # Root route handler (GET /) — co-located surface HTML page
+    api/            # API route handlers
+      <endpoint>/
+        route.ts    # Endpoint handler
+  lib/              # Utilities (analytics, database clients, types, etc.)
+```
+The root `route.ts` is created only when surface is `co-located` (the default for services). It returns a complete HTML marketing page — see `surface/co-located.md` for content guidance.
 
 ## Page Conventions
 - Default to `"use client"` for all page and component files

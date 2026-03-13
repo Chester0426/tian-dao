@@ -59,14 +59,40 @@ export async function GET() {
 
 ## Preview Smoke Test
 
-Vercel automatically creates preview deployments on PRs. CI runs page-load smoke tests against the preview URL before merge.
+Vercel automatically creates preview deployments on PRs. CI runs smoke tests against the preview URL before merge.
 
 - No auth, no database writes, no Docker required
-- Reuses existing `e2e/smoke.spec.ts` via `E2E_BASE_URL` pointed at the preview URL
 - PR-only (`github.event_name == 'pull_request'`) — pushes to main don't create preview deployments
 - Uses `patrickedqvist/wait-for-vercel-preview` GitHub Action to get the preview URL
 
-See the testing stack file's "Preview Smoke CI Job Template" section for the CI job template.
+**Web-app archetype:** Reuses existing `e2e/smoke.spec.ts` via `E2E_BASE_URL` pointed at the preview URL (browser-based Playwright tests).
+
+**Service archetype:** No browser tests — preview smoke tests hit the `/api/health` endpoint via `curl`. The CI job uses the same Vercel preview URL but checks the health endpoint instead of running Playwright.
+
+**Web-app:** See the testing stack file's "Preview Smoke CI Job Template" section for the CI job template.
+
+**Service preview smoke** (inline — no testing stack template needed):
+```yaml
+  preview-smoke:
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
+        id: preview
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 300
+      - name: Health check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "${{ steps.preview.outputs.url }}/api/health")
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed with status $STATUS"
+            curl -s "${{ steps.preview.outputs.url }}/api/health"
+            exit 1
+          fi
+          echo "Health check passed"
+```
 
 ## Environment Variables
 - **Supabase env vars:** Use the [Supabase Vercel Integration](https://vercel.com/integrations/supabase) to auto-inject database env vars (see Supabase Vercel Integration section below)

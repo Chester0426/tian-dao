@@ -3,7 +3,7 @@ assumes: [framework/nextjs, database/supabase, auth/supabase]
 packages:
   runtime: [resend]
   dev: []
-files:  # conditional
+files:  # conditional: requires framework/nextjs, database/supabase, auth/supabase
   - src/lib/email.ts
   - src/app/api/email/welcome/route.ts
   - src/app/api/email/nudge/route.ts
