@@ -93,9 +93,11 @@ standard_funnel:
         description: Days since previous visit (rounded down)
 
 # Note: The standard_funnel above applies to web-app archetypes (browser pages).
+# Funnel dimension mapping: visit_landing (REACH), cta_click/signup_complete (DEMAND),
+# activate (ACTIVATE), pay_start/pay_success (MONETIZE), retain_return (RETAIN).
 # Services (type: service) use funnel_template: custom — define events in custom_events.
-# Typical service events: api_call, activate, retain_return (all via trackServerEvent).
-# CLIs (type: cli) also use funnel_template: custom — typical events: command_run, activate, retain_return.
+# Typical service events: api_call (REACH), signup_complete (DEMAND), activate (ACTIVATE), retain_return (RETAIN).
+# CLIs (type: cli) also use funnel_template: custom — typical events: command_run (REACH), activate (ACTIVATE), retain_return (RETAIN).
 
 # Payment funnel — only include when stack.payment is present in experiment.yaml
 payment_funnel:
