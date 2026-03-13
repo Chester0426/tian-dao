@@ -804,7 +804,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 Status transitions（作为 CHECK constraints）：
 - experiments.status: draft, active, paused, verdict_ready, completed, archived
-- skill_executions.status: pending, running, paused, completed, failed, timed_out, budget_exceeded
+- skill_executions.status: pending, running, paused, completed, failed, timed_out
+  （注：budget exceeded 不是独立 status — 使用 `paused` + `gate_type = 'budget_exceeded'`，与 approval gate pattern 一致）
 - distribution_campaigns.status: draft, paused, active, completed, failed
 - hypotheses.status: pending, testing, passed, failed, skipped, blocked
 - experiment_alerts.alert_type 包含 bug_auto_fixed
@@ -905,7 +906,7 @@ Request body:
 
 实现：
 a. Zod 验证 input（idea >= 20 chars, .max(10000)）
-b. Rate limit: 3 per session_token per 24h（查 anonymous_specs 表 count）
+b. Rate limit: anonymous 3 per session_token per 24h（查 anonymous_specs 表 count）; authenticated free accounts 5 per user_id per 24h（查 anonymous_specs + experiments 表 count）
 b2. Regenerate handling: 当 regenerate_token 存在时：
     - 验证该 anonymous_spec row 属于当前 session_token
     - 跳过 rate limit 检查
@@ -961,7 +962,7 @@ export function specReducer(state: SpecState, event: SpecStreamEvent): SpecState
     case 'hypothesis':        return { ...state, hypotheses: [...state.hypotheses, event] };
     case 'variant':           return { ...state, variants: [...state.variants, event] };
     case 'funnel':            return { ...state, funnel: [...state.funnel, event] };
-    case 'complete':          return { ...state, status: 'complete', fullSpec: event.spec };
+    case 'complete':          return { ...state, status: 'complete', fullSpec: event.spec, anonymousSpecId: event.anonymous_spec_id };
     case 'input_too_vague':   return { ...state, status: 'too_vague' };
     case 'error':             return { ...state, status: 'error', error: event.message };
     default:                  return state;
@@ -1268,8 +1269,8 @@ Golden path 步骤列表:
 ### Phase E: Channel Setup (first-time only)
 
 如果用户没有连接任何 distribution channel:
-- RECOMMENDED (free): Twitter/X, Reddit
-- PAID (Pro required): Google Ads, Meta Ads
+- RECOMMENDED (free): Twitter/X, Reddit, Email (Resend)
+- PAID (Pro required): Google Ads, Meta Ads, Twitter Ads
 - [Skip — I'll drive traffic myself]
 
 ### Phase F: Distribution Approval Gate
@@ -1910,7 +1911,7 @@ Event types（来自 product-design.md）:
 
 POST /api/operations/:id/extend:
 a. Auth required
-b. 验证 original operation 属于当前用户且 status = 'budget_exceeded'
+b. 验证 original operation 属于当前用户且 skill_executions.status = 'paused' AND gate_type = 'budget_exceeded'
 c. 计算 continuation 费用（same billing flow as /api/operations/authorize）
 d. 创建新 operation_ledger row（parent_operation_id 指向原始 row）
 e. 更新 skill_executions status → 'running'
@@ -1989,7 +1990,7 @@ k. Token budget enforcement:
    - 通过 `ai_usage` rows（linked to this operation）追踪累积 input tokens
    - 每次 AI API call 前: check cumulative tokens vs budget
    - 80% budget: log warning to Realtime channel（`{ type: 'log', line: '⚠ Token budget 80% reached' }`）
-   - 100% budget: gracefully stop skill，写 partial results to Supabase，发送 `{ type: 'budget_exceeded', used: N, budget: M, continue_cost_cents: X }` event on Realtime channel
+   - 100% budget: gracefully stop skill，写 partial results to Supabase，发送 `{ type: 'gate', gate_type: 'budget_exceeded', used: N, budget: M, continue_cost_cents: X }` event on Realtime channel（复用 approval gate 事件模型，skill status 设为 `paused`）
    - Browser 显示 "Continue for $X?" modal（复用 approval gate UI pattern）
    - User approve → POST /api/operations/:id/extend → skill resume
 
@@ -2304,7 +2305,9 @@ GET /api/experiments/:id/metrics — cached scorecard（最新 metric_snapshot r
 | last_sync > 26h | metrics_stale |
 | ad account suspended | ad_account_suspended |
 | DEMAND ratio = 0.0x with 50+ clicks | runtime bug（auto-fix trigger）|
+| ACTIVATE ratio = 0.0x with 20+ signups | runtime bug（auto-fix trigger）|
 | MONETIZE ratio = 0.0x with 30+ signups | runtime bug（auto-fix trigger）|
+| Any page returning 5xx errors in PostHog data | runtime bug（auto-fix trigger）|
 
 创建 experiment_alerts rows（severity: info/warning/critical）。
 
@@ -2873,6 +2876,7 @@ CLOUDFLARE_ZONE_ID
 
 ## Monitoring
 SENTRY_DSN
+SENTRY_AUTH_TOKEN
 
 部署后验证:
 1. Landing page 加载（assayer.io）

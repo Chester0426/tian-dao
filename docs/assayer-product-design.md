@@ -84,6 +84,7 @@ Deployed at `exp-name.assayer.io`.
 │              ─── 15min: alert condition detection                    │
 │              ─── 1h: anonymous spec cleanup                          │
 │              ─── daily: notification dispatch                        │
+│              ─── weekly: cost-monitor (margin + hit rate + auto-fix) │
 └──────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -97,6 +98,7 @@ Deployed at `exp-name.assayer.io`.
 │  Resend ───── notification emails (scorecard templates)              │
 │  Google Ads API, Meta Marketing API, X API v2, Reddit API            │
 │  Vercel ───── hosting (platform + experiments)                       │
+│  Sentry ───── error tracking + performance monitoring                │
 │  Google Cloud Run ── skill execution compute                         │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -178,7 +180,7 @@ Why Jobs over Services: batch-job semantics match "run skill to completion"; sca
 |-------|----------|
 | Base | `node:20-slim` |
 | System deps | `git`, `curl`, `jq` |
-| CLIs | `vercel`, `supabase`, `claude-code` (Agent SDK) |
+| CLIs | `vercel`, `@railway/cli`, `supabase`, `claude-code` (Agent SDK) |
 | Template | Pre-loaded `mvp-template` `.claude/` directory |
 | Entrypoint | `skill-runner.js` |
 
@@ -296,7 +298,7 @@ Login OAuth (Supabase Auth) is independent from API OAuth (Google/Meta Ads). API
 | `reddit-organic` | Free | Community post | Reddit API | Phase 1 |
 | `email-resend` | Free | Email campaign | Resend API | Phase 1 |
 | `google-ads` | Paid | Search ads | Google Ads API | Phase 1 |
-| `meta-ads` | Paid | Social ads | Meta Marketing API | Phase 2 |
+| `meta-ads` | Paid | Social ads | Meta Marketing API | Phase 1 |
 | `twitter-ads` | Paid | Social ads | X Ads API | Phase 1 |
 
 **Adapter interface:**
@@ -461,7 +463,8 @@ The landing page presents one input field. Clicking "Test it" starts an SSE stre
 Browser                    Vercel API                  Anthropic
   │                            │                           │
   │ POST /api/spec/stream      │                           │
-  │ {idea, level, session_token}│                          │
+  │ {idea, level, session_token,│                          │
+  │  regenerate_token?}         │                          │
   │ ─────────────────────────> │                           │
   │                            │ Rate-limit check:         │
   │                            │ anonymous_specs count     │
@@ -493,6 +496,8 @@ Browser                    Vercel API                  Anthropic
   │                            │  with full spec_data      │
 ```
 
+**Request body:** `{ idea: string, level?: 1|2|3, session_token: string, regenerate_token?: string }`. When `regenerate_token` is present, the previous `anonymous_specs` row is replaced (skips rate limit count).
+
 **Spec stream protocol** — structured JSON events over SSE:
 
 ```typescript
@@ -509,7 +514,7 @@ type SpecStreamEvent =
       cta: string; pain_points: string[]; promise: string; proof: string;
       urgency: string | null }
   | { type: 'funnel'; available_from: Record<string, string> }
-  | { type: 'complete'; spec: FullSpecData }
+  | { type: 'complete'; spec: FullSpecData; anonymous_spec_id: string }
   | { type: 'input_too_vague' }
   | { type: 'error'; message: string };
 ```
@@ -542,9 +547,9 @@ Between events you may include reasoning text (ignored by the parser).
 
 >>>EVENT: {"type":"variant","slug":"time-saver","headline":"...","subheadline":"...","cta":"...","pain_points":["..."],"promise":"...","proof":"...","urgency":null}
 
->>>EVENT: {"type":"funnel","available_from":{"reach":"L1","demand":"L1","activate":"L2","monetize":"L2","retain":"L3"}}
+>>>EVENT: {"type":"funnel","available_from":{"reach":"L1","demand":"L1","activate":"L2","monetize":"L1","retain":"L3"}}
 
->>>EVENT: {"type":"complete","spec":{<full experiment.yaml as JSON>}}
+>>>EVENT: {"type":"complete","spec":{<full experiment.yaml as JSON>},"anonymous_spec_id":"asp_abc123"}
 ```
 
 **API route parser (`/api/spec/stream`):**
@@ -598,7 +603,7 @@ export function specReducer(state: SpecState, event: SpecStreamEvent): SpecState
     case 'hypothesis':        return { ...state, hypotheses: [...state.hypotheses, event] };
     case 'variant':           return { ...state, variants: [...state.variants, event] };
     case 'funnel':            return { ...state, funnel: [...state.funnel, event] };
-    case 'complete':          return { ...state, status: 'complete', fullSpec: event.spec };
+    case 'complete':          return { ...state, status: 'complete', fullSpec: event.spec, anonymousSpecId: event.anonymous_spec_id };
     case 'input_too_vague':   return { ...state, status: 'too_vague' };
     case 'error':             return { ...state, status: 'error', error: event.message };
     default:                  return state;
@@ -768,7 +773,7 @@ Vercel Cron (every 15 minutes)
 | **REACH** | Ad CTR, impressions, CPC | Distribution campaigns + PostHog | L1+ |
 | **DEMAND** | CTA rate, signup rate, engagement | PostHog | L1+ |
 | **ACTIVATE** | Activation rate, time-to-value | PostHog | L2+ |
-| **MONETIZE** | Pricing interaction, payment intent | PostHog | L2+ |
+| **MONETIZE** | Pricing interaction, payment intent | PostHog | L1+ (signal), L2+ (functional) |
 | **RETAIN** | Return visits, repeat usage, churn | PostHog | L3+ |
 
 **Confidence bands**: <30 events `insufficient`, 30-100 `directional`, 100-500 `reliable`, 500+ `high`.
@@ -807,7 +812,7 @@ Verdict Page [Apply Changes & Re-test]
   │
   ├── Update experiment status → draft
   │
-  └── Redirect to /assay/{experiment_id}?round=N+1&mode=edit
+  └── Redirect to /assay?experiment={experiment_id}&round=N+1&mode=edit
       ├── Frontend highlights bottleneck dimension
       ├── AI fix pre-filled into corresponding hypothesis
       └── "Create & Launch" starts new round
@@ -964,7 +969,7 @@ funnel:
     reach: L1
     demand: L1
     activate: L2
-    monetize: L2
+    monetize: L1
     retain: L3
   decision_framework:
     scale: "All tested dimensions >= 1.0"
@@ -1044,7 +1049,9 @@ POST   /api/experiments/:id/rounds           — create new round (REFINE flow)
 
 # Metrics
 POST   /api/experiments/:id/metrics/sync     — force sync from PostHog + ad platforms
+                                              ?force_verdict=true triggers verdict engine ("Analyze Now")
 GET    /api/experiments/:id/metrics          — cached scorecard + per-channel metrics
+GET    /api/experiments/:id/metrics/export   — export metric snapshots as CSV (Post-Mortem download)
 
 # Skill execution
 POST   /api/skills/execute                   — trigger skill on Cloud Run Jobs
@@ -1068,6 +1075,7 @@ GET    /api/experiments/compare              — side-by-side scorecard for mult
 # Billing & Operations (auth required)
 POST   /api/operations/authorize             — classify + quota check + authorize
 POST   /api/operations/complete              — finalize billing after skill execution
+POST   /api/operations/:id/extend            — extend budget-exceeded operation (new charge + resume)
 GET    /api/billing/usage                    — current period usage summary
 POST   /api/billing/subscribe               — create Stripe subscription checkout
 POST   /api/billing/topup                    — create PAYG top-up checkout ($10-$500)
@@ -1076,6 +1084,7 @@ POST   /api/billing/portal                   — create Stripe Customer Portal s
 # Notifications
 GET    /api/notifications                    — list user's notifications (paginated)
 PATCH  /api/notifications/:id               — mark as read
+POST   /api/notifications/mark-all-read     — batch mark all unread as read
 
 # Webhooks
 POST   /api/webhooks/stripe                  — 5 event types:
@@ -1489,6 +1498,7 @@ CREATE TABLE operation_ledger (
   actual_tokens_used integer,
   actual_cost_usd numeric,
   classifier_output jsonb,
+  parent_operation_id uuid REFERENCES operation_ledger(id),  -- budget extension chaining
   created_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz
 );
@@ -1770,7 +1780,6 @@ Supabase = sole source of truth. No dual-source-of-truth problem.
 | `/assay` orchestrator | Users ask for "one command" |
 | Auto-sequencing | 20+ experiments in DB |
 | Benchmark database | 100+ experiments in DB |
-| Meta Ads adapter (Phase 2) | Google Ads adapter validated |
 | Organic adapter auto-posting | Manual posting bottleneck after 5+ experiments |
 | In-app notification center | Email open rate drops below 20% |
 | PostHog project sharding | 100+ experiments, perf degrades |
