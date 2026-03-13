@@ -94,6 +94,10 @@ experiment:
       metric: "CTA click-through rate"
       threshold: ">5%"
       available_from: L1
+    activate:
+      metric: "First invoice creation rate"
+      threshold: ">30%"
+      available_from: L2
     monetize:
       metric: "Checkout start rate among active users"
       threshold: ">20%"
