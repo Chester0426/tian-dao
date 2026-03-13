@@ -172,6 +172,7 @@ Wait for the agent to complete. Include the scanner's output table in the Step 5
 - Migration files (can re-deploy with /deploy)
 
 To re-deploy this experiment: run `/deploy` again.
+To archive this experiment: `gh release create v1.0 --notes "Experiment <name> concluded"`
 ```
 
 ## Do NOT

@@ -417,6 +417,7 @@ If the diagnosis reveals a need to change direction:
   2. Run `/retro` to file a retrospective while findings are fresh
   3. If you deployed the app (via `/deploy`), run `/teardown` to remove cloud infrastructure and stop ongoing costs. If you only bootstrapped without deploying, skip this step — there's no cloud infrastructure to clean up
   4. If pivoting: edit experiment.yaml with a new thesis/target_user, then `make clean` and `/bootstrap` to start fresh (or in a new repo)
+  5. If `quality: production` is set in experiment.yaml and you're pivoting: consider removing it (`quality: production` → delete the line) to return to MVP mode for faster iteration on the new direction. Production quality adds TDD overhead that slows experimentation.
 - Do NOT update experiment.yaml automatically — the user should decide whether to pivot or stop
 
 ### On track (verdict is SCALE)

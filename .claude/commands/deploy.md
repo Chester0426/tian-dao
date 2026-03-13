@@ -168,6 +168,9 @@ Collect all env vars and set them using the hosting provider's method:
 ## Step 5: Deploy, configure services, and verify
 
 ### 5a: Initial deploy
+
+If archetype is `cli` and surface is `detached`: **skip this step** — proceed directly to Step 5a.1 (surface-only deployment). CLI with detached surface has no hosting infrastructure.
+
 1. Read the hosting stack file's `## Deploy Interface > Deploy`. Execute the deploy command.
 2. Extract the deployment URL per the stack file's instructions.
 3. If `canonical_url` is null (domain add failed or no `deploy.domain`): set `canonical_url` = the deployment URL.
