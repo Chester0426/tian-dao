@@ -830,6 +830,8 @@ The main experiment page. Users come back daily. They want ONE answer: **are we 
 |  DEMAND    ##############......  1.34x  PASS                |
 |            6.7% signup / 5.0%   502 visitors (high)     |
 |                                                              |
+|  ACTIVATE  ....................  --     (requires L2)        |
+|                                                              |
 |  MONETIZE  #############.......  0.65x  LOW ! (signal)      |
 |            4.5% clicks / 7.0%   89 clicks (directional)     |
 |                                                              |
@@ -942,6 +944,7 @@ Not all bugs surface during the Quality Gate. Some appear only under real traffi
 
 **Detection:** The 15-minute metrics sync cron checks for anomalies:
 - DEMAND ratio = 0.0x with 50+ clicks → signup flow likely broken
+- ACTIVATE ratio = 0.0x with 20+ signups → core action flow likely broken
 - MONETIZE ratio = 0.0x with 30+ signups → payment page likely broken
 - Any page returning 5xx errors in PostHog data
 
@@ -995,7 +998,8 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |            tested funnel dimensions.                         |
 |                                                              |
 |     REACH    1.90x ok     DEMAND    1.34x ok                |
-|     MONETIZE 1.12x ok     RETAIN    -- (L3)                 |
+|     ACTIVATE -- (L2)      MONETIZE  1.12x ok                |
+|     RETAIN   -- (L3)                                        |
 |                                                              |
 |     --- DISTRIBUTION ROI ----------------------------        |
 |     $200 spent . 502 qualified clicks . $0.40/click          |
@@ -1027,7 +1031,8 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |            top-funnel validation.                            |
 |                                                              |
 |     REACH    0.41x x      DEMAND    1.12x ok                |
-|     MONETIZE 0.92x ok     RETAIN    -- (L3)                 |
+|     ACTIVATE -- (L2)      MONETIZE  0.92x ok                |
+|     RETAIN   -- (L3)                                        |
 |                                                              |
 |     The market signal is too weak.                           |
 |     Ad CTR 0.82% vs 2.0% threshold means                    |
@@ -1065,7 +1070,8 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |            but one dimension needs work.                     |
 |                                                              |
 |     REACH    1.90x ok     DEMAND    1.34x ok                |
-|     MONETIZE 0.65x !      RETAIN    -- (L3)                 |
+|     ACTIVATE -- (L2)      MONETIZE  0.65x !                 |
+|     RETAIN   -- (L3)                                        |
 |                                                              |
 |     Bottleneck: MONETIZE at 0.65x                            |
 |     Pricing click rate 4.5% vs 7.0% threshold.              |
@@ -1099,7 +1105,8 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |            weak signal across the board.                     |
 |                                                              |
 |     REACH    0.62x !      DEMAND    0.55x !                 |
-|     MONETIZE 0.78x !      RETAIN    -- (L3)                 |
+|     ACTIVATE -- (L2)      MONETIZE  0.78x !                 |
+|     RETAIN   -- (L3)                                        |
 |                                                              |
 |     Three dimensions are below threshold but above           |
 |     kill zone (0.5). The idea has some resonance             |
@@ -1180,6 +1187,7 @@ When a user clicks "Analyze Now" but the guard clause triggers (< 100 clicks or 
 |                                                              |
 |    REACH     1.90x  ↑  on track                             |
 |    DEMAND    1.34x  ↑  on track                             |
+|    ACTIVATE  --        (requires L2)                         |
 |    MONETIZE  0.65x  ↓  weak signal                          |
 |                                                              |
 |  Check back in ~3 days for reliable data.                    |
@@ -1319,6 +1327,7 @@ If Assayer's variant #3 promises "Run 5 Experiments, Build the Winner", the prod
 |              AI Invoice   Meal Prep   SaaS Dash              |
 |  REACH        1.90x ok     0.41x x     1.23x ok             |
 |  DEMAND       1.34x ok     1.12x ok    0.87x !              |
+|  ACTIVATE     -- (L1)      -- (L1)     1.05x ok             |
 |  MONETIZE     0.65x !      -- (L1)     0.92x !              |
 |  RETAIN       -- (L1)      -- (L1)     -- (L2)              |
 |  -----------------------------------------------------------  |
@@ -1420,6 +1429,7 @@ Every notification contains a **mini scorecard** — enough information to decid
 |                                                              |
 |  REACH     ########........  1.2x  ok    200 clicks          |
 |  DEMAND    ######..........  0.9x  !     34 signups          |
+|  ACTIVATE  ....              --          (requires L2)        |
 |  MONETIZE  ....              --          (not yet measured)   |
 |  RETAIN    ....              --          (requires L3)        |
 |                                                              |
@@ -1682,6 +1692,9 @@ The scorecard is the hero — it must be **immediately visible** without scrolli
 |  DEMAND                                  |
 |  ██████████░░░░░░░░░░  0.9x  !          |
 |                                          |
+|  ACTIVATE                                |
+|  ░░░░░░░░░░░░░░░░░░░░  --              |
+|                                          |
 |  MONETIZE                                |
 |  ░░░░░░░░░░░░░░░░░░░░  --              |
 |                                          |
@@ -1832,6 +1845,9 @@ The verdict is a **full-screen ceremony** — the most emotional moment in Assay
 |                                          |
 |  DEMAND                                  |
 |  ██████████████░░░░░░  1.1x  ✓          |
+|                                          |
+|  ACTIVATE                                |
+|  ████████████░░░░░░░░  1.05x ✓          |
 |                                          |
 |  MONETIZE                                |
 |  ████████████░░░░░░░░  1.0x  ✓          |
