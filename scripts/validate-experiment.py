@@ -285,7 +285,7 @@ if funnel is not None:
     if not isinstance(funnel, dict):
         print("Error: funnel must be a mapping"); sys.exit(1)
 
-    VALID_FUNNEL_STAGES = {"reach", "demand", "monetize", "retain"}
+    VALID_FUNNEL_STAGES = {"reach", "demand", "activate", "monetize", "retain"}
     funnel_stages_found = set()
 
     for stage_key in VALID_FUNNEL_STAGES:

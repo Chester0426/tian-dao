@@ -115,6 +115,10 @@ target_clicks: 3
 #     metric: "TODO: Signup/interest metric"
 #     threshold: "TODO: Pass/fail (e.g., > 5%)"
 #     available_from: L1
+#   activate:
+#     metric: "TODO: Activation metric (e.g., First core action rate)"
+#     threshold: "TODO: Pass/fail (e.g., > 30%)"
+#     available_from: L2
 #   monetize:
 #     metric: "TODO: Revenue/pricing metric"
 #     threshold: "TODO: Pass/fail (e.g., > 7%)"

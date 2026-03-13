@@ -34,7 +34,7 @@ surface — `visit_landing` fires here.
 1. `visit_landing` — user loads the landing page
 2. `signup_start` — user begins the signup flow
 3. `signup_complete` — user finishes signup
-4. `activate` — user completes the core action for the first time
+4. `activate` — user completes the core action for the first time (maps to ACTIVATE dimension)
 5. `retain_return` — user returns after initial activation
 
 Payment funnel events (`pay_start`, `pay_success`) are added when

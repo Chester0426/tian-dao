@@ -217,6 +217,7 @@ Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / thre
 |-----------|--------|--------|-----------|-------|------------|-----------|
 | REACH | ad CTR + visit count | [value] | [threshold] | [0-100] | [tag] | L1+ |
 | DEMAND | CTA click rate + signup rate | [value] | [threshold] | [0-100] | [tag] | L1+ |
+| ACTIVATE | activation rate + time-to-value | [value] | [threshold] | [0-100] | [tag] | L2+ |
 | MONETIZE | pricing interaction + payment | [value] | [threshold] | [0-100] | [tag] | L2+ |
 | RETAIN | return visits + repeat behavior | [value] | [threshold] | [0-100] | [tag] | L3+ |
 
@@ -226,26 +227,27 @@ Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / thre
 
 #### Custom funnel mapping (service/cli archetypes)
 
-When `funnel_template` is `custom`, map custom funnel events to the 4 standard dimensions for consistent Scorecard output:
+When `funnel_template` is `custom`, map custom funnel events to the 5 standard dimensions for consistent Scorecard output:
 
 | Custom Stage | Dimension |
 |-------------|-----------|
 | `api_call` / `command_run` | REACH |
-| `activate` | DEMAND |
+| `signup_complete` | DEMAND |
+| `activate` | ACTIVATE |
 | `pay_*` | MONETIZE |
 | `retain_return` | RETAIN |
 
-Apply these dimension labels in the Scorecard output so that the 4-column structure (REACH, DEMAND, MONETIZE, RETAIN) remains consistent regardless of archetype.
+Apply these dimension labels in the Scorecard output so that the 5-column structure (REACH, DEMAND, ACTIVATE, MONETIZE, RETAIN) remains consistent regardless of archetype.
 
 #### Descriptive funnel labels by archetype
 
 Use these human-readable labels in the Scorecard output for service and cli archetypes:
 
-| Archetype | REACH | DEMAND | MONETIZE | RETAIN |
-|-----------|-------|--------|----------|--------|
-| web-app | Landing page visits | CTA clicks / signups | Payment starts | Return visits |
-| service | API adoption rate | Integration requests | API key upgrades | Monthly active integrations |
-| cli | Install rate | Daily active usage | Pro feature adoption | Update rate |
+| Archetype | REACH | DEMAND | ACTIVATE | MONETIZE | RETAIN |
+|-----------|-------|--------|----------|----------|--------|
+| web-app | Landing page visits | CTA clicks / signups | First core action | Payment starts | Return visits |
+| service | API adoption rate | Integration requests | First successful API call | API key upgrades | Monthly active integrations |
+| cli | Install rate | Daily active usage | First successful command | Pro feature adoption | Update rate |
 
 These labels replace generic "REACH", "DEMAND" etc. in the Scorecard when the archetype is service or cli, making the output more meaningful to the operator.
 
@@ -264,6 +266,7 @@ Identify the dimension with the lowest `actual / threshold` ratio (excluding dim
 Dimension-specific recommendations:
 - **REACH** → improve ad targeting, headline, or channel selection
 - **DEMAND** → improve CTA clarity, value proposition, or signup friction
+- **ACTIVATE** → improve onboarding, reduce steps to first value, simplify core action
 - **MONETIZE** → adjust pricing, add value justification, or feature comparison
 - **RETAIN** → improve onboarding, engagement hooks, or usage feedback
 
@@ -369,7 +372,7 @@ Write `.claude/iterate-manifest.json`:
     "stage": "<funnel stage name>",
     "conversion": "<percentage>",
     "diagnosis": "<one-line diagnosis>",
-    "dimension": "<REACH|DEMAND|MONETIZE|RETAIN>",
+    "dimension": "<REACH|DEMAND|ACTIVATE|MONETIZE|RETAIN>",
     "ratio": 0.65,
     "recommendation": "<dimension-specific recommendation>"
   },
@@ -397,6 +400,7 @@ Write `.claude/iterate-manifest.json`:
   "funnel_scores": {
     "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
     "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
+    "activate": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
     "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
     "retain": null
   }

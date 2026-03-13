@@ -38,7 +38,7 @@ Surface events (fired by the HTML marketing page, not the CLI):
 
 Product events (suggestions, not requirements):
 1. `command_run` — user executes a command
-2. `activate` — user completes the core action for the first time
+2. `activate` — user completes the core action for the first time (maps to ACTIVATE dimension)
 3. `retain_return` — user runs the CLI again after 24+ hours since last use
 
 Surface events use an inline PostHog snippet. Product events use opt-in

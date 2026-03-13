@@ -182,6 +182,10 @@ funnel:
     metric: "Signup conversion rate"
     threshold: "> 5%"
     available_from: L1
+  activate:
+    metric: "First invoice creation rate"
+    threshold: "> 30% of signups"
+    available_from: L2
   monetize:
     metric: "Paid invoice rate"
     threshold: "> 10% of senders"

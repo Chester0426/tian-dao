@@ -18,7 +18,7 @@ Idea → Spec → Asset → Traffic → Behavior → Insight → Decision → Ne
 | Level | Name | Funnel dimensions | Shared stack added |
 |-------|------|-------------------|-------------------|
 | L1 | **Pitch** | REACH + DEMAND + MONETIZE(signal) | Next.js + hosting + PostHog + shadcn + Playwright |
-| L2 | **Prototype** | + MONETIZE(functional) | + Supabase |
+| L2 | **Prototype** | + ACTIVATE + MONETIZE(functional) | + Supabase |
 | L3 | **Product** | + RETAIN | + Auth (+ Stripe if monetize) |
 
 Levels are nested: L2 includes L1, L3 includes L2. Upgrade without rebuild.
@@ -741,6 +741,7 @@ Vercel Cron (every 15 minutes)
   │ 4. Compute scorecard ratios:
   │    ├── REACH  = actual_CTR / threshold_CTR → ratio
   │    ├── DEMAND = actual_signup_rate / threshold → ratio
+  │    ├── ACTIVATE = actual_activation_rate / threshold → ratio
   │    ├── MONETIZE = actual_pricing_clicks / threshold → ratio
   │    └── RETAIN = actual_return_rate / threshold → ratio
   │
@@ -767,7 +768,8 @@ Vercel Cron (every 15 minutes)
 |-----------|-------------|--------|---------------|
 | **REACH** | Ad CTR, impressions, CPC | Distribution campaigns + PostHog | L1+ |
 | **DEMAND** | CTA rate, signup rate, engagement | PostHog | L1+ |
-| **MONETIZE** | Pricing interaction, payment intent | PostHog | L1+ (signal) / L2+ (functional) |
+| **ACTIVATE** | Activation rate, time-to-value | PostHog | L2+ |
+| **MONETIZE** | Pricing interaction, payment intent | PostHog | L2+ |
 | **RETAIN** | Return visits, repeat usage, churn | PostHog | L3+ |
 
 **Confidence bands**: <30 events `insufficient`, 30-100 `directional`, 100-500 `reliable`, 500+ `high`.
@@ -964,6 +966,10 @@ funnel:
     metric: "Signup conversion rate"
     threshold: "> 5%"
     available_from: L1
+  activate:
+    metric: "First invoice creation rate"
+    threshold: "> 30% of signups"
+    available_from: L2
   monetize:
     metric: "Pricing page clicks"
     threshold: "> 7%"
@@ -1003,7 +1009,7 @@ deploy:
    - **CLI mode:** All present → zero delay. 1 missing → one follow-up round with "proceed" escape. 2-3 missing → ask user to elaborate.
    - **Web mode (inference):** Never ask follow-up questions. Infer all missing dimensions aggressively, marking inferred values with `[inferred]`. If genuinely too vague (<5% of inputs), emit `input_too_vague` event.
 3. **Pre-flight research** — 4 dimensions: market, problem, competition, ICP. Verdict per dimension (pass/caution/fail). On 2+ failures: emit `preflight_opinion` with strong caution, then continue generating full spec. The spec always completes — Assayer is a consultant, not a gatekeeper. CLI mode: STOP point shows caution + "Continue? [Y/n]" (default Y). Web mode: caution appears inline as the spec materializes.
-4. **Hypotheses** — 5-10 across demand/reach/feasibility/monetize/retain. Filter by level. Priority 0-100. L1: reach+demand+monetize(signal) required. L2: +monetize(functional). L3: +retain. Feasibility hypotheses are pre-flight validated (AI research), not experiment-tested — they do not map to funnel dimensions.
+4. **Hypotheses** — 5-10 across demand/reach/feasibility/monetize/retain. Filter by level. Priority 0-100. L1: reach+demand+monetize(signal) required. L2: +monetize(functional). L3: +retain. Feasibility hypotheses map to the ACTIVATE dimension — "can the user do it?" is activation. Pre-flight research-type feasibility hypotheses are still resolved at spec time.
 5. **Behaviors** — given/when/then + `tests[]` array. User behaviors default. System behaviors: `actor: system` + `trigger` field.
 6. **Variants** — 3-5 angles, >30% headline word difference. L3 + monetize: add `pricing_amount`, `pricing_model`.
 7. **Stack/funnel** — Stack from level (Section 1 table). Hosting from type + behavior analysis. Funnel thresholds from highest-priority hypothesis per dimension.
@@ -1015,7 +1021,7 @@ deploy:
 Per hypothesis: map `success_metric` → funnel metric, compare against `threshold`.
 Verdict: CONFIRMED / REJECTED / INCONCLUSIVE.
 
-**Custom funnel mapping:** For service/cli archetypes with `funnel_template: custom`, custom events map to the 4 standard dimensions: `api_call`/`command_run` → REACH, `activate` → DEMAND, `pay_*` → MONETIZE, `retain_return` → RETAIN.
+**Custom funnel mapping:** For service/cli archetypes with `funnel_template: custom`, custom events map to the 5 standard dimensions: `api_call`/`command_run` → REACH, `signup_complete` → DEMAND, `activate` → ACTIVATE, `pay_*` → MONETIZE, `retain_return` → RETAIN.
 
 ---
 
@@ -1227,7 +1233,7 @@ CREATE TABLE hypotheses (
   UNIQUE(experiment_id, round_number, hypothesis_key)
 );
 
-> **Feasibility hypotheses** remain a valid category in the schema but are pre-flight validated during `/spec` AI research (automation_type = 'research', status set to 'passed' or 'failed' at spec time). They are excluded from `/iterate` verdict computation — only demand, reach, monetize, and retain map to funnel dimensions.
+> **Feasibility hypotheses** remain a valid category in the schema but map to the ACTIVATE funnel dimension. Pre-flight research-type feasibility hypotheses are resolved during `/spec` AI research (automation_type = 'research', status set to 'passed' or 'failed' at spec time) and are excluded from `/iterate` verdict computation. Experiment-type feasibility hypotheses contribute to the ACTIVATE score.
 
 CREATE INDEX idx_hypotheses_experiment_id ON hypotheses(experiment_id);
 ALTER TABLE hypotheses ENABLE ROW LEVEL SECURITY;
@@ -1849,6 +1855,7 @@ RESULTS -- Experiment #1 (L1 Pitch)
 Funnel scorecard:
   REACH      1.90  ##################..  CTR 3.8% / 2.0%         (high -- 523 impressions)
   DEMAND     1.34  ################....  6.7% signup / 5.0%      (high -- 523 visitors)
+  ACTIVATE   --    (not tested -- requires L2)
   MONETIZE   0.65  #############.......  4.5% clicks / 7.0%      (directional -- 89 clicks)
   RETAIN     --    (not tested -- requires L3)
 
