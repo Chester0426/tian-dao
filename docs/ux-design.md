@@ -1124,6 +1124,46 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 +--------------------------------------------------------------+
 ```
 
+#### Post-Mortem (KILL and PIVOT verdicts only)
+
+[View Post-Mortem] is not a separate route — it renders as a tab on `/verdict/[id]` (`?tab=postmortem`).
+
+```
++--------------------------------------------------------------+
+|  AI Invoice Tool — Post-Mortem            [Scorecard] [Post-Mortem]  |
+|                                                              |
+|  --- FINAL SCORECARD ---                                     |
+|  REACH    0.42x !    DEMAND    0.38x !                       |
+|  ACTIVATE -- (L2)    MONETIZE  0.29x !                       |
+|  RETAIN   -- (L3)                                            |
+|                                                              |
+|  --- PER-CHANNEL ROI ---                                     |
+|  Channel          Spend    Clicks  Conv.  CPA               |
+|  Google Ads       $210     18      2      $105.00            |
+|  Meta Ads         $180     12      0      --                 |
+|  Twitter Organic  --       4       1      --                 |
+|                                                              |
+|  --- AI ANALYSIS ---                                         |
+|  The core problem was insufficient market demand for...      |
+|  [full AI-generated failure analysis from verdict reasoning] |
+|                                                              |
+|  --- ROUND TIMELINE --- (if multi-round)                     |
+|  Round 1: REACH 0.55x → Round 2: REACH 0.42x (declining)    |
+|                                                              |
+|  [Download CSV]                                              |
+|                                                              |
++--------------------------------------------------------------+
+```
+
+**Content sections:**
+- **Final Scorecard**: snapshot of all dimension ratios at experiment end
+- **Per-Channel ROI Table**: spend, clicks, conversions, CPA per distribution channel
+- **AI Analysis**: AI-generated failure analysis (from `experiment_decisions.reasoning`)
+- **Round Timeline**: if multi-round (REFINE history), shows key metric changes across rounds
+- **Data Export**: [Download CSV] exports `experiment_metric_snapshots` raw data via `/api/experiments/:id/metrics/export`
+
+Post-Mortem transforms "failure" into "learning". KILL says "you saved 3 months"; Post-Mortem says "here's exactly what you learned."
+
 ---
 
 ### Screen 7a: Return Flows — REFINE & PIVOT
@@ -1481,7 +1521,7 @@ Breakpoints follow Tailwind defaults. The table below defines what changes at ea
 - Canvas particle background is **disabled below `md`** — battery drain and jank on mobile GPUs are not worth the aesthetic
 - Hover effects (`hover:`) only activate at `md+` — below that, use `:active` states on `@media (pointer: coarse)`
 - All touch targets are minimum **44×44px** (WCAG 2.5.5 AAA)
-- Below `sm`, stagger delays are **halved** (40ms vs 80ms desktop) and translateY distances are **reduced** (8px vs 20px)
+- Below `sm`, stagger delays are **halved** (30ms vs 60ms desktop) and translateY distances are **reduced** (8px vs 20px)
 
 ### Navigation Model
 
@@ -1918,7 +1958,7 @@ Modern mobile devices have notches, dynamic islands, home indicators, and rounde
 | Canvas particles | ON | **OFF** | Battery drain, GPU jank on low-end devices |
 | Scroll-reveal translateY | 20px | **8px** | Smaller movement = less compositing work |
 | Scroll-reveal duration | 600ms | **400ms** | Shorter = fewer dropped frames |
-| Stagger delay per item | 80ms | **40ms** | Faster sequence completion |
+| Stagger delay per item | 60ms | **30ms** | Faster sequence completion |
 | `pulse-glow` animation | ON | **OFF** | Constant repainting kills battery |
 | Hover effects | ON | **OFF** | Not applicable to touch; use `:active` instead |
 | Image loading | Eager above fold | **Lazy all** | Mobile bandwidth constraints |
