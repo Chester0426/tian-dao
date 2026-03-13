@@ -68,8 +68,11 @@ def make_hypothesis(category: str, hypothesis_id: str = "h-01") -> dict:
         "id": hypothesis_id,
         "category": category,
         "statement": f"Test {category} hypothesis",
-        "success_metric": "test metric",
-        "threshold": ">5%",
+        "metric": {
+            "formula": "event_a / event_b",
+            "threshold": 0.05,
+            "operator": "gte",
+        },
         "priority_score": 80,
         "experiment_level": 3,
         "status": "pending",

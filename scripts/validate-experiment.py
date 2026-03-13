@@ -169,9 +169,24 @@ if hypotheses is not None:
             print(f"Error: hypotheses[{i}] must be a mapping"); sys.exit(1)
 
         # Required string fields
-        for field in ["id", "category", "statement", "success_metric", "threshold"]:
+        for field in ["id", "category", "statement"]:
             if not h.get(field) or not isinstance(h.get(field), str):
                 print(f"Error: hypotheses[{i}].{field} is missing or empty"); sys.exit(1)
+
+        # Required metric object
+        metric = h.get("metric")
+        if not isinstance(metric, dict):
+            print(f"Error: hypotheses[{i}].metric must be a mapping with formula, threshold, operator"); sys.exit(1)
+        metric_formula = metric.get("formula")
+        if not metric_formula or not isinstance(metric_formula, str):
+            print(f"Error: hypotheses[{i}].metric.formula must be a non-empty string"); sys.exit(1)
+        metric_threshold = metric.get("threshold")
+        if not isinstance(metric_threshold, (int, float)) or isinstance(metric_threshold, bool):
+            print(f"Error: hypotheses[{i}].metric.threshold must be a number"); sys.exit(1)
+        metric_operator = metric.get("operator")
+        VALID_OPERATORS = {"gt", "gte", "lt", "lte"}
+        if metric_operator not in VALID_OPERATORS:
+            print(f'Error: hypotheses[{i}].metric.operator must be one of: {", ".join(sorted(VALID_OPERATORS))}'); sys.exit(1)
 
         h_id = h["id"]
         if not re.fullmatch(r"h-\d{2,}", h_id):
@@ -285,27 +300,22 @@ if funnel is not None:
     if not isinstance(funnel, dict):
         print("Error: funnel must be a mapping"); sys.exit(1)
 
-    VALID_FUNNEL_STAGES = {"reach", "demand", "activate", "monetize", "retain"}
-    funnel_stages_found = set()
-
-    for stage_key in VALID_FUNNEL_STAGES:
-        stage = funnel.get(stage_key)
-        if stage is not None:
-            funnel_stages_found.add(stage_key)
-            if not isinstance(stage, dict):
-                print(f"Error: funnel.{stage_key} must be a mapping"); sys.exit(1)
-            for req_field in ["metric", "threshold", "available_from"]:
-                val = stage.get(req_field)
-                if not val or not isinstance(val, str):
-                    print(f"Error: funnel.{stage_key}.{req_field} is missing or empty"); sys.exit(1)
-
-    if not funnel_stages_found:
-        print("Error: funnel must have at least one stage from: " + ", ".join(sorted(VALID_FUNNEL_STAGES))); sys.exit(1)
-
-    # Reject unknown keys at funnel top level (except decision_framework)
+    VALID_FUNNEL_KEYS = {"available_from", "decision_framework"}
     for fk in funnel:
-        if fk not in VALID_FUNNEL_STAGES and fk != "decision_framework":
-            print(f'Error: funnel.{fk} is not a valid funnel key (expected: {", ".join(sorted(VALID_FUNNEL_STAGES))}, decision_framework)'); sys.exit(1)
+        if fk not in VALID_FUNNEL_KEYS:
+            print(f'Error: funnel.{fk} is not a valid funnel key (expected: {", ".join(sorted(VALID_FUNNEL_KEYS))})'); sys.exit(1)
+
+    # available_from: map of dimension → level string
+    VALID_FUNNEL_STAGES = {"reach", "demand", "activate", "monetize", "retain"}
+    af = funnel.get("available_from")
+    if af is not None:
+        if not isinstance(af, dict):
+            print("Error: funnel.available_from must be a mapping"); sys.exit(1)
+        for stage_key, level_val in af.items():
+            if stage_key not in VALID_FUNNEL_STAGES:
+                print(f'Error: funnel.available_from.{stage_key} is not a valid stage (expected: {", ".join(sorted(VALID_FUNNEL_STAGES))})'); sys.exit(1)
+            if not isinstance(level_val, str) or not level_val.strip():
+                print(f"Error: funnel.available_from.{stage_key} must be a non-empty string (e.g., L1)"); sys.exit(1)
 
     df = funnel.get("decision_framework")
     if df is not None:

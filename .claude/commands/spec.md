@@ -1,7 +1,7 @@
 ---
 description: "Transform an idea + level into a complete experiment.yaml with hypotheses, behaviors, variants, and stack."
 type: code-writing
-reads: []
+reads: [EVENTS.yaml]
 stack_categories: []
 requires_approval: true
 references:
@@ -220,8 +220,10 @@ Each hypothesis must have:
 - id: h-01                       # Sequential zero-padded: h-01, h-02, ...
   category: demand               # demand | reach | feasibility | monetize | retain
   statement: "..."               # Testable claim with specific numbers
-  success_metric: "..."          # What to measure
-  threshold: "..."               # Pass/fail number (e.g., ">5% CTR", ">=50 signups")
+  metric:
+    formula: "event_a / event_b" # References event names from EVENTS.yaml
+    threshold: 0.05              # Numeric pass/fail value (e.g., 0.05 for 5%)
+    operator: gte                # gt | gte | lt | lte
   priority_score: 80             # 0-100, higher = test first
   experiment_level: 1            # Minimum level needed to test this (1, 2, or 3)
   depends_on: []                 # List of hypothesis IDs this depends on
@@ -230,7 +232,7 @@ Each hypothesis must have:
 
 ### Rules
 - Research-type hypotheses from Step 2 are included with `status: resolved` and their verdicts
-- Every hypothesis MUST have a concrete, numeric `threshold` — no vague language
+- Every hypothesis MUST have a `metric:` object with numeric `threshold`, `formula` referencing EVENTS.yaml event names, and an `operator` — no vague language
 - Filter: only include hypotheses where `experiment_level <= selected level`
 - Counts below are for **pending** hypotheses only (require building product + real user data). The 4 resolved research hypotheses from Step 2 are separate and don't count toward these minimums.
 - At least one hypothesis per required category:
@@ -252,8 +254,9 @@ Present the hypotheses for review:
 ```
 Hypothesis Quality Review
 ─────────────────────────
-  [✓/⚠/✗] Numeric thresholds: [all have concrete numbers? any arbitrary round numbers?]
+  [✓/⚠/✗] Metric structure: [all have formula, numeric threshold, and operator?]
   [✓/⚠/✗] Grounded thresholds: [based on benchmarks/data or guesswork?]
+  [✓/⚠/✗] Formula references: [formulas reference valid EVENTS.yaml event names?]
   [✓/⚠/✗] Category coverage: [all required categories present?]
   [✓/⚠/✗] No duplicates: [each tests independent risk?]
   [✓/⚠/✗] Dependencies explicit: [depends_on correctly set?]
@@ -261,8 +264,8 @@ Hypothesis Quality Review
   [✓/⚠/✗] Level-appropriate: [no out-of-scope categories?]
 
 Hypotheses:
-  h-01 [CATEGORY] "statement" — threshold: [value]
-  h-02 [CATEGORY] "statement" — threshold: [value]
+  h-01 [CATEGORY] "statement" — metric: [formula] [operator] [threshold]
+  h-02 [CATEGORY] "statement" — metric: [formula] [operator] [threshold]
   ...
 ```
 
@@ -418,34 +421,20 @@ variants:
 ```
 
 ### Section 6 — Funnel
+Dimension thresholds are derived from the highest-priority hypothesis in each category (no per-dimension metric/threshold fields in the funnel itself).
 ```yaml
 funnel:
-  reach:
-    metric: "<from reach hypothesis>"
-    threshold: "<threshold>"
-    available_from: L1
-  demand:
-    metric: "<from demand hypothesis>"
-    threshold: "<threshold>"
-    available_from: L1
-  activate:
-    metric: "<from feasibility hypothesis>"
-    threshold: "<threshold>"
-    available_from: L2
-  monetize:
-    metric: "<from monetize hypothesis>"
-    threshold: "<threshold>"
-    available_from: L2
-  retain:
-    metric: "<from retain hypothesis>"
-    threshold: "<threshold>"
-    available_from: L3
-
-decision_framework:
-  scale: "<condition>"
-  refine: "<condition>"
-  pivot: "<condition>"
-  kill: "<condition>"
+  available_from:
+    reach: L1
+    demand: L1
+    activate: L2
+    monetize: L2
+    retain: L3
+  decision_framework:
+    scale: "All tested dimensions >= 1.0"
+    kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+    pivot: "2+ dimensions < 0.8"
+    refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
 ```
 
 ### Section 7 — Stack + Deploy
@@ -519,7 +508,7 @@ Write `.claude/spec-manifest.json` with the full research and hypothesis details
     "icp_identified": { "finding": "...", "sources": [...], "confidence": "...", "verdict": "..." }
   },
   "hypotheses": [
-    { "id": "...", "category": "...", "statement": "...", "success_metric": "...", "threshold": "...", "priority_score": 80, "experiment_level": 1, "depends_on": [], "status": "..." }
+    { "id": "...", "category": "...", "statement": "...", "metric": { "formula": "...", "threshold": 0.05, "operator": "gte" }, "priority_score": 80, "experiment_level": 1, "depends_on": [], "status": "..." }
   ],
   "behaviors": [
     { "id": "...", "hypothesis_id": "...", "given": "...", "when": "...", "then": "...", "tests": ["..."], "level": 1 }
@@ -527,11 +516,14 @@ Write `.claude/spec-manifest.json` with the full research and hypothesis details
   "variants": [
     { "slug": "...", "headline": "...", "headline_word_diff_vs_others": ">30%" }
   ],
-  "decision_framework": {
-    "scale": "...",
-    "refine": "...",
-    "pivot": "...",
-    "kill": "..."
+  "funnel": {
+    "available_from": { "reach": "L1", "demand": "L1", "activate": "L2", "monetize": "L2", "retain": "L3" },
+    "decision_framework": {
+      "scale": "All tested dimensions >= 1.0",
+      "kill": "Any top-funnel (REACH or DEMAND) < 0.5",
+      "pivot": "2+ dimensions < 0.8",
+      "refine": "1+ dimensions < 1.0 but fewer than 2 below 0.8"
+    }
   }
 }
 ```
@@ -546,7 +538,7 @@ Write `.claude/spec-manifest.json` with the full research and hypothesis details
    python3 -c "import json; json.load(open('.claude/spec-manifest.json'))"
    ```
 3. Spot-check:
-   - Every hypothesis has a numeric threshold
+   - Every hypothesis has a `metric` object with numeric `threshold`, `formula`, and `operator`
    - Every behavior traces to a hypothesis ID that exists
    - Variant headlines have >30% word difference (compare each pair)
 
@@ -572,7 +564,7 @@ Next: Run /bootstrap to scaffold the app, or edit experiment/experiment.yaml to 
 - Add behaviors not traceable to a hypothesis
 - Add stack components not required by the selected level
 - Generate fewer than 3 variants or fewer pending hypotheses than the level minimum (L1: 2, L2: 4, L3: 5)
-- Produce hypotheses without a testable numeric threshold
+- Produce hypotheses without a `metric` object containing `formula`, numeric `threshold`, and `operator`
 - Modify any file other than `experiment/experiment.yaml` and `.claude/spec-manifest.json`
 - Skip the user approval checkpoint in Step 6
 - Proceed past any STOP point without explicit user confirmation

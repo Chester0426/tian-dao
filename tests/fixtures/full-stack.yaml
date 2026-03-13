@@ -23,8 +23,10 @@ experiment:
     - id: h-01
       category: demand
       statement: "At least 5% of landing visitors will click the CTA"
-      success_metric: "CTA click-through rate"
-      threshold: ">5% CTR"
+      metric:
+        formula: "cta_click / visit_landing"
+        threshold: 0.05
+        operator: gte
       priority_score: 90
       experiment_level: 1
       depends_on: []
@@ -32,8 +34,10 @@ experiment:
     - id: h-02
       category: feasibility
       statement: "Invoice creation works in under 60 seconds"
-      success_metric: "Median time to first sent invoice"
-      threshold: "<60 seconds"
+      metric:
+        formula: "activate / signup_complete"
+        threshold: 0.30
+        operator: gte
       priority_score: 80
       experiment_level: 2
       depends_on: [h-01]
@@ -41,8 +45,10 @@ experiment:
     - id: h-03
       category: monetize
       statement: "At least 20% of active users will start checkout"
-      success_metric: "Checkout start rate"
-      threshold: ">20% of active users"
+      metric:
+        formula: "pay_start / activate"
+        threshold: 0.20
+        operator: gte
       priority_score: 70
       experiment_level: 3
       depends_on: [h-02]
@@ -86,32 +92,17 @@ experiment:
       page: invoice-view
 
   funnel:
-    reach:
-      metric: "Landing page visitors from distribution channels"
-      threshold: ">200 visitors in 2 weeks"
-      available_from: L1
-    demand:
-      metric: "CTA click-through rate"
-      threshold: ">5%"
-      available_from: L1
-    activate:
-      metric: "First invoice creation rate"
-      threshold: ">30%"
-      available_from: L2
-    monetize:
-      metric: "Checkout start rate among active users"
-      threshold: ">20%"
-      available_from: L2
-    retain:
-      metric: "Return visits within 7 days"
-      threshold: ">15%"
-      available_from: L3
-
-  decision_framework:
-    scale: "CTR >5% AND signup >15% AND checkout >20%"
-    refine: "CTR >5% AND signup >15% but checkout <20%"
-    pivot: "CTR >3% but signup <10%"
-    kill: "CTR <3% after 200 visitors"
+    available_from:
+      reach: L1
+      demand: L1
+      activate: L2
+      monetize: L2
+      retain: L3
+    decision_framework:
+      scale: "All tested dimensions >= 1.0"
+      kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+      pivot: "2+ dimensions < 0.8"
+      refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
 
 
   stack:

@@ -503,13 +503,12 @@ type SpecStreamEvent =
       status: 'pass' | 'caution' | 'fail'; summary: string; confidence: string }
   | { type: 'preflight_opinion'; text: string }
   | { type: 'hypothesis'; id: string; category: string; statement: string;
-      success_metric: string; threshold: string; priority_score: number;
-      experiment_level: number; depends_on: string[] }
+      metric: { formula: string; threshold: number; operator: 'gt'|'gte'|'lt'|'lte' };
+      priority_score: number; experiment_level: number; depends_on: string[] }
   | { type: 'variant'; slug: string; headline: string; subheadline: string;
       cta: string; pain_points: string[]; promise: string; proof: string;
       urgency: string | null }
-  | { type: 'funnel'; dimension: string; metric: string; threshold: string;
-      available_from: string }
+  | { type: 'funnel'; available_from: Record<string, string> }
   | { type: 'complete'; spec: FullSpecData }
   | { type: 'input_too_vague' }
   | { type: 'error'; message: string };
@@ -539,11 +538,11 @@ Between events you may include reasoning text (ignored by the parser).
 
 >>>EVENT: {"type":"preflight_opinion","text":"I found 15+ funded competitors..."}
 
->>>EVENT: {"type":"hypothesis","id":"h-01","category":"reach","statement":"...","success_metric":"...","threshold":"> 2% CTR","priority_score":90,"experiment_level":1,"depends_on":[]}
+>>>EVENT: {"type":"hypothesis","id":"h-01","category":"reach","statement":"...","metric":{"formula":"cta_click / visit_landing","threshold":0.02,"operator":"gte"},"priority_score":90,"experiment_level":1,"depends_on":[]}
 
 >>>EVENT: {"type":"variant","slug":"time-saver","headline":"...","subheadline":"...","cta":"...","pain_points":["..."],"promise":"...","proof":"...","urgency":null}
 
->>>EVENT: {"type":"funnel","dimension":"reach","metric":"Ad CTR","threshold":"> 2%","available_from":"L1"}
+>>>EVENT: {"type":"funnel","available_from":{"reach":"L1","demand":"L1","activate":"L2","monetize":"L2","retain":"L3"}}
 
 >>>EVENT: {"type":"complete","spec":{<full experiment.yaml as JSON>}}
 ```
@@ -902,8 +901,10 @@ hypotheses:                               # inline, not in separate manifest
   - id: h-01
     category: demand
     statement: "Freelancers actively search for AI invoice tools"
-    success_metric: "Signup conversion rate"
-    threshold: "> 5% signup rate from 500+ visitors"
+    metric:
+      formula: "signup_complete / visit_landing"
+      threshold: 0.05
+      operator: gte
     priority_score: 90                   # 0-100
     experiment_level: 1
     depends_on: []
@@ -957,33 +958,19 @@ variants:
     urgency: null
 
 # 6. Funnel
+# Dimension thresholds are derived from the highest-priority hypothesis per category.
 funnel:
-  reach:
-    metric: "Ad CTR"
-    threshold: "> 2%"
-    available_from: L1
-  demand:
-    metric: "Signup conversion rate"
-    threshold: "> 5%"
-    available_from: L1
-  activate:
-    metric: "First invoice creation rate"
-    threshold: "> 30% of signups"
-    available_from: L2
-  monetize:
-    metric: "Pricing page clicks"
-    threshold: "> 7%"
-    available_from: L1
-    measurement_mode: signal | functional  # signal = fake door clicks (L1), functional = real payment flow (L2+)
-  retain:
-    metric: "7-day return rate"
-    threshold: "> 30%"
-    available_from: L3
-decision_framework:
-  scale: "All tested dimensions >= 1.0"
-  kill: "Any top-funnel (REACH or DEMAND) < 0.5"
-  pivot: "2+ dimensions < 0.8 (weak signal across the board)"
-  refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8 (improvement needed, not systemic failure)"
+  available_from:
+    reach: L1
+    demand: L1
+    activate: L2
+    monetize: L2
+    retain: L3
+  decision_framework:
+    scale: "All tested dimensions >= 1.0"
+    kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+    pivot: "2+ dimensions < 0.8"
+    refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
 
 # 7. Stack + Deploy
 services:
@@ -1018,7 +1005,7 @@ deploy:
 
 ### `/iterate` — Scorecard + Per-Hypothesis Verdicts
 
-Per hypothesis: map `success_metric` → funnel metric, compare against `threshold`.
+Per hypothesis: parse `metric.formula`, compute from event counts, compare with `metric.threshold` using `metric.operator`.
 Verdict: CONFIRMED / REJECTED / INCONCLUSIVE.
 
 **Funnel stage mapping:** Each event in EVENTS.yaml has a `funnel_stage` tag (reach, demand, activate, monetize, retain) that directly maps it to the corresponding validation dimension. No separate mapping table is needed — the dimension is explicit on each event definition.
@@ -1217,8 +1204,9 @@ CREATE TABLE hypotheses (
     CHECK (category IN ('demand', 'reach', 'feasibility', 'monetize', 'retain')),
   statement text NOT NULL,
   test_method text,
-  success_metric text,
-  threshold text,
+  metric_formula text,
+  metric_threshold numeric,
+  metric_operator text CHECK (metric_operator IN ('gt', 'gte', 'lt', 'lte')),
   estimated_cost numeric DEFAULT 0,
   priority_score integer DEFAULT 0 CHECK (priority_score BETWEEN 0 AND 100),
   result text,

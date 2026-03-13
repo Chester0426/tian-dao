@@ -894,13 +894,12 @@ type SpecStreamEvent =
       status: 'pass' | 'caution' | 'fail'; summary: string; confidence: string }
   | { type: 'preflight_opinion'; text: string }
   | { type: 'hypothesis'; id: string; category: string; statement: string;
-      success_metric: string; threshold: string; priority_score: number;
-      experiment_level: number; depends_on: string[] }
+      metric: { formula: string; threshold: number; operator: 'gt'|'gte'|'lt'|'lte' };
+      priority_score: number; experiment_level: number; depends_on: string[] }
   | { type: 'variant'; slug: string; headline: string; subheadline: string;
       cta: string; pain_points: string[]; promise: string; proof: string;
       urgency: string | null }
-  | { type: 'funnel'; dimension: string; metric: string; threshold: string;
-      available_from: string }
+  | { type: 'funnel'; available_from: Record<string, string> }
   | { type: 'complete'; spec: FullSpecData; anonymous_spec_id: string }
   | { type: 'input_too_vague' }
   | { type: 'error'; message: string };

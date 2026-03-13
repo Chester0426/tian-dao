@@ -34,8 +34,10 @@ distribution: |
 #   - id: h-01
 #     category: demand          # demand | reach | feasibility | monetize | retain
 #     statement: "TODO: Testable prediction with specific numbers"
-#     success_metric: "TODO: What to measure"
-#     threshold: "TODO: Pass/fail number (e.g., > 5% CTR)"
+#     metric:
+#       formula: "TODO: event_a / event_b"    # References EVENTS.yaml event names
+#       threshold: 0.05                        # Numeric target (e.g., 0.05 = 5%)
+#       operator: gte                          # gt | gte | lt | lte
 #     priority_score: 90        # 0-100, higher = test first
 #     experiment_level: 1       # Minimum level needed to test this
 #     depends_on: []
@@ -106,32 +108,19 @@ target_clicks: 3
 #       - "TODO: Pain point 3"
 
 # --- 6. Funnel ---
+# Dimension thresholds are derived from the highest-priority hypothesis per category.
 # funnel:
-#   reach:
-#     metric: "TODO: Top-of-funnel metric (e.g., Ad CTR)"
-#     threshold: "TODO: Pass/fail (e.g., > 2%)"
-#     available_from: L1
-#   demand:
-#     metric: "TODO: Signup/interest metric"
-#     threshold: "TODO: Pass/fail (e.g., > 5%)"
-#     available_from: L1
-#   activate:
-#     metric: "TODO: Activation metric (e.g., First core action rate)"
-#     threshold: "TODO: Pass/fail (e.g., > 30%)"
-#     available_from: L2
-#   monetize:
-#     metric: "TODO: Revenue/pricing metric"
-#     threshold: "TODO: Pass/fail (e.g., > 7%)"
-#     available_from: L2
-#   retain:
-#     metric: "TODO: Retention metric"
-#     threshold: "TODO: Pass/fail (e.g., > 30%)"
-#     available_from: L3
-# decision_framework:
-#   scale: "TODO: When to scale (e.g., All tested dimensions >= threshold)"
-#   refine: "TODO: When to refine (e.g., Bottleneck ratio >= 0.7)"
-#   pivot: "TODO: When to pivot (e.g., Bottleneck ratio < 0.7)"
-#   kill: "TODO: When to kill (e.g., Top-funnel < 0.5)"
+#   available_from:
+#     reach: L1
+#     demand: L1
+#     activate: L2
+#     monetize: L2
+#     retain: L3
+#   decision_framework:
+#     scale: "All tested dimensions >= 1.0"
+#     kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+#     pivot: "2+ dimensions < 0.8"
+#     refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
 
 # --- 7. Stack + Deploy ---
 # Per-service values (runtime, hosting, ui, testing) live under services[].

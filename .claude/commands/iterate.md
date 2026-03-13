@@ -25,7 +25,7 @@ This skill does NOT write code. It helps you decide what action to take, then po
 - Read `experiment/experiment.yaml` — understand the hypothesis:
   - What are we building? (`name`, `description`)
   - For whom? (`target_user`)
-  - What does success look like? (`thesis`, `funnel` thresholds)
+  - What does success look like? (`thesis`, hypothesis `metric` objects, `funnel` dimensions)
   - What behaviors exist? (`behaviors`)
   - What is the scope? (pages from `golden_path` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_experiment_fields`)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Events are defined in EVENTS.yaml as a flat map with `funnel_stage` tags — filter by `requires` (match stack) and `archetypes` (match experiment type).
@@ -154,11 +154,11 @@ Read `.claude/spec-manifest.json`. If the file does not exist, skip this step en
 For each hypothesis in `spec-manifest.json` where `status` is `"testing"` (not `"resolved"`):
 
 1. **Dependency check**: if the hypothesis has `depends_on[]`, check whether any parent hypothesis has verdict `REJECTED`. If so, set this hypothesis's verdict to `BLOCKED` and skip metric comparison.
-2. **Map metric**: match `success_metric` to the closest funnel metric from Step 2 data (e.g., "CTA click rate" → visit_landing-to-signup conversion, "signup rate" → signup_start count)
-3. **Compare**: actual value vs `threshold`
+2. **Compute metric**: parse `metric.formula` (e.g., `"signup_complete / visit_landing"`), compute the value from event counts gathered in Step 2, then compare the result against `metric.threshold` using `metric.operator` (`gte`, `lte`, `gt`, `lt`, `eq`)
+3. **Compare**: computed value vs `metric.threshold` using `metric.operator`
 4. **Verdict**:
-   - `CONFIRMED` — actual >= threshold
-   - `REJECTED` — actual < threshold AND sample size >= 30
+   - `CONFIRMED` — computed value satisfies `metric.operator` against `metric.threshold`
+   - `REJECTED` — computed value does NOT satisfy `metric.operator` against `metric.threshold` AND sample size >= 30
    - `INCONCLUSIVE` — sample size < 30
    - `BLOCKED` — a parent in `depends_on[]` was REJECTED
 5. **Confidence tag** based on sample size:
@@ -171,8 +171,8 @@ Output:
 ```
 Hypothesis Verdicts
 ───────────────────
-  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE / BLOCKED ⊘ (parent: h-XX)]  ([confidence] — [N] [unit])
-  [CATEGORY]   [metric] [actual] vs [threshold]   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE / BLOCKED ⊘ (parent: h-XX)]  ([confidence] — [N] [unit])
+  [CATEGORY]   [formula] = [computed] vs [metric.threshold] ([metric.operator])   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE / BLOCKED ⊘ (parent: h-XX)]  ([confidence] — [N] [unit])
+  [CATEGORY]   [formula] = [computed] vs [metric.threshold] ([metric.operator])   [PASS ✓ / FAIL ✗ / ? INCONCLUSIVE / BLOCKED ⊘ (parent: h-XX)]  ([confidence] — [N] [unit])
   ...
 ```
 
@@ -219,7 +219,7 @@ Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / thre
 
 - If experiment level < dimension level, show "—" for that row with "(not tested at this level)"
 - Confidence per-dimension is based on sample size (same tags as Step 3.5)
-- Threshold sourcing (in priority order): (1) `funnel.<dimension>.threshold` from experiment.yaml, (2) spec-manifest.json `hypotheses[].threshold` mapped by category, (3) EVENTS.yaml funnel benchmarks as fallback
+- Threshold sourcing (in priority order): (1) highest-priority hypothesis per dimension's `metric.threshold` from spec-manifest.json (hypotheses are mapped to dimensions by category), (2) EVENTS.yaml funnel benchmarks as fallback. Funnel dimensions in experiment.yaml carry only `available_from` — dimension thresholds are derived from hypotheses, not from the funnel config directly.
 
 #### Descriptive funnel labels by archetype
 
@@ -370,9 +370,10 @@ Write `.claude/iterate-manifest.json`:
   "hypothesis_verdicts": [
     {
       "hypothesis_id": "<id from spec-manifest>",
-      "metric_name": "<mapped metric>",
-      "actual_value": "<value>",
-      "threshold": "<threshold>",
+      "metric_formula": "<metric.formula from hypothesis>",
+      "metric_operator": "<metric.operator from hypothesis>",
+      "computed_value": "<result of evaluating formula against event counts>",
+      "threshold": "<metric.threshold from hypothesis>",
       "verdict": "<CONFIRMED|REJECTED|INCONCLUSIVE|BLOCKED>",
       "blocked_by": "<parent hypothesis id or null>",
       "sample_size": 0,
@@ -380,10 +381,10 @@ Write `.claude/iterate-manifest.json`:
     }
   ],
   "funnel_scores": {
-    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
-    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
-    "activate": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
-    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<experiment.yaml|spec-manifest|events-yaml>" },
+    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "activate": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
     "retain": null
   }
 }

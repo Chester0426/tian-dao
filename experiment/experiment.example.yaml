@@ -33,8 +33,10 @@ hypotheses:
   - id: h-01
     category: demand
     statement: ">5% of freelancers who see the landing page click 'Start Invoicing Free'"
-    success_metric: CTA click-through rate
-    threshold: "> 5% CTR"
+    metric:
+      formula: "cta_click / visit_landing"
+      threshold: 0.05
+      operator: gte
     priority_score: 90
     experiment_level: 1
     depends_on: []
@@ -42,8 +44,10 @@ hypotheses:
   - id: h-02
     category: feasibility
     statement: "A freelancer can create and send an invoice in under 60 seconds on first use"
-    success_metric: Median time to first sent invoice
-    threshold: "< 60 seconds"
+    metric:
+      formula: "activate / signup_complete"
+      threshold: 0.30
+      operator: gte
     priority_score: 80
     experiment_level: 2
     depends_on: [h-01]
@@ -51,8 +55,10 @@ hypotheses:
   - id: h-03
     category: monetize
     statement: ">10% of freelancers who send an invoice will have at least one paid via Stripe"
-    success_metric: Paid invoice rate
-    threshold: "> 10% of senders"
+    metric:
+      formula: "pay_success / activate"
+      threshold: 0.10
+      operator: gte
     priority_score: 70
     experiment_level: 3
     depends_on: [h-02]
@@ -60,8 +66,10 @@ hypotheses:
   - id: h-04
     category: retain
     statement: ">50% of freelancers who send one invoice return to send a second within 14 days"
-    success_metric: 14-day repeat rate
-    threshold: "> 50%"
+    metric:
+      formula: "retain_return / signup_complete"
+      threshold: 0.50
+      operator: gte
     priority_score: 60
     experiment_level: 3
     depends_on: [h-03]
@@ -173,32 +181,19 @@ variants:
       - "Spreadsheet invoices look unprofessional"
 
 # --- 6. Funnel ---
+# Dimension thresholds are derived from the highest-priority hypothesis per category.
 funnel:
-  reach:
-    metric: "Ad CTR"
-    threshold: "> 2%"
-    available_from: L1
-  demand:
-    metric: "Signup conversion rate"
-    threshold: "> 5%"
-    available_from: L1
-  activate:
-    metric: "First invoice creation rate"
-    threshold: "> 30% of signups"
-    available_from: L2
-  monetize:
-    metric: "Paid invoice rate"
-    threshold: "> 10% of senders"
-    available_from: L2
-  retain:
-    metric: "14-day repeat rate"
-    threshold: "> 50%"
-    available_from: L3
-decision_framework:
-  scale: "All tested dimensions >= threshold"
-  refine: "Bottleneck ratio >= 0.7"
-  pivot: "Bottleneck ratio < 0.7"
-  kill: "Top-funnel (REACH or DEMAND) < 0.5"
+  available_from:
+    reach: L1
+    demand: L1
+    activate: L2
+    monetize: L2
+    retain: L3
+  decision_framework:
+    scale: "All tested dimensions >= 1.0"
+    kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+    pivot: "2+ dimensions < 0.8"
+    refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
 
 # --- 7. Stack + Deploy ---
 stack:

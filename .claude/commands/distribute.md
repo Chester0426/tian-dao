@@ -53,7 +53,7 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
 
 If `.claude/spec-manifest.json` exists, read it and extract:
 - All hypotheses where `category` is `"demand"` or `"reach"` (the categories relevant to distribution)
-- For each: `statement`, `success_metric`, `threshold`
+- For each: `statement`, `metric.formula`, `metric.threshold`
 
 Store as hypothesis context for Step 3. If the file does not exist, skip — all subsequent steps work without it.
 
@@ -131,7 +131,7 @@ Read the selected channel's stack file "Ad Format Constraints" section for chara
 If hypothesis context was loaded in Step 1.5:
 
 - **Headlines**: derive from `demand` hypothesis `statement`. If the hypothesis says "freelancers want AI-generated invoices from time logs", the headline should address that angle directly (e.g., "Turn Time Logs Into Invoices in Seconds").
-- **CTA**: align with the `success_metric`'s desired user action. If the metric is "signup rate", the CTA should drive signups ("Start Free" > "Learn More"). If the metric is "CTA click rate", the CTA should be prominent and action-oriented.
+- **CTA**: align with the hypothesis `metric.formula`'s desired user action. If the formula is "signup_complete / visit_landing", the CTA should drive signups ("Start Free" > "Learn More"). If the formula is "cta_click / visit_landing", the CTA should be prominent and action-oriented.
 - **Targeting angle**: if a `reach` hypothesis specifies a channel or audience (e.g., "freelancers on Reddit respond to invoicing pain"), use it to inform the targeting research in Step 2.
 
 This is additive guidance — it refines the copy principles above, not replaces them. Message match rules from messaging.md still apply.
