@@ -40,12 +40,12 @@ experiment:
     surface: none
 
 events:
-  standard_funnel:
-    - event: activate
-      trigger: User completes a successful data transformation via the API
-    - event: retain_return
-      trigger: User makes a request after 24+ hours since last call
-  custom_events: []
+  activate:
+    funnel_stage: activate
+    trigger: User completes a successful data transformation via the API
+  retain_return:
+    funnel_stage: retain
+    trigger: User makes a request after 24+ hours since last call
 
 assertions:
   payment_events_required: false

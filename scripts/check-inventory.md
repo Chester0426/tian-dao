@@ -20,7 +20,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 |------|-------------|
 | Require stack frontmatter keys | Every stack file must have all required keys (assumes, packages, files, env, ci_placeholders, clean, gitignore) |
 | Resolve assumes entries to existing stack files | Every `assumes` entry must point to an existing `.claude/stacks/<path>.md` |
-| Require archetype frontmatter keys | Every archetype file must have all required keys (description, required_stacks, optional_stacks, excluded_stacks, required_experiment_fields, build_command, funnel_template) |
+| Require archetype frontmatter keys | Every archetype file must have all required keys (description, required_stacks, optional_stacks, excluded_stacks, required_experiment_fields, build_command) |
 | Require skill frontmatter keys | Every skill file must have all required keys (type, reads, stack_categories, requires_approval, references, branch_prefix, modifies_specs) |
 | Verify referenced file paths exist | Every `references` path in skill frontmatter must exist on disk |
 | Require verify.md in code-writing skill references | Code-writing skills must include verify.md in their `references` list |
@@ -75,10 +75,10 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify change skill classification precedes classification-dependent checks | In change.md, the step heading containing "Classify" must appear before any step heading whose body contains "classified as" or "is a Fix" or "is NOT Test" |
 | Verify ads.yaml schema | If `experiment/ads.yaml` exists: channel-aware validation — universal keys (campaign_name, project_name, landing_url, budget, targeting, conversions, guardrails, thresholds) required for all channels; google-ads requires keywords + ads with RSA constraints and guardrails.max_cpc_cents; twitter requires tweets (≥2, ≤280 chars); reddit requires posts (≥2, headline ≤300 chars); budget within limits; thresholds.expected_activations is int >= 0, go_signal and no_go_signal are non-empty strings |
 | Verify ads.yaml campaign_name matches experiment.yaml name | `campaign_name` in ads.yaml must start with experiment.yaml `name` |
-| Verify distribute skill prose event names | distribute.md must contain a YAML code block defining the `feedback_submitted` event (added to EVENTS.yaml `custom_events` during Step 7c) |
+| Verify distribute skill prose event names | distribute.md must contain a YAML code block defining the `feedback_submitted` event (added to EVENTS.yaml `events` map during Step 7c) |
 | Verify distribution docs references exist | If distribute.md or any `.claude/stacks/distribution/*.md` file contains a backtick-wrapped `docs/*.md` reference, that file must exist on disk |
 | Verify distribute skill validates analytics stack in experiment.yaml | distribute.md preconditions section (Step 1) must validate that `stack.analytics` is present in experiment.yaml before proceeding |
-| Verify distribute skill validates EVENTS.yaml custom_events structure | distribute.md preconditions section (Step 1) must reference `custom_events` near a stop/validation context (`stop`, `list`, `malformed`, or `missing` within 200 chars) |
+| Verify distribute skill validates EVENTS.yaml events structure | distribute.md preconditions section (Step 1) must validate that EVENTS.yaml `events` is a well-formed dict |
 | Verify trackServerEvent calls are awaited in stack file code blocks | `trackServerEvent()` calls in stack file code blocks (excluding function definitions) must be preceded by `await` on the same line |
 | Verify Supabase CLI commands use correct flag syntax | Code blocks containing `supabase projects delete` must include the `--project-ref` flag |
 | Verify procedure files have production branch | Feature/Upgrade/Fix procedure files must contain `quality: production` or `quality.*production` |

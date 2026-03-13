@@ -90,7 +90,6 @@ class TestCheck2bArchetypeFrontmatterKeys:
             "excluded_stacks": [],
             "required_experiment_fields": ["pages"],
             "build_command": "npm run build",
-            "funnel_template": "standard",
         }
         with open(af, "w") as f:
             f.write("---\n" + yaml.dump(fm) + "---\n")

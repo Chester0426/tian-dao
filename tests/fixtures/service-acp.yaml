@@ -40,12 +40,12 @@ experiment:
     analytics: posthog
 
 events:
-  standard_funnel:
-    - event: activate
-      trigger: Agent completes its first token analysis task
-    - event: retain_return
-      trigger: Agent receives a task after 24+ hours since last task
-  custom_events: []
+  activate:
+    funnel_stage: activate
+    trigger: Agent completes its first token analysis task
+  retain_return:
+    funnel_stage: retain
+    trigger: Agent receives a task after 24+ hours since last task
 
 assertions:
   payment_events_required: false

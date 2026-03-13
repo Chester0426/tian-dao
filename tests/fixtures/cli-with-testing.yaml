@@ -42,12 +42,12 @@ experiment:
     analytics: posthog
 
 events:
-  standard_funnel:
-    - event: activate
-      trigger: User completes their first deployment via the CLI
-    - event: retain_return
-      trigger: User runs the CLI again after 24+ hours since last use
-  custom_events: []
+  activate:
+    funnel_stage: activate
+    trigger: User completes their first deployment via the CLI
+  retain_return:
+    funnel_stage: retain
+    trigger: User runs the CLI again after 24+ hours since last use
 
 assertions:
   payment_events_required: false

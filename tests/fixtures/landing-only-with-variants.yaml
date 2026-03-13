@@ -62,14 +62,15 @@ experiment:
     analytics: posthog
 
 events:
-  standard_funnel:
-    - event: visit_landing
-      trigger: User loads the landing page
-    - event: activate
-      trigger: User submits email in the interest form
-    - event: retain_return
-      trigger: User returns after 24+ hours
-  custom_events: []
+  visit_landing:
+    funnel_stage: reach
+    trigger: User loads the landing page
+  activate:
+    funnel_stage: activate
+    trigger: User submits email in the interest form
+  retain_return:
+    funnel_stage: retain
+    trigger: User returns after 24+ hours
 
 assertions:
   payment_events_required: false

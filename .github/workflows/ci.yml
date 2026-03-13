@@ -60,16 +60,23 @@ jobs:
               with open('EVENTS.yaml') as fh:
                   data = yaml.safe_load(fh)
               if data:
-                  for key in ['standard_funnel', 'custom_events']:
-                      if key not in data:
-                          errors.append(f'EVENTS.yaml: missing required key \"{key}\"')
-                  for section in ['standard_funnel', 'payment_funnel']:
-                      if section in data:
-                          for i, ev in enumerate(data[section]):
-                              if 'event' not in ev:
-                                  errors.append(f'EVENTS.yaml: {section}[{i}] missing \"event\" field')
-                              if 'trigger' not in ev:
-                                  errors.append(f'EVENTS.yaml: {section}[{i}] missing \"trigger\" field')
+                  events = data.get('events')
+                  if events is None:
+                      errors.append('EVENTS.yaml: missing required key \"events\"')
+                  elif not isinstance(events, dict):
+                      errors.append('EVENTS.yaml: \"events\" must be a dict')
+                  else:
+                      valid_stages = {'reach', 'demand', 'activate', 'monetize', 'retain'}
+                      for name, ev in events.items():
+                          if not isinstance(ev, dict):
+                              errors.append(f'EVENTS.yaml: events.{name} must be a dict')
+                              continue
+                          if 'funnel_stage' not in ev:
+                              errors.append(f'EVENTS.yaml: events.{name} missing \"funnel_stage\"')
+                          elif ev['funnel_stage'] not in valid_stages:
+                              errors.append(f'EVENTS.yaml: events.{name} invalid funnel_stage')
+                          if 'trigger' not in ev:
+                              errors.append(f'EVENTS.yaml: events.{name} missing \"trigger\"')
           except FileNotFoundError:
               pass
           if errors:

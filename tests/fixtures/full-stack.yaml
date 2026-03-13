@@ -126,23 +126,29 @@ experiment:
     payment: stripe
 
 events:
-  standard_funnel:
-    - event: visit_landing
-      trigger: User loads the landing page
-    - event: signup_start
-      trigger: User opens the registration form
-    - event: signup_complete
-      trigger: User successfully creates an account
-    - event: activate
-      trigger: User creates their first invoice
-    - event: retain_return
-      trigger: User returns after 24+ hours
-  payment_funnel:
-    - event: pay_start
-      trigger: Client clicks pay button on invoice
-    - event: pay_success
-      trigger: Payment confirmed via Stripe webhook
-  custom_events: []
+  visit_landing:
+    funnel_stage: reach
+    trigger: User loads the landing page
+  signup_start:
+    funnel_stage: demand
+    trigger: User opens the registration form
+  signup_complete:
+    funnel_stage: demand
+    trigger: User successfully creates an account
+  activate:
+    funnel_stage: activate
+    trigger: User creates their first invoice
+  retain_return:
+    funnel_stage: retain
+    trigger: User returns after 24+ hours
+  pay_start:
+    funnel_stage: monetize
+    requires: [payment]
+    trigger: Client clicks pay button on invoice
+  pay_success:
+    funnel_stage: monetize
+    requires: [payment]
+    trigger: Payment confirmed via Stripe webhook
 
 assertions:
   payment_events_required: true

@@ -125,7 +125,7 @@ def fake_fixture(
 
     fixture = {
         "experiment": experiment,
-        "events": events or {"standard_funnel": [], "custom_events": []},
+        "events": events or {},
         "assertions": assertions or {
             "min_pages": 1,
             "payment_events_required": False,
