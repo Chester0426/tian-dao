@@ -53,7 +53,7 @@ export default defineConfig({
     { name: "Mobile Chrome", use: { ...devices["Pixel 5"] } },
   ],
   webServer: {
-    command: "npm run dev",
+    command: "npm start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     env: {
