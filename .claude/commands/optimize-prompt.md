@@ -1,3 +1,13 @@
+---
+description: "Optimize a prompt using Claude best practices. Standalone utility — not part of the experiment lifecycle."
+type: utility
+reads: []
+stack_categories: []
+requires_approval: false
+references: []
+branch_prefix: chore
+modifies_specs: false
+---
 Improve the following prompt to a world-champion level. Apply Claude prompt best practices, ensuring clarity, precision, strong role definition, explicit constraints, and minimal ambiguity, while preserving the original intent.
 
 Guidelines:

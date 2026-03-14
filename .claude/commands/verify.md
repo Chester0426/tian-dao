@@ -47,7 +47,11 @@ If the testing stack file's `assumes` list includes `database/supabase` and `aut
 
 ## Step 2: Report results
 
-- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. Then tell the user: "All tests pass. Next steps: if you're on a feature branch, merge the PR to `main` first. Then run `/deploy` to deploy to production (requires `main` with clean working tree), or run `/change` to make more improvements before deploying." If the archetype is `cli`, replace the `/deploy` guidance with: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up the experiment." **Done.** No branch, no PR, no further steps.
+- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. Then tell the user next steps based on context:
+  - **On a feature branch**: "All tests pass. Merge this PR to `main`, then run `/deploy` to deploy to production."
+  - **On `main`**: "All tests pass. Run `/deploy` to deploy to production, or run `/change` to make more improvements before deploying."
+  - **If archetype is `cli`**: replace `/deploy` guidance with: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up the experiment."
+  **Done.** No branch, no PR, no further steps.
 - If any tests fail: proceed to Step 3
 
 ## Step 3: Branch setup
