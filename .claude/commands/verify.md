@@ -76,6 +76,9 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
 
 ## Step 6: Commit, push, open PR
 
+> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
+> STOP — go back and run Step 5 above. Do NOT commit without a verification report.
+
 - Commit: descriptive message about what was fixed (e.g., "Fix landing page title assertion in E2E smoke test")
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md`:
   - **Summary**: what tests were failing and what was fixed
@@ -83,6 +86,7 @@ Follow the FULL verification procedure in `.claude/patterns/verify.md`:
   - **What Changed**: files modified and why
   - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
   - **Checklist**: standard checks
+- Delete `.claude/verify-report.md` after PR is created.
 - After PR is created, tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If the archetype is `cli`, add: "Then publish via `npm publish` or GitHub Releases — see the archetype file." Otherwise, add: "Then run `/deploy` to deploy to production."
 
 ## Cleanup

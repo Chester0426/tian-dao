@@ -293,6 +293,9 @@ If any check returns "stop", halt before verify.md. Warnings are non-blocking â€
 
 Run the verification procedure per `.claude/patterns/verify.md`.
 
+> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
+> STOP â€” go back and run verify.md above. Do NOT commit without a verification report.
+
 Commit, push, and open a PR with:
 - **Summary**: what was generated and why (include the selected channel)
 - **Distribution Setup**: step-by-step channel + analytics setup instructions (from stack file)

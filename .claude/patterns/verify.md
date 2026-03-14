@@ -151,6 +151,52 @@ skip this section.
    Do NOT include experiment.yaml content, project name, or feature descriptions.
 5. Report the observer's result.
 
+## Write Verification Report
+
+After all review agents, fix cycles, and auto-observe complete, write `.claude/verify-report.md`:
+
+```markdown
+---
+timestamp: [ISO 8601]
+scope: [full|security|visual|build]
+build_attempts: [1-3]
+---
+
+## Build
+- Attempts: [N]/3
+- Result: pass
+- Last output: [last 3-5 lines of build output]
+
+## Review Agents
+| Agent | Verdict | Notes |
+|-------|---------|-------|
+| design-critic | [pass/fixed/skipped] | [1-line summary] |
+| ux-journeyer | [pass/fixed/skipped] | [1-line summary] |
+| security-defender | [pass/N issues] | [1-line summary] |
+| security-attacker | [pass/N findings] | [1-line summary] |
+| security-fixer | [fixed N/skipped] | [1-line summary] |
+| behavior-verifier | [pass/N issues] | [1-line summary] |
+| performance-reporter | [summary/skipped] | [1-line summary] |
+| accessibility-scanner | [pass/N issues/skipped] | [1-line summary] |
+| spec-reviewer | [pass/N gaps/skipped] | [1-line summary] |
+
+## Observations Filed
+- [list, or "None"]
+
+## Process Compliance
+> Populated when `quality: production`. Otherwise: "N/A — MVP mode".
+
+- Process Checklist in current-plan.md: [present | missing]
+- TDD order: [pass | WARN — N violations | N/A]
+- Source: spec-reviewer S8
+```
+
+Only include agents that were spawned (per scope). Mark others as "skipped — out of scope".
+
+> **This file is a hard gate.** The commit/PR step in the calling skill
+> reads this file and includes its contents in the PR body. If the file
+> does not exist, the PR step must run verify.md first.
+
 ## Save Notable Patterns (if you fixed any errors above)
 
 After a successful verification where you fixed any errors (build, lint, visual, or security):

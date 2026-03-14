@@ -28,9 +28,9 @@ You verify that what was built matches what was specified. You are precise — f
 
 Read `experiment/experiment.yaml` `type` field (default: `web-app`):
 
-- **web-app**: checks S1-S7
-- **service**: S1, S2 (endpoints not pages), S3, S4 (skip golden_path page/CTA checks), S5, S6, S7
-- **cli**: S1, S2 (commands not pages), S5, S6, S7 (skip S3, S4)
+- **web-app**: checks S1-S8
+- **service**: S1, S2 (endpoints not pages), S3, S4 (skip golden_path page/CTA checks), S5, S6, S7, S8
+- **cli**: S1, S2 (commands not pages), S5, S6, S7, S8 (skip S3, S4)
 
 ## Checks
 
@@ -69,6 +69,13 @@ MUST exist covering that task's target module. A task with production code but
 no corresponding spec test indicates TDD was bypassed — this is a FAIL regardless
 of whether the code is functionally correct.
 
+**S8. Process compliance**
+> This check produces WARNINGs, not FAILs — reported but does not block verdict.
+
+1. Read `.claude/current-plan.md`. If `## Process Checklist` section exists, report pass. If missing, report WARNING: "Process gate was not executed."
+2. If `quality: production` and change type is Feature, Fix, or Upgrade: scan git log on current branch (`git log --oneline --name-only main..HEAD`). For each test file (`*.test.*`, `*.spec.*`), check whether its first appearance in a commit precedes or equals the first appearance of the corresponding source file. If source committed before test, report WARNING: "TDD order violation — [source file] committed before [test file]."
+3. Report results as `pass` or `WARN` (never FAIL).
+
 ## Output Contract
 
 ```
@@ -81,9 +88,12 @@ of whether the code is functionally correct.
 | S5. System/cron behaviors | pass/FAIL/skip | <missing tests if FAIL> |
 | S6. Plan completion | pass/FAIL/skip | <unaddressed items if FAIL> |
 | S7. TDD compliance | pass/FAIL/skip | <tasks missing spec tests if FAIL> |
+| S8. Process compliance | pass/WARN/skip | <process violations if WARN> |
 
 ## Verdict
 <PASS | FAIL>
+
+> S8 warnings are informational — they do not change the verdict.
 
 ## Missing Items (if FAIL)
 - <specific item and what is missing>

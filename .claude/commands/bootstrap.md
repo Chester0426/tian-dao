@@ -467,11 +467,16 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-pr`.
 
 ### Commit, Push, Open PR
 
+> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
+> STOP — go back and run the Verify Phase above. Do NOT commit without
+> a verification report.
+
 The lead executes wire.md Step 9 directly:
 - Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format
 - Include completion reports from all subagents for PR body context
-- Delete `.claude/current-plan.md` and `.claude/current-visual-brief.md`
+- Populate the PR Verification checklist from `.claude/verify-report.md` contents
+- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, and `.claude/verify-report.md`
 - Report the PR URL to the user
 
 If `quality: production` is set in experiment.yaml, add to the user message:

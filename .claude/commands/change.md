@@ -82,6 +82,7 @@ State: "Verification scope: **[scope]**"
      - Read archetype file and stack files using frontmatter values
      - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
      - Resume at the step indicated by `checkpoint`:
+       - `phase2-gate` → Phase 2 Pre-flight (read procedures, write process checklist)
        - `phase2-step5` → Step 5 (update specs)
        - `phase2-step6` → Step 6 (specs done, implement — re-read the plan to determine which type constraints apply)
        - `phase2-step7` → Step 7 (implementation done, verify)
@@ -130,7 +131,7 @@ scope: [verification scope from Step 3]
 archetype: [from experiment.yaml type, default web-app]
 branch: [current git branch name]
 stack: { [category]: [value], ... }
-checkpoint: phase2-step5
+checkpoint: phase2-gate
 context_files:
   - experiment/experiment.yaml
   - EVENTS.yaml
@@ -150,7 +151,51 @@ If the user replied **"approve and clear"** or **"2"**:
 
 ## Phase 2: Implement (only after the user has approved)
 
+### Phase 2 Pre-flight: Process Gate
+
+> This step creates a data dependency: writing the checklist requires reading
+> the procedure files. Runs once per plan — idempotent.
+
+Before proceeding to Step 5, execute the process gate:
+
+1. **Read the procedure file for the classified type:**
+   | Type | File to Read |
+   |------|-------------|
+   | Feature | `.claude/procedures/change-feature.md` |
+   | Upgrade | `.claude/procedures/change-upgrade.md` |
+   | Fix | `.claude/procedures/change-fix.md` |
+   | Test | `.claude/procedures/change-test.md` |
+   | Polish | (none — constraints are inline in Step 6) |
+   | Analytics | (none — constraints are inline in Step 6) |
+
+2. **If `quality: production`:** also read `.claude/patterns/tdd.md`.
+
+3. **Always read** `.claude/patterns/verify.md` — extract the scope table and agent list for the verification scope from Step 3.
+
+4. **Append a `## Process Checklist` section** to `.claude/current-plan.md`:
+
+   ```markdown
+   ## Process Checklist
+   - Implementation mode: [MVP direct | Production TDD]
+   - Procedure file: [filename | inline (Polish/Analytics)]
+   - Verification scope: [scope] → agents: [agent list from verify.md scope table]
+   - Type-specific constraints:
+     - [3-5 key rules extracted from the procedure file]
+   ```
+
+   If `quality: production`, add to the constraints list:
+   - Feature/Upgrade: `- Implementer agents required — do NOT implement directly`
+   - Feature/Upgrade: `- TDD cycle: RED (failing test) before GREEN (implementation)`
+   - Fix: `- Regression test must FAIL on current code before writing fix`
+
+5. **Update checkpoint** in `.claude/current-plan.md` frontmatter to `phase2-step5`.
+
+> **Skip condition:** If `.claude/current-plan.md` already contains `## Process Checklist`, skip to Step 5.
+
 ### Step 5: Update specs (type-specific)
+
+> **Gate check:** Read `.claude/current-plan.md` and look for `## Process Checklist`.
+> If missing, STOP — execute the Phase 2 Pre-flight above first.
 
 - **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey (adds a page to the main flow, changes a CTA destination, or changes a key step), update `golden_path` in experiment.yaml accordingly. Do NOT remove or modify existing behaviors.
 - **Upgrade**: do NOT modify experiment.yaml `behaviors` (the behavior already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
@@ -167,11 +212,25 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step6`.
 #### Feature constraints
 Follow the procedure in `.claude/procedures/change-feature.md`.
 
+> **Critical assertions (Feature):**
+> - If `quality: production` — you MUST spawn implementer agents. Do NOT implement tasks directly.
+> - If `quality: production` — write the failing test (RED) BEFORE writing production code (GREEN).
+> - Analytics events MUST be wired before proceeding to Step 7.
+
 #### Upgrade constraints
 Follow the procedure in `.claude/procedures/change-upgrade.md`.
 
+> **Critical assertions (Upgrade):**
+> - If `quality: production` — TDD tasks required for credential storage, webhook validation, error handling.
+> - If `quality: production` — you MUST spawn implementer agents. Do NOT implement tasks directly.
+> - Preserve the `activate` event name when replacing Fake Door — remove `fake_door: true` only.
+
 #### Fix constraints
 Follow the procedure in `.claude/procedures/change-fix.md`.
+
+> **Critical assertions (Fix):**
+> - If `quality: production` — regression test must FAIL on current code BEFORE writing the fix.
+> - Minimal change only — fix root cause, no refactoring of surrounding code.
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
@@ -199,6 +258,11 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > build loop, scoped parallel review, security fix cycle (if applicable), auto-observe.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
+>
+> **Critical assertions (Verification):**
+> - If scope is `full` or `security` — security-defender + security-attacker MUST be spawned.
+> - If `quality: production` — spec-reviewer MUST be spawned.
+> - `.claude/verify-report.md` MUST be written before Step 8.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
 
@@ -225,6 +289,10 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
 ### Step 8: Commit, push, open PR
+
+> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
+> STOP — go back and run Step 7 above. Do NOT commit without a verification report.
+
 - You are already on a feature branch (created in Step 0). Do not create another branch.
 - Commit message: imperative mood describing the change (e.g., "Add invoice email reminders", "Fix email validation on signup form", "Polish landing copy and error states")
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
@@ -235,10 +303,10 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
   - **Checklist — Scope**: check all boxes. For new behaviors: confirm experiment.yaml was updated.
   - **Checklist — Analytics**: list all new/modified events and which pages fire them. For fixes/polish: confirm no events were removed or broken.
   - **Checklist — Build**: confirm build passes, no hardcoded secrets
-  - **Checklist — Verification**: fill in design-critic, ux-journeyer, and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
+  - **Checklist — Verification**: populate from `.claude/verify-report.md` contents. If Step 7 was skipped or partially run, state why.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
-- Delete `.claude/current-plan.md` — the plan is now captured in the PR description. Note: this deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
+- Delete `.claude/current-plan.md` and `.claude/verify-report.md` — the plan is captured in the PR description and the verification results are in the PR checklist. Note: plan deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
 - **Save planning patterns**: If this change revealed planning-relevant patterns (auth flow interactions, stack integration quirks, codebase conventions discovered during exploration, schema design patterns), save a brief entry to auto memory under a "Planning Patterns" heading. These get consulted during future Phase 1 exploration via `.claude/procedures/plan-exploration.md` Step 5.
 - Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After merging this PR to `main`, bump the version in `package.json` and run `npm publish` to release the update. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."
 
