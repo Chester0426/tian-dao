@@ -33,7 +33,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("experiment_alerts")
-      .select("id, alert_type, severity, message, resolved, resolved_at, created_at")
+      .select("id, alert_type, channel, severity, message, resolved_at, created_at")
       .eq("experiment_id", id)
       .order("created_at", { ascending: false });
 

@@ -20,10 +20,9 @@ export async function GET(
     }
 
     const { data, error } = await supabase
-      .from("specs")
-      .select("id, user_id, idea_text, spec_data, status, created_at")
+      .from("anonymous_specs")
+      .select("id, session_token, idea_text, spec_data, preflight_results, created_at, expires_at")
       .eq("id", id)
-      .eq("user_id", user.id)
       .single();
 
     if (error || !data) {
@@ -40,8 +39,9 @@ export async function GET(
       behaviors: (specData.behaviors as unknown[]) ?? [],
       variants: (specData.variants as unknown[]) ?? [],
       hypotheses: (specData.hypotheses as unknown[]) ?? [],
-      status: data.status,
+      idea_text: data.idea_text,
       created_at: data.created_at,
+      expires_at: data.expires_at,
     });
   } catch (error) {
     return handleApiError(error);
