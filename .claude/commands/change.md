@@ -82,6 +82,7 @@ State: "Verification scope: **[scope]**"
      - Read archetype file and stack files using frontmatter values
      - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
      - Resume at the step indicated by `checkpoint`:
+       - `phase2-gate` → Phase 2 Pre-flight (read procedures, write process checklist)
        - `phase2-step5` → Step 5 (update specs)
        - `phase2-step6` → Step 6 (specs done, implement — re-read the plan to determine which type constraints apply)
        - `phase2-step7` → Step 7 (implementation done, verify)
@@ -130,7 +131,7 @@ scope: [verification scope from Step 3]
 archetype: [from experiment.yaml type, default web-app]
 branch: [current git branch name]
 stack: { [category]: [value], ... }
-checkpoint: phase2-step5
+checkpoint: phase2-gate
 context_files:
   - experiment/experiment.yaml
   - EVENTS.yaml
@@ -150,7 +151,51 @@ If the user replied **"approve and clear"** or **"2"**:
 
 ## Phase 2: Implement (only after the user has approved)
 
+### Phase 2 Pre-flight: Process Gate
+
+> This step creates a data dependency: writing the checklist requires reading
+> the procedure files. Runs once per plan — idempotent.
+
+Before proceeding to Step 5, execute the process gate:
+
+1. **Read the procedure file for the classified type:**
+   | Type | File to Read |
+   |------|-------------|
+   | Feature | `.claude/procedures/change-feature.md` |
+   | Upgrade | `.claude/procedures/change-upgrade.md` |
+   | Fix | `.claude/procedures/change-fix.md` |
+   | Test | `.claude/procedures/change-test.md` |
+   | Polish | (none — constraints are inline in Step 6) |
+   | Analytics | (none — constraints are inline in Step 6) |
+
+2. **If `quality: production`:** also read `.claude/patterns/tdd.md`.
+
+3. **Always read** `.claude/patterns/verify.md` — extract the scope table and agent list for the verification scope from Step 3.
+
+4. **Append a `## Process Checklist` section** to `.claude/current-plan.md`:
+
+   ```markdown
+   ## Process Checklist
+   - Implementation mode: [MVP direct | Production TDD]
+   - Procedure file: [filename | inline (Polish/Analytics)]
+   - Verification scope: [scope] → agents: [agent list from verify.md scope table]
+   - Type-specific constraints:
+     - [3-5 key rules extracted from the procedure file]
+   ```
+
+   If `quality: production`, add to the constraints list:
+   - Feature/Upgrade: `- Implementer agents required — do NOT implement directly`
+   - Feature/Upgrade: `- TDD cycle: RED (failing test) before GREEN (implementation)`
+   - Fix: `- Regression test must FAIL on current code before writing fix`
+
+5. **Update checkpoint** in `.claude/current-plan.md` frontmatter to `phase2-step5`.
+
+> **Skip condition:** If `.claude/current-plan.md` already contains `## Process Checklist`, skip to Step 5.
+
 ### Step 5: Update specs (type-specific)
+
+> **Gate check:** Read `.claude/current-plan.md` and look for `## Process Checklist`.
+> If missing, STOP — execute the Phase 2 Pre-flight above first.
 
 - **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey (adds a page to the main flow, changes a CTA destination, or changes a key step), update `golden_path` in experiment.yaml accordingly. Do NOT remove or modify existing behaviors.
 - **Upgrade**: do NOT modify experiment.yaml `behaviors` (the behavior already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
@@ -167,11 +212,25 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step6`.
 #### Feature constraints
 Follow the procedure in `.claude/procedures/change-feature.md`.
 
+> **Critical assertions (Feature):**
+> - If `quality: production` — you MUST spawn implementer agents. Do NOT implement tasks directly.
+> - If `quality: production` — write the failing test (RED) BEFORE writing production code (GREEN).
+> - Analytics events MUST be wired before proceeding to Step 7.
+
 #### Upgrade constraints
 Follow the procedure in `.claude/procedures/change-upgrade.md`.
 
+> **Critical assertions (Upgrade):**
+> - If `quality: production` — TDD tasks required for credential storage, webhook validation, error handling.
+> - If `quality: production` — you MUST spawn implementer agents. Do NOT implement tasks directly.
+> - Preserve the `activate` event name when replacing Fake Door — remove `fake_door: true` only.
+
 #### Fix constraints
 Follow the procedure in `.claude/procedures/change-fix.md`.
+
+> **Critical assertions (Fix):**
+> - If `quality: production` — regression test must FAIL on current code BEFORE writing the fix.
+> - Minimal change only — fix root cause, no refactoring of surrounding code.
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
@@ -199,6 +258,11 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > build loop, scoped parallel review, security fix cycle (if applicable), auto-observe.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
+>
+> **Critical assertions (Verification):**
+> - If scope is `full` or `security` — security-defender + security-attacker MUST be spawned.
+> - If `quality: production` — spec-reviewer MUST be spawned.
+> - `.claude/verify-report.md` MUST be written before Step 8.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
 

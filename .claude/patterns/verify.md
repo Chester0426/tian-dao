@@ -182,6 +182,13 @@ build_attempts: [1-3]
 
 ## Observations Filed
 - [list, or "None"]
+
+## Process Compliance
+> Populated when `quality: production`. Otherwise: "N/A — MVP mode".
+
+- Process Checklist in current-plan.md: [present | missing]
+- TDD order: [pass | WARN — N violations | N/A]
+- Source: spec-reviewer S8
 ```
 
 Only include agents that were spawned (per scope). Mark others as "skipped — out of scope".
