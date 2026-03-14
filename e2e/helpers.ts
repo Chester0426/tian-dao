@@ -17,7 +17,7 @@ export async function login(page: Page, email: string, password: string) {
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(password);
   await page.locator("form").getByRole("button", { name: /log in|sign in/i }).click();
-  await page.waitForURL((url) => !url.pathname.includes("/login"));
+  await page.waitForURL((url) => !url.pathname.includes("/login"), { waitUntil: "commit" });
 }
 
 export async function blockAnalytics(page: Page) {
