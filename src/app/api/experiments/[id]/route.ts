@@ -6,6 +6,17 @@ import {
   updateExperimentSchema,
   EXPERIMENT_DETAIL_COLUMNS,
 } from "@/lib/experiment-schemas";
+import type { ExperimentStatus } from "@/lib/types";
+
+// Valid status transitions per product-design.md
+const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
+  draft: ["active", "archived"],
+  active: ["paused", "verdict_ready", "archived"],
+  paused: ["active", "archived"],
+  verdict_ready: ["completed", "draft", "archived"],
+  completed: ["archived"],
+  archived: [],
+};
 
 // GET /api/experiments/[id] — get single experiment with latest round
 export const GET = withErrorHandler(
@@ -62,6 +73,31 @@ export const PATCH = withErrorHandler(
     }
 
     const supabase = await createServerSupabaseClient();
+
+    // Validate status transition if status is being changed
+    if (cleanUpdates.status) {
+      const { data: current, error: fetchError } = await supabase
+        .from("experiments")
+        .select("status")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (fetchError || !current) {
+        throw new ApiError("not_found", "Experiment not found");
+      }
+
+      const currentStatus = current.status as ExperimentStatus;
+      const newStatus = cleanUpdates.status as ExperimentStatus;
+      const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
+
+      if (!allowed.includes(newStatus)) {
+        throw new ApiError(
+          "validation_error",
+          `Cannot transition from "${currentStatus}" to "${newStatus}"`
+        );
+      }
+    }
 
     const { data, error } = await supabase
       .from("experiments")

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { stream as aiStream } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -26,9 +27,10 @@ export async function POST(request: Request) {
     const rateLimited = checkRateLimit(rateLimitKey, 5);
     if (rateLimited) return rateLimited;
 
-    // Insert anonymous spec record
+    // Insert anonymous spec record (admin client bypasses RLS)
+    const adminSupabase = createAdminSupabaseClient();
     const sessionToken = crypto.randomUUID();
-    const { data: spec, error: insertError } = await supabase
+    const { data: spec, error: insertError } = await adminSupabase
       .from("anonymous_specs")
       .insert({
         session_token: sessionToken,
@@ -84,9 +86,9 @@ Format your response as structured sections. Be specific and actionable.`,
             ],
           });
 
-          // Send spec_id immediately
+          // Send spec_id and session_token immediately (client needs both to fetch/claim)
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ spec_id: specId })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ spec_id: specId, session_token: sessionToken })}\n\n`)
           );
 
           let fullText = "";
@@ -123,9 +125,9 @@ Format your response as structured sections. Be specific and actionable.`,
             });
           }
 
-          // Update spec with generated content
+          // Update spec with generated content (admin client bypasses RLS)
           if (specId) {
-            await supabase
+            await adminSupabase
               .from("anonymous_specs")
               .update({ spec_data: { text: fullText, sections } })
               .eq("id", specId);
