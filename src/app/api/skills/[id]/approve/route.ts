@@ -1,0 +1,65 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { handleApiError } from "@/lib/api-error";
+
+const approveSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
+
+// POST /api/skills/[id]/approve — approve or reject a pending operation
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const body = await request.json();
+    const { action } = approveSchema.parse(body);
+
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify operation ownership and pending status
+    const { data: op, error: opError } = await supabase
+      .from("operations")
+      .select("id, status")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .eq("status", "awaiting_approval")
+      .single();
+
+    if (opError || !op) {
+      return NextResponse.json(
+        { error: "Operation not found or not awaiting approval" },
+        { status: 404 }
+      );
+    }
+
+    const newStatus = action === "approve" ? "approved" : "rejected";
+
+    const { data, error } = await supabase
+      .from("operations")
+      .update({
+        status: newStatus,
+        ...(action === "approve" ? { started_at: new Date().toISOString() } : {}),
+      })
+      .eq("id", id)
+      .select("id, skill, status, started_at")
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ error: "Failed to update operation" }, { status: 500 });
+    }
+
+    return NextResponse.json({ operation: data });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
