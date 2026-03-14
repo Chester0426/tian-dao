@@ -1,7 +1,7 @@
 import posthog from "posthog-js";
 
 const PROJECT_NAME = "assayer";
-const PROJECT_OWNER = "";
+const PROJECT_OWNER = "assayer";
 const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
 const POSTHOG_HOST = "/ingest";
 
