@@ -5,15 +5,15 @@ import { handleApiError } from "@/lib/api-error";
 
 const createSkillSchema = z.object({
   experiment_id: z.string().uuid("Invalid experiment ID"),
-  skill: z.string().min(1).max(50),
-  input: z.record(z.string(), z.unknown()).optional().default({}),
+  skill_name: z.string().min(1).max(50),
+  input_params: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 // POST /api/skills — create a skill execution
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { experiment_id, skill, input } = createSkillSchema.parse(body);
+    const { experiment_id, skill_name, input_params } = createSkillSchema.parse(body);
 
     const supabase = await createServerSupabaseClient();
     const {
@@ -36,33 +36,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
     }
 
-    // Skills that require approval before execution
+    // Skills that require approval before execution — use gate_type
     const approvalRequired = ["deploy", "distribute"];
-    const status = approvalRequired.includes(skill) ? "awaiting_approval" : "queued";
+    const gate_type = approvalRequired.includes(skill_name) ? "approval" : null;
+    const status = gate_type === "approval" ? "paused" : "pending";
 
     const { data, error } = await supabase
-      .from("operations")
+      .from("skill_executions")
       .insert({
         experiment_id,
         user_id: user.id,
-        skill,
+        skill_name,
         status,
-        input,
+        input_params,
+        gate_type,
       })
-      .select("id, skill, status, created_at")
+      .select("id, skill_name, status, created_at")
       .single();
 
     if (error) {
-      return NextResponse.json({ error: "Failed to create operation" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to create skill execution" }, { status: 500 });
     }
 
-    return NextResponse.json({ operation: data }, { status: 201 });
+    return NextResponse.json({ execution: data }, { status: 201 });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// GET /api/skills — list user's operations
+// GET /api/skills — list user's skill executions
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
@@ -75,17 +77,17 @@ export async function GET() {
     }
 
     const { data, error } = await supabase
-      .from("operations")
-      .select("id, experiment_id, skill, status, started_at, completed_at, created_at")
+      .from("skill_executions")
+      .select("id, experiment_id, skill_name, status, gate_type, started_at, completed_at, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
 
     if (error) {
-      return NextResponse.json({ error: "Failed to fetch operations" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to fetch skill executions" }, { status: 500 });
     }
 
-    return NextResponse.json({ operations: data });
+    return NextResponse.json({ executions: data });
   } catch (error) {
     return handleApiError(error);
   }

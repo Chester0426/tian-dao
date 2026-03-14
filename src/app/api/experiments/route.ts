@@ -1,75 +1,82 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { withErrorHandler, ApiError } from "@/lib/api-error";
+import { withAuth } from "@/lib/api-auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { handleApiError } from "@/lib/api-error";
+import {
+  createExperimentSchema,
+  listExperimentsSchema,
+  EXPERIMENT_LIST_COLUMNS,
+} from "@/lib/experiment-schemas";
 
-const createExperimentSchema = z.object({
-  spec_id: z.string().uuid("Invalid spec ID").optional(),
-  name: z.string().min(1, "Name is required").max(200, "Name too long"),
-  description: z.string().max(2000, "Description too long").optional(),
-});
+// GET /api/experiments — list user's experiments, paginated
+export const GET = withErrorHandler(
+  await withAuth(async (request, _context, user) => {
+    const url = new URL(request.url);
+    const { page, limit, status } = listExperimentsSchema.parse({
+      page: url.searchParams.get("page") ?? undefined,
+      limit: url.searchParams.get("limit") ?? undefined,
+      status: url.searchParams.get("status") ?? undefined,
+    });
 
-// GET /api/experiments — list user's experiments
-export async function GET() {
-  try {
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const offset = (page - 1) * limit;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let query = supabase
+      .from("experiments")
+      .select(EXPERIMENT_LIST_COLUMNS, { count: "exact" })
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (status === "archived") {
+      query = query.not("archived_at", "is", null);
+    } else {
+      query = query.is("archived_at", null);
+      if (status) {
+        query = query.eq("status", status);
+      }
     }
 
-    const { data, error } = await supabase
-      .from("experiments")
-      .select("id, name, description, status, verdict, started_at, ended_at, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const { data, count, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: "Failed to fetch experiments" }, { status: 500 });
+      throw new ApiError("internal_error", "Failed to fetch experiments");
     }
 
-    return NextResponse.json({ experiments: data });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    return NextResponse.json({
+      experiments: data ?? [],
+      total: count ?? 0,
+      page,
+      limit,
+    });
+  })
+);
 
 // POST /api/experiments — create experiment
-export async function POST(request: Request) {
-  try {
+export const POST = withErrorHandler(
+  await withAuth(async (request, _context, user) => {
     const body = await request.json();
-    const { spec_id, name, description } = createExperimentSchema.parse(body);
+    const { name, idea_text, experiment_type } =
+      createExperimentSchema.parse(body);
 
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { data, error } = await supabase
       .from("experiments")
       .insert({
         user_id: user.id,
-        spec_id: spec_id ?? null,
         name,
-        description: description ?? null,
+        idea_text,
+        experiment_type,
         status: "draft",
       })
-      .select("id, name, status, created_at")
+      .select(EXPERIMENT_LIST_COLUMNS)
       .single();
 
     if (error) {
-      return NextResponse.json({ error: "Failed to create experiment" }, { status: 500 });
+      throw new ApiError("internal_error", "Failed to create experiment");
     }
 
     return NextResponse.json({ experiment: data }, { status: 201 });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  })
+);

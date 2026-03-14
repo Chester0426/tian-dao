@@ -34,57 +34,55 @@ export async function POST(request: Request) {
       const amountCents = Number(session.metadata?.amount_cents ?? 0);
 
       if (plan === "topup") {
-        // PAYG top-up: add credits to user's subscription
-        const { data: existingSub } = await supabase
-          .from("subscriptions")
-          .select("id, credits_cents")
+        // PAYG top-up: add balance to user's billing
+        const { data: existingBilling } = await supabase
+          .from("user_billing")
+          .select("user_id, payg_balance_cents")
           .eq("user_id", userId)
           .single();
 
-        if (existingSub) {
+        if (existingBilling) {
           await supabase
-            .from("subscriptions")
+            .from("user_billing")
             .update({
-              credits_cents: (existingSub.credits_cents ?? 0) + amountCents,
-              stripe_customer_id: session.customer as string ?? existingSub.id,
-              updated_at: new Date().toISOString(),
+              payg_balance_cents: (existingBilling.payg_balance_cents ?? 0) + amountCents,
+              stripe_customer_id: session.customer as string ?? null,
             })
             .eq("user_id", userId);
         } else {
-          await supabase.from("subscriptions").insert({
+          await supabase.from("user_billing").insert({
             user_id: userId,
             stripe_customer_id: session.customer as string ?? null,
-            plan: "free",
-            status: "active",
-            credits_cents: amountCents,
+            plan: "payg",
+            subscription_status: "none",
+            payg_balance_cents: amountCents,
           });
         }
       } else {
         // Subscription checkout completed
-        const { data: existingSub } = await supabase
-          .from("subscriptions")
-          .select("id")
+        const { data: existingBilling } = await supabase
+          .from("user_billing")
+          .select("user_id")
           .eq("user_id", userId)
           .single();
 
-        if (existingSub) {
+        if (existingBilling) {
           await supabase
-            .from("subscriptions")
+            .from("user_billing")
             .update({
               stripe_customer_id: session.customer as string ?? null,
               stripe_subscription_id: session.subscription as string ?? null,
               plan: "pro",
-              status: "active",
-              updated_at: new Date().toISOString(),
+              subscription_status: "active",
             })
             .eq("user_id", userId);
         } else {
-          await supabase.from("subscriptions").insert({
+          await supabase.from("user_billing").insert({
             user_id: userId,
             stripe_customer_id: session.customer as string ?? null,
             stripe_subscription_id: session.subscription as string ?? null,
             plan: "pro",
-            status: "active",
+            subscription_status: "active",
           });
         }
       }
@@ -104,35 +102,24 @@ export async function POST(request: Request) {
       const customerId = String(subscription.customer ?? "");
 
       // Find user by Stripe customer ID
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("id, user_id")
+      const { data: billing } = await supabase
+        .from("user_billing")
+        .select("user_id")
         .eq("stripe_customer_id", customerId)
         .single();
 
-      if (sub) {
+      if (billing) {
         const status = String(subscription.status ?? "active");
-        const periodStart = subscription.current_period_start as number | undefined;
-        const periodEnd = subscription.current_period_end as number | undefined;
 
         await supabase
-          .from("subscriptions")
+          .from("user_billing")
           .update({
-            status: status === "active" ? "active"
+            subscription_status: status === "active" ? "active"
               : status === "past_due" ? "past_due"
-              : status === "trialing" ? "trialing"
-              : status === "unpaid" ? "unpaid"
+              : status === "canceled" ? "canceled"
               : "active",
-            current_period_start: periodStart
-              ? new Date(periodStart * 1000).toISOString()
-              : null,
-            current_period_end: periodEnd
-              ? new Date(periodEnd * 1000).toISOString()
-              : null,
-            cancel_at_period_end: (subscription.cancel_at_period_end as boolean) ?? false,
-            updated_at: new Date().toISOString(),
           })
-          .eq("id", sub.id);
+          .eq("user_id", billing.user_id);
       }
       break;
     }
@@ -141,23 +128,21 @@ export async function POST(request: Request) {
       const subscription = event.data.object as unknown as Record<string, unknown>;
       const customerId = String(subscription.customer ?? "");
 
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("id")
+      const { data: billing } = await supabase
+        .from("user_billing")
+        .select("user_id")
         .eq("stripe_customer_id", customerId)
         .single();
 
-      if (sub) {
+      if (billing) {
         await supabase
-          .from("subscriptions")
+          .from("user_billing")
           .update({
-            plan: "free",
-            status: "canceled",
+            plan: "payg",
+            subscription_status: "canceled",
             stripe_subscription_id: null,
-            cancel_at_period_end: false,
-            updated_at: new Date().toISOString(),
           })
-          .eq("id", sub.id);
+          .eq("user_id", billing.user_id);
       }
       break;
     }
@@ -166,27 +151,25 @@ export async function POST(request: Request) {
       const invoice = event.data.object as unknown as Record<string, unknown>;
       const customerId = String(invoice.customer ?? "");
 
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("id, user_id")
+      const { data: billing } = await supabase
+        .from("user_billing")
+        .select("user_id")
         .eq("stripe_customer_id", customerId)
         .single();
 
-      if (sub) {
+      if (billing) {
         await supabase
-          .from("subscriptions")
+          .from("user_billing")
           .update({
-            status: "past_due",
-            updated_at: new Date().toISOString(),
+            subscription_status: "past_due",
           })
-          .eq("id", sub.id);
+          .eq("user_id", billing.user_id);
 
         // Create a billing notification
         await supabase.from("notifications").insert({
-          user_id: sub.user_id,
-          type: "billing",
-          title: "Payment failed",
-          body: "Your most recent payment failed. Please update your payment method to keep your Pro plan active.",
+          user_id: billing.user_id,
+          trigger_type: "budget_alert",
+          channel: "email",
         });
       }
       break;

@@ -26,13 +26,14 @@ export async function POST(request: Request) {
     const rateLimited = checkRateLimit(rateLimitKey, 5);
     if (rateLimited) return rateLimited;
 
-    // Insert spec record
+    // Insert anonymous spec record
+    const sessionToken = crypto.randomUUID();
     const { data: spec, error: insertError } = await supabase
-      .from("specs")
+      .from("anonymous_specs")
       .insert({
-        user_id: user?.id ?? null,
+        session_token: sessionToken,
         idea_text: idea,
-        spec_json: {},
+        spec_data: {},
       })
       .select("id")
       .single();
@@ -125,8 +126,8 @@ Format your response as structured sections. Be specific and actionable.`,
           // Update spec with generated content
           if (specId) {
             await supabase
-              .from("specs")
-              .update({ spec_json: { text: fullText, sections } })
+              .from("anonymous_specs")
+              .update({ spec_data: { text: fullText, sections } })
               .eq("id", specId);
           }
 
