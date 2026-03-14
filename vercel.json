@@ -1,0 +1,30 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/metrics-sync",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/alert-detection",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/spec-cleanup",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
