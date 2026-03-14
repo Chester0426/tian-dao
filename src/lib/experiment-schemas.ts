@@ -35,7 +35,7 @@ export const updateExperimentSchema = z.object({
 export const listExperimentsSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  status: z.string().optional(),
+  status: z.enum(["draft", "active", "paused", "verdict_ready", "completed", "archived"]).optional(),
 });
 
 // --- Hypotheses ---

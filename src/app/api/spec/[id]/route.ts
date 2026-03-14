@@ -1,28 +1,30 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { handleApiError } from "@/lib/api-error";
 
-// GET /api/spec/[id] — get a single spec by ID
+// GET /api/spec/[id] — get a single spec by ID (requires session_token query param)
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await context.params;
 
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Require session_token as proof of ownership
+    const url = new URL(request.url);
+    const sessionToken = url.searchParams.get("session_token");
+    if (!sessionToken) {
+      return NextResponse.json({ error: "session_token query parameter required" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    // Use admin client to bypass RLS; access control is via session_token match
+    const adminSupabase = createAdminSupabaseClient();
+
+    const { data, error } = await adminSupabase
       .from("anonymous_specs")
-      .select("id, session_token, idea_text, spec_data, preflight_results, created_at, expires_at")
+      .select("id, idea_text, spec_data, preflight_results, created_at, expires_at")
       .eq("id", id)
+      .eq("session_token", sessionToken)
       .single();
 
     if (error || !data) {

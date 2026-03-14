@@ -32,7 +32,10 @@ CREATE TABLE IF NOT EXISTS anonymous_specs (
 CREATE INDEX IF NOT EXISTS idx_anonymous_specs_session ON anonymous_specs(session_token);
 CREATE INDEX IF NOT EXISTS idx_anonymous_specs_expires ON anonymous_specs(expires_at);
 
--- No RLS on anonymous_specs — anonymous access by design
+-- RLS enabled: no policies for anon role (blocks all direct anon key access).
+-- App routes use admin client (service role, bypasses RLS) with session_token filtering.
+-- Cron cleanup uses admin client.
+ALTER TABLE anonymous_specs ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- 2. experiments
@@ -150,6 +153,16 @@ CREATE TABLE IF NOT EXISTS hypothesis_dependencies (
   PRIMARY KEY (hypothesis_id, depends_on_id),
   CHECK (hypothesis_id != depends_on_id)
 );
+
+ALTER TABLE hypothesis_dependencies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS hypothesis_dependencies_user_isolation ON hypothesis_dependencies;
+CREATE POLICY hypothesis_dependencies_user_isolation ON hypothesis_dependencies
+  FOR ALL USING (
+    hypothesis_id IN (
+      SELECT h.id FROM hypotheses h
+      WHERE h.experiment_id IN (SELECT id FROM experiments WHERE user_id = auth.uid())
+    )
+  );
 
 -- ============================================================
 -- 6. research_results

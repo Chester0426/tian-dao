@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { handleApiError } from "@/lib/api-error";
 
 const claimSchema = z.object({
   spec_id: z.string().uuid("Invalid spec ID"),
+  session_token: z.string().uuid("Invalid session token"),
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { spec_id } = claimSchema.parse(body);
+    const { spec_id, session_token } = claimSchema.parse(body);
 
     const supabase = await createServerSupabaseClient();
     const {
@@ -21,11 +23,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the anonymous spec to claim it as an experiment
-    const { data: anonSpec, error: fetchError } = await supabase
+    // Use admin client to bypass RLS on anonymous_specs
+    const adminSupabase = createAdminSupabaseClient();
+
+    // Fetch the anonymous spec and verify session_token ownership
+    const { data: anonSpec, error: fetchError } = await adminSupabase
       .from("anonymous_specs")
-      .select("id, idea_text, spec_data")
+      .select("id, idea_text, spec_data, session_token")
       .eq("id", spec_id)
+      .eq("session_token", session_token)
       .single();
 
     if (fetchError || !anonSpec) {
@@ -55,8 +61,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Delete the anonymous spec after claiming
-    await supabase.from("anonymous_specs").delete().eq("id", spec_id);
+    // Delete the anonymous spec after claiming (admin client bypasses RLS)
+    await adminSupabase.from("anonymous_specs").delete().eq("id", spec_id);
 
     return NextResponse.json({ claimed: true, spec_id: anonSpec.id, experiment_id: experiment.id });
   } catch (error) {

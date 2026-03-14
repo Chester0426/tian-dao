@@ -65,6 +65,7 @@ export function createMockSupabase(userId = "user-1", email = "test@example.com"
           return Promise.resolve(result());
         });
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         chain[method] = vi.fn((..._args: unknown[]) => {
           callLog.push({ table, method });
           return chain;
