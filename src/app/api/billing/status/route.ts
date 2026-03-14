@@ -14,29 +14,31 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("plan, status, current_period_start, current_period_end, cancel_at_period_end, credits_cents")
+    const { data: billing } = await supabase
+      .from("user_billing")
+      .select("plan, subscription_status, stripe_customer_id, payg_balance_cents, creates_used, modifications_used, hosting_used, pool_resets_at")
       .eq("user_id", user.id)
       .single();
 
-    if (!sub) {
-      // No subscription record - return free plan defaults
+    if (!billing) {
+      // No billing record - return payg plan defaults
       return NextResponse.json({
-        plan: "free",
-        status: "active",
-        current_period_end: null,
+        plan: "payg",
+        subscription_status: "none",
+        payg_balance_cents: 0,
         amount_cents: 0,
       });
     }
 
     return NextResponse.json({
-      plan: sub.plan,
-      status: sub.status,
-      current_period_end: sub.current_period_end,
-      cancel_at_period_end: sub.cancel_at_period_end,
-      credits_cents: sub.credits_cents,
-      amount_cents: sub.plan === "pro" ? 2900 : 0,
+      plan: billing.plan,
+      subscription_status: billing.subscription_status,
+      payg_balance_cents: billing.payg_balance_cents,
+      creates_used: billing.creates_used,
+      modifications_used: billing.modifications_used,
+      hosting_used: billing.hosting_used,
+      pool_resets_at: billing.pool_resets_at,
+      amount_cents: billing.plan === "pro" ? 2900 : 0,
     });
   } catch (error) {
     return handleApiError(error);

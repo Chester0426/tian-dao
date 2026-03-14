@@ -40,7 +40,7 @@ export async function POST(
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
     }
 
-    // Store the change request as a status update on the experiment
+    // Store the change request metadata
     const changeRecord = {
       type: change.type,
       description: change.description,
@@ -49,12 +49,17 @@ export async function POST(
       status: "queued",
     };
 
+    // Update budget_spent if budget_delta is provided
+    const updatePayload: Record<string, unknown> = {
+      status: experiment.status === "completed" ? "completed" : experiment.status,
+    };
+    if (change.budget_delta) {
+      updatePayload.budget_spent = (change.budget_delta ?? 0);
+    }
+
     const { data, error } = await supabase
       .from("experiments")
-      .update({
-        status: experiment.status === "completed" ? "completed" : experiment.status,
-        description: `[Change: ${change.type}] ${change.description}`,
-      })
+      .update(updatePayload)
       .eq("id", id)
       .eq("user_id", user.id)
       .select("id, status")

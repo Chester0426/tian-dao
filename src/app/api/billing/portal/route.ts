@@ -22,13 +22,13 @@ export async function POST(request: Request) {
     if (rateLimited) return rateLimited;
 
     // Look up the user's Stripe customer ID
-    const { data: sub } = await supabase
-      .from("subscriptions")
+    const { data: billing } = await supabase
+      .from("user_billing")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
       .single();
 
-    if (!sub?.stripe_customer_id) {
+    if (!billing?.stripe_customer_id) {
       return NextResponse.json(
         { error: "No billing account found. Subscribe to a plan first." },
         { status: 404 }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const session = await getStripe().billingPortal.sessions.create({
-      customer: sub.stripe_customer_id,
+      customer: billing.stripe_customer_id,
       return_url: `${getSafeOrigin(request)}/settings`,
     });
 

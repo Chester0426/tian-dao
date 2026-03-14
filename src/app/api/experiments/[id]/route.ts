@@ -1,114 +1,104 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { withErrorHandler, ApiError } from "@/lib/api-error";
+import { withAuth } from "@/lib/api-auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { handleApiError } from "@/lib/api-error";
+import {
+  updateExperimentSchema,
+  EXPERIMENT_DETAIL_COLUMNS,
+} from "@/lib/experiment-schemas";
 
-const updateExperimentSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  description: z.string().max(2000).optional(),
-  status: z.enum(["draft", "running", "paused", "completed"]).optional(),
-});
-
-// GET /api/experiments/[id] — get single experiment
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
+// GET /api/experiments/[id] — get single experiment with latest round
+export const GET = withErrorHandler(
+  await withAuth(async (_request, context, user) => {
     const { id } = await context.params;
-
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data, error } = await supabase
+    const { data: experiment, error } = await supabase
       .from("experiments")
-      .select("id, user_id, spec_id, name, description, status, verdict, verdict_rationale, started_at, ended_at, created_at")
+      .select(EXPERIMENT_DETAIL_COLUMNS)
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
 
-    if (error || !data) {
-      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    if (error || !experiment) {
+      throw new ApiError("not_found", "Experiment not found");
     }
 
-    return NextResponse.json({ experiment: data });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    // Fetch latest round
+    const { data: latestRound } = await supabase
+      .from("experiment_rounds")
+      .select("round_number, spec_snapshot, decision, bottleneck_dimension")
+      .eq("experiment_id", id)
+      .order("round_number", { ascending: false })
+      .limit(1)
+      .single();
+
+    return NextResponse.json({
+      experiment: {
+        ...experiment,
+        latest_round: latestRound ?? null,
+      },
+    });
+  })
+);
 
 // PATCH /api/experiments/[id] — update experiment
-export async function PATCH(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
+export const PATCH = withErrorHandler(
+  await withAuth(async (request, context, user) => {
     const { id } = await context.params;
     const body = await request.json();
     const updates = updateExperimentSchema.parse(body);
 
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Only include defined fields in the update
+    const cleanUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
     }
+
+    if (Object.keys(cleanUpdates).length === 0) {
+      throw new ApiError("validation_error", "No fields to update");
+    }
+
+    const supabase = await createServerSupabaseClient();
 
     const { data, error } = await supabase
       .from("experiments")
-      .update(updates)
+      .update(cleanUpdates)
       .eq("id", id)
       .eq("user_id", user.id)
-      .select("id, name, status, created_at")
+      .is("archived_at", null)
+      .select(EXPERIMENT_DETAIL_COLUMNS)
       .single();
 
     if (error || !data) {
-      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+      throw new ApiError("not_found", "Experiment not found");
     }
 
     return NextResponse.json({ experiment: data });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  })
+);
 
-// DELETE /api/experiments/[id] — delete experiment
-export async function DELETE(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
+// DELETE /api/experiments/[id] — soft delete (set archived_at)
+export const DELETE = withErrorHandler(
+  await withAuth(async (_request, context, user) => {
     const { id } = await context.params;
-
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("experiments")
-      .delete()
+      .update({ archived_at: new Date().toISOString() })
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .is("archived_at", null)
+      .select("id")
+      .single();
 
-    if (error) {
-      return NextResponse.json({ error: "Failed to delete experiment" }, { status: 500 });
+    if (error || !data) {
+      throw new ApiError("not_found", "Experiment not found");
     }
 
     return NextResponse.json({ deleted: true });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  })
+);

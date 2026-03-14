@@ -21,23 +21,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Only claim specs that are currently anonymous (user_id IS NULL)
-    const { data, error } = await supabase
-      .from("specs")
-      .update({ user_id: user.id })
+    // Fetch the anonymous spec to claim it as an experiment
+    const { data: anonSpec, error: fetchError } = await supabase
+      .from("anonymous_specs")
+      .select("id, idea_text, spec_data")
       .eq("id", spec_id)
-      .is("user_id", null)
-      .select("id")
       .single();
 
-    if (error || !data) {
+    if (fetchError || !anonSpec) {
       return NextResponse.json(
         { error: "Spec not found or already claimed" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ claimed: true, spec_id: data.id });
+    // Create an experiment from the anonymous spec
+    const specData = (anonSpec.spec_data as Record<string, unknown>) ?? {};
+    const { data: experiment, error: expError } = await supabase
+      .from("experiments")
+      .insert({
+        user_id: user.id,
+        name: (specData.title as string) ?? anonSpec.idea_text?.slice(0, 200) ?? "Untitled Experiment",
+        idea_text: anonSpec.idea_text,
+        status: "draft",
+      })
+      .select("id")
+      .single();
+
+    if (expError || !experiment) {
+      return NextResponse.json(
+        { error: "Failed to create experiment from spec" },
+        { status: 500 }
+      );
+    }
+
+    // Delete the anonymous spec after claiming
+    await supabase.from("anonymous_specs").delete().eq("id", spec_id);
+
+    return NextResponse.json({ claimed: true, spec_id: anonSpec.id, experiment_id: experiment.id });
   } catch (error) {
     return handleApiError(error);
   }
