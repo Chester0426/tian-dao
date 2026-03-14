@@ -1,48 +1,97 @@
 import { NextResponse } from "next/server";
+import { withErrorHandler, ApiError } from "@/lib/api-error";
+import { withAuth } from "@/lib/api-auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { handleApiError } from "@/lib/api-error";
+import {
+  createVariantsSchema,
+  variantsModeSchema,
+  VARIANT_COLUMNS,
+} from "@/lib/experiment-schemas";
 
-// GET /api/experiments/[id]/variants — list variants for an experiment
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
+// GET /api/experiments/[id]/variants — list variants
+export const GET = withErrorHandler(
+  await withAuth(async (_request, context, user) => {
     const { id } = await context.params;
-
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     // Verify experiment ownership
-    const { data: experiment, error: expError } = await supabase
+    const { data: experiment } = await supabase
       .from("experiments")
-      .select("id")
+      .select("id, current_round")
       .eq("id", id)
       .eq("user_id", user.id)
+      .is("archived_at", null)
       .single();
 
-    if (expError || !experiment) {
-      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    if (!experiment) {
+      throw new ApiError("not_found", "Experiment not found");
     }
 
     const { data, error } = await supabase
-      .from("experiment_variants")
-      .select("id, slug, headline, subheadline, cta, promise, proof, urgency, pain_points, is_control, created_at")
+      .from("variants")
+      .select(VARIANT_COLUMNS)
       .eq("experiment_id", id)
       .order("created_at", { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: "Failed to fetch variants" }, { status: 500 });
+      throw new ApiError("internal_error", "Failed to fetch variants");
     }
 
-    return NextResponse.json({ variants: data });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+    return NextResponse.json({ variants: data ?? [] });
+  })
+);
+
+// POST /api/experiments/[id]/variants — create variants
+export const POST = withErrorHandler(
+  await withAuth(async (request, context, user) => {
+    const { id } = await context.params;
+    const url = new URL(request.url);
+    const mode = variantsModeSchema.parse(
+      url.searchParams.get("mode") ?? undefined
+    );
+
+    const supabase = await createServerSupabaseClient();
+
+    // Verify experiment ownership
+    const { data: experiment } = await supabase
+      .from("experiments")
+      .select("id, current_round")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .is("archived_at", null)
+      .single();
+
+    if (!experiment) {
+      throw new ApiError("not_found", "Experiment not found");
+    }
+
+    const body = await request.json();
+    const variants = createVariantsSchema.parse(body);
+
+    // mode=replace: delete existing variants for current round first
+    if (mode === "replace") {
+      await supabase
+        .from("variants")
+        .delete()
+        .eq("experiment_id", id)
+        .eq("round_number", experiment.current_round);
+    }
+
+    const rows = variants.map((v) => ({
+      experiment_id: id,
+      round_number: experiment.current_round,
+      ...v,
+    }));
+
+    const { data, error } = await supabase
+      .from("variants")
+      .insert(rows)
+      .select(VARIANT_COLUMNS);
+
+    if (error) {
+      throw new ApiError("internal_error", "Failed to create variants");
+    }
+
+    return NextResponse.json({ variants: data ?? [] }, { status: 201 });
+  })
+);

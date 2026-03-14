@@ -12,32 +12,31 @@ export async function GET(request: Request) {
   const supabase = createAdminSupabaseClient();
   const notificationsSent: string[] = [];
 
-  // Find experiments with verdicts that haven't been notified
+  // Find experiments with decisions that haven't been notified (verdict_ready or completed)
   const { data: completedExperiments } = await supabase
     .from("experiments")
-    .select("id, user_id, name, verdict")
-    .eq("status", "completed")
-    .not("verdict", "is", null);
+    .select("id, user_id, name, decision")
+    .in("status", ["verdict_ready", "completed"])
+    .not("decision", "is", null);
 
   if (completedExperiments) {
     for (const exp of completedExperiments) {
-      // Check if verdict notification already sent
+      // Check if verdict_ready notification already sent
       const { data: existing } = await supabase
         .from("notifications")
         .select("id")
         .eq("experiment_id", exp.id)
-        .eq("type", "verdict")
+        .eq("trigger_type", "verdict_ready")
         .limit(1);
 
       if (!existing || existing.length === 0) {
         await supabase.from("notifications").insert({
           user_id: exp.user_id,
           experiment_id: exp.id,
-          type: "verdict",
-          title: `Verdict: ${exp.verdict}`,
-          body: `Your experiment "${exp.name}" has reached a verdict: ${exp.verdict}. Review the full analysis on the verdict page.`,
+          trigger_type: "verdict_ready",
+          channel: "email",
         });
-        notificationsSent.push(`${exp.id}:verdict`);
+        notificationsSent.push(`${exp.id}:verdict_ready`);
       }
     }
   }
@@ -47,7 +46,7 @@ export async function GET(request: Request) {
     .from("experiment_alerts")
     .select("id, experiment_id, alert_type, message")
     .eq("severity", "critical")
-    .eq("resolved", false);
+    .is("resolved_at", null);
 
   if (criticalAlerts) {
     for (const alert of criticalAlerts) {
@@ -65,7 +64,7 @@ export async function GET(request: Request) {
           .from("notifications")
           .select("id")
           .eq("experiment_id", alert.experiment_id)
-          .eq("type", "alert")
+          .eq("trigger_type", "budget_alert")
           .gt("created_at", oneDayAgo)
           .limit(1);
 
@@ -73,11 +72,10 @@ export async function GET(request: Request) {
           await supabase.from("notifications").insert({
             user_id: exp.user_id,
             experiment_id: alert.experiment_id,
-            type: "alert",
-            title: `Alert: ${alert.alert_type.replace(/_/g, " ")}`,
-            body: alert.message,
+            trigger_type: "budget_alert",
+            channel: "email",
           });
-          notificationsSent.push(`${alert.experiment_id}:alert`);
+          notificationsSent.push(`${alert.experiment_id}:budget_alert`);
         }
       }
     }

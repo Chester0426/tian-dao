@@ -32,10 +32,10 @@ export async function GET(
     }
 
     const { data, error } = await supabase
-      .from("experiment_metrics")
-      .select("id, metric_name, funnel_stage, value, synced_at, created_at")
+      .from("experiment_metric_snapshots")
+      .select("id, round_number, reach_ratio, demand_ratio, activate_ratio, monetize_ratio, retain_ratio, total_clicks, total_spend_cents, posthog_synced_at, distribution_synced_at, created_at")
       .eq("experiment_id", id)
-      .order("synced_at", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: "Failed to fetch metrics" }, { status: 500 });
