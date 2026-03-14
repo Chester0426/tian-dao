@@ -22,7 +22,7 @@ Parse `$ARGUMENTS` for:
 
 Level definitions:
 - **Level 1 — Landing test**: static page, analytics, no database or auth. Tests demand signals.
-- **Level 2 — Interactive MVP**: Level 1 + database + core feature. Tests feasibility and retention.
+- **Level 2 — Interactive MVP**: Level 1 + database + core feature. Tests activation and retention.
 - **Level 3 — Full MVP**: Level 2 + auth + payments (if applicable). Tests monetization.
 
 ### Fallback
@@ -210,7 +210,7 @@ Generate 5-10 hypotheses spanning these categories:
 |----------|--------------|---------|
 | `demand` | Do people want this? | "At least N% of landing visitors will click the CTA" |
 | `reach` | Can we find these people? | "We can acquire N visitors from [channel] in [time]" |
-| `feasibility` | Can we build this? (maps to ACTIVATE dimension) | "Core feature can be built with [stack] in [time]" |
+| `activate` | Can the user complete the core action? | "Core feature can be built with [stack] in [time]" |
 | `monetize` | Will people pay? | "N% of active users will start a checkout" |
 | `retain` | Will people come back? | "N% of users return within 7 days" |
 
@@ -218,7 +218,7 @@ Generate 5-10 hypotheses spanning these categories:
 Each hypothesis must have:
 ```yaml
 - id: h-01                       # Sequential zero-padded: h-01, h-02, ...
-  category: demand               # demand | reach | feasibility | monetize | retain
+  category: demand               # demand | reach | activate | monetize | retain
   statement: "..."               # Testable claim with specific numbers
   metric:
     formula: "event_a / event_b" # References event names from EVENTS.yaml
@@ -237,7 +237,7 @@ Each hypothesis must have:
 - Counts below are for **pending** hypotheses only (require building product + real user data). The 4 resolved research hypotheses from Step 2 are separate and don't count toward these minimums.
 - At least one hypothesis per required category:
   - Level 1: demand, reach (minimum 2 pending)
-  - Level 2: demand, reach, feasibility, retain (minimum 4 pending)
+  - Level 2: demand, reach, activate, retain (minimum 4 pending)
   - Level 3: all five categories (minimum 5 pending)
 - Maximum pending hypotheses: level minimum + 2. Extra hypotheses must test genuinely independent risks, not rephrasings of existing ones.
 - `monetize` hypotheses appear at Level 2+ but are only *required* at Level 3

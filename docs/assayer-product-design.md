@@ -1001,7 +1001,7 @@ deploy:
    - **CLI mode:** All present → zero delay. 1 missing → one follow-up round with "proceed" escape. 2-3 missing → ask user to elaborate.
    - **Web mode (inference):** Never ask follow-up questions. Infer all missing dimensions aggressively, marking inferred values with `[inferred]`. If genuinely too vague (<5% of inputs), emit `input_too_vague` event.
 3. **Pre-flight research** — 4 dimensions: market, problem, competition, ICP. Verdict per dimension (pass/caution/fail). On 2+ failures: emit `preflight_opinion` with strong caution, then continue generating full spec. The spec always completes — Assayer is a consultant, not a gatekeeper. CLI mode: STOP point shows caution + "Continue? [Y/n]" (default Y). Web mode: caution appears inline as the spec materializes.
-4. **Hypotheses** — 5-10 across demand/reach/feasibility/monetize/retain. Filter by level. Priority 0-100. L1: reach+demand+monetize(signal) required. L2: +monetize(functional). L3: +retain. Feasibility hypotheses map to the ACTIVATE dimension — "can the user do it?" is activation. Pre-flight research-type feasibility hypotheses are still resolved at spec time.
+4. **Hypotheses** — 5-10 across demand/reach/activate/monetize/retain. Filter by level. Priority 0-100. L1: reach+demand+monetize(signal) required. L2: +monetize(functional). L3: +retain. Pre-flight research-type activate hypotheses are still resolved at spec time.
 5. **Behaviors** — given/when/then + `tests[]` array. User behaviors default. System behaviors: `actor: system` + `trigger` field.
 6. **Variants** — 3-5 angles, >30% headline word difference. L3 + monetize: add `pricing_amount`, `pricing_model`.
 7. **Stack/funnel** — Stack from level (Section 1 table). Hosting from type + behavior analysis. Funnel thresholds from highest-priority hypothesis per dimension.
@@ -1210,7 +1210,7 @@ CREATE TABLE hypotheses (
   round_number integer NOT NULL DEFAULT 1,
   hypothesis_key text NOT NULL,
   category text NOT NULL
-    CHECK (category IN ('demand', 'reach', 'feasibility', 'monetize', 'retain')),
+    CHECK (category IN ('demand', 'reach', 'activate', 'monetize', 'retain')),
   statement text NOT NULL,
   test_method text,
   metric_formula text,
@@ -1230,7 +1230,7 @@ CREATE TABLE hypotheses (
   UNIQUE(experiment_id, round_number, hypothesis_key)
 );
 
-> **Feasibility hypotheses** remain a valid category in the schema but map to the ACTIVATE funnel dimension. Pre-flight research-type feasibility hypotheses are resolved during `/spec` AI research (automation_type = 'research', status set to 'passed' or 'failed' at spec time) and are excluded from `/iterate` verdict computation. Experiment-type feasibility hypotheses contribute to the ACTIVATE score.
+> **Note:** Pre-flight research-type activate hypotheses are resolved during `/spec` AI research (automation_type = 'research', status set to 'passed' or 'failed' at spec time) and are excluded from `/iterate` verdict computation.
 
 CREATE INDEX idx_hypotheses_experiment_id ON hypotheses(experiment_id);
 ALTER TABLE hypotheses ENABLE ROW LEVEL SECURITY;

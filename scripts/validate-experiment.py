@@ -160,7 +160,7 @@ if hypotheses is not None:
     if not isinstance(hypotheses, list):
         print("Error: hypotheses must be a list"); sys.exit(1)
 
-    VALID_CATEGORIES = {"demand", "reach", "feasibility", "monetize", "retain"}
+    VALID_CATEGORIES = {"demand", "reach", "activate", "monetize", "retain"}
     VALID_STATUSES = {"pending", "resolved"}
     depends_to_check = []  # (index, list_of_dep_ids)
 

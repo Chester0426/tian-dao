@@ -42,7 +42,7 @@ hypotheses:
     depends_on: []
     status: pending
   - id: h-02
-    category: feasibility
+    category: activate
     statement: "A freelancer can create and send an invoice in under 60 seconds on first use"
     metric:
       formula: "activate / signup_complete"

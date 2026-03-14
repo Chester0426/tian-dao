@@ -32,7 +32,7 @@ distribution: |
 
 # hypotheses:
 #   - id: h-01
-#     category: demand          # demand | reach | feasibility | monetize | retain
+#     category: demand          # demand | reach | activate | monetize | retain
 #     statement: "TODO: Testable prediction with specific numbers"
 #     metric:
 #       formula: "TODO: event_a / event_b"    # References EVENTS.yaml event names
