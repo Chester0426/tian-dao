@@ -27,6 +27,11 @@ Thumbs.db
 # Deploy manifest (infrastructure state — not app code)
 .claude/deploy-manifest.json
 
+# Ephemeral skill artifacts (consumed and deleted during PR creation)
+.claude/current-plan.md
+.claude/current-visual-brief.md
+.claude/verify-report.md
+
 # TypeScript
 *.tsbuildinfo
 

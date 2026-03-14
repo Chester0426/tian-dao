@@ -186,7 +186,9 @@ Update checkpoint to `step3-verify`.
 
 Update checkpoint to `step3-pr`.
 
-9. Commit, push, open PR. After the PR is created, delete `.claude/current-plan.md` — the plan is now captured in the PR description.
+9. **Gate check:** Read `.claude/verify-report.md`. If it does not exist, STOP — go back and run step 8 above. Do NOT commit without a verification report.
+
+   Commit, push, open PR. Populate the PR Verification checklist from `.claude/verify-report.md` contents. After the PR is created, delete `.claude/current-plan.md` and `.claude/verify-report.md`.
 
 Key design decisions:
 - Dependency-ordered sequential execution — fail-fast prevents cascading breakage, dependencies satisfied before dependents

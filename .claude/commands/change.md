@@ -225,6 +225,10 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
 ### Step 8: Commit, push, open PR
+
+> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
+> STOP — go back and run Step 7 above. Do NOT commit without a verification report.
+
 - You are already on a feature branch (created in Step 0). Do not create another branch.
 - Commit message: imperative mood describing the change (e.g., "Add invoice email reminders", "Fix email validation on signup form", "Polish landing copy and error states")
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
@@ -235,10 +239,10 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
   - **Checklist — Scope**: check all boxes. For new behaviors: confirm experiment.yaml was updated.
   - **Checklist — Analytics**: list all new/modified events and which pages fire them. For fixes/polish: confirm no events were removed or broken.
   - **Checklist — Build**: confirm build passes, no hardcoded secrets
-  - **Checklist — Verification**: fill in design-critic, ux-journeyer, and security verdicts from Step 7. If Step 7 was skipped or partially run, state why.
+  - **Checklist — Verification**: populate from `.claude/verify-report.md` contents. If Step 7 was skipped or partially run, state why.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
-- Delete `.claude/current-plan.md` — the plan is now captured in the PR description. Note: this deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
+- Delete `.claude/current-plan.md` and `.claude/verify-report.md` — the plan is captured in the PR description and the verification results are in the PR checklist. Note: plan deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
 - **Save planning patterns**: If this change revealed planning-relevant patterns (auth flow interactions, stack integration quirks, codebase conventions discovered during exploration, schema design patterns), save a brief entry to auto memory under a "Planning Patterns" heading. These get consulted during future Phase 1 exploration via `.claude/procedures/plan-exploration.md` Step 5.
 - Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After merging this PR to `main`, bump the version in `package.json` and run `npm publish` to release the update. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."
 
