@@ -147,6 +147,59 @@ events:
     archetypes: [cli]
     trigger: User executes a CLI command
 
+  # Assayer custom events (from golden_path)
+  cta_click:
+    funnel_stage: reach
+    trigger: User clicks the primary CTA on the landing page
+    properties:
+      variant:
+        type: string
+        required: false
+        description: Variant slug shown when CTA was clicked
+
+  spec_generated:
+    funnel_stage: activate
+    trigger: AI spec generation completes successfully
+    properties:
+      idea_length:
+        type: integer
+        required: false
+        description: Character count of the submitted idea text
+      anonymous:
+        type: boolean
+        required: true
+        description: Whether the user was anonymous when generating
+
+  experiment_created:
+    funnel_stage: activate
+    trigger: User approves a spec and creates an experiment for deployment
+
+  experiment_viewed:
+    funnel_stage: retain
+    trigger: User views an experiment scorecard or compare page
+    properties:
+      experiment_id:
+        type: string
+        required: true
+        description: ID of the experiment being viewed
+
+  verdict_delivered:
+    funnel_stage: retain
+    trigger: An experiment reaches sufficient data and a verdict is rendered
+    properties:
+      experiment_id:
+        type: string
+        required: true
+        description: ID of the experiment
+      verdict:
+        type: string
+        required: true
+        description: "The verdict: SCALE, REFINE, PIVOT, or KILL"
+
+  lab_viewed:
+    funnel_stage: retain
+    trigger: User visits the lab page to see all their experiments
+
 # Custom events — add experiment-specific events directly to the events map above.
 # Naming convention: <object>_<action> in snake_case (e.g., invoice_created, report_exported)
 # Include funnel_stage for each event.
