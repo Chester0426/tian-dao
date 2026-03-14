@@ -1,45 +1,33 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { withErrorHandler, ApiError } from "@/lib/api-error";
+import { withAuth } from "@/lib/api-auth";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { handleApiError } from "@/lib/api-error";
 
 const createDistributionSchema = z.object({
   channel: z.enum(["twitter-organic", "reddit-organic", "email-resend", "google-ads", "meta-ads", "twitter-ads"]),
-  campaign_name: z.string().min(1).max(200, "Campaign name too long"),
-  budget_cents: z.number().int().min(0).max(100_000_00), // max $100,000
+  campaign_name: z.string().min(1).max(200),
+  budget_cents: z.number().int().min(0).max(100_000_00),
   utm_source: z.string().min(1).max(100),
   utm_medium: z.string().min(1).max(100),
   utm_campaign: z.string().min(1).max(200),
 });
 
-// GET /api/experiments/[id]/distribution — list distributions
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
+// GET /api/experiments/[id]/distribution — list campaigns
+export const GET = withErrorHandler(
+  await withAuth(async (_request, context, user) => {
     const { id } = await context.params;
-
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Verify experiment ownership
-    const { data: experiment, error: expError } = await supabase
+    const { data: experiment } = await supabase
       .from("experiments")
       .select("id")
       .eq("id", id)
       .eq("user_id", user.id)
+      .is("archived_at", null)
       .single();
 
-    if (expError || !experiment) {
-      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
-    }
+    if (!experiment) throw new ApiError("not_found", "Experiment not found");
 
     const { data, error } = await supabase
       .from("distribution_campaigns")
@@ -47,46 +35,30 @@ export async function GET(
       .eq("experiment_id", id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
-    }
+    if (error) throw new ApiError("internal_error", "Failed to fetch campaigns");
 
     return NextResponse.json({ campaigns: data });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  })
+);
 
-// POST /api/experiments/[id]/distribution — create distribution
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
+// POST /api/experiments/[id]/distribution — create campaign
+export const POST = withErrorHandler(
+  await withAuth(async (request, context, user) => {
     const { id } = await context.params;
-    const body = await request.json();
-    const { channel, campaign_name, budget_cents, utm_source, utm_medium, utm_campaign } = createDistributionSchema.parse(body);
-
     const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Verify experiment ownership
-    const { data: experiment, error: expError } = await supabase
+    const { data: experiment } = await supabase
       .from("experiments")
       .select("id")
       .eq("id", id)
       .eq("user_id", user.id)
+      .is("archived_at", null)
       .single();
 
-    if (expError || !experiment) {
-      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
-    }
+    if (!experiment) throw new ApiError("not_found", "Experiment not found");
+
+    const body = await request.json();
+    const { channel, campaign_name, budget_cents, utm_source, utm_medium, utm_campaign } = createDistributionSchema.parse(body);
 
     const { data, error } = await supabase
       .from("distribution_campaigns")
@@ -103,12 +75,8 @@ export async function POST(
       .select("id, channel, campaign_name, budget_cents, status, created_at")
       .single();
 
-    if (error) {
-      return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
-    }
+    if (error) throw new ApiError("internal_error", "Failed to create campaign");
 
     return NextResponse.json({ campaign: data }, { status: 201 });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  })
+);
