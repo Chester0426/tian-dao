@@ -4,108 +4,208 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Assayer Design System — "The Assayer's Laboratory"
+ *
+ * Concept: A precision instrument for testing startup ore.
+ * Dark obsidian surfaces, amber/gold accents (the gold being assayed),
+ * warm mineral undertones, scientific typography.
+ *
+ * Fonts: DM Serif Display (display) + IBM Plex Sans (body)
+ * Density: Airy — generous whitespace conveys confidence and clarity
+ * Depth: Warm radial glows + grain texture + glass cards
+ */
+
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    /* --- Assayer palette (light mode) --- */
+    /* Warm stone backgrounds with golden undertone */
+    --background: oklch(0.97 0.005 80);
+    --foreground: oklch(0.18 0.015 50);
+
+    /* Cards: warm parchment with subtle warmth */
+    --card: oklch(0.99 0.003 80);
+    --card-foreground: oklch(0.18 0.015 50);
+
+    --popover: oklch(0.99 0.003 80);
+    --popover-foreground: oklch(0.18 0.015 50);
+
+    /* Primary: deep crucible black with warm cast */
+    --primary: oklch(0.22 0.02 55);
+    --primary-foreground: oklch(0.96 0.015 85);
+
+    /* Secondary: warm stone */
+    --secondary: oklch(0.93 0.008 75);
+    --secondary-foreground: oklch(0.25 0.02 55);
+
+    /* Muted: faded mineral */
+    --muted: oklch(0.94 0.006 75);
+    --muted-foreground: oklch(0.50 0.015 60);
+
+    /* Accent: molten gold — the signature color */
+    --accent: oklch(0.78 0.145 75);
+    --accent-foreground: oklch(0.18 0.03 55);
+
+    --destructive: oklch(0.55 0.22 25);
+
+    /* Borders: warm hairline */
+    --border: oklch(0.88 0.01 75);
+    --input: oklch(0.90 0.008 75);
+    --ring: oklch(0.78 0.145 75);
+
+    /* Chart colors — verdict-aligned palette */
+    --chart-1: oklch(0.72 0.17 155);   /* SCALE: emerald */
+    --chart-2: oklch(0.78 0.145 75);   /* REFINE: amber-gold */
+    --chart-3: oklch(0.65 0.16 45);    /* PIVOT: copper-orange */
+    --chart-4: oklch(0.55 0.22 25);    /* KILL: crimson */
+    --chart-5: oklch(0.60 0.08 260);   /* Neutral: cool slate-blue */
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar: oklch(0.95 0.008 75);
+    --sidebar-foreground: oklch(0.18 0.015 50);
+    --sidebar-primary: oklch(0.22 0.02 55);
+    --sidebar-primary-foreground: oklch(0.96 0.015 85);
+    --sidebar-accent: oklch(0.91 0.01 75);
+    --sidebar-accent-foreground: oklch(0.25 0.02 55);
+    --sidebar-border: oklch(0.88 0.01 75);
+    --sidebar-ring: oklch(0.78 0.145 75);
+
+    /* --- Custom Assayer tokens --- */
+    --gold: oklch(0.78 0.145 75);
+    --gold-dim: oklch(0.62 0.12 72);
+    --gold-bright: oklch(0.88 0.13 80);
+    --crucible: oklch(0.22 0.02 55);
+    --mineral: oklch(0.50 0.015 60);
+    --verdict-scale: oklch(0.72 0.17 155);
+    --verdict-refine: oklch(0.78 0.145 75);
+    --verdict-pivot: oklch(0.65 0.16 45);
+    --verdict-kill: oklch(0.55 0.22 25);
+    --glow-gold: oklch(0.78 0.145 75 / 15%);
+    --glow-gold-strong: oklch(0.78 0.145 75 / 30%);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* --- Assayer dark mode: deep obsidian laboratory --- */
+    /* Near-black with warm brown undertone — not pure black */
+    --background: oklch(0.14 0.012 55);
+    --foreground: oklch(0.93 0.01 80);
+
+    /* Cards: dark crucible surface with subtle warmth */
+    --card: oklch(0.19 0.015 55);
+    --card-foreground: oklch(0.93 0.01 80);
+
+    --popover: oklch(0.19 0.015 55);
+    --popover-foreground: oklch(0.93 0.01 80);
+
+    /* Primary: warm off-white with golden tint */
+    --primary: oklch(0.92 0.015 80);
+    --primary-foreground: oklch(0.16 0.015 55);
+
+    /* Secondary: dark mineral surface */
+    --secondary: oklch(0.24 0.015 55);
+    --secondary-foreground: oklch(0.90 0.01 80);
+
+    /* Muted: deeper mineral */
+    --muted: oklch(0.24 0.012 55);
+    --muted-foreground: oklch(0.62 0.015 65);
+
+    /* Accent: molten gold — more luminous in dark mode */
+    --accent: oklch(0.82 0.155 78);
+    --accent-foreground: oklch(0.14 0.02 55);
+
+    --destructive: oklch(0.65 0.20 22);
+
+    /* Borders: subtle warm edges */
+    --border: oklch(1 0.01 75 / 10%);
+    --input: oklch(1 0.01 75 / 14%);
+    --ring: oklch(0.82 0.155 78);
+
+    /* Chart colors — brighter for dark backgrounds */
+    --chart-1: oklch(0.76 0.18 155);
+    --chart-2: oklch(0.82 0.155 78);
+    --chart-3: oklch(0.70 0.17 48);
+    --chart-4: oklch(0.65 0.20 22);
+    --chart-5: oklch(0.65 0.09 260);
+
+    /* Sidebar */
+    --sidebar: oklch(0.17 0.013 55);
+    --sidebar-foreground: oklch(0.93 0.01 80);
+    --sidebar-primary: oklch(0.82 0.155 78);
+    --sidebar-primary-foreground: oklch(0.14 0.02 55);
+    --sidebar-accent: oklch(0.22 0.015 55);
+    --sidebar-accent-foreground: oklch(0.90 0.01 80);
+    --sidebar-border: oklch(1 0.01 75 / 10%);
+    --sidebar-ring: oklch(0.82 0.155 78);
+
+    /* Custom tokens — dark mode adjustments */
+    --gold: oklch(0.82 0.155 78);
+    --gold-dim: oklch(0.65 0.13 74);
+    --gold-bright: oklch(0.90 0.14 82);
+    --crucible: oklch(0.14 0.012 55);
+    --mineral: oklch(0.62 0.015 65);
+    --verdict-scale: oklch(0.76 0.18 155);
+    --verdict-refine: oklch(0.82 0.155 78);
+    --verdict-pivot: oklch(0.70 0.17 48);
+    --verdict-kill: oklch(0.65 0.20 22);
+    --glow-gold: oklch(0.82 0.155 78 / 12%);
+    --glow-gold-strong: oklch(0.82 0.155 78 / 25%);
 }
 
 @theme inline {
-    --font-sans: var(--font-sans);
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
+    /* Fonts */
+    --font-sans: var(--font-ibm-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-display: var(--font-dm-serif-display), "DM Serif Display", Georgia, "Times New Roman", serif;
+
+    /* Colors — shadcn semantic tokens */
     --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    /* Colors — sidebar */
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Colors — custom Assayer tokens */
+    --color-gold: var(--gold);
+    --color-gold-dim: var(--gold-dim);
+    --color-gold-bright: var(--gold-bright);
+    --color-crucible: var(--crucible);
+    --color-mineral: var(--mineral);
+    --color-verdict-scale: var(--verdict-scale);
+    --color-verdict-refine: var(--verdict-refine);
+    --color-verdict-pivot: var(--verdict-pivot);
+    --color-verdict-kill: var(--verdict-kill);
+    --color-glow-gold: var(--glow-gold);
+    --color-glow-gold-strong: var(--glow-gold-strong);
+
+    /* Border radius */
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -115,14 +215,166 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* --- Keyframe animations --- */
+
+@keyframes gold-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes glow-breathe {
+    0%, 100% { box-shadow: 0 0 20px var(--glow-gold), 0 0 40px transparent; }
+    50% { box-shadow: 0 0 30px var(--glow-gold-strong), 0 0 60px var(--glow-gold); }
+}
+
+@keyframes grain-drift {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-2%, -2%); }
+    30% { transform: translate(1%, -1%); }
+    50% { transform: translate(-1%, 2%); }
+    70% { transform: translate(2%, 1%); }
+    90% { transform: translate(-1%, -1%); }
+}
+
+@keyframes skeleton-pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.4; }
+}
+
+/* --- Utility classes --- */
+
+@utility animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+}
+
+@utility animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+}
+
+@utility animate-gold-pulse {
+    animation: gold-pulse 2.5s ease-in-out infinite;
+}
+
+@utility animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background-size: 200% 100%;
+}
+
+@utility animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@utility animate-glow-breathe {
+    animation: glow-breathe 3s ease-in-out infinite;
+}
+
+@utility animate-skeleton {
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Stagger delay utilities for choreographed reveals */
+@utility stagger-1 { animation-delay: 0.1s; }
+@utility stagger-2 { animation-delay: 0.2s; }
+@utility stagger-3 { animation-delay: 0.3s; }
+@utility stagger-4 { animation-delay: 0.4s; }
+@utility stagger-5 { animation-delay: 0.5s; }
+@utility stagger-6 { animation-delay: 0.6s; }
+
+/* --- Depth techniques --- */
+
+/* Grain texture overlay — apply to a ::before pseudo-element */
+@utility grain-overlay {
+    position: relative;
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.035;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 256px 256px;
+        pointer-events: none;
+        z-index: 1;
+        animation: grain-drift 8s steps(6) infinite;
+    }
+}
+
+/* Glass card effect */
+@utility glass-card {
+    background: oklch(1 0 0 / 6%);
+    backdrop-filter: blur(12px) saturate(1.5);
+    border: 1px solid oklch(1 0 0 / 10%);
+}
+
+/* Gold glow shadow for emphasis elements */
+@utility glow-gold {
+    box-shadow: 0 0 24px var(--glow-gold), 0 0 48px oklch(0.78 0.145 75 / 8%);
+}
+
+/* Warm radial glow background — used behind hero sections */
+@utility radial-glow {
+    background:
+        radial-gradient(ellipse 60% 40% at 50% 0%, var(--glow-gold-strong), transparent),
+        radial-gradient(ellipse 50% 50% at 80% 20%, oklch(0.65 0.16 45 / 8%), transparent),
+        var(--background);
+}
+
+/* --- Base layer --- */
+
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
-  html {
-    @apply font-sans;
+    html {
+        @apply font-sans;
+    }
+
+    /* Form input minimum sizing — prevents iOS Safari auto-zoom */
+    input, select, textarea {
+        font-size: 16px;
+    }
+
+    /* Smooth scrolling for anchor links */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Selection color */
+    ::selection {
+        background: var(--glow-gold-strong);
+        color: var(--foreground);
     }
 }
