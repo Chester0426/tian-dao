@@ -238,7 +238,7 @@ behaviors:
   # API: /api/spec/*
   - id: b-16
     hypothesis_id: h-03
-    given: "A client sends a POST to /api/spec/generate with an idea"
+    given: "A client sends a POST to /api/spec/stream with an idea"
     when: "The request is processed"
     then: "An SSE stream returns the AI-generated spec in real-time"
     tests:
@@ -268,7 +268,7 @@ behaviors:
   - id: b-19
     hypothesis_id: h-05
     given: "An authenticated user accesses experiment sub-resources"
-    when: "They request hypotheses, variants, insights, or metrics"
+    when: "They request hypotheses, variants, insights, research, rounds, metrics, or alerts"
     then: "Sub-resource data is returned scoped to the experiment"
     tests:
       - "Sub-resources are scoped to the parent experiment"
@@ -307,11 +307,12 @@ behaviors:
     level: 3
   - id: b-23
     hypothesis_id: h-04
-    given: "A user initiates checkout or manages their subscription"
-    when: "They call /api/billing/checkout or /api/billing/portal"
-    then: "Stripe checkout session or billing portal URL is returned"
+    given: "A user initiates subscription, top-up, or billing management"
+    when: "They call /api/billing/subscribe, /api/billing/topup, or /api/billing/portal"
+    then: "Stripe checkout session (subscription or PAYG top-up) or billing portal URL is returned"
     tests:
-      - "Checkout creates a valid Stripe session"
+      - "Subscribe creates a valid Stripe subscription checkout"
+      - "Topup creates a valid PAYG top-up checkout ($10-$500)"
       - "Portal redirects to Stripe billing management"
     level: 3
 
@@ -319,7 +320,7 @@ behaviors:
   - id: b-24
     hypothesis_id: h-01
     given: "An authenticated user manages distribution campaigns"
-    when: "They create, update, or sync campaigns via /api/distribution"
+    when: "They list, sync, or manage campaigns via /api/experiments/:id/distribution"
     then: "Campaign config is saved and synced with ad platforms"
     tests:
       - "Campaign CRUD operations work correctly"
@@ -332,7 +333,7 @@ behaviors:
     trigger: "stripe webhook"
     hypothesis_id: h-04
     given: "A Stripe webhook event is received"
-    when: "The event is checkout.session.completed, invoice.paid, invoice.payment_failed, customer.subscription.updated, or customer.subscription.deleted"
+    when: "The event is checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, or invoice.payment_failed"
     then: "User billing and subscription state is updated in the database"
     tests:
       - "Webhook signature is verified"
@@ -417,6 +418,12 @@ golden_path:
   - step: "View all experiments"
     event: lab_viewed
     page: lab
+  - step: "Compare experiments side-by-side"
+    event: experiment_viewed
+    page: compare
+  - step: "Manage account and billing"
+    event: activate
+    page: settings
 target_clicks: 5
 
 # --- 5. Variants ---
