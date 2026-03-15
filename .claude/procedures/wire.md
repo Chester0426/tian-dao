@@ -134,12 +134,13 @@ If experiment.yaml has behaviors with `actor: system/cron`:
 - If vitest is not already installed (check `package.json` devDependencies): install `vitest`
 - Create `tests/flows.test.ts` with one test per system/cron behavior:
   - Each test calls the relevant API endpoint(s) with test payloads
+  - **Invocation pattern** — use the framework's test client: `app.request()` for frameworks that export an app instance (e.g., Hono). For frameworks without `app.request()` (e.g., Next.js), import the handler directly from the route file (e.g., `import { POST } from "@/app/api/webhooks/stripe/route"`) and call it with `new Request()`. Never use `fetch("http://localhost:...")` — tests must run without a server via `npm test`.
   - Asserts the `verify` condition (database state, email queued, status updated)
   - Tests are independent — each sets up its own state and cleans up
-- For webhook flows: POST to the webhook endpoint with a realistic test payload.
+- For webhook flows: call the webhook handler with a realistic test payload.
   Guard the test with a check for required env vars (skip if missing).
-- For admin flows: call the admin API endpoint directly (no browser).
-- For cron flows: call the cron API endpoint directly.
+- For admin flows: call the admin API handler directly (no browser).
+- For cron flows: call the cron API handler directly.
 - Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
 - These tests are NOT run during bootstrap — only created (same as funnel tests)
 
