@@ -84,6 +84,47 @@ export async function GET(request: Request) {
         alertsCreated.push(`${exp.id}:stale_metrics`);
       }
     }
+
+    // Check for dropping dimensions (compare latest two metric snapshots)
+    const { data: snapshots } = await supabase
+      .from("experiment_metric_snapshots")
+      .select("reach_ratio, demand_ratio, activate_ratio, monetize_ratio, retain_ratio")
+      .eq("experiment_id", exp.id)
+      .order("created_at", { ascending: false })
+      .limit(2);
+
+    if (snapshots && snapshots.length >= 2) {
+      const [current, previous] = snapshots as Record<string, unknown>[];
+      const dimensions = ["reach", "demand", "activate", "monetize", "retain"] as const;
+
+      for (const dim of dimensions) {
+        const key = `${dim}_ratio`;
+        const currVal = Number(current[key] ?? 0);
+        const prevVal = Number(previous[key] ?? 0);
+
+        if (prevVal > 0 && currVal < prevVal * 0.7) {
+          const { data: existingDim } = await supabase
+            .from("experiment_alerts")
+            .select("id")
+            .eq("experiment_id", exp.id)
+            .eq("alert_type", "dimension_dropping")
+            .is("resolved_at", null)
+            .limit(1);
+
+          if (!existingDim || (existingDim as unknown[]).length === 0) {
+            await supabase.from("experiment_alerts").insert({
+              experiment_id: exp.id,
+              alert_type: "dimension_dropping",
+              channel: dim,
+              severity: "warning",
+              message: `${dim} dimension dropped from ${prevVal.toFixed(2)} to ${currVal.toFixed(2)} (${Math.round((1 - currVal / prevVal) * 100)}% decline)`,
+            });
+            alertsCreated.push(`${exp.id}:dimension_dropping:${dim}`);
+          }
+          break;
+        }
+      }
+    }
   }
 
   return NextResponse.json({
