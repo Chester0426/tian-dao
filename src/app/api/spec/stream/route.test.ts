@@ -183,6 +183,40 @@ describe("POST /api/spec/stream", () => {
       const res = await POST(request);
       expect(res.headers.get("Connection")).toBe("keep-alive");
     });
+
+    it("streams spec data progressively via SSE data events (b-16)", async () => {
+      mockAiStream.mockResolvedValueOnce({
+        async *[Symbol.asyncIterator]() {
+          yield {
+            type: "content_block_delta",
+            delta: { type: "text_delta", text: '>>>EVENT: {"type":"meta","name":"test","level":1,"experiment_type":"web-app"}\n' },
+          };
+          yield {
+            type: "content_block_delta",
+            delta: { type: "text_delta", text: '>>>EVENT: {"type":"complete","spec":{"name":"test"},"anonymous_spec_id":"placeholder"}\n' },
+          };
+        },
+      });
+
+      const request = makeRequest({
+        idea: VALID_IDEA,
+        session_token: VALID_SESSION_TOKEN,
+      });
+      const res = await POST(request);
+      expect(res.headers.get("Content-Type")).toBe("text/event-stream");
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+      }
+      // Verify SSE data events were streamed progressively
+      expect(fullText).toContain("data: ");
+      expect(fullText).toContain('"type":"meta"');
+    });
   });
 
   describe("rate limiting", () => {
