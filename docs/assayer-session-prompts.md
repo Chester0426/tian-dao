@@ -983,7 +983,7 @@ e. 返回 { experiment_id }
 **检查项**：
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
-3. `npx vitest run` 通过（api-error, api-auth, rate-limit, experiment-schemas tests）
+3. `npm test` 通过（所有 src/**/*.test.ts + tests/flows.test.ts）
 4. 17 张表的 migration 存在且语法正确
 5. RLS policies 覆盖所有表
 6. Core CRUD routes 可 curl 测试（需 Supabase local dev running）：
