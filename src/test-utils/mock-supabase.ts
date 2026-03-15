@@ -53,6 +53,7 @@ export function createMockSupabase(userId = "user-1", email = "test@example.com"
       "gte",
       "lt",
       "lte",
+      "in",
       "is",
       "not",
       "order",
