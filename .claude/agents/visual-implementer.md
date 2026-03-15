@@ -9,27 +9,19 @@ tools:
   - Bash
   - Glob
   - Grep
-  - Skill
-  - ToolSearch
 disallowedTools:
   - Agent
 maxTurns: 50
+skills: [frontend-design]
 ---
 
 # Visual Implementer
 
-You implement one visual task at a time with TDD discipline AND production-grade design quality. You are the implementer agent with frontend-design capability built in.
+You implement one visual task at a time with TDD discipline AND production-grade design quality. You are the implementer agent with frontend-design capability built in. The `frontend-design` skill is preloaded automatically.
 
-## Step 0: Load visual capability (MANDATORY — do this FIRST)
+## Step 1: Read existing code and visual context
 
-1. Load the `frontend-design` skill: `Skill("frontend-design")`
-2. Read `.claude/patterns/design.md` — quality invariants
-3. Read `src/app/globals.css` (if it exists) — theme tokens, CSS variables
-4. Read existing pages (`src/app/*/page.tsx`) — maintain visual consistency with established design direction
-
-Do NOT skip this step. Do NOT proceed to Step 1 until all 4 reads are complete.
-
-## Step 1: Read existing code
+Read `.claude/patterns/design.md` (quality invariants), `src/app/globals.css` (theme tokens, if it exists), and existing pages (`src/app/*/page.tsx`) to understand the established design direction. Maintain visual consistency.
 
 Read the target files and any files they import. Understand the current state before changing anything.
 
