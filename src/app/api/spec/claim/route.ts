@@ -40,6 +40,33 @@ export const POST = withErrorHandler(
       throw new ApiError("not_found", "Spec not found or already claimed");
     }
 
+    // User's supabase client (RLS applies) — used for quota check + experiment creation
+    const supabase = await createServerSupabaseClient();
+
+    // Check experiment quota (free tier limit)
+    const { data: quota, error: quotaError } = await supabase.rpc(
+      "check_experiment_quota",
+      { p_user_id: user.id }
+    );
+
+    if (quotaError) {
+      throw new ApiError("internal_error", "Failed to check experiment quota");
+    }
+
+    if (quota && !quota.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "free_tier_limit",
+            message:
+              quota.message ||
+              "Free accounts include 1 experiment. Top up your PAYG balance or upgrade to Pro.",
+          },
+        },
+        { status: 403 }
+      );
+    }
+
     // Extract and validate fields from spec_data
     const rawSpecData = (anonSpec.spec_data as Record<string, unknown>) ?? {};
     const validatedSpec = specDataSchema.parse(rawSpecData);
@@ -49,9 +76,6 @@ export const POST = withErrorHandler(
       "Untitled Experiment";
     const experiment_type = validatedSpec.experiment_type;
     const experiment_level = validatedSpec.level;
-
-    // Insert experiment using user's supabase client (RLS applies)
-    const supabase = await createServerSupabaseClient();
     const { data: experiment, error: expError } = await supabase
       .from("experiments")
       .insert({

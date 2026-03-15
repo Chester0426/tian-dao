@@ -38,7 +38,11 @@ function createDemoClient() {
 }
 
 function getClient(): Anthropic {
-  if (process.env.DEMO_MODE === "true") return createDemoClient();
+  if (
+    process.env.DEMO_MODE === "true" &&
+    process.env.NODE_ENV !== "production"
+  )
+    return createDemoClient();
   if (!_client) {
     if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error("ANTHROPIC_API_KEY is not configured");

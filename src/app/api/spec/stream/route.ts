@@ -2,7 +2,6 @@ import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { stream as aiStream } from "@/lib/ai";
-import { checkSpecRateLimit, checkRateLimit } from "@/lib/rate-limit";
 import { parseSpecStreamLine } from "@/lib/spec-stream-parser";
 
 const streamSchema = z.object({
@@ -110,7 +109,8 @@ export async function POST(request: Request) {
 
     const adminSupabase = createAdminSupabaseClient();
 
-    // Regenerate handling
+    // Regenerate handling — delete old row before rate limit check
+    let isRegeneration = false;
     if (regenerate_token) {
       const { data: existingSpec } = await adminSupabase
         .from("anonymous_specs")
@@ -130,26 +130,76 @@ export async function POST(request: Request) {
         );
       }
 
-      // Delete old row — regeneration replaces it
+      // Delete old row — regeneration replaces it (net count unchanged)
       await adminSupabase
         .from("anonymous_specs")
         .delete()
         .eq("id", regenerate_token);
+      isRegeneration = true;
     }
 
-    // Rate limiting (always applies, including regeneration)
-    if (user) {
-      // Authenticated: 5 per 24h keyed by user ID
-      const rateLimited = checkRateLimit(
-        `spec:${user.id}`,
-        5,
-        24 * 60 * 60_000
-      );
-      if (rateLimited) return rateLimited;
-    } else {
-      // Anonymous: 3 per 24h keyed by session_token
-      const rateLimited = checkSpecRateLimit(session_token);
-      if (rateLimited) return rateLimited;
+    // DB-based rate limiting (survives serverless cold starts)
+    // Regeneration skips rate limit: old row deleted above, net count unchanged
+    if (!isRegeneration) {
+      const since24h = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+
+      if (user) {
+        // Authenticated: 5 per 24h across anonymous_specs + experiments
+        const [anonResult, expResult] = await Promise.all([
+          adminSupabase
+            .from("anonymous_specs")
+            .select("id", { count: "exact", head: true })
+            .eq("session_token", session_token)
+            .gte("created_at", since24h),
+          adminSupabase
+            .from("experiments")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .gte("created_at", since24h),
+        ]);
+        const totalCount = (anonResult.count ?? 0) + (expResult.count ?? 0);
+        if (totalCount >= 5) {
+          return new Response(
+            JSON.stringify({
+              error: {
+                code: "rate_limited",
+                message: "Too many requests. Please try again later.",
+              },
+            }),
+            {
+              status: 429,
+              headers: {
+                "Content-Type": "application/json",
+                "Retry-After": "3600",
+              },
+            }
+          );
+        }
+      } else {
+        // Anonymous: 3 per 24h per session_token
+        const { count } = await adminSupabase
+          .from("anonymous_specs")
+          .select("id", { count: "exact", head: true })
+          .eq("session_token", session_token)
+          .gte("created_at", since24h);
+        if ((count ?? 0) >= 3) {
+          return new Response(
+            JSON.stringify({
+              error: {
+                code: "rate_limited",
+                message: "Too many requests. Please try again later.",
+              },
+            }),
+            {
+              status: 429,
+              headers: {
+                "Content-Type": "application/json",
+                "Retry-After": "3600",
+              },
+            }
+          );
+        }
+      }
     }
 
     // Check for AI service availability
@@ -206,7 +256,10 @@ The user's idea is for a Level ${level} experiment.`;
                     preflightResults.push(parsed);
                   }
                   if (parsed.type === "complete") {
+                    // Capture spec but don't forward — we'll send a corrected
+                    // complete event with the real anonymous_spec_id after upsert
                     fullSpec = parsed.spec;
+                    continue;
                   }
                   controller.enqueue(
                     encoder.encode(
@@ -223,16 +276,19 @@ The user's idea is for a Level ${level} experiment.`;
           if (lastParsed) {
             if (lastParsed.type === "preflight")
               preflightResults.push(lastParsed);
-            if (lastParsed.type === "complete")
+            if (lastParsed.type === "complete") {
               fullSpec = lastParsed.spec;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(lastParsed)}\n\n`)
-            );
+            } else {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify(lastParsed)}\n\n`)
+              );
+            }
           }
 
           // Store spec in anonymous_specs (graceful degradation on failure)
+          // Set expires_at explicitly to refresh TTL on upsert (DB default only applies to INSERT)
           try {
-            await adminSupabase
+            const { data: upsertResult } = await adminSupabase
               .from("anonymous_specs")
               .upsert(
                 {
@@ -241,13 +297,30 @@ The user's idea is for a Level ${level} experiment.`;
                   spec_data: fullSpec ?? {},
                   preflight_results:
                     preflightResults.length > 0 ? preflightResults : null,
+                  expires_at: new Date(
+                    Date.now() + 24 * 60 * 60_000
+                  ).toISOString(),
                 },
                 { onConflict: "session_token" }
               )
               .select("id")
               .single();
+
+            // Send complete event with real anonymous_spec_id
+            if (fullSpec && upsertResult) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "complete",
+                    spec: fullSpec,
+                    anonymous_spec_id: upsertResult.id,
+                  })}\n\n`
+                )
+              );
+            }
           } catch {
             // Supabase write failure — degrade gracefully
+            // Client keeps spec from Claude's complete event (placeholder ID)
           }
 
           if (!fullSpec) {
