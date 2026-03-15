@@ -238,6 +238,7 @@ Follow the procedure in `.claude/procedures/change-fix.md`.
 
 #### Polish constraints
 - No new features, pages, routes, or libraries
+- **Visual capability**: If the change modifies `.tsx` page or component files, load the `frontend-design` skill before implementing. Read `.claude/patterns/design.md` for quality invariants and `src/app/globals.css` for theme tokens. Visual quality is built in during implementation, not fixed after by design-critic.
 - Copywriting: follow the copy derivation rules in `.claude/patterns/messaging.md` — headline = outcome for target_user, CTA = action verb + outcome. If the archetype includes a landing page (web-app): landing page must include all content inventory from messaging.md Section B. When experiment.yaml has `variants`, variant messaging fields (`headline`, `subheadline`, `cta`, `pain_points`) override Section A derivation — see messaging.md Section D.
 - If the change modifies experiment.yaml `behaviors`, `name`, or `description` AND surface ≠ none: regenerate the surface to reflect the updated content. For web-app: update the landing page (`src/app/page.tsx` and landing components). For service (co-located): update the root route handler (file path per framework stack file, e.g., `src/app/route.ts` for Next.js). For service (detached) or cli: update `site/index.html`. Re-invoke `frontend-design` for the surface if the visual direction changed.
 - Visual design: follow `.claude/patterns/design.md` quality invariants. Read existing pages and maintain visual consistency with the established design direction.
