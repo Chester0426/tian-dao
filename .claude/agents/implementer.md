@@ -9,8 +9,6 @@ tools:
   - Bash
   - Glob
   - Grep
-  - Skill
-  - ToolSearch
 disallowedTools:
   - Agent
 maxTurns: 40
@@ -36,7 +34,7 @@ You receive a task description containing:
 
 Read the target files and any files they import. Understand the current state before changing anything.
 
-**Visual capability check**: If any target file is a `.tsx` page or component file (under `src/app/` or `src/components/`), this is a visual task. Load the `frontend-design` skill via `Skill("frontend-design")`, read `.claude/patterns/design.md`, and read `src/app/globals.css` (if it exists) for theme tokens. Apply frontend-design guidelines during the GREEN phase — visual quality is built in, not bolted on.
+**Visual task handling**: If the task prompt includes visual design guidelines (injected by the caller for `.tsx` page/component tasks), read `.claude/patterns/design.md` and `src/app/globals.css` (if it exists) for theme tokens. Apply these guidelines during the GREEN phase — visual quality is built in, not bolted on.
 
 Also glob for existing test files (`**/*.test.*`, `**/*.spec.*`). If test files exist, read 1-2 to understand the project's testing patterns (assertion style, helper naming, file organization). Note the conventions already established in the codebase: function naming pattern (camelCase verbs: validate*, get*, create*), error handling pattern (throw vs return), import style (@/ alias vs relative). Match these conventions in your new code and tests.
 
