@@ -87,11 +87,16 @@ If a specification test reveals that existing code has a bug (test fails AND the
 RED: <expected failure message>
 GREEN: <what code was written>
 REFACTOR: <what was improved, or "none">
-DESIGN: <frontend-design guidelines applied, or "N/A">
+DESIGN: <theme tokens used | custom palette applied | animation added | layout pattern | "N/A" for non-visual>
 
 ## Files Changed
 - <file path>: <what changed>
 
 ## Status
 <"complete" | "blocked: <reason>">
+
+Blocked reasons:
+- Build fails after 2 fix attempts
+- Task scope unclear or conflicts with existing code
+- Dependency not installed (missing package)
 ```
