@@ -25,6 +25,7 @@ You receive a task description containing:
 - **Exact file paths** to create or modify
 - **What the code SHOULD do** (specification)
 - **Related experiment.yaml feature/flow** for context
+- **Behavior ID(s) and `tests` entries** (if provided) — each `tests` entry is a required acceptance criterion. You MUST generate an `it()` assertion for each entry. These come from experiment.yaml `behaviors[].tests`.
 - **Reference:** Follow the TDD procedure in `patterns/tdd.md`
 
 ## Procedure
@@ -39,7 +40,7 @@ If NO test files exist (first hardening run), use these defaults: vitest `descri
 
 ### 2. Write specification test
 
-Write a test that defines what the code SHOULD do — per `patterns/tdd.md` section Specification Tests. Derive test cases from the task specification, not from current behavior.
+Write a test that defines what the code SHOULD do — per `patterns/tdd.md` section Specification Tests. Derive test cases from the task specification, not from current behavior. If behavior `tests` entries were provided in the task, generate an `it()` assertion for each entry — these are non-negotiable acceptance criteria.
 
 ### 3. RED — verify test fails
 

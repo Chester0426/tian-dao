@@ -246,13 +246,25 @@ critical flow entry. These test operational chains at the API level.
 ```ts
 import { describe, it, expect, beforeAll } from "vitest";
 
+// Invocation pattern depends on framework:
+//
+// Frameworks with app.request() (Hono, etc.):
+//   import app from "../src/index";
+//   const res = await app.request("/api/webhooks/payment", { method: "POST", ... });
+//
+// Frameworks without app.request() (Next.js):
+//   import { POST } from "@/app/api/webhooks/payment/route";
+//   const res = await POST(new Request("http://localhost/api/webhooks/payment", { method: "POST", ... }));
+//
+// Never use fetch("http://localhost:...") — tests must run without a server.
+
 // Bootstrap generates one describe block per critical_flow entry:
 
 // Example for a webhook flow:
 // describe("payment-fulfillment", () => {
 //   it("webhook updates invoice status and sends emails", async () => {
 //     // Setup: create a test invoice in database
-//     // Act: POST /api/webhooks/payment with test payload
+//     // Act: call webhook handler with test payload (see invocation pattern above)
 //     // Assert: invoice status is 'paid' in database
 //     // Assert: email API was called (or queue has entries)
 //   });
@@ -262,7 +274,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 // describe("overdue-reminder", () => {
 //   it("sends reminders for overdue invoices", async () => {
 //     // Setup: create overdue invoice in database
-//     // Act: GET /api/cron/reminders (or POST with cron secret)
+//     // Act: call cron handler directly (see invocation pattern above)
 //     // Assert: nudge_sent_at is set
 //     // Assert: reminder email queued
 //   });
@@ -271,10 +283,11 @@ import { describe, it, expect, beforeAll } from "vitest";
 
 Notes:
 - Uses vitest — these are API-level integration tests (no browser needed)
+- **Must run via `npm test` without a server** — use `app.request()` or direct handler import (see invocation pattern above), never `fetch("http://localhost:...")`
 - Each flow is independent — sets up its own test data, cleans up after
-- Webhook tests POST realistic payloads to the webhook endpoint
-- Cron tests call the cron endpoint directly
-- Admin tests call admin API endpoints (no browser, no login flow)
+- Webhook tests call the handler with realistic payloads
+- Cron tests call the cron handler directly
+- Admin tests call admin API handlers (no browser, no login flow)
 - Skip tests when required env vars are missing (e.g., Stripe webhook secret)
 - These complement golden_path funnel tests: golden_path tests the customer journey,
   behaviors with actor: system/cron tests the delivery chain

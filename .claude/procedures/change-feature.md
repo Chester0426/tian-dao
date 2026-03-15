@@ -15,7 +15,7 @@
 
 - If `quality: production` is set in experiment.yaml:
   1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists: first, remove any entries whose `path` no longer exists on disk (stale from deleted modules). Then check if any files in the implementation plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing new feature code. Remove the entry from `experiment/on-touch.yaml` after tests are added. If `on_touch` list is now empty, delete `experiment/on-touch.yaml`.
-  2. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity
+  2. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity. Link each task to its behavior ID(s) from experiment.yaml. Include the behavior's `tests` array entries in the task description — the implementer must generate an `it()` assertion for each entry.
   3. Analyze task dependency graph per `patterns/tdd.md` § Task Dependency Ordering:
      - Independent tasks → spawn implementer agents in parallel (isolation: "worktree")
      - Dependent tasks (B imports A) → sequential execution
@@ -59,6 +59,7 @@
 - If the change requires a stack category whose library files don't exist yet (e.g., `payment: stripe` was just added to experiment.yaml but `src/lib/stripe.ts` is missing): install the packages listed in the stack file's "Packages" section, create the library files from its "Files to Create" section, and add its environment variables to `.env.example` — before proceeding to routes and pages. If any install command fails, stop and show the error — the user must fix the environment issue, then retry the failed install command on this branch (do NOT re-run `/change`).
 - If `golden_path` was updated in Step 5 and `e2e/funnel.spec.ts` exists: update the funnel test to match the new golden_path. Read the new/modified page source for selectors. Do not rewrite unaffected test steps.
 - If behaviors with `actor: system/cron` were updated in Step 5 and `tests/flows.test.ts` exists: add a new test case for the new system/cron behavior. Read the API route source for the endpoint path and expected behavior. If `tests/flows.test.ts` does not exist and vitest is not installed, install vitest and create the file with the new test case. Do not modify existing test cases.
+- If the change touches auth or payment code (per CLAUDE.md Rule 4): verify `tests/flows.test.ts` has tests that go beyond auth guards for payment flows — assert handler logic (session creation, database state changes, webhook payload processing), not just 401/400 status codes. Add missing payment flow tests if absent.
 - Wire analytics: every user action in the new feature must fire a tracked event
 - Create new pages following the framework stack file's file structure
 - Every new page: follow page conventions from the framework stack file, import tracking functions per the analytics stack file, fire appropriate EVENTS.yaml events

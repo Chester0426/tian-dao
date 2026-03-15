@@ -93,7 +93,7 @@ State: "Verification scope: **[scope]**"
 - For analytics changes: verify the analytics library file exists (see analytics stack file for expected path). If it doesn't, stop and tell the user: "Analytics library not found. Run `/bootstrap` first."
 - If `$ARGUMENTS` mentions payment or the change will add `payment` to the stack: verify `stack.auth` and `stack.database` are present in experiment.yaml. If `stack.auth` is missing, stop: "Payment requires authentication. Add `auth: supabase` (or another auth provider) to experiment.yaml `stack` first." If `stack.database` is missing, stop: "Payment requires a database. Add `database: supabase` (or another database provider) to experiment.yaml `stack` first."
 - If `$ARGUMENTS` mentions email or the change will add `email` to the stack: verify `stack.auth` and `stack.database` are present in experiment.yaml. If `stack.auth` is missing, stop: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to experiment.yaml `stack` first." If `stack.database` is missing, stop: "Email requires a database to track user activation status. Add `database: supabase` (or another database provider) to experiment.yaml `stack` first."
-- If `testing` is present in experiment.yaml `stack` and the classified type is NOT Test: read the testing stack file's `assumes` list and verify each `category/value` pair against experiment.yaml `stack`. If any assumption is unmet, stop: "Your testing setup assumes [unmet dependencies]. Tests will break. Run '/change fix test configuration' first, or remove 'testing' from experiment.yaml 'stack'."
+- If `testing` is present in experiment.yaml `stack` and the classified type is NOT Test: read the testing stack file's `assumes` list and verify each `category/value` pair against experiment.yaml `stack`. If any assumption is unmet, stop: "Your testing setup assumes [unmet dependencies]. Tests will break. Run '/change fix test configuration' first, or remove 'testing' from experiment.yaml 'stack'." Then check archetype compatibility: if archetype is `service` or `cli` and `stack.testing` is `playwright`, stop: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` instead."
 - If `quality: production` is set in experiment.yaml AND change type is Feature, Fix, or Upgrade:
   * Verify `stack.testing` is present in experiment.yaml
   * If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to experiment.yaml `stack`, or remove `quality: production` for MVP mode."
@@ -178,7 +178,11 @@ Before proceeding to Step 5, execute the process gate:
    ## Process Checklist
    - Implementation mode: [MVP direct | Production TDD]
    - Procedure file: [filename | inline (Polish/Analytics)]
-   - Verification scope: [scope] → agents: [agent list from verify.md scope table]
+   - Verification scope: [scope]
+   - [ ] Spawn agents: [enumerate each agent from verify.md scope table for this scope+archetype]
+   - [ ] Auto-Observe (after fix cycles — verify.md § Auto-Observe)
+   - [ ] Write .claude/verify-report.md (verify.md § Write Verification Report)
+   - [ ] Save planning patterns to auto memory (change.md Step 8)
    - Type-specific constraints:
      - [3-5 key rules extracted from the procedure file]
    ```
@@ -256,6 +260,7 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > Implementation is complete. You MUST now execute Step 7 in full.
 > Re-read `.claude/patterns/verify.md` and follow every section applicable to the verification scope from Step 3:
 > build loop, scoped parallel review, security fix cycle (if applicable), auto-observe.
+> Re-read `.claude/current-plan.md` `## Process Checklist`. Every listed agent MUST be spawned per the scope table. Do NOT skip agents based on which files changed — scope determines spawning.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
 >
