@@ -184,3 +184,35 @@ describe("DELETE /api/experiments/[id]", () => {
     expect(body.error.code).toBe("not_found");
   });
 });
+
+describe("ownership isolation (b-18)", () => {
+  beforeEach(() => {
+    clearLog();
+  });
+
+  it("users can only access their own experiments — non-owned returns 404", async () => {
+    setResult("experiments", { data: null, error: { message: "not found" } });
+    const request = new Request("http://localhost/api/experiments/exp-other-user");
+    const res = await GET(request, dummyContext);
+    // Route queries with .eq("user_id", user.id) — non-owned experiments return 404
+    expect(res.status).toBe(404);
+    expect(mockSupabase.from).toHaveBeenCalledWith("experiments");
+  });
+
+  it("CRUD operations enforce user_id scoping on PATCH and DELETE", async () => {
+    setResult("experiments", { data: null, error: { message: "not found" } });
+    const patchReq = new Request("http://localhost/api/experiments/exp-other", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Hijack" }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const patchRes = await PATCH(patchReq, dummyContext);
+    expect(patchRes.status).toBe(404);
+
+    const deleteReq = new Request("http://localhost/api/experiments/exp-other", {
+      method: "DELETE",
+    });
+    const deleteRes = await DELETE(deleteReq, dummyContext);
+    expect(deleteRes.status).toBe(404);
+  });
+});
