@@ -91,4 +91,9 @@ REFACTOR: <what was improved, or "none">
 
 ## Status
 <"complete" | "blocked: <reason>">
+
+Blocked reasons:
+- Build fails after 2 fix attempts
+- Task scope unclear or conflicts with existing code
+- Dependency not installed (missing package)
 ```
