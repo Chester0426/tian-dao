@@ -15,12 +15,15 @@
 
 - If `quality: production` is set in experiment.yaml:
   1. **ON-TOUCH check**: If `experiment/on-touch.yaml` exists: first, remove any entries whose `path` no longer exists on disk (stale from deleted modules). Then check if any files in the implementation plan are listed as ON-TOUCH. For each match: add a prerequisite TDD task to write specification tests for the existing code in that file BEFORE writing new feature code. Remove the entry from `experiment/on-touch.yaml` after tests are added. If `on_touch` list is now empty, delete `experiment/on-touch.yaml`.
-  2. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity. Link each task to its behavior ID(s) from experiment.yaml. Include the behavior's `tests` array entries in the task description — the implementer must generate an `it()` assertion for each entry. If a task targets `.tsx` page or component files, it is a visual task: load `frontend-design` skill yourself (via `Skill("frontend-design")`), read `.claude/patterns/design.md` and `src/app/globals.css`, then include the key visual guidelines in the implementer's task prompt. The implementer cannot load skills — the caller must inject them.
+  2. Generate implementation plan — break into 2-5 min TDD tasks (exact files, spec test code, expected failure, minimal impl) per `patterns/tdd.md` § Task Granularity. Link each task to its behavior ID(s) from experiment.yaml. Include the behavior's `tests` array entries in the task description — the implementer must generate an `it()` assertion for each entry. Mark each task as **visual** (targets `.tsx` page or component files) or **logic** (everything else).
   3. Analyze task dependency graph per `patterns/tdd.md` § Task Dependency Ordering:
      - Independent tasks → spawn implementer agents in parallel (isolation: "worktree")
      - Dependent tasks (B imports A) → sequential execution
      - Tell user: "N tasks, M parallel / K sequential"
-  4. For each task: you MUST spawn an implementer agent (`agents/implementer.md`, isolation: "worktree") → specification test (RED) → minimal code (GREEN) → refactor → commit. You MUST NOT implement any planned task directly — every task goes through an implementer agent with the full RED→GREEN→REFACTOR cycle. No exceptions for "trivial," "wiring," or "already tested elsewhere."
+  4. For each task: spawn the appropriate agent (isolation: "worktree") based on task type:
+     - **Logic tasks** → spawn implementer (`agents/implementer.md`)
+     - **Visual tasks** (.tsx pages/components) → spawn visual-implementer (`agents/visual-implementer.md`) — this agent auto-loads frontend-design skill and applies design quality during the GREEN phase
+     You MUST NOT implement any planned task directly — every task goes through an agent with the full RED→GREEN→REFACTOR cycle. No exceptions for "trivial," "wiring," or "already tested elsewhere."
   5. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
   6. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
