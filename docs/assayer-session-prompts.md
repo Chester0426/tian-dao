@@ -35,14 +35,15 @@
 
 ## Checkpoint Template
 
-Checkpoints（标记为 [CP]）不是 sessions — 它们不产出 PRs。每个 checkpoint 执行以下验证：
+Checkpoints（标记为 [CP]）不是 sessions — 它们不产出 PRs。每个 checkpoint 有一个可执行 **Prompt**（和 session 一样直接贴给 Claude Code），执行以下验证：
 
 1. `npm run build` 零错误
-2. `npx vitest run` 通过（如有 tests）
+2. `npm test` 通过
 3. 前序 sessions 的所有输出文件存在
 4. 无 TypeScript 编译错误（`npx tsc --noEmit`）
 5. 关键 API routes 的 curl smoke test（如适用）
-6. 生成 checkpoint report（markdown），记录：通过/失败项、发现的问题、修复建议
+6. `quality: production` — 本阶段已实现 behaviors 的 `tests` 条目均有对应 spec test assertion。缺失的覆盖必须补上。
+7. 生成 checkpoint report（markdown），记录：通过/失败项、发现的问题、修复建议
 
 Checkpoint 失败时：修复问题后重新验证，不继续下一个 phase。
 
@@ -983,7 +984,7 @@ e. 返回 { experiment_id }
 **检查项**：
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
-3. `npm test` 通过（所有 src/**/*.test.ts + tests/flows.test.ts）
+3. `npm test` 通过
 4. 17 张表的 migration 存在且语法正确
 5. RLS policies 覆盖所有表
 6. Core CRUD routes 可 curl 测试（需 Supabase local dev running）：
@@ -992,8 +993,44 @@ e. 返回 { experiment_id }
    - `POST /api/spec/claim` 返回 experiment_id（with auth + session_token）
 7. `docs/CONVENTIONS.md` 存在且包含 12 sections
 8. `experiment/experiment.yaml` 和 `experiment/EVENTS.yaml` 格式正确
+9. `quality: production` — 已实现 behaviors (b-16~b-29) 的 `tests` 条目均有对应 spec test assertion（参照 patterns/tdd.md § Specification Tests）。缺失的覆盖必须补上。
 
 **输出**：CP1 verification report（markdown）。失败项必须修复后才能进入 Phase 3。
+
+**Prompt**:
+
+```
+执行 [CP1] Checkpoint: Foundation + Data Layer。
+
+验证范围：Sessions 1-4 的所有输出。
+
+步骤：
+
+1. 运行自动化检查：
+   - `npm run build`（零错误）
+   - `npx tsc --noEmit`（零错误）
+   - `npm test`（全部通过）
+   如有失败，修复后重新运行，最多 3 次。
+
+2. 验证数据层：
+   - 确认 17 张表的 migration 存在于 supabase/migrations/ 且语法正确
+   - 确认所有表启用 RLS 且有对应 policies
+   - 确认 docs/CONVENTIONS.md 存在且包含 12 sections
+   - 确认 experiment/experiment.yaml 和 EVENTS.yaml 格式正确（YAML 可解析）
+
+3. behavior.tests 覆盖验证（quality: production）：
+   读 experiment/experiment.yaml 中 behaviors b-16 到 b-29（API + system/cron behaviors）。
+   对每个 behavior 的 tests 条目，在对应的 *.test.ts 文件中 grep 确认有 it()/test() assertion。
+   缺失的覆盖：按 patterns/tdd.md § Specification Tests 补上 spec test。
+   补完后重新运行 npm test 确认通过。
+
+4. 生成 checkpoint report 写入 docs/cp1-report.md：
+   - 检查项逐条通过/失败
+   - behavior.tests 覆盖率（N/M 条目有 assertion）
+   - 发现的问题和修复记录
+
+所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 3。
+```
 
 ---
 
@@ -1378,16 +1415,54 @@ npm run build 零错误。
 **检查项**：
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
-3. Landing page（/）渲染无错误
-4. Assay page（/assay）SSE streaming 可用
-5. Launch page（/launch/[id]）7-phase UI 完整（mock events）
-6. Experiment page（/experiment/[id]）scorecard + traffic + assessment + details tabs 渲染
-7. Signup Gate modal 触发正常
-8. Alert banners 渲染（mock data）
-9. Change Request UI 打开/关闭正常
-10. 所有页面无 console errors
+3. `npm test` 通过
+4. Landing page（/）渲染无错误
+5. Assay page（/assay）SSE streaming 可用
+6. Launch page（/launch/[id]）7-phase UI 完整（mock events）
+7. Experiment page（/experiment/[id]）scorecard + traffic + assessment + details tabs 渲染
+8. Signup Gate modal 触发正常
+9. Alert banners 渲染（mock data）
+10. Change Request UI 打开/关闭正常
+11. 所有页面无 console errors
+12. `quality: production` — 已实现 behaviors (b-01~b-15) 的 `tests` 条目：UI 渲染类由 Playwright smoke/funnel 覆盖，交互逻辑类有 spec test assertion。缺失的覆盖必须补上。
 
 **输出**：CP2 verification report。失败项必须修复后才能进入 Phase 4。
+
+**Prompt**:
+
+```
+执行 [CP2] Checkpoint: UI Core。
+
+验证范围：Sessions 5-6b 的所有输出。
+
+步骤：
+
+1. 运行自动化检查：
+   - `npm run build`（零错误）
+   - `npx tsc --noEmit`（零错误）
+   - `npm test`（全部通过）
+   如有失败，修复后重新运行，最多 3 次。
+
+2. UI 渲染验证：
+   确认以下页面渲染无错误且无 console errors：
+   - Landing page（/）
+   - Assay page（/assay）— SSE streaming 可用
+   - Launch page（/launch/[id]）— 7-phase UI 完整（mock events）
+   - Experiment page（/experiment/[id]）— scorecard + traffic + assessment + details tabs
+   - Signup Gate modal 触发正常
+   - Alert banners 渲染（mock data）
+   - Change Request UI 打开/关闭正常
+
+3. behavior.tests 覆盖验证（quality: production）：
+   读 experiment/experiment.yaml 中 behaviors b-01 到 b-15（UI behaviors）。
+   - UI 渲染类条目（"page renders", "content displays"）：确认 Playwright smoke/funnel test 覆盖
+   - 交互逻辑类条目（"navigation occurs", "modal triggers"）：确认有 spec test 或 Playwright assertion
+   缺失的覆盖：补上对应测试。补完后重新运行 npm test 确认通过。
+
+4. 生成 checkpoint report 写入 docs/cp2-report.md。
+
+所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 4。
+```
 
 ---
 
@@ -1787,7 +1862,7 @@ npm run build 零错误。
 **检查项**：
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
-3. `npx vitest run` 通过
+3. `npm test` 通过
 4. 所有 8 个页面渲染无错误（landing, assay, launch, experiment, verdict, lab, compare, settings）
 5. Billing API routes 返回正确 HTTP status：
    - `POST /api/operations/authorize` → 200 with { operation_id, price }
@@ -1798,8 +1873,43 @@ npm run build 零错误。
 8. Verdict page 4 种 verdict 类型渲染正确
 9. Lab page 空状态 + 有数据状态渲染
 10. Compare page Pro/Team gate 生效
+11. `quality: production` — 累积 behaviors (b-01~b-25) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。特别检查 payment flows (b-22, b-23, b-25) 有深度测试（不只是 auth guard）。
 
 **输出**：CP3 verification report。失败项必须修复后才能进入 Phase 5。
+
+**Prompt**:
+
+```
+执行 [CP3] Checkpoint: Full UI + Billing。
+
+验证范围：Sessions 5-8 的所有输出。
+
+步骤：
+
+1. 运行自动化检查：
+   - `npm run build`（零错误）
+   - `npx tsc --noEmit`（零错误）
+   - `npm test`（全部通过）
+   如有失败，修复后重新运行，最多 3 次。
+
+2. UI + Billing 验证：
+   - 确认 8 个页面渲染无错误
+   - 确认 Billing API routes 返回正确 HTTP status
+   - 确认 Stripe webhook handler signature 验证正常
+   - 确认 Settings/Verdict/Lab/Compare 页面功能完整
+
+3. behavior.tests 覆盖验证（quality: production）：
+   读 experiment/experiment.yaml 中 behaviors b-01 到 b-25（累积到 Session 8）。
+   对每个 behavior 的 tests 条目，确认有对应测试：
+   - API behaviors → spec test assertion
+   - UI behaviors → Playwright smoke/funnel assertion
+   - Payment flows (b-22, b-23, b-25) → 深度 spec test（验证 handler 逻辑，不只是 auth guard）
+   缺失的覆盖：补上。补完后重新运行 npm test 确认通过。
+
+4. 生成 checkpoint report 写入 docs/cp3-report.md。
+
+所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 5。
+```
 
 ---
 
@@ -2217,7 +2327,7 @@ npm run build 零错误。
 **检查项**：
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
-3. `npx vitest run` 通过
+3. `npm test` 通过
 4. Skill execution API routes 返回正确 HTTP status：
    - `POST /api/skills/execute` → 200 with { execution_id }（需 auth + billing gate）
    - `GET /api/skills/:id` → 200 with execution status
@@ -2228,8 +2338,41 @@ npm run build 零错误。
 8. 6 adapters 实现 DistributionAdapter interface
 9. OAuth flow routes 存在
 10. Realtime channel 订阅模式正确
+11. `quality: production` — 累积 behaviors (b-01~b-29) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。
 
 **输出**：CP4 verification report。失败项必须修复后才能进入 Phase 5。
+
+**Prompt**:
+
+```
+执行 [CP4] Checkpoint: Infrastructure。
+
+验证范围：Sessions 9a-10 的所有输出。
+
+步骤：
+
+1. 运行自动化检查：
+   - `npm run build`（零错误）
+   - `npx tsc --noEmit`（零错误）
+   - `npm test`（全部通过）
+   如有失败，修复后重新运行，最多 3 次。
+
+2. Infrastructure 验证：
+   - 确认 Skill execution API routes 返回正确 HTTP status
+   - 确认 Docker 配置存在且语法正确
+   - 确认 Distribution adapter interface + 6 adapters
+   - 确认 OAuth flow routes 存在
+   - 确认 Realtime channel 订阅模式正确
+
+3. behavior.tests 覆盖验证（quality: production）：
+   读 experiment/experiment.yaml 中 ALL behaviors b-01 到 b-29（累积到 Session 10）。
+   对每个 behavior 的 tests 条目，确认有对应测试。
+   缺失的覆盖：补上。补完后重新运行 npm test 确认通过。
+
+4. 生成 checkpoint report 写入 docs/cp4-report.md。
+
+所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 5。
+```
 
 ---
 
@@ -2746,7 +2889,7 @@ npm run build 零错误。
 **检查项**：
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
-3. `npx vitest run` 通过
+3. `npm test` 通过
 4. 所有 8 个页面 desktop + mobile 渲染无错误
 5. 6 个 mobile components 存在且功能正常
 6. CSS timing tokens 存在于 globals.css
@@ -2756,8 +2899,48 @@ npm run build 零错误。
 10. Cron routes 存在（metrics-sync, cleanup, notifications, cost-monitor, hosting-billing）
 11. Docker image spec 存在
 12. 所有环境变量在 .env.example 中记录
+13. `quality: production` — ALL behaviors (b-01~b-29) 的 `tests` 条目 100% 有对应 spec test 或 Playwright assertion。这是进入 /harden 前的最终覆盖验证。
 
 **输出**：CP5 verification report。这是最终 checkpoint — 修复所有问题后进入 /harden + /verify。
+
+**Prompt**:
+
+```
+执行 [CP5] Checkpoint: Complete Application。
+
+验证范围：Sessions 1-12c 的全部输出（完整应用）。
+
+步骤：
+
+1. 运行自动化检查：
+   - `npm run build`（零错误）
+   - `npx tsc --noEmit`（零错误）
+   - `npm test`（全部通过）
+   如有失败，修复后重新运行，最多 3 次。
+
+2. 完整应用验证：
+   - 确认 8 个页面 desktop + mobile 渲染无错误
+   - 确认 6 个 mobile components 存在且功能正常
+   - 确认 CSS timing tokens、Animation sequences、Reduced motion
+   - 确认所有 API routes + Cron routes
+   - 确认 Docker image spec 存在
+   - 确认所有环境变量在 .env.example 中记录
+
+3. behavior.tests 100% 覆盖验证（quality: production，最终验证）：
+   读 experiment/experiment.yaml 中 ALL behaviors b-01 到 b-29。
+   对每个 behavior 的每一条 tests 条目，确认有对应测试：
+   - API behaviors → vitest spec test assertion
+   - UI behaviors → Playwright smoke/funnel assertion
+   - System/cron behaviors → vitest flows.test.ts assertion
+   - Payment flows (b-22, b-23, b-25) → 深度 spec test（验证 handler 逻辑）
+   生成覆盖矩阵表（behavior ID | tests 条目 | 对应测试文件:行号 | 状态）。
+   缺失的覆盖：补上。补完后重新运行 npm test 确认通过。
+
+4. 生成 checkpoint report 写入 docs/cp5-report.md。
+   这是最终 checkpoint — 所有检查项必须通过后才能进入 /harden + /verify。
+
+所有检查项通过后，报告结果。
+```
 
 ---
 
