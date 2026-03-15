@@ -178,7 +178,11 @@ Before proceeding to Step 5, execute the process gate:
    ## Process Checklist
    - Implementation mode: [MVP direct | Production TDD]
    - Procedure file: [filename | inline (Polish/Analytics)]
-   - Verification scope: [scope] → agents: [agent list from verify.md scope table]
+   - Verification scope: [scope]
+   - [ ] Spawn agents: [enumerate each agent from verify.md scope table for this scope+archetype]
+   - [ ] Auto-Observe (after fix cycles — verify.md § Auto-Observe)
+   - [ ] Write .claude/verify-report.md (verify.md § Write Verification Report)
+   - [ ] Save planning patterns to auto memory (change.md Step 8)
    - Type-specific constraints:
      - [3-5 key rules extracted from the procedure file]
    ```
@@ -256,6 +260,7 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > Implementation is complete. You MUST now execute Step 7 in full.
 > Re-read `.claude/patterns/verify.md` and follow every section applicable to the verification scope from Step 3:
 > build loop, scoped parallel review, security fix cycle (if applicable), auto-observe.
+> Re-read `.claude/current-plan.md` `## Process Checklist`. Every listed agent MUST be spawned per the scope table. Do NOT skip agents based on which files changed — scope determines spawning.
 > **Step 8 is BLOCKED until Step 7 completes.**
 > Do NOT commit, push, or open a PR before verification finishes.
 >

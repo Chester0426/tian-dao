@@ -24,6 +24,8 @@ behavior-verifier runs for all archetypes (web-app, service, cli) — it has arc
 
 Build & Lint Loop, Auto-Observe, and Save Notable Patterns ALWAYS run regardless of scope.
 
+> **Agent spawning is determined by scope and archetype only** — never by which files were changed in this PR. Do NOT skip agents because "no pages were modified" or "only backend changed." If the scope table says an agent runs for this scope+archetype combination, spawn it.
+
 ## Build & Lint Loop (max 3 attempts)
 
 > **Budget rationale:** 3 attempts allows iterative refinement with error feedback.
