@@ -139,8 +139,10 @@ If experiment.yaml has behaviors with `actor: system/cron`:
   - Tests are independent — each sets up its own state and cleans up
 - For webhook flows: call the webhook handler with a realistic test payload.
   Guard the test with a check for required env vars (skip if missing).
+  If `stack.payment` is present: webhook tests must go beyond auth guard checks — assert the handler processes the payload (e.g., database state changes, status updates). This is required by CLAUDE.md Rule 4 ("No additional tests except for auth and payment flows").
 - For admin flows: call the admin API handler directly (no browser).
 - For cron flows: call the cron API handler directly.
+- If `stack.payment` is present: also generate tests for payment API routes (checkout, portal) that verify the handler creates sessions/returns correct responses — not just auth guards. Auth and payment flows are the two exceptions to Rule 4's minimal testing policy.
 - Add `test:flows` script to package.json: `vitest run tests/flows.test.ts`
 - These tests are NOT run during bootstrap — only created (same as funnel tests)
 
