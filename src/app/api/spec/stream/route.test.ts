@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createMockSupabase } from "@/test-utils/mock-supabase";
-import { _resetStore } from "@/lib/rate-limit";
 
 // Admin client — used for anonymous_specs (RLS bypass) and regenerate check
 const {
@@ -54,7 +53,6 @@ describe("POST /api/spec/stream", () => {
   beforeEach(() => {
     clearAdminLog();
     clearUserLog();
-    _resetStore();
     // Save original env
     origDemoMode = process.env.DEMO_MODE;
     origApiKey = process.env.ANTHROPIC_API_KEY;
@@ -63,9 +61,10 @@ describe("POST /api/spec/stream", () => {
       data: { user: null },
       error: null,
     });
-    // Default admin result for upsert
+    // Default admin result for upsert + rate limit count queries (count: 0 = not rate limited)
     setAdminResult("anonymous_specs", {
       data: { id: "anon-spec-1" },
+      count: 0,
       error: null,
     });
     // Enable DEMO_MODE by default so tests pass the API key check
@@ -187,15 +186,13 @@ describe("POST /api/spec/stream", () => {
   });
 
   describe("rate limiting", () => {
-    it("returns 429 when anonymous user exceeds rate limit", async () => {
-      // Exhaust the 3-per-24h spec rate limit
-      for (let i = 0; i < 3; i++) {
-        const req = makeRequest({
-          idea: VALID_IDEA,
-          session_token: VALID_SESSION_TOKEN,
-        });
-        await POST(req);
-      }
+    it("returns 429 when anonymous user exceeds rate limit (DB count >= 3)", async () => {
+      // Mock DB count: anonymous_specs count for this session_token is 3
+      setAdminResult("anonymous_specs", {
+        data: null,
+        count: 3,
+        error: null,
+      });
 
       const request = makeRequest({
         idea: VALID_IDEA,
@@ -205,7 +202,7 @@ describe("POST /api/spec/stream", () => {
       expect(res.status).toBe(429);
     });
 
-    it("returns 429 when authenticated user exceeds rate limit", async () => {
+    it("returns 429 when authenticated user exceeds rate limit (DB count >= 5)", async () => {
       mockUserSupabase.auth.getUser.mockResolvedValue({
         data: {
           user: {
@@ -220,14 +217,17 @@ describe("POST /api/spec/stream", () => {
         error: null,
       });
 
-      // Exhaust the 5-per-24h authenticated rate limit
-      for (let i = 0; i < 5; i++) {
-        const req = makeRequest({
-          idea: VALID_IDEA,
-          session_token: VALID_SESSION_TOKEN,
-        });
-        await POST(req);
-      }
+      // Mock DB counts: anonymous_specs=3, experiments=2 → total 5 >= 5 → rate limited
+      setAdminResult("anonymous_specs", {
+        data: null,
+        count: 3,
+        error: null,
+      });
+      setAdminResult("experiments", {
+        data: null,
+        count: 2,
+        error: null,
+      });
 
       const request = makeRequest({
         idea: VALID_IDEA,

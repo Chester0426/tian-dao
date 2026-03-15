@@ -49,6 +49,10 @@ export function createMockSupabase(userId = "user-1", email = "test@example.com"
       "upsert",
       "eq",
       "neq",
+      "gt",
+      "gte",
+      "lt",
+      "lte",
       "is",
       "not",
       "order",
@@ -87,10 +91,22 @@ export function createMockSupabase(userId = "user-1", email = "test@example.com"
     return chain;
   }
 
+  // Default RPC results — keyed by function name
+  const rpcResults = new Map<string, QueryResult>();
+
+  function setRpcResult(funcName: string, result: QueryResult) {
+    rpcResults.set(funcName, result);
+  }
+
   const mockSupabase = {
     from: vi.fn((table: string) => {
       callLog.push({ table, method: "from" });
       return buildChain(table);
+    }),
+    rpc: vi.fn((funcName: string, _params?: Record<string, unknown>) => {
+      callLog.push({ table: `rpc:${funcName}`, method: "rpc" });
+      const result = rpcResults.get(funcName) ?? { data: { allowed: true }, error: null };
+      return Promise.resolve(result);
     }),
     auth: {
       getUser: vi.fn(() =>
@@ -116,6 +132,7 @@ export function createMockSupabase(userId = "user-1", email = "test@example.com"
   return {
     mockSupabase,
     setResult,
+    setRpcResult,
     getCallLog,
     wasTableCalled,
     wasMethodCalled,
