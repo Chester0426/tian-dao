@@ -42,16 +42,20 @@ Transition this MVP to production quality mode: $ARGUMENTS
 
 ## Step 1: Scan & classify
 
-- Read `experiment/experiment.yaml` (behaviors, golden_path, stack)
-- Scan `src/` for all modules (API routes, lib/, pages, components)
+- Read `experiment/experiment.yaml` (behaviors, golden_path, stack, type)
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
+- Scan for modules based on archetype:
+  - **web-app**: `src/app/` (pages and API routes), `src/components/`, `src/lib/`
+  - **service**: `src/app/api/` (endpoints), `src/lib/`
+  - **cli**: `src/commands/`, `src/lib/`
 - Glob for existing tests (`**/*.test.*`, `**/*.spec.*`, `e2e/**`)
 - Classify each module into 4 categories:
 
-  **CRITICAL** (harden now): Auth/session logic, payment/billing, data mutations (POST/PUT/DELETE API routes with DB writes), golden_path activation steps, behaviors with `actor: system/cron`, non-trivial business logic
+  **CRITICAL** (harden now): Auth/session logic, payment/billing, data mutations (POST/PUT/DELETE API routes with DB writes), golden_path activation steps (web-app: pages, service: endpoints, cli: commands), behaviors with `actor: system/cron`, non-trivial business logic
 
   **ON-TOUCH** (harden when next modified): Read-only API routes (GET), form validation, data fetching/transformation, golden_path non-value-moment steps
 
-  **SKIP** (no hardening needed): Page components (rendering + layout only), UI components, static content, configuration
+  **SKIP** (no hardening needed): Page/view components (rendering + layout only — web-app only), UI components, static content, configuration
 
   **ALREADY COVERED**: Modules with existing test files (list them)
 
