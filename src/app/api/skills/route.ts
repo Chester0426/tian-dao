@@ -36,6 +36,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
     }
 
+    // Billing check for Pro-only skills (deploy, distribute)
+    const billingRequired = ["deploy", "distribute"];
+    if (billingRequired.includes(skill_name)) {
+      const { data: billing } = await supabase
+        .from("user_billing")
+        .select("plan, payg_balance_cents")
+        .eq("user_id", user.id)
+        .single();
+
+      const plan = (billing as { plan?: string } | null)?.plan ?? "payg";
+      const balance = (billing as { payg_balance_cents?: number } | null)?.payg_balance_cents ?? 0;
+
+      if (plan !== "pro" && plan !== "team" && balance <= 0) {
+        return NextResponse.json(
+          { error: "Upgrade to Pro or add PAYG balance to use this feature" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Skills that require approval before execution — use gate_type
     const approvalRequired = ["deploy", "distribute"];
     const gate_type = approvalRequired.includes(skill_name) ? "approval" : null;
