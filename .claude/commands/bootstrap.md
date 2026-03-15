@@ -310,7 +310,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
 - If `stack.surface` is set in experiment.yaml, use it.
 - Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
 - If the archetype's `excluded_stacks` includes `hosting` and `stack.surface` is not set → `detached`.
-- If the archetype is `service` and `stack.surface` is not set and the experiment defines no `golden_path` and no `endpoints` that serve HTML (pure API with no user-facing surface): `none`. Otherwise the default inference from line 305 applies.
+- If the archetype is `service` and `stack.surface` is not set and the experiment defines no `golden_path` and no `endpoints` that serve HTML (pure API with no user-facing surface): `none`. Otherwise the default inference above applies.
 
 ### Design Phase
 
