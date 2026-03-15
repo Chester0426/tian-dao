@@ -872,23 +872,6 @@ src/app/api/spec/claim/route.ts  → POST handler returning { experiment_id: str
 
 用 /change 实现 SSE spec streaming：
 
-## 0. 前置步骤：创建 spec-reasoning.md
-
-在 Assayer 项目中创建 `.claude/patterns/spec-reasoning.md`（Assayer 平台特有的推理规则，不是 mvp-template 通用 pattern。CLI /spec 和 web /api/spec/stream 共用此文件。product-design.md Section 2 要求）。
-
-内容包含 6 个 section：
-1. Pre-flight Research Dimensions — 4 维度: market（TAM, growth）, problem（pain severity, frequency, workarounds）, competition（funded alternatives, feature gaps）, ICP（specificity, reachability）。每个 → pass/caution/fail + confidence + summary。
-2. Hypothesis Generation Rules — 每个 funnel dimension 至少一个假设。Category 匹配 dimension（REACH→CTR, DEMAND→signup rate, ACTIVATE→activation rate, MONETIZE→payment conversion, RETAIN→return rate）。Threshold 来自行业基准。Priority 0-100。Dependencies 追踪。
-3. Variant Differentiation Criteria — 最少 3 个 variants。每个 unique angle。不允许共享 primary pain point。Slug: lowercase-hyphenated。
-4. Funnel Threshold Derivation — L1: REACH + DEMAND. L2: + ACTIVATE + MONETIZE. L3: + RETAIN。阈值 level-adjusted。
-5. Stack Selection Rules — type → archetype. level → shared stack additions. Hosting 路由规则:
-   - 默认: `hosting: vercel`（适用于 landing pages, CRUD apps, standard request-response）
-   - Railway 条件（满足任一）: (a) idea 涉及 AI agent / 长时间运行的后台任务（WebSocket, background jobs > 30s, AI agent loops）；(b) spec 生成的 behaviors 中包含 execution_time > 30s 或 streaming response 或 persistent connection；(c) idea 明确要求 persistent server / real-time features
-   - 检测方法: system prompt 指示 Claude 分析 generated behaviors — 如果任何 behavior 的 implementation 需要超过 Vercel 30s function timeout 的持久运行 → 设置 `hosting: railway`
-   - Railway 实验同时设置 `ai: anthropic`（product-design.md: "Agent experiments use web-app + railway + anthropic"）
-   - Railway stack file 已存在: `.claude/stacks/hosting/railway.md`（包含完整的 Deploy Interface）
-6. Output Format Note — 本文件只含推理规则。格式由调用方决定：spec.md 用 STOP points，/api/spec/stream 用 >>>EVENT: markers。
-
 ## 1. POST /api/spec/stream（无需 auth）
 
 这是 Assayer 最核心的 endpoint — 匿名用户输入 idea，AI 实时流式生成完整 spec。
