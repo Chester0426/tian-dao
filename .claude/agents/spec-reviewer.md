@@ -69,6 +69,11 @@ MUST exist covering that task's target module. A task with production code but
 no corresponding spec test indicates TDD was bypassed — this is a FAIL regardless
 of whether the code is functionally correct.
 
+Additionally, if the task references behavior IDs from experiment.yaml: grep the
+spec test file for each `behavior.tests` entry. Each entry must have a corresponding
+`it()` or `test()` assertion. A behavior `tests` entry with no matching assertion
+is a FAIL — report the missing entry and behavior ID.
+
 **S8. Process compliance**
 > This check produces WARNINGs, not FAILs — reported but does not block verdict.
 
