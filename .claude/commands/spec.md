@@ -175,29 +175,19 @@ Wait for the user to revise, override, or abandon.
 
 ### STOP 1: Pre-flight Reasoning
 
-Before proceeding to hypothesis generation, apply spec-reasoning.md sections 1-2:
+Before proceeding to hypothesis generation, apply spec-reasoning.md section 1:
 
-1. **Market Sizing Reasoning** (section 1): Evaluate the pre-flight research against the market sizing checklist. For each item, note whether it passes, flags a concern, or fails.
-2. **Competitive Differentiation Reasoning** (section 2): Evaluate the competitive landscape against the differentiation checklist.
+1. **Pre-flight Research Dimensions** (section 1): Evaluate the pre-flight research against all 4 dimension checklists (market, problem, competition, icp).
 
 Present the reasoning results:
 
 ```
 Pre-flight Reasoning
 ────────────────────
-Market Sizing:
-  [✓/⚠/✗] Addressable market identified: [assessment]
-  [✓/⚠/✗] Active spending: [assessment]
-  [✓/⚠/✗] Market signals: [assessment]
-  [✓/⚠/✗] Reachable via channels: [assessment]
-  [✓/⚠/✗] Not shrinking: [assessment]
-
-Competitive Differentiation:
-  [✓/⚠/✗] Competitors identified: [assessment]
-  [✓/⚠/✗] Gap articulated: [assessment]
-  [✓/⚠/✗] User-facing differentiation: [assessment]
-  [✓/⚠/✗] Not just cheaper: [assessment]
-  [✓/⚠/✗] Timing advantage: [assessment]
+  [✓/⚠/✗] Market:      [verdict] [summary]   (confidence: high/medium/low)
+  [✓/⚠/✗] Problem:     [verdict] [summary]   (confidence: high/medium/low)
+  [✓/⚠/✗] Competition: [verdict] [summary]   (confidence: high/medium/low)
+  [✓/⚠/✗] ICP:         [verdict] [summary]   (confidence: high/medium/low)
 ```
 
 **STOP.** Wait for user confirmation before proceeding to Step 3.
@@ -245,9 +235,9 @@ Each hypothesis must have:
 
 ### STOP 2: Hypothesis Quality Review
 
-Before deriving behaviors, apply spec-reasoning.md section 3:
+Before deriving behaviors, apply spec-reasoning.md section 2:
 
-1. **Hypothesis Quality Reasoning** (section 3): Evaluate each hypothesis against the quality checklist.
+1. **Hypothesis Generation Rules** (section 2): Evaluate each hypothesis against the quality checklist.
 
 Present the hypotheses for review:
 
@@ -339,9 +329,9 @@ Generate 3-5 offer variants. Each variant is a different messaging angle for the
 
 ### STOP 3: Variant Distinctiveness Review
 
-Before assembling the final experiment.yaml, apply spec-reasoning.md section 5:
+Before assembling the final experiment.yaml, apply spec-reasoning.md section 4:
 
-1. **Variant Distinctiveness Reasoning** (section 5): Evaluate each variant pair against the distinctiveness checklist.
+1. **Variant Differentiation Criteria** (section 4): Evaluate each variant pair against the differentiation checklist.
 
 Present the variants for review:
 
