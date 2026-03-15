@@ -36,8 +36,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
     Reply **continue** to deploy anyway, or fix vulnerabilities first with `npm audit fix`."
     Wait for user confirmation. If no critical vulnerabilities, proceed silently.
 4. Read `experiment/experiment.yaml` — extract `name`, `stack.services[0].hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
-5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `cli`:
-   - Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
+5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`. If the archetype is `cli`:
    - If surface is `detached`: this is a surface-only deployment — skip Steps 0.6–0.10 (no hosting/database infrastructure), Steps 1 and 3–4 (no infrastructure provisioning). Present a simplified plan in Step 2 (surface deployment only), then proceed directly to Step 5a.1.
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.

@@ -69,7 +69,7 @@ Tell the user how to get the numbers. See the analytics stack file's "Dashboard 
 >
 > Filter by `project_name` equals your experiment.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
-> If you haven't deployed yet, the app isn't collecting data. For web-app and service archetypes, run `/deploy` first; for CLI archetypes, publish via `npm publish` or GitHub Releases (see the archetype file). Then return to `/iterate` after a few days of live traffic. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
+> If you haven't deployed yet, the app isn't collecting data. For web-app and service archetypes, run `/deploy` first; for CLI archetypes, publish via `npm publish` or GitHub Releases (see the archetype file). Then return to `/iterate` after a few days of live traffic. For CLI tools with no surface (`surface: none`), `/deploy` and `/distribute` do not apply — publish manually and collect feedback directly from users. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
 Ask the user to provide funnel numbers — for each event in the EVENTS.yaml `events` map (filtered by `requires` and `archetypes`), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
 
