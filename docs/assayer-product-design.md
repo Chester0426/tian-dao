@@ -370,7 +370,7 @@ interface DistributionPlan {
 **Budget Recommendation Algorithm:**
 
 1. Determine budget range from experiment level:
-   - L1 (Pitch):    5000-15000 cents ($50-150) — minimal viable signal
+   - L1 (Pitch):    5000-20000 cents ($50-200) — minimal viable signal
    - L2 (Prototype): 20000-50000 cents ($200-500) — funnel validation
    - L3 (Product):  50000-200000 cents ($500-2000) — scale verification
    Default to midpoint of range. User can adjust in Phase F [Edit Plan].
@@ -1003,10 +1003,12 @@ It answers: "Was the ad spend worth it?"
 
 ```
 total_spend_cents = SUM(distribution_campaigns.spend_cents) for this experiment
+total_clicks = SUM(distribution_campaigns.clicks) for this experiment
+cpc_cents = total_spend_cents / max(total_clicks, 1)
 total_activations = COUNT(activate events from PostHog) for this experiment
 cpa_cents = total_spend_cents / max(total_activations, 1)
 signal_ratio = weighted average of all dimension ratios (same weights as Assayer Score Signal)
-roi_display = "{$spent} spent → {signal_ratio}x signal"
+roi_display = "{$spent} spent . {clicks} clicks . {$cpc}/click -> {activations} activations . {$cpa}/activation . {signal_ratio}x signal"
 ```
 
 **Storage:**
@@ -1016,23 +1018,25 @@ Written to `experiment_decisions.distribution_roi` (jsonb):
 ```json
 {
   "total_spend_cents": 4700,
+  "total_clicks": 502,
+  "cpc_cents": 9,
   "total_activations": 8,
   "cpa_cents": 588,
   "signal_ratio": 3.2,
-  "display": "$47 spent → 3.2x signal",
+  "display": "$47 spent . 502 clicks . $0.09/click -> 8 activations . $5.88/activation . 3.2x signal",
   "best_channel": "google-ads",
   "best_channel_cpa_cents": 425,
   "channel_breakdown": [
-    { "channel": "google-ads", "spend_cents": 3200, "activations": 6, "cpa_cents": 533 },
-    { "channel": "meta-ads", "spend_cents": 1500, "activations": 2, "cpa_cents": 750 }
+    { "channel": "google-ads", "spend_cents": 3200, "clicks": 350, "cpc_cents": 9, "activations": 6, "cpa_cents": 533 },
+    { "channel": "meta-ads", "spend_cents": 1500, "clicks": 152, "cpc_cents": 10, "activations": 2, "cpa_cents": 750 }
   ]
 }
 ```
 
 **When displayed on verdict page:**
 
-- SCALE verdict: "Google Ads worked, Meta didn't" — actionable channel guidance
-- KILL verdict: "$47 spent → 0 activations. You saved ~3 months of building."
+- SCALE verdict: "$200 spent . 502 clicks . $0.40/click -> 8 activations . 3.2x signal — Google Ads worked, Meta didn't"
+- KILL verdict: "$420 spent . 34 clicks . $12.35/click -> 0 activations. You saved ~3 months of building."
 - Show channel breakdown table: Channel | Spend | Activations | CPA
 - Highlight best-performing channel
 
@@ -1314,7 +1318,7 @@ GET /api/portfolio/insight
 
 POST /api/portfolio/insight/generate
   - Triggered by daily cron
-  - For each user with 2+ running experiments: calls Anthropic API (Sonnet) to generate insight
+  - For each user with 2+ running experiments where at least one has 30+ visits: calls Anthropic API (Sonnet) to generate insight
   - Writes to portfolio_insights table
   - No auth required (cron-only)
 
@@ -1672,7 +1676,7 @@ CREATE TABLE notifications (
   trigger_type text NOT NULL
     CHECK (trigger_type IN ('experiment_live', 'first_traffic',
            'mid_experiment', 'verdict_ready', 'budget_alert',
-           'dimension_dropping', 'bug_auto_fixed')),
+           'dimension_dropping', 'bug_auto_fixed', 'portfolio_update')),
   channel text NOT NULL DEFAULT 'email'
     CHECK (channel IN ('email', 'browser_push')),
   scorecard_snapshot jsonb,
