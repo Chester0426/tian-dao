@@ -1276,7 +1276,7 @@ GET    /api/experiments/:id/alerts           — list unresolved alerts
 PATCH  /api/experiments/:id/alerts/:alertId  — resolve/dismiss alert
 
 # Comparison
-GET    /api/experiments/compare              — side-by-side scorecard for multiple experiments
+GET    /api/experiments/compare              — side-by-side scorecard for multiple experiments (requires: pro+)
                                               (?ids=uuid1,uuid2,uuid3)
 
 # Billing & Operations (auth required)
@@ -1536,7 +1536,7 @@ CREATE TABLE variants (
   headline text NOT NULL,
   subheadline text,
   cta text NOT NULL,
-  pain_points text,
+  pain_points text[],
   promise text,
   proof text,
   urgency text,
@@ -1719,7 +1719,7 @@ CREATE TABLE user_billing (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id),
   plan text NOT NULL DEFAULT 'payg'
     CHECK (plan IN ('payg', 'pro', 'team')),
-    -- Free tier = 'payg' with zero balance + lifetime experiment limit enforced in app logic
+    -- Free tier = 'payg' with zero balance + lifetime experiment limit enforced in app logic. Settings UI renders Free as a separate column but it maps to this same 'payg' row.
   stripe_customer_id text UNIQUE,
   stripe_subscription_id text,
   subscription_status text DEFAULT 'none'
@@ -2006,6 +2006,7 @@ pages:
 | 5 | Budget alert | "Google Ads budget 90% spent. Add budget or continue organic?" | When threshold hit | Spend/budget ratio |
 | 6 | Dimension dropping | "MONETIZE trending down — 0.72x → 0.65x. Consider adjusting pricing." | When decline detected | Dimension + trend |
 | 7 | Bug auto-fixed | "AI Invoice Tool: signup form bug detected and fixed (12 visitors affected)" | On auto-fix completion | Fix description + affected visitor count |
+| 8 | Portfolio insight ready | "Portfolio insight ready: 2 experiments compared. Tap to view." | When 2+ running experiments | Insight summary |
 
 ### Implementation
 
