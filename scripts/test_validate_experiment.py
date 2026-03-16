@@ -15,10 +15,12 @@ SCRIPT = os.path.join(os.path.dirname(__file__), "validate-experiment.py")
 # Minimal valid experiment.yaml base — no level, no forbidden stack keys
 BASE_YAML = {
     "name": "test-experiment",
+    "owner": "test-team",
     "description": "A test experiment",
     "thesis": "If we test, then we learn, as measured by tests passing",
     "target_user": "developers testing validators",
     "distribution": "word of mouth",
+    "behaviors": [{"id": "b-01", "hypothesis_id": "h-01", "given": "A user", "when": "They act", "then": "They see result", "level": 1}],
     "stack": {
         "services": [
             {
