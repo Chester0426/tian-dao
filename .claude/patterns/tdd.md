@@ -85,6 +85,19 @@ Task 3: Create src/app/api/signup/route.ts (imports 1+2) — sequential after A
 → 3 tasks total, 2 parallel / 1 sequential
 ```
 
+### Sequential Execution Protocol
+
+When tasks are dependent (B requires A's output):
+
+1. Spawn Task A (worktree) — A completes RED→GREEN→REFACTOR and commits
+2. After A's worktree merges back: verify A's output files exist on the feature branch
+   (`git show HEAD:<path>` for each file Task B imports). If missing, the merge failed — investigate before proceeding.
+3. Spawn Task B (worktree) — B's worktree forks from the updated feature branch and can read A's committed output
+4. Repeat for further dependencies in the chain
+
+Independent tasks in the same parallel group merge simultaneously after all complete.
+Do NOT spawn a dependent task until its prerequisites are merged and verified.
+
 ## Test Type Selection
 
 | Scenario | Test Type | Workflow |
