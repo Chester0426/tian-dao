@@ -51,31 +51,100 @@ Checkpoint 失败时：修复问题后重新验证，不继续下一个 phase。
 
 | Session | Status | PR / Commit | Notes |
 |---------|--------|-------------|-------|
+| -1 | TODO | — | External Service Setup（人工操作，非 Session）|
 | 0 | TODO | — | mvp-template 补全（在 mvp-template repo 执行）|
 | 1 | TODO | — | experiment.yaml + EVENTS.yaml (manual) |
 | 2 | TODO | — | /bootstrap |
 | 2.5 | TODO | — | Style Contract (CONVENTIONS.md) |
-| 3 | TODO | — | DB schema + RLS + Auth + Core CRUD |
+| 3 | TODO | — | DB schema (19 tables) + RLS + Auth + Core CRUD + Portfolio tables |
 | 4 | TODO | — | SSE Spec Stream + Anonymous Specs + Claim |
 | [CP1] | TODO | — | Checkpoint: Foundation + Data Layer |
 | 5 | TODO | — | Landing + Assay + Signup Gate |
 | 6a | TODO | — | Build & Launch Flow |
 | 6b | TODO | — | Experiment Page + Change Request + Alerts |
 | [CP2] | TODO | — | Checkpoint: UI Core |
-| 7 | TODO | — | Lab + Verdict + Compare + Settings |
-| 8 | TODO | — | Billing + Operations |
+| 7 | TODO | — | Lab + Verdict + Compare + Settings + Portfolio Intelligence UI + Distribution ROI display |
+| 8 | TODO | — | Billing + Operations + Portfolio plan gates |
 | [CP3] | TODO | — | Checkpoint: Full UI + Billing |
 | 9a | TODO | — | Skill Execution API + Realtime (Vercel) |
 | 9b | TODO | — | Docker + skill-runner.js (Cloud Run) |
-| 10 | TODO | — | Distribution System |
+| 10 | TODO | — | Distribution System (6 Adapters) + Distribution Plan Generator |
 | [CP4] | TODO | — | Checkpoint: Infrastructure |
-| 11 | TODO | — | Metrics Cron + Alerts + Verdict Engine + Notifications |
-| 12a | TODO | — | CSS Tokens + 6 Mobile Components |
+| 11 | TODO | — | Metrics Cron + Alerts + Verdict Engine + Notifications (email + browser push) + Portfolio crons + Distribution ROI + Confidence Bands |
+| 12a | TODO | — | CSS Tokens + 6 Mobile Components + Mobile Lab NEEDS ATTENTION |
 | 12b | TODO | — | Animation Choreography + Per-Page Mobile |
 | 12c | TODO | — | Visual Verification |
 | [CP5] | TODO | — | Checkpoint: Complete Application |
 | 13 | TODO | — | /harden + /verify |
 | 14 | TODO | — | /deploy + Validation |
+
+---
+
+## Phase -1: External Service Setup（人工操作，非 Session）
+
+> **在执行任何 Session 之前**，完成以下外部服务注册和配置。这些步骤不能被 Claude Code 自动化 — 需要人工在各平台的 Dashboard 中操作。Session 1 开始前，所有 ✅ 项必须完成；⏳ 项可以在对应 Session 之前完成。
+
+### ✅ Session 1 前必须就绪
+
+| 服务 | 操作 | 产出（填入 .env） | 验证方式 |
+|------|------|-------------------|----------|
+| **GitHub** | 创建 `assayer` repo（private） | repo URL | `git clone` 成功 |
+| **Supabase** | 创建 project（region: 选择离目标用户最近的） | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Settings → API |
+| **Supabase Auth** | 启用 Email provider + 配置 Google OAuth + GitHub OAuth | Google Client ID/Secret 填入 Supabase Dashboard | Supabase Dashboard → Authentication → Providers |
+| **PostHog** | 创建 project（US/EU Cloud） | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | PostHog → Project Settings |
+| **Anthropic** | 获取 API key | `ANTHROPIC_API_KEY` | `curl` 测试 |
+| **Vercel** | 创建 account（Pro plan $20/mo） | Vercel CLI `vercel login` 成功 | `vercel whoami` |
+| **域名** | 注册 `assayer.io` + 配置 Vercel DNS | Vercel Dashboard → Domains | `dig assayer.io` |
+
+### ⏳ Session 8 前就绪（Billing）
+
+| 服务 | 操作 | 产出 | 验证方式 |
+|------|------|------|----------|
+| **Stripe** | 创建 account（test mode）+ 创建 2 个 Product/Price: Pro $99/mo recurring, Team $299/mo recurring | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRO_PRICE_ID`, `STRIPE_TEAM_PRICE_ID` | Stripe Dashboard → Products |
+| **Stripe Webhook** | 添加 endpoint `https://assayer.io/api/webhooks/stripe`（部署前用 `stripe listen --forward-to`） | `STRIPE_WEBHOOK_SECRET` | `stripe trigger checkout.session.completed` |
+
+### ⏳ Session 9 前就绪（Infrastructure）
+
+| 服务 | 操作 | 产出 | 验证方式 |
+|------|------|------|----------|
+| **GCP** | 创建 project + 启用 Cloud Run API + Artifact Registry API | `GCP_PROJECT_ID`, `GCP_REGION` | `gcloud projects describe` |
+| **GCP Service Account** | 创建 SA（roles: Cloud Run Invoker + Artifact Registry Reader）+ 下载 JSON key | `GCP_SA_KEY`（base64 编码的 JSON） | `gcloud auth activate-service-account` |
+| **Docker image** | Build + push to Artifact Registry（Session 9b 构建） | `CLOUD_RUN_JOB_NAME` | `docker pull` 成功 |
+| **Railway** | 创建 account + 获取 API token | `RAILWAY_TOKEN` | `railway whoami` |
+| **Cloudflare**（用于 Railway experiments DNS） | 获取 API token + Zone ID for assayer.io | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` | `curl -H "Authorization: Bearer $TOKEN" https://api.cloudflare.com/client/v4/zones` |
+
+### ⏳ Session 10 前就绪（Distribution）
+
+| 服务 | 操作 | 产出 | 验证方式 |
+|------|------|------|----------|
+| **Twitter/X** | Developer Portal → 创建 App → OAuth 2.0 PKCE | `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET` | OAuth callback 测试 |
+| **Reddit** | 创建 App（script type） | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | OAuth callback 测试 |
+| **Resend** | 创建 account + 验证 assayer.io domain | `RESEND_API_KEY` | `curl` 发送测试邮件 |
+| **Google Ads** | 创建 MCC account + Developer Token（test mode）+ OAuth app | `GOOGLE_ADS_MCC_ID`, `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN` | Google Ads API 测试调用 |
+| **Meta Ads** | 创建 Business Manager + Facebook Login App（`ads_management` scope）| `META_APP_ID`, `META_APP_SECRET` | Meta Graph API 测试 |
+| **Twitter Ads** | Developer Portal → Ads API access | `TWITTER_ADS_CONSUMER_KEY`, `TWITTER_ADS_CONSUMER_SECRET` | Ads API 测试 |
+
+### ⏳ Session 11 前就绪（Notifications）
+
+| 服务 | 操作 | 产出 | 验证方式 |
+|------|------|------|----------|
+| **VAPID keys** | `npx web-push generate-vapid-keys` | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:support@assayer.io` | 本地生成即可 |
+
+### ⏳ Session 13 前就绪（Monitoring）
+
+| 服务 | 操作 | 产出 | 验证方式 |
+|------|------|------|----------|
+| **Sentry** | 创建 Next.js project | `SENTRY_DSN`, `SENTRY_AUTH_TOKEN` | Sentry Dashboard |
+
+### Ad Platform Production Access Timeline
+
+> Test mode 足以完成 Session 10-14。Production access 在 /deploy 后按需申请。
+
+| 平台 | Test Access | Production Access | 阻塞 Session？ |
+|------|------------|-------------------|---------------|
+| Google Ads | 立即可用（test account） | Basic access ~1 周 | 否 |
+| Meta Ads | 立即可用（Sandbox） | App review ~2 周 | 否 |
+| X Ads API | Developer portal 注册 | Approval ~1 周 | 否 |
 
 ---
 
@@ -567,7 +636,7 @@ Bootstrap 完成后验证：
 4. .env.example 包含所有需要的环境变量（包括 ANTHROPIC_API_KEY）
 5. Playwright 配置就绪
 
-注意：bootstrap 会创建 Supabase 初始 migration。后续 Session 3 会添加完整的 17-table schema。
+注意：bootstrap 会创建 Supabase 初始 migration。后续 Session 3 会添加完整的 19-table schema。
 ```
 
 ---
@@ -622,12 +691,12 @@ npm run build 零错误（无代码修改，仅文档）。
 
 ### Session 3 — 完整 DB Schema + RLS + Auth Middleware + Core CRUD APIs
 
-**目标**：建立完整的数据层 — 17 张表、RLS policies、auth middleware、核心 CRUD API routes。
+**目标**：建立完整的数据层 — 19 张表（17 core + 2 Portfolio Intelligence）、RLS policies、auth middleware、核心 CRUD API routes。
 
 **输入**：Session 2 的 bootstrap scaffold
 
 **输出**：
-- 17 张表的 Supabase migration（product-design.md Section 6 完整）
+- 19 张表的 Supabase migration（product-design.md Section 6 + Portfolio Intelligence 完整）
 - 所有表的 RLS policies
 - `withAuth` middleware（验证 Supabase JWT，返回 user）
 - `withErrorHandler` wrapper（统一 error schema）
@@ -643,7 +712,12 @@ src/lib/api-auth.ts          → export function withAuth(handler): (request, co
 src/lib/rate-limit.ts        → export function rateLimit(key, limit, windowMs): Promise<{success, remaining}>
 src/lib/supabase-server.ts   → export function createServerClient(): SupabaseClient
 vitest.config.ts             → exists
-supabase/migrations/         → ≥1 .sql file with 17 CREATE TABLE statements
+supabase/migrations/         → ≥1 .sql file with 19 CREATE TABLE statements
+DB output:
+  - portfolio_insights table (columns: id, user_id, insight_json, portfolio_health, top_experiment_id, created_at, dismissed_at, applied_at)
+  - budget_allocations table (columns: id, user_id, allocation_json, source, applied_at)
+  - experiments.assayer_score column (integer, 0-100, nullable)
+  - experiments.score_updated_at column (timestamptz, nullable)
 ```
 
 **Prompt**:
@@ -668,17 +742,32 @@ supabase/migrations/         → ≥1 .sql file with 17 CREATE TABLE statements
    - context.params 是 Promise<Record<string, string>>
 
 3. 创建 `src/lib/rate-limit.ts`：
-   - 基于 IP 的 rate limiting（Vercel serverless 无共享内存，用 Supabase 或 in-memory Map + cleanup）
-   - 配置：auth routes 5/min, spec/stream 3/24h per session_token, general 30/min
+   - 双层 rate limiting（Vercel serverless 无跨实例共享内存）：
+     - **Critical routes（auth, billing, spec/stream）**: Supabase-backed — INSERT into `rate_limit_entries` table（columns: key, window_start, count, expires_at），用 upsert + count 查询。Supabase 自带连接池，延迟 ~5ms，可接受。
+     - **General API routes**: In-memory Map + 60s cleanup interval（per-instance，defense-in-depth，冷启动重置可接受）
+   - `rate_limit_entries` 表加入 Session 3 PR2 migration（不计入 19 张 core tables，纯 infra 表）：
+     ```sql
+     CREATE TABLE rate_limit_entries (
+       key text NOT NULL,
+       window_start timestamptz NOT NULL DEFAULT now(),
+       count integer NOT NULL DEFAULT 1,
+       expires_at timestamptz NOT NULL,
+       PRIMARY KEY (key, window_start)
+     );
+     CREATE INDEX idx_rate_limit_expires ON rate_limit_entries (expires_at);
+     -- Cleanup: cron/cleanup route 同时清理 expired rate_limit_entries
+     ```
+   - 配置：auth routes 5/min, spec/stream 3/24h per session_token（但 spec/stream 的 rate limit 直接查 anonymous_specs 表 count，不经过 rate-limit.ts）, billing routes 10/min, general 30/min
+   - Export: `rateLimit(key: string, limit: number, windowMs: number, backend?: 'supabase' | 'memory'): Promise<{ success: boolean, remaining: number }>`
 
 4. 创建 vitest 配置（quality: production 要求 specification tests，Playwright stack 不创建 vitest.config.ts）：
    - npm install -D vitest @vitest/coverage-v8
    - 创建 vitest.config.ts（添加 @ → src/ alias）
    - 为 api-error.ts, api-auth.ts, rate-limit.ts 编写 unit tests
 
-## PR 2: 完整 DB Schema（17 tables）
+## PR 2: 完整 DB Schema（19 tables）
 
-创建 Supabase migration，包含 product-design.md Section 6 的所有 17 张表：
+创建 Supabase migration，包含 product-design.md Section 6 的所有 19 张表（17 core + 2 Portfolio Intelligence）：
 
 1. anonymous_specs — 匿名 spec 暂存（24h TTL）
 2. experiments — 实验主表
@@ -835,6 +924,32 @@ Sub-resources:
 - Pagination: ?page=1&limit=20（max 100）
 - Sub-resource POST 支持 mode=append（默认）和 mode=replace
 
+## Portfolio Intelligence Tables
+
+Add these to the same migration file:
+
+1. Add columns to `experiments` table:
+   - `assayer_score integer CHECK (assayer_score BETWEEN 0 AND 100)` — computed score for portfolio ranking
+   - `score_updated_at timestamptz` — last score computation timestamp
+
+2. Create `portfolio_insights` table:
+   - `id uuid PRIMARY KEY`
+   - `user_id uuid REFERENCES auth.users(id)`
+   - `insight_json jsonb NOT NULL` — AI-generated recommendations (see product-design.md for schema)
+   - `portfolio_health integer NOT NULL CHECK (portfolio_health BETWEEN 0 AND 100)`
+   - `top_experiment_id uuid REFERENCES experiments(id)`
+   - `created_at`, `dismissed_at`, `applied_at` timestamps
+   - RLS policy: user_isolation (same pattern as experiments)
+   - Index on user_id + active insights (WHERE dismissed_at IS NULL AND applied_at IS NULL)
+
+3. Create `budget_allocations` table:
+   - `id uuid PRIMARY KEY`
+   - `user_id uuid REFERENCES auth.users(id)`
+   - `allocation_json jsonb NOT NULL` — allocation per experiment (see product-design.md for schema)
+   - `source text NOT NULL CHECK (source IN ('ai_recommended', 'user_custom', 'auto_rebalance'))`
+   - `applied_at timestamptz`
+   - RLS policy: user_isolation
+
 每个 PR 完成后 npm run build 零错误。
 ```
 
@@ -957,9 +1072,10 @@ export function specReducer(state: SpecState, event: SpecStreamEvent): SpecState
 ## 4. POST /api/spec/claim（需要 auth）
 
 登录后认领匿名 spec：
-a. 接收 { session_token }
+a. 接收 { session_token, upgrade_from?: string }
 b. 查 anonymous_specs by session_token
 c. 从 spec_data 创建 experiment + hypotheses + variants
+   - 当 upgrade_from 存在时：设置新 experiment 的 parent_experiment_id = upgrade_from，将原 experiment status → 'completed'（graduated）
 d. 删除 anonymous_specs row
 e. 返回 { experiment_id }
 
@@ -985,7 +1101,7 @@ e. 返回 { experiment_id }
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
 3. `npm test` 通过
-4. 17 张表的 migration 存在且语法正确
+4. 19 张表（17 core + 2 Portfolio Intelligence: portfolio_insights, budget_allocations）的 migration 存在且语法正确
 5. RLS policies 覆盖所有表
 6. Core CRUD routes 可 curl 测试（需 Supabase local dev running）：
    - `POST /api/spec/stream` 返回 SSE events
@@ -996,6 +1112,31 @@ e. 返回 { experiment_id }
 9. `quality: production` — 已实现 behaviors (b-16~b-29) 的 `tests` 条目均有对应 spec test assertion（参照 patterns/tdd.md § Specification Tests）。缺失的覆盖必须补上。
 
 **输出**：CP1 verification report（markdown）。失败项必须修复后才能进入 Phase 3。
+
+**CP1 通过后，立即执行 Seed Data 步骤**（不需要单独 PR，在 CP1 修复 PR 中一起完成）：
+
+创建 `supabase/seed.sql`，包含开发环境所需的最小 seed 数据：
+
+```sql
+-- Seed data for local development (supabase db reset will run this)
+-- Creates a test user with experiments in various states for UI development
+
+-- Test user (email: test@assayer.io, created via Supabase Auth in local dev)
+-- Run `supabase auth create-user --email test@assayer.io --password test1234` first
+
+-- After user exists, insert billing row + sample experiments:
+-- 1 RUNNING experiment (with metric_snapshots for scorecard rendering)
+-- 1 VERDICT_READY experiment (with experiment_decisions row for verdict page)
+-- 1 COMPLETED experiment (with KILL verdict for post-mortem)
+-- 1 DRAFT experiment (for assay edit mode)
+-- Sample hypotheses, variants, alerts, notifications for each
+-- Sample distribution_campaigns for traffic section
+-- Sample portfolio_insight for AI Insight card testing
+```
+
+**为什么**：Sessions 5-7 构建 UI 页面，需要真实数据才能验证 scorecard、verdict、lab cards、alerts 等组件的渲染。没有 seed data，开发者只能看到空状态或 loading skeleton。
+
+同时在 `package.json` 中添加 script: `"db:seed": "supabase db reset"`（重置 + seed 一步完成）。
 
 **Prompt**:
 
@@ -1013,7 +1154,7 @@ e. 返回 { experiment_id }
    如有失败，修复后重新运行，最多 3 次。
 
 2. 验证数据层：
-   - 确认 17 张表的 migration 存在于 supabase/migrations/ 且语法正确
+   - 确认 19 张表（17 core + portfolio_insights + budget_allocations）的 migration 存在于 supabase/migrations/ 且语法正确
    - 确认所有表启用 RLS 且有对应 policies
    - 确认 docs/CONVENTIONS.md 存在且包含 12 sections
    - 确认 experiment/experiment.yaml 和 EVENTS.yaml 格式正确（YAML 可解析）
@@ -1118,6 +1259,8 @@ Below-the-fold sections（滚动可见）：
 - How It Works section: 3-step vertical timeline: Describe your idea → AI designs the experiment → Get a verdict in days
 - Stats grid（2×2）: Ideas tested / Money saved / Avg time to verdict / Accuracy — 数据来源同 hero 底部统计（server component query, revalidate: 3600）
 - Pricing section: Plan cards（Free / PAYG / Pro / Team），滚动到底部可见但不在 above-the-fold 推广
+  Plan comparison table 必须包含 ux-design.md 的完整行：Spec generation, Create experiments, Modifications, Content edits, Auto-fix, Hosting, Paid distribution, Portfolio Intelligence, **Team seats**（1/1/1/5）, **Priority build**（--/--/--/Yes）, Overage。
+  Team seats 和 Priority build 是 pricing display 行项 — MVP 不实现 multi-user 或 priority queue 功能，仅在 plan comparison 中显示为 Team differentiator。
 
 点击 "Test it" → 导航到 /assay，传递 idea text。
 传递机制: URL search params `?idea=encodeURIComponent(text)&type=web-app&level=1`。
@@ -1151,7 +1294,7 @@ Signup modal 内嵌在此文件中（~100 行 Dialog 组件），基本 email + 
 ### 改动要点
 
 1. 替换数据流：删除 `streamText`/`specSections`/`SpecSection` 类型及相关 state，切换到 `specReducer`（import from `@/lib/spec-reducer`）
-2. URL searchParams 驱动：从 landing 传来的 `?idea=...&type=...&level=...` 读取并自动触发 SSE
+2. URL searchParams 驱动：从 landing 传来的 `?idea=...&type=...&level=...` 读取并自动触发 SSE。新增 `upgrade_from` param 支持（Level upgrade flow）：当 `?upgrade_from=<experiment_id>` 存在时，显示 "Upgrading from L{level}" indicator，claim 时传递 upgrade_from 到 POST /api/spec/claim
 3. Progressive rendering：用 SpecState 各字段（meta, cost, preflight, hypotheses, variants, funnel）驱动结构化卡片（不是 raw text block）
 4. 提取 signup modal：将内嵌的 signup Dialog 代码（~100 行）提取为 `src/components/signup-gate.tsx`（基础版：保留现有 email + OAuth 功能），assay page 改为 `import SignupGate from "@/components/signup-gate"`
 5. 新增：session_token cookie 管理、regenerate 按钮（传 regenerate_token）、preflight caution UI、edit mode
@@ -1343,8 +1486,11 @@ L3: Build → Quality Gate → Deploy → Walkthrough → Distribution Approval 
 ### Phase B (L2/L3): Quality Gate
 
 - 显示 behavior tests 状态: ok / testing / queued / failed
-- Auto-fix loop UI: "AI is diagnosing..." → "Fixing..." → "Re-testing..."
-- 失败后三个选项: [Simplify feature] [Skip feature] [Describe fix]
+- Auto-fix loop UI: "AI is diagnosing..." → "Fixing..." → "Re-testing..."（最多 3 次 retry，显示 "retry 1/3"）
+- Auto-fix 3 次失败后三个选项: [Simplify feature] [Skip feature] [Describe fix]
+- **Build/deploy timeout**（>15 min 无进展）: 显示 inline warning "Build is taking longer than expected" + [Retry] + [View Logs] 按钮。
+  检测方式: Realtime channel 15 分钟内无 progress event → frontend timer 触发 timeout UI。
+  Retry: POST /api/skills/:id/cancel + POST /api/skills/execute（new execution）。
 
 ### Phase C (L1): Content Check
 
@@ -1466,6 +1612,8 @@ Header: 名称 + status badge + Day X/Y + Level
 - Projected verdict
 - [Analyze Now] [Upgrade to L2] [Request Change]
 
+[Upgrade to L2] onClick: 导航到 `/assay?idea=${encodeURIComponent(experiment.idea_text)}&type=${experiment.experiment_type}&level=${experiment.experiment_level + 1}&upgrade_from=${experiment.id}`。Assay page 检测 upgrade_from param → 显示 "Upgrading from L${level}" indicator。生成新 spec 后，POST /api/spec/claim { session_token, upgrade_from } → 新 experiment 带 parent_experiment_id，原 experiment 标记 completed（graduated）。仅在 experiment.experiment_level < 3 时显示此按钮。
+
 [Analyze Now] guard clause UI: 当 guard 触发（total clicks < 100 或 experiment duration < 50% of estimated_days）时，不跳转到 verdict page。而是显示 inline dialog/toast，包含 directional signal（"Early signal: REACH looks strong, DEMAND needs more data"）+ sample size indicator + "Need ~X more clicks for a reliable verdict"。仅当 guard 通过时才跳转到 /verdict/[id]。
 
 --- Details ---（折叠区域）
@@ -1522,7 +1670,13 @@ npm run build 零错误。
 9. Alert banners 渲染（mock data）
 10. Change Request UI 打开/关闭正常
 11. 所有页面无 console errors
-12. `quality: production` — 已实现 behaviors (b-01~b-15) 的 `tests` 条目：UI 渲染类由 Playwright smoke/funnel 覆盖，交互逻辑类有 spec test assertion。缺失的覆盖必须补上。
+12. **数据合约形状验证**（防止 UI↔API 累积偏移）:
+    UI 组件当前使用 mock 数据。验证 mock 数据的 TypeScript 类型与 Session 3 创建的 API route 返回类型匹配：
+    - Scorecard mock → `GET /api/experiments/:id/metrics` 返回的 `experiment_metric_snapshots` 行结构
+    - Alert banners mock → `GET /api/experiments/:id/alerts` 返回的 `experiment_alerts` 行结构
+    - Experiment card mock → `GET /api/experiments` 返回的 `experiments` 行结构
+    如果 mock shape 与 DB schema 不匹配（字段名、类型、嵌套结构），修正 mock 以保持合约一致。
+13. `quality: production` — 已实现 behaviors (b-01~b-15) 的 `tests` 条目：UI 渲染类由 Playwright smoke/funnel 覆盖，交互逻辑类有 spec test assertion。缺失的覆盖必须补上。
 
 **输出**：CP2 verification report。失败项必须修复后才能进入 Phase 4。
 
@@ -1551,13 +1705,21 @@ npm run build 零错误。
    - Alert banners 渲染（mock data）
    - Change Request UI 打开/关闭正常
 
-3. behavior.tests 覆盖验证（quality: production）：
+3. **数据合约形状验证**（防止 UI 先于 backend 导致的 mock↔schema 偏移）：
+   UI 组件当前使用 mock 数据（真实 backend 在 S11 才连接）。验证 mock 数据结构与 Session 3 的 DB schema 一致：
+   - 读取 `supabase/migrations/` 中的 `experiment_metric_snapshots` 表定义，对比 Scorecard 组件的 mock props
+   - 读取 `experiment_alerts` 表定义，对比 Alert Banner 组件的 mock props
+   - 读取 `experiments` 表定义，对比 Lab Card 组件的 mock props
+   - 特别检查: jsonb 字段（channel_metrics, distribution_roi）的 mock shape 与 Session 11 即将写入的结构一致
+   如发现偏移（字段名不匹配、类型错误、嵌套结构不同）：修正 mock 并确保 TypeScript 类型通过 `npx tsc --noEmit`
+
+4. behavior.tests 覆盖验证（quality: production）：
    读 experiment/experiment.yaml 中 behaviors b-01 到 b-15（UI behaviors）。
    - UI 渲染类条目（"page renders", "content displays"）：确认 Playwright smoke/funnel test 覆盖
    - 交互逻辑类条目（"navigation occurs", "modal triggers"）：确认有 spec test 或 Playwright assertion
    缺失的覆盖：补上对应测试。补完后重新运行 npm test 确认通过。
 
-4. 生成 checkpoint report 写入 docs/cp2-report.md。
+5. 生成 checkpoint report 写入 docs/cp2-report.md。
 
 所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 4。
 ```
@@ -1587,6 +1749,13 @@ src/app/compare/page.tsx        → Compare page with side-by-side comparison
 src/app/settings/page.tsx       → Settings page with 4 sections (Account, Connected Accounts, Distribution Channels, Plan & Billing)
 src/app/api/experiments/compare/route.ts → GET handler
 src/app/api/experiments/[id]/metrics/export/route.ts → GET handler (CSV download)
+src/components/portfolio-insight-card.tsx             → exports PortfolioInsightCard component
+src/components/budget-allocation.tsx                  → exports BudgetAllocation component (sliders)
+src/app/api/portfolio/insight/route.ts               → exports GET handler
+src/app/api/portfolio/insight/[id]/apply/route.ts    → exports POST handler
+src/app/api/portfolio/insight/[id]/dismiss/route.ts  → exports POST handler
+src/app/api/portfolio/budget/route.ts                → exports GET handler
+src/app/api/portfolio/budget/allocate/route.ts       → exports POST handler
 ```
 
 **Prompt 1 of 3 — Verdict Page + Return Flows**（新对话）:
@@ -1629,6 +1798,7 @@ Post-Mortem（KILL 和 PIVOT only）: 实现为 ?tab=postmortem — Final Scorec
 Return Flows:
 - REFINE: 创建 experiment_rounds row → status → draft → redirect /assay?experiment=...&round=N+1&mode=edit
 - PIVOT: archive + create child experiment → redirect /?idea=...&pivot_from=experimentId
+- UPGRADE（SCALE/REFINE verdict 的 [Upgrade to L2]）: 导航到 `/assay?idea=${encodeURIComponent(experiment.idea_text)}&type=${experiment.experiment_type}&level=${experiment.experiment_level + 1}&upgrade_from=${experiment.id}`。与 Experiment page 的 [Upgrade to L2] 按钮行为一致（见 Session 6b）。仅在 experiment_level < 3 时显示。
 
 npm run build 零错误。
 ```
@@ -1703,14 +1873,20 @@ npm run build 零错误。
 Compare Page（/compare）:
 - Side-by-side experiment comparison（2+ experiments）
 - 表格: experiment name × dimension ratios, Verdict, Confidence, Cost, Time, Best channel
+- Assayer Score row (★ XX) + CPA row + AI recommendations section（如 product-design.md Portfolio Intelligence 描述）
+- **[Export CSV] 按钮**（ux-design.md 明确要求）: 导出 comparison table 数据为 CSV 文件。
+  实现: 前端生成 CSV（`Blob` + `URL.createObjectURL` + `<a download>`），不需要独立 API route。
+  CSV 列: Experiment Name, Score, REACH, DEMAND, ACTIVATE, MONETIZE, RETAIN, Verdict, Confidence, Ad Spend, CPA, Best Channel
 - Pro/Team plan only
 - API: GET /api/experiments/compare?ids=uuid1,uuid2,uuid3
 
 Settings Page（/settings）— 4 sections:
-- ACCOUNT: Email, [Change Password]
+- ACCOUNT: Email display, [Change Password] button → inline form（current password + new password + confirm）→ `supabase.auth.updateUser({ password: newPassword })`。成功后显示 toast "Password updated"。仅对 email+password 用户显示（OAuth-only 用户隐藏此按钮）。
 - CONNECTED ACCOUNTS（login OAuth）: Google, GitHub — [Disconnect]
 - DISTRIBUTION CHANNELS（distribution OAuth — 独立于 login OAuth!）: Organic (Twitter/X, Reddit, Resend) + Paid (Google Ads, Meta Ads, Twitter Ads)
 - PLAN & BILLING: Current plan + pool usage + PAYG balance + plan comparison table (Free/PAYG/Pro/Team) + [Manage Subscription] → Stripe Portal + [View Invoices]
+  Plan comparison table 必须包含 ux-design.md 的完整行（与 Landing pricing 一致）: Spec generation, Creates, Modifications, Content edits, Auto-fix, Hosting, Paid distribution, Portfolio Intelligence, **Team seats**（1/1/1/5）, **Priority build**（--/--/--/Yes）, Overage。
+  Team seats 和 Priority build 是 display-only 行项（MVP 不实现 multi-user invite 或 priority queue 功能）。
 
 API Routes:
 - GET /api/experiments/compare?ids=... — side-by-side comparison data
@@ -1719,6 +1895,54 @@ API Routes:
 PIVOT Return Flow Landing Integration:
 - Landing page 检测 `?pivot_from=` query param
 - 显示 "Pivoted from: {parent name}. AI suggestion: {pivot direction}"
+
+## Portfolio Intelligence UI
+
+### Lab Enhancement
+
+1. RUNNING experiment cards:
+   - Add `★ {assayer_score}` display in top-right corner of each card
+   - Add compressed dimension ratios: `R {reach}x D {demand}x M {monetize}x`
+   - Sort RUNNING group by assayer_score DESC (highest first)
+   - Status label derived from score: 80-100 ON TRACK, 60-79 PROMISING, 40-59 LOW !, 20-39 DANGER, 0-19 CRITICAL
+   - Score is NULL when no data → show "—" and sort last
+
+2. AI Insight card:
+   - Conditionally render between RUNNING and VERDICT READY groups
+   - Visible when: user has 2+ RUNNING experiments AND portfolio_insights has a non-dismissed, non-applied record
+   - Fetch from GET /api/portfolio/insight
+   - Display: numbered recommendations from insight_json
+   - [Apply suggestions ->] → POST /api/portfolio/insight/:id/apply → refresh Lab
+   - [Dismiss] → POST /api/portfolio/insight/:id/dismiss → hide card
+   - Styled with gold accent border (using existing gold design token)
+   - Plan gate: hidden for Free/PAYG users (check user plan)
+
+3. Budget tab (Team plan only):
+   - Add [Experiments] [Budget] tab switcher in Lab header
+   - [Budget] tab visibility: Team plan users only
+   - Budget overview: total allocated / total available with progress bar
+   - Table: Experiment | Spent | Remaining | Score | Status with spend progress bars
+   - AI Budget Optimizer: CURRENT → RECOMMENDED columns with reasoning text
+   - [Apply Rebalance ->] → POST /api/portfolio/budget/allocate
+   - [Customize] expands linked percentage sliders constrained to 100%
+   - Fetch from GET /api/portfolio/budget
+
+### Compare Enhancement
+
+4. Add Score row (★ XX) as first data row in comparison table
+5. Add CPA row ($ per activation) after existing metrics
+6. Add AI RECOMMENDATION section below table:
+   - Fetch latest portfolio_insight
+   - Display top_experiment highlight + numbered recommendations
+   - [Apply All ->] [Apply #1 only] [Dismiss] buttons
+
+### API Routes (implement alongside UI)
+
+7. `GET /api/portfolio/insight` — return latest active insight for user
+8. `POST /api/portfolio/insight/:id/apply` — execute recommendations (Pro+ gate)
+9. `POST /api/portfolio/insight/:id/dismiss` — mark dismissed
+10. `GET /api/portfolio/budget` — return budget allocation (Team gate)
+11. `POST /api/portfolio/budget/allocate` — apply custom allocation (Team gate)
 
 npm run build 零错误。
 ```
@@ -1749,6 +1973,8 @@ src/app/api/billing/topup/route.ts             → POST handler
 src/app/api/billing/portal/route.ts            → POST handler
 src/app/api/billing/usage/route.ts             → GET handler
 src/app/api/webhooks/stripe/route.ts           → POST handler with signature verification
+src/app/api/portfolio/insight/route.ts         → plan gate: Pro+ (Free/PAYG returns null)
+src/app/api/portfolio/budget/route.ts          → plan gate: Team only (403 for non-Team)
 ```
 
 **Prompt 1 of 2 — Billing Core**（新对话）:
@@ -1805,7 +2031,15 @@ c. 确定价格（product-design.md PAYG pricing table）:
 d. 检查 billing source（关键代码锚点）:
    ```typescript
    // Billing source resolution order
-   const billing = await supabase.from('user_billing').select('plan, payg_balance_cents, creates_used, modifications_used, pool_resets_at, stripe_subscription_id').eq('user_id', user.id).single();
+   const billing = await supabase.from('user_billing').select('plan, payg_balance_cents, creates_used, modifications_used, pool_resets_at, stripe_subscription_id, subscription_status').eq('user_id', user.id).single();
+
+   // Past-due gate: block pool access for subscribers with failed payments
+   if (billing.subscription_status === 'past_due') {
+     // Allow PAYG-funded operations (user's own prepaid balance), block pool access
+     // This incentivizes payment resolution while not completely locking out paying users
+     if (billing.payg_balance_cents >= priceCents) return { billing_source: 'payg', price_cents: priceCents };
+     return NextResponse.json({ error: { code: 'subscription_past_due', message: 'Your subscription payment failed. Please update your payment method or top up your PAYG balance.' } }, { status: 402 });
+   }
 
    // Free tier = payg plan + zero balance + no subscription
    const isFree = billing.plan === 'payg' && billing.payg_balance_cents === 0 && !billing.stripe_subscription_id;
@@ -1885,6 +2119,25 @@ GET /api/billing/usage:
 
 POST /api/webhooks/stripe:
 签名验证（STRIPE_WEBHOOK_SECRET）
+
+**Idempotency**: Stripe 重试 webhook 最多 3 次。每次处理前用 event.id 做幂等性检查：
+```typescript
+// 使用 Supabase upsert — 如果 event.id 已存在则跳过
+const { error } = await supabase.from('stripe_webhook_events')
+  .insert({ event_id: event.id, event_type: event.type, processed_at: new Date().toISOString() })
+  .onConflict('event_id');
+if (error?.code === '23505') return NextResponse.json({ received: true }); // duplicate, skip
+```
+`stripe_webhook_events` 表加入 Session 3 PR2 migration（纯 infra 表，不计入 19 张 core tables）：
+```sql
+CREATE TABLE stripe_webhook_events (
+  event_id text PRIMARY KEY,
+  event_type text NOT NULL,
+  processed_at timestamptz NOT NULL DEFAULT now()
+);
+-- Cleanup: cron/cleanup route 同时清理 > 30 天的 webhook events
+```
+
 处理 5 种 event types:
 
 a. checkout.session.completed:
@@ -1981,6 +2234,26 @@ Environment variables 需要:
 - STRIPE_WEBHOOK_SECRET
 - STRIPE_PRO_PRICE_ID, STRIPE_TEAM_PRICE_ID
 
+## Portfolio Intelligence Billing Gates
+
+Add plan-based access control for portfolio features:
+
+1. AI Insight card: visible only for Pro and Team plans
+   - GET /api/portfolio/insight: return null for Free/PAYG
+   - POST /api/portfolio/insight/:id/apply: reject with 403 for Free/PAYG
+
+2. Budget tab: visible only for Team plan
+   - GET /api/portfolio/budget: reject with 403 for non-Team
+   - POST /api/portfolio/budget/allocate: reject with 403 for non-Team
+
+3. Assayer Score on Lab cards: visible for ALL plans (no gate)
+
+4. Update the plan comparison data to include "Portfolio Intelligence" row:
+   - Free: --
+   - PAYG: --
+   - Pro: Score + AI Insight
+   - Team: Score + AI Insight + Budget Optimizer
+
 npm run build 零错误。
 ```
 
@@ -2003,8 +2276,13 @@ npm run build 零错误。
 7. Settings 页面 4 sections 完整
 8. Verdict page 4 种 verdict 类型渲染正确
 9. Lab page 空状态 + 有数据状态渲染
-10. Compare page Pro/Team gate 生效
-11. `quality: production` — 累积 behaviors (b-01~b-25) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。特别检查 payment flows (b-22, b-23, b-25) 有深度测试（不只是 auth guard）。
+10. Compare page Pro/Team gate 生效 + [Export CSV] 按钮存在
+11. Settings plan comparison table 包含完整行（特别检查 Team seats=5, Priority build=Yes 行存在）
+12. **数据合约一致性**: 验证 Session 8 的 billing API 返回类型与 Session 6b/7 的 UI 消费类型一致：
+    - `GET /api/billing/usage` 返回的 pool counters 与 experiment page footer 的 "Modifications: X/Y" 显示匹配
+    - `POST /api/operations/authorize` 返回的 `{ operation_id, price, type, billing_source }` 与 Change Request 组件消费一致
+    - Verdict page 的 distribution ROI 显示组件预期的 jsonb shape 与 `experiment_decisions.distribution_roi` 列结构匹配
+13. `quality: production` — 累积 behaviors (b-01~b-25) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。特别检查 payment flows (b-22, b-23, b-25) 有深度测试（不只是 auth guard）。
 
 **输出**：CP3 verification report。失败项必须修复后才能进入 Phase 5。
 
@@ -2028,8 +2306,16 @@ npm run build 零错误。
    - 确认 Billing API routes 返回正确 HTTP status
    - 确认 Stripe webhook handler signature 验证正常
    - 确认 Settings/Verdict/Lab/Compare 页面功能完整
+   - 确认 Compare page 有 [Export CSV] 按钮
+   - 确认 Settings plan comparison table 包含完整行（Team seats=5, Priority build=Yes）
 
-3. behavior.tests 覆盖验证（quality: production）：
+3. **数据合约一致性验证**（Session 8 新增 billing 数据 → UI 消费验证）：
+   - `GET /api/billing/usage` 返回的 `{ creates_used, modifications_used, payg_balance_cents, pool_resets_at }` → experiment page footer 的 pool usage 显示匹配
+   - `POST /api/operations/authorize` 返回的 `{ operation_id, price_cents, type, billing_source }` → Change Request 组件的 price display 匹配
+   - Verdict page 的 Distribution ROI 组件预期的 `distribution_roi` jsonb shape 与 `experiment_decisions` 表列结构一致（特别验证 `per_channel` array、`best_channel` string、`total_spend_cents` integer 等字段）
+   如发现偏移：修正 UI 或 API 确保两端类型一致。
+
+4. behavior.tests 覆盖验证（quality: production）：
    读 experiment/experiment.yaml 中 behaviors b-01 到 b-25（累积到 Session 8）。
    对每个 behavior 的 tests 条目，确认有对应测试：
    - API behaviors → spec test assertion
@@ -2037,7 +2323,7 @@ npm run build 零错误。
    - Payment flows (b-22, b-23, b-25) → 深度 spec test（验证 handler 逻辑，不只是 auth guard）
    缺失的覆盖：补上。补完后重新运行 npm test 确认通过。
 
-4. 生成 checkpoint report 写入 docs/cp3-report.md。
+5. 生成 checkpoint report 写入 docs/cp3-report.md。
 
 所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 5。
 ```
@@ -2087,12 +2373,13 @@ POST /api/skills/execute:
 a. Auth required
 b. Billing gate: 调用 /api/operations/authorize（除非 free operation）
 c. 创建 skill_executions row（status: pending）
-d. 触发 Cloud Run Job:
+d. 触发 Cloud Run Job — 提取为共享函数 `src/lib/cloud-run.ts` export `triggerCloudRunJob(params)`:
    - POST to Cloud Run Jobs API: /apis/run.googleapis.com/v2/.../jobs:run
    - Execution-specific env vars via overrides.containerOverrides[].env:
      EXPERIMENT_ID, SKILL_NAME, USER_ID, EXECUTION_ID,
      SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY,
      RAILWAY_TOKEN（用于 Railway hosting 的实验部署）
+   - 此函数被两处调用：1) POST /api/skills/execute（用户触发），2) metrics-sync cron auto-fix（系统触发，Session 11）
 e. 返回 { execution_id }
 
 GET /api/skills/:id:
@@ -2298,6 +2585,26 @@ Environment variables（添加到 S14 deploy checklist）:
 5. Agent SDK runs skill
 6. Git push results
 7. Parse output → Supabase
+   - **关键 status transition**: 当 skill_name = 'deploy' 且部署成功时：
+     ```javascript
+     // 7a. Update experiment status: draft → active
+     await supabase.from('experiments')
+       .update({ status: 'active', deployed_url: deployedUrl, started_at: new Date().toISOString() })
+       .eq('id', experimentId);
+
+     // 7b. Trigger experiment_live notification（立即发送，不等 daily cron）
+     await supabase.from('notifications').insert({
+       user_id: userId,
+       experiment_id: experimentId,
+       trigger_type: 'experiment_live',
+       channel: 'email',
+       scorecard_snapshot: null, // no metrics yet
+       sent_at: new Date().toISOString(),
+     });
+     // Send email via Resend using experiment_live template（src/lib/email.ts）
+     await sendNotificationEmail('experiment_live', { experimentName, deployedUrl, userEmail });
+     ```
+   - 这两步是 metrics-sync cron 和 notification 系统的前置条件：没有 `status = 'active'`，cron 不会处理此实验
 8. Container destroyed
 
 npm run build 零错误。
@@ -2330,6 +2637,8 @@ src/lib/distribution/adapters/twitter-ads.ts           → implements Distributi
 src/app/api/experiments/[id]/distribution/route.ts     → GET handler
 src/app/api/experiments/[id]/distribution/sync/route.ts    → POST handler
 src/app/api/experiments/[id]/distribution/manage/route.ts  → POST handler
+src/lib/distribution/plan-generator.ts                          → exports generateDistributionPlan(experiment, user) → DistributionPlan
+src/app/api/experiments/[id]/distribution/plan/route.ts         → POST handler
 ```
 
 **Prompt**:
@@ -2429,6 +2738,52 @@ b. Exchange authorization code for access + refresh tokens
 c. Upsert oauth_tokens row（encrypted via Supabase Vault）
 d. Redirect back to `/settings?channel=connected&provider={name}`
 
+## 4b. OAuth Token Refresh & Expiration Handling
+
+每个 distribution adapter 在调用 platform API 前必须检查 token 有效性：
+
+```typescript
+// src/lib/distribution/token-manager.ts
+export async function getValidToken(userId: string, provider: string): Promise<string | null> {
+  const token = await supabase.from('oauth_tokens')
+    .select('access_token, refresh_token, expires_at')
+    .eq('user_id', userId).eq('provider', provider).single();
+
+  if (!token.data) return null;
+
+  // Token still valid (5min buffer)
+  if (new Date(token.data.expires_at) > new Date(Date.now() + 5 * 60 * 1000)) {
+    return token.data.access_token;
+  }
+
+  // Token expired — attempt refresh
+  try {
+    const newTokens = await refreshOAuthToken(provider, token.data.refresh_token);
+    await supabase.from('oauth_tokens')
+      .update({ access_token: newTokens.access_token, expires_at: newTokens.expires_at })
+      .eq('user_id', userId).eq('provider', provider);
+    return newTokens.access_token;
+  } catch (err) {
+    // Refresh failed (token revoked by user on platform, or refresh token expired)
+    // Create ad_account_suspended alert for this channel
+    await supabase.from('experiment_alerts').insert({
+      experiment_id: activeExperimentId,
+      alert_type: 'ad_account_suspended',
+      channel: provider,
+      severity: 'warning',
+      message: `${provider} connection expired. Please reconnect in Settings.`,
+    });
+    return null; // adapter.measure() will skip this channel
+  }
+}
+```
+
+关键点:
+- adapter.measure() 调用 getValidToken() → null 时 skip 该 channel（不 crash，其他 channels 继续）
+- adapter.publish() 调用 getValidToken() → null 时 return { status: 'failed', error: 'token_expired' }
+- Settings Distribution Channels section: token 过期的 channel 显示 "Expired — [Reconnect]" 而非 "Connected"
+- 检测逻辑：`oauth_tokens.expires_at < now()` OR adapter API 返回 401/403
+
 将这些 routes 添加到输出合约中。
 
 ## 5. Plan-Gated Channels
@@ -2438,6 +2793,28 @@ distribution campaign 创建时检查用户 plan:
 - Pro/Team: all channels
 - UI 中 paid channels 显示 "Pro plan required" badge
 
+## 6. Mock→Real Wiring（连接前序 session 的 mock UI）
+
+Session 6a（Launch page）和 Session 7（Settings page）构建了 distribution 相关 UI 但使用 mock 数据。本 session 必须将真实后端连接到这些 UI：
+
+a. **Settings page Distribution Channels section**（S7 产物）:
+   - 替换 mock OAuth 按钮为真实 OAuth redirect URLs（`/api/distribution/callback/{provider}`）
+   - 连接 oauth_tokens 查询显示已连接状态（"@username connected [Disconnect]"）
+   - [Disconnect] 按钮: DELETE oauth_tokens row for provider
+
+b. **Launch page Phase E: Channel Setup**（S6a 产物）:
+   - 替换 mock channel list 为真实 oauth_tokens 查询（已连接 vs 未连接）
+   - [Connect Twitter →] 按钮: redirect to OAuth flow（same as Settings page）
+   - 连接完成后 redirect 回 `/launch/[id]`（通过 callback URL query param）
+
+c. **Launch page Phase F: Distribution Approval Gate**（S6a 产物）:
+   - 替换 mock distribution plan 为 `POST /api/experiments/:id/distribution/plan` 调用
+   - [Launch Distribution →] 按钮: 调用 `POST /api/skills/execute { skill: 'distribute' }`
+   - [Edit Plan] 按钮: 修改 plan 参数后重新调用 plan generator
+
+d. **Launch page Phase G: Distribution Live**（S6a 产物）:
+   - 替换 mock channel status 为 `GET /api/experiments/:id/distribution` 查询
+
 Environment variables:
 - TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET
 - REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET
@@ -2445,6 +2822,61 @@ Environment variables:
 - GOOGLE_ADS_MCC_ID, GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, GOOGLE_ADS_DEVELOPER_TOKEN
 - META_APP_ID, META_APP_SECRET
 - TWITTER_ADS_CONSUMER_KEY, TWITTER_ADS_CONSUMER_SECRET
+
+## Distribution Plan Generator
+
+Read docs/assayer-product-design.md "Distribution Plan Generator" subsection.
+
+### 1. Plan Generator Service
+
+Create `src/lib/distribution/plan-generator.ts`:
+
+export async function generateDistributionPlan(experiment, user): Promise<DistributionPlan>
+
+Logic:
+1. Determine budget range from experiment level:
+   - L1 (Pitch): 5000-15000 cents ($50-150)
+   - L2 (Prototype): 20000-50000 cents ($200-500)
+   - L3 (Product): 50000-200000 cents ($500-2000)
+   Use midpoint as default. Clamp to user's PAYG balance if insufficient.
+
+2. Determine channel priority from experiment type + target_user:
+   - B2B SaaS: google-ads 40%, email-resend 25%, twitter-organic 20%, reddit-organic 15%
+   - Consumer App: meta-ads 35%, twitter-ads 20%, reddit-organic 25%, email-resend 20%
+   - Developer Tool: reddit-organic 35%, twitter-organic 30%, google-ads 20%, email-resend 15%
+   - Default: google-ads 40%, meta-ads 30%, twitter-ads 15%, organic 15%
+   Infer type from experiment.yaml target_user keywords (e.g., "developer" → Developer Tool, "business" / "B2B" → B2B SaaS).
+
+3. Filter by plan tier:
+   - Free/PAYG: remove paid channels (google-ads, meta-ads, twitter-ads), redistribute budget to organic
+   - Pro/Team: all channels available
+
+4. Filter by connected channels:
+   - Query oauth_tokens for user's connected channels
+   - Unconnected channels: set available = false, include requires_connect message
+
+5. Generate creative per available channel:
+   - Read experiment name, description, thesis, variants
+   - Read the landing page source to extract actual headline (message match)
+   - For each channel: generate headlines + descriptions within channel format constraints
+   - Use channel stack files (.claude/stacks/distribution/<channel>.md) for format limits
+
+### 2. API Route
+
+POST /api/experiments/:id/distribution/plan
+  - Auth: required
+  - Calls generateDistributionPlan(experiment, user)
+  - Returns DistributionPlan (see product-design.md for interface)
+  - Called by Session 6a Phase F UI when user reaches Distribution Approval Gate
+
+### 3. Phase-Gated Budget Progression
+
+When returning plan for an experiment that has completed a previous /iterate cycle:
+  - Read the latest verdict from experiment_decisions
+  - If verdict = SCALE and previous budget was Phase 1 range → suggest Phase 2 budget
+  - If verdict = REFINE → maintain budget, optimize channel mix based on best_channel from metrics
+  - If verdict = KILL/PIVOT → suggest $0 (stop spend)
+  - Include reasoning in DistributionPlan.reasoning field
 
 npm run build 零错误。
 ```
@@ -2533,6 +2965,18 @@ src/app/api/experiments/[id]/alerts/route.ts → GET handler
 src/app/api/notifications/route.ts          → GET handler
 src/lib/email.ts                            → email template functions
 vercel.json                                 → contains "crons" configuration
+src/app/api/cron/compute-scores/route.ts    → POST handler (cron)
+src/app/api/cron/generate-insights/route.ts → POST handler (cron)
+src/app/api/cron/auto-rebalance/route.ts    → POST handler (cron)
+src/lib/assayer-score.ts                    → exports computeAssayerScore(experiment) → number
+src/lib/portfolio-insight.ts                → exports generatePortfolioInsight(userId) → PortfolioInsight
+src/lib/thompson-sampling.ts                → exports computeAllocation(experiments) → BudgetAllocation
+Email template: portfolio-update            → (in notification templates)
+Distribution ROI computation                → integrated into verdict generation
+experiment_decisions.distribution_roi       → jsonb field populated on verdict
+Confidence bands                            → stored in experiment_metric_snapshots per dimension
+public/sw.js                               → Service Worker for browser push notifications
+src/lib/push-notifications.ts              → exports requestPushPermission(), sendPushSubscriptionToServer()
 ```
 
 **Prompt 1 of 3 — Metrics Sync + Alert Detection**（新对话）:
@@ -2604,6 +3048,31 @@ Force sync route: POST /api/experiments/:id/metrics/sync?force_verdict=true
 
 GET /api/experiments/:id/metrics — cached scorecard（最新 metric_snapshot row）
 
+## 1b. Mock→Real Wiring（连接前序 session 的 mock UI）
+
+Session 6b（Experiment page）构建了 scorecard、traffic、live assessment 和 alert banners，但使用 mock 数据。本 session 必须将真实后端连接到这些 UI：
+
+a. **Experiment page Scorecard**（S6b 产物）:
+   - 替换 mock scorecard data 为 `GET /api/experiments/:id/metrics` 调用
+   - 5-dimension progress bars 读取 experiment_metric_snapshots 的 reach/demand/activate/monetize/retain ratios
+   - Confidence bands 从 metrics response 的 event_count 字段计算
+
+b. **Experiment page Traffic section**（S6b 产物）:
+   - 替换 mock per-channel data 为 metrics response 的 channel_metrics jsonb
+   - Budget progress bar: distribution_campaigns 的 SUM(spend_cents) / experiment.budget
+
+c. **Experiment page Live Assessment**（S6b 产物）:
+   - 替换 mock bottleneck/projected verdict 为 metrics response 的 computed values
+   - [Analyze Now] 按钮连接到 `POST /api/experiments/:id/metrics/sync?force_verdict=true`
+
+d. **Experiment page Alert Banners**（S6b 产物）:
+   - 替换 mock alerts 为 `GET /api/experiments/:id/alerts` 调用
+   - Alert action buttons: [Force Sync] → POST metrics/sync, [Add Budget] → navigate to billing
+
+e. **Lab page cards**（S7 产物）:
+   - 替换 mock scorecard ratios 为 experiments.assayer_score（computed by metrics cron）
+   - Pull-to-refresh: POST /api/experiments/:id/metrics/sync for each running experiment
+
 ## 2. Alert Detection
 
 在 metrics sync 中检测 alert conditions:
@@ -2631,10 +3100,58 @@ Alert API:
 - PATCH /api/experiments/:id/alerts/:alertId — resolve/dismiss
 
 Runtime auto-fix detection（L2/L3）:
-- 0.0x ratio with sufficient traffic → trigger /verify against live experiment
-- 如果发现 bug → 自动触发 /change + redeploy
-- 创建 bug_auto_fixed alert + notification
+- 0.0x ratio with sufficient traffic → trigger auto-fix chain
 - Auto-fix 操作对用户始终免费
+
+**Auto-fix triggering机制（cron → Cloud Run 的完整链路）**：
+
+```
+metrics-sync cron 检测到异常（0.0x ratio + sufficient traffic）
+  │
+  ├── 1. 创建 operation_ledger row:
+  │      operation_type = 'auto_fix'
+  │      billing_source = 'free'
+  │      price_cents = 0
+  │      token_budget = 1_500_000 (same as small_fix)
+  │      status = 'authorized'
+  │
+  ├── 2. 创建 skill_executions row:
+  │      skill_name = 'verify'
+  │      status = 'pending'
+  │      input_params = { experiment_id, auto_fix: true, anomaly_type, anomaly_dimension }
+  │
+  ├── 3. 内部调用 Cloud Run Job trigger（与 POST /api/skills/execute 相同逻辑）:
+  │      使用 SUPABASE_SERVICE_ROLE_KEY（非用户 JWT）
+  │      Cloud Run Job 执行: /verify → 如果发现 bug → /change → redeploy
+  │
+  ├── 4. skill-runner.js 完成后:
+  │      更新 skill_executions status = 'completed'
+  │      更新 operation_ledger actual_tokens_used + status = 'completed'
+  │      （billing_source='free' → 不扣费）
+  │
+  └── 5. 创建 bug_auto_fixed alert + notification（即时发送，不等 daily cron）
+```
+
+关键实现点：
+- 复用 Session 9a 的 `triggerCloudRunJob()` 函数（从 `/api/skills/execute` route 中提取为 `src/lib/cloud-run.ts` 共享函数）
+- Auto-fix 的 operation_ledger 用 billing_source='free'，POST /api/operations/complete 检测到 free → 跳过扣费
+
+**Runtime auto-fix retry 逻辑（区别于 Quality Gate auto-fix）**：
+
+| 维度 | Quality Gate auto-fix（Session 6a Phase B） | Runtime auto-fix（Session 11 cron） |
+|------|---------------------------------------------|--------------------------------------|
+| 触发 | /deploy 过程中 behavior test 失败 | 15min metrics cron 检测到 0.0x ratio |
+| 重试 | 3 次 retry，用户在 Launch page 实时看到进度 | 3 次 retry，每次间隔 15 min（cron 自然间隔） |
+| 失败后 | 用户选择 [Simplify] / [Skip] / [Describe fix] | 创建 dimension_dropping alert，用户在 Experiment page 看到 |
+| 用户参与 | 实时（Launch page 交互） | 异步（alert + email 通知） |
+| Token budget | 使用 create 操作的剩余 budget | 独立 operation_ledger（1.5M per attempt） |
+
+Runtime auto-fix retry 规则：
+- **什么算 1 次 retry**: 1 次 `triggerCloudRunJob(verify)` 调用 = 1 次 retry。每次 retry 创建独立的 operation_ledger + skill_executions 行
+- **重试间隔**: 不主动 sleep — 依赖 15 min cron 间隔作为自然 backoff。如果 cron 再次检测到同一 experiment 的 0.0x ratio 且 skill_executions 中有前次 auto_fix 记录（status='failed'），则 increment retry_count
+- **重试上限**: 同一 experiment + 同一 anomaly_dimension，max 3 次 auto-fix attempts。检查: `SELECT count(*) FROM skill_executions WHERE experiment_id = ? AND input_params->>'auto_fix' = 'true' AND input_params->>'anomaly_dimension' = ? AND created_at > now() - interval '7 days'`
+- **3 次失败后**: 创建 dimension_dropping alert（severity: warning），通知用户手动处理。不再自动触发 auto-fix for 该 dimension，直到用户手动发起 /change 或 dismiss alert
+- **成功后**: 创建 bug_auto_fixed alert + immediate notification，reset retry counter（delete 或 ignore 之前的 failed skill_executions）
 
 ## 2b. /iterate Skill Integration
 
@@ -2824,7 +3341,38 @@ POST /api/notifications/mark-all-read:
 
 注意：这些 notification CRUD routes 仅用于后端 dispatch + email delivery 追踪。
 MVP 不构建 in-app notification center UI（per ux-design.md: "No in-app notification center"）。
-前端不消费这些 API。所有 notification 通过 email (Resend) 触达用户。
+
+## 5c. Browser Push Notifications（opt-in）
+
+ux-design.md 明确要求 "Email (required) + browser push (opt-in)"。实现 Web Push API：
+
+1. 创建 `public/sw.js`（Service Worker）:
+   - 监听 `push` event → 显示 notification（title, body, icon, click → open experiment page）
+   - 监听 `notificationclick` event → `clients.openWindow(data.url)`
+
+2. 创建 `src/lib/push-notifications.ts`:
+   - `requestPushPermission()`: 请求 Notification permission → 注册 Service Worker → `pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: NEXT_PUBLIC_VAPID_PUBLIC_KEY })`
+   - `sendPushSubscriptionToServer(subscription)`: POST /api/notifications/push-subscribe → 存储 subscription endpoint + keys 到 notifications 表新增的 `push_subscription jsonb` 字段（或独立 `push_subscriptions` 表）
+
+3. Settings 页面集成:
+   - NOTIFICATIONS section（Account tab 内）: "Browser notifications" toggle
+   - Toggle ON → 调用 `requestPushPermission()` → 存储 subscription
+   - Toggle OFF → `pushManager.getSubscription().then(s => s.unsubscribe())` → 删除服务端 subscription
+
+4. 发送 push:
+   - 在现有 email dispatch 逻辑旁添加 push dispatch
+   - 使用 `web-push` npm 包（`npm install web-push`）
+   - 每个 notification trigger（7 种）同时发送 email + push（如果用户已订阅）
+   - Push payload: `{ title: "Assayer", body: "<trigger-specific message>", data: { url: "/experiment/{id}" } }`
+
+5. Environment variables（添加到 .env.example）:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — VAPID public key（`web-push generate-vapid-keys`）
+   - `VAPID_PRIVATE_KEY` — VAPID private key
+   - `VAPID_SUBJECT` — mailto:support@assayer.io
+
+6. DB migration: `ALTER TABLE notifications ADD COLUMN push_sent_at timestamptz;`
+   或创建独立 `push_subscriptions` 表（user_id, endpoint, p256dh, auth, created_at）。
+   选择独立表更清晰 — 一个用户可能有多个设备。
 
 ## 6. Vercel Cron Configuration
 
@@ -2834,8 +3382,106 @@ vercel.json crons:
 - /api/cron/notifications: daily at 9am UTC（检测 triggers 2, 3, 5, 6 — first_traffic, mid_experiment, budget_alert, dimension_dropping）
 - /api/cron/cost-monitor: weekly, Sunday 00:00 UTC（internal margin + hit rate + auto-fix rate monitoring）
 - /api/cron/hosting-billing: monthly, 1st of month 00:00 UTC（hosting fee billing for active experiments, Session 8 §7）
+- /api/cron/compute-scores: every 15 minutes（同 metrics-sync 频率，Portfolio Intelligence Score 计算）
+- /api/cron/generate-insights: daily at 06:00 UTC（AI Portfolio Insight 生成）
+- /api/cron/auto-rebalance: daily at 07:00 UTC（Team plan auto budget rebalance）
 
 注意: Vercel Cron 需要 CRON_SECRET 环境变量验证。
+
+## Portfolio Intelligence Crons
+
+### 1. Assayer Score Computation (runs with existing 15-minute metrics cron)
+
+After syncing PostHog metrics for each experiment, compute Assayer Score:
+- Read latest experiment_metric_snapshots for reach, demand, monetize, retain dimensions
+- Apply formula from product-design.md "Assayer Score (Portfolio Ranking)" section
+- Write score to experiments.assayer_score and experiments.score_updated_at
+- Skip experiments with no metric data (leave score as NULL)
+
+### 2. AI Insight Generation (new daily cron)
+
+New cron job (daily, 06:00 UTC):
+- For each user with 2+ RUNNING experiments:
+  - Collect: experiment name, assayer_score, funnel_scores, budget_spent, activations, best_channel, days_elapsed, days_total for each RUNNING experiment
+  - Call Anthropic API (claude-sonnet-4-6) with structured output schema (PortfolioInsight)
+  - Write result to portfolio_insights table
+  - If previous non-dismissed insight exists, auto-dismiss it (replaced by new)
+- Cost per user: ~$0.05 (Sonnet, ~2K input + 500 output tokens)
+
+### 3. Auto-Rebalance (new daily cron, Team plan only)
+
+New cron job (daily, after insight generation, 07:00 UTC):
+- For Team plan users with auto-rebalance enabled (setting in user preferences):
+  - Read latest portfolio_insight
+  - If insight contains type='rebalance' recommendations:
+    - Apply Thompson Sampling: sample from Beta(1+activations, 1+signups-activations) per experiment
+    - Normalize to percentages, compute recommended allocation
+    - Compare with current allocation — if drift > 10%, write new budget_allocation and apply
+    - Log the rebalance to budget_allocations table with source='auto_rebalance'
+- For users without auto-rebalance enabled: insight is written as recommendation only (applied manually via UI)
+
+### 4. Portfolio Notification (extend existing notification dispatch)
+
+Add to the daily notification dispatch:
+- When a new portfolio_insight is generated for a user:
+  - Send Portfolio Update email with:
+    - ★ Portfolio Health score
+    - Per-experiment row: name, score, trend (compare with previous day's score), status
+    - Top suggested action
+    - [Open Lab ->] deep link
+  - Use the email template from ux-design.md Notifications section
+
+## Distribution ROI Computation
+
+Add to the verdict generation logic (after computing per-dimension ratios):
+
+When generating a verdict for an experiment:
+1. Query distribution_campaigns for the experiment: SUM(spend_cents), per-channel breakdown
+2. Query PostHog activate event count for the experiment
+3. Compute:
+   - total_spend_cents = SUM(distribution_campaigns.spend_cents)
+   - total_activations = COUNT(activate events)
+   - cpa_cents = total_spend_cents / max(total_activations, 1)
+   - signal_ratio = weighted average of dimension ratios (same weights as Assayer Score)
+   - best_channel = channel with lowest CPA (most activations per dollar)
+4. Write to experiment_decisions.distribution_roi (jsonb):
+   { total_spend_cents, total_activations, cpa_cents, signal_ratio,
+     display: "$X spent → Y.Zx signal", best_channel, channel_breakdown[] }
+5. Session 7 verdict page reads this field and displays:
+   - ROI summary line: "$47 spent → 3.2x signal"
+   - Channel breakdown table: Channel | Spend | Activations | CPA
+   - Best channel highlight
+
+## Confidence Bands — Explicit Computation
+
+Expand the existing scorecard ratio computation with explicit confidence band logic:
+
+After computing each dimension's ratio, also compute its confidence level:
+
+1. Count total events relevant to the dimension:
+   - REACH: total ad impressions + organic visits
+   - DEMAND: total landing page visits
+   - ACTIVATE: total signups (only if L2+)
+   - MONETIZE: total CTA clicks (only if L1+ with pricing)
+   - RETAIN: total return visits (only if L3+)
+
+2. Map event count to confidence level:
+   - < 30 events: 'insufficient' — ratio shown with ⚠ marker, excluded from verdict logic
+   - 30-100 events: 'directional' — ratio shown with ~ marker, used in verdict but flagged
+   - 100-500 events: 'reliable' — ratio shown normally
+   - 500+ events: 'high' — ratio shown with ✓ marker
+
+3. Store in experiment_metric_snapshots alongside each dimension:
+   { dimension: 'reach', ratio: 1.9, confidence: 'reliable', event_count: 523 }
+
+4. Dimensions unavailable at current level:
+   - L1: ACTIVATE and RETAIN → set to { ratio: null, confidence: 'unavailable' }
+   - L2: RETAIN → set to { ratio: null, confidence: 'unavailable' }
+   - 'unavailable' dimensions are NOT 'insufficient' — they display as "-- (requires L2)" not "⚠"
+
+5. Guard clause uses confidence levels:
+   - If ALL measured dimensions are 'insufficient' → no verdict (guard clause triggers)
+   - If REACH is 'insufficient' → no verdict (need minimum traffic data)
 
 npm run build 零错误。
 ```
@@ -2941,6 +3587,17 @@ Particles 实现:
 
 Swipe-to-archive 实现:
 - Lab experiment cards 使用 touch event handlers（`touchstart`/`touchmove`/`touchend`）+ `transform: translateX()` 实现 swipe-left-to-archive。卡片滑动后露出红色 "Archive" action strip。Threshold: 卡片宽度 30% 触发 archive。不创建独立 SwipeableCard 组件 — inline 在 Lab card component 中实现。Container 使用 `overflow: hidden`。
+
+## Mobile Lab Enhancement
+
+1. Add Portfolio Health Score (★ XX) to the right side of the mobile Lab header
+2. Replace state-based grouping (RUNNING/VERDICT/COMPLETED) with urgency-based grouping:
+   - "NEEDS ATTENTION": experiments where score < 20 OR status = verdict_ready OR budget fully spent
+   - "ON TRACK": all other running experiments
+   - "COMPLETED": completed/archived experiments (collapsed by default)
+3. NEEDS ATTENTION cards: include inline action buttons [Kill & Free Budget] [View ->]
+4. ON TRACK cards: compressed layout — name + ★ score + one-line status only
+5. Pull-to-refresh on Lab page triggers metrics sync for each running experiment via POST /api/experiments/:id/metrics/sync (score recomputation is part of the sync pipeline)
 
 npm run build 零错误。
 ```
@@ -3102,10 +3759,11 @@ npm run build 零错误。
 7. Animation sequences A/B/C 可触发
 8. Reduced motion 模式下动画正确降级
 9. 所有 API routes 返回正确 HTTP status
-10. Cron routes 存在（metrics-sync, cleanup, notifications, cost-monitor, hosting-billing）
+10. Cron routes 存在（metrics-sync, cleanup, notifications, cost-monitor, hosting-billing, compute-scores, generate-insights, auto-rebalance）
 11. Docker image spec 存在
-12. 所有环境变量在 .env.example 中记录
-13. `quality: production` — ALL behaviors (b-01~b-29) 的 `tests` 条目 100% 有对应 spec test 或 Playwright assertion。这是进入 /harden 前的最终覆盖验证。
+12. 所有环境变量在 .env.example 中记录（包括 VAPID keys for browser push）
+13. Browser push: public/sw.js 存在，src/lib/push-notifications.ts exports requestPushPermission
+14. `quality: production` — ALL behaviors (b-01~b-29) 的 `tests` 条目 100% 有对应 spec test 或 Playwright assertion。这是进入 /harden 前的最终覆盖验证。
 
 **输出**：CP5 verification report。这是最终 checkpoint — 修复所有问题后进入 /harden + /verify。
 
@@ -3310,6 +3968,11 @@ CRON_SECRET
 CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ZONE_ID
 
+## Push Notifications (browser push, opt-in)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY
+VAPID_PRIVATE_KEY
+VAPID_SUBJECT
+
 ## Monitoring
 SENTRY_DSN
 SENTRY_AUTH_TOKEN
@@ -3347,7 +4010,7 @@ SENTRY_AUTH_TOKEN
 | compare | S7 | /compare |
 | settings | S7 | /settings |
 
-### API Routes（~40 routes，来自 product-design.md Section 5）
+### API Routes（~55 routes，来自 product-design.md Section 5）
 
 | Route Group | Session | Routes |
 |-------------|---------|--------|
@@ -3362,14 +4025,17 @@ SENTRY_AUTH_TOKEN
 | Metrics Export | S7 | GET /api/experiments/:id/metrics/export (CSV download) |
 | Skills | S9a | POST /api/skills/execute, GET /api/skills/:id, POST /api/skills/:id/approve, POST /api/skills/:id/cancel |
 | Distribution | S10 | GET /api/experiments/:id/distribution, POST .../sync, POST .../manage |
+| Distribution Plan | S10 | POST /api/experiments/:id/distribution/plan |
+| Distribution OAuth | S10 | GET /api/distribution/callback/{twitter,reddit,google-ads,meta,twitter-ads} |
 | Alerts | S11 | GET /api/experiments/:id/alerts, PATCH .../alerts/:alertId |
 | Compare | S7 | GET /api/experiments/compare |
 | Billing | S8, S9a | POST /api/operations/authorize, POST .../complete, POST /api/operations/:id/extend, GET /api/billing/usage, POST .../subscribe, POST .../topup, POST .../portal |
-| Notifications | S11 | GET /api/notifications, PATCH /api/notifications/:id, POST /api/notifications/mark-all-read |
+| Portfolio Intelligence | S7, S11 | GET /api/portfolio/insight, POST .../insight/:id/apply, POST .../insight/:id/dismiss, GET /api/portfolio/budget, POST .../budget/allocate |
+| Notifications | S11 | GET /api/notifications, PATCH /api/notifications/:id, POST /api/notifications/mark-all-read, POST /api/notifications/push-subscribe |
 | Webhooks | S8 | POST /api/webhooks/stripe |
-| Cron | S11 | /api/cron/metrics-sync, /api/cron/cleanup, /api/cron/notifications, /api/cron/cost-monitor, /api/cron/hosting-billing |
+| Cron | S8, S11 | /api/cron/metrics-sync, /api/cron/cleanup, /api/cron/notifications, /api/cron/cost-monitor, /api/cron/hosting-billing, /api/cron/compute-scores, /api/cron/generate-insights, /api/cron/auto-rebalance |
 
-### DB Tables（17 tables，来自 product-design.md Section 6）
+### DB Tables（20 tables，来自 product-design.md Section 6 + Portfolio Intelligence + Push Notifications）
 
 | Table | Session |
 |-------|---------|
@@ -3390,6 +4056,9 @@ SENTRY_AUTH_TOKEN
 | skill_executions | S3 |
 | oauth_tokens | S3 |
 | distribution_campaigns | S3 |
+| portfolio_insights | S3 |
+| budget_allocations | S3 |
+| push_subscriptions | S11 |
 
 ### Environment Variables（S14 deploy checklist 列出全部）
 
@@ -3404,6 +4073,7 @@ SENTRY_AUTH_TOKEN
 | Distribution (paid) | GOOGLE_ADS_*, META_*, TWITTER_ADS_* | S10 |
 | Cron | CRON_SECRET | S11 |
 | DNS | CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID | S9b |
+| Push Notifications | NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT | S11 |
 | Monitoring | SENTRY_DSN, SENTRY_AUTH_TOKEN | S13 |
 
 ### UX Flows Covered
