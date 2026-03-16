@@ -58,7 +58,7 @@ DO NOT write any code, create any files, or run any install commands during this
    - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
 
 3. **Validate experiment.yaml**
-   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_experiment_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
+   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `owner`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_experiment_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
    - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
    - If the archetype requires pages (web-app): verify `golden_path` includes at least one entry with `page: landing`
    - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
@@ -308,11 +308,11 @@ Continue regardless — this is non-blocking during bootstrap.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
 
-**Resolve surface type** (used by Design Phase and Landing subagent):
-- If `stack.surface` is set in experiment.yaml, use it.
-- Otherwise infer: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
-- If the archetype's `excluded_stacks` includes `hosting` and `stack.surface` is not set → `detached`.
-- If the archetype is `service` and `stack.surface` is not set and the experiment defines no `golden_path` and no `endpoints` that serve HTML (pure API with no user-facing surface): `none`. Otherwise the default inference above applies.
+**Resolve surface type** (used by Design Phase and Landing subagent). Evaluate in order — first match wins:
+1. If `stack.surface` is set in experiment.yaml, use it.
+2. If the archetype is `service` and `stack.surface` is not set and the experiment defines no `golden_path` and no `endpoints` that serve HTML (pure API with no user-facing surface): `none`.
+3. If the archetype's `excluded_stacks` includes `hosting` and `stack.surface` is not set: `detached`.
+4. Otherwise infer from hosting: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
 
 ### Design Phase
 
@@ -421,9 +421,9 @@ Run combined verification after all four parallel subagents complete — these c
 3. **Analytics wiring** (if `stack.analytics` is present): for each
    event in EVENTS.yaml events map, grep for the event name in `src/`
    to confirm a tracking call exists. Also verify analytics constants:
-   grep `src/lib/analytics*.ts` for `PROJECT_NAME` —
-   it must equal the actual experiment.yaml `name` value, not
-   a `"TODO"` string
+   grep `src/lib/analytics*.ts` for `PROJECT_NAME` and `PROJECT_OWNER` —
+   `PROJECT_NAME` must equal the actual experiment.yaml `name` value and
+   `PROJECT_OWNER` must equal the `owner` value, neither may be `"TODO"`
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
 

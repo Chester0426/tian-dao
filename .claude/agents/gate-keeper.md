@@ -160,7 +160,7 @@ Verify orchestration fidelity during `/bootstrap`.
 Verify experiment.yaml validation was thorough:
 
 1. Current branch is NOT `main` — run `git branch --show-current`
-2. Read `experiment/experiment.yaml`. ALL required fields present and non-empty: `name`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`
+2. Read `experiment/experiment.yaml`. ALL required fields present and non-empty: `name`, `owner`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`
 3. `name` matches `^[a-z][a-z0-9-]*$` (lowercase, hyphens, starts with letter)
 4. Grep the file for literal "TODO" — BLOCK if any field value contains it
 5. Archetype-specific: web-app → `golden_path` with `page: landing`; service → `endpoints` non-empty; cli → `commands` non-empty
@@ -175,7 +175,7 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 1. `src/lib/` contains ≥1 `.ts` file (scaffold-libs ran)
 2. `.claude/current-visual-brief.md` exists (scaffold-init ran)
 3. Archetype-specific: web-app → `src/app/layout.tsx` + each golden_path page; service → `src/app/api/` with route files; cli → `src/index.ts` + `src/commands/`
-4. If `stack.analytics`: grep `src/lib/analytics` for `PROJECT_NAME` — must NOT equal `"TODO"`
+4. If `stack.analytics`: grep `src/lib/analytics` for `PROJECT_NAME` and `PROJECT_OWNER` — neither must equal `"TODO"`
 5. If surface ≠ `none`: landing page file exists
 6. `.claude/current-plan.md` frontmatter `checkpoint` is `phase2-scaffold` or later
 7. `npm run build` passes

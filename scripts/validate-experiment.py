@@ -52,8 +52,8 @@ effective_type = experiment_type if experiment_type is not None else "web-app"
 
 # --- Required fields ---
 base_required = [
-    "name", "description", "thesis", "target_user",
-    "distribution", "stack", "golden_path",
+    "name", "owner", "description", "thesis", "target_user",
+    "distribution", "behaviors", "stack", "golden_path",
 ]
 missing = [f for f in base_required if not data.get(f)]
 if missing:

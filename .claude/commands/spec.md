@@ -359,6 +359,7 @@ Build the complete experiment.yaml with these 7 sections:
 ### Section 1 — Identity
 ```yaml
 name: <slugified-name>
+owner: <team-or-user-slug>       # Derive from `gh repo view --json owner --jq '.owner.login'`, or ask user
 type: web-app                    # web-app | service | cli
 level: <selected level>
 status: draft
