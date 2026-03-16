@@ -7,6 +7,7 @@
 
 # --- 1. Identity ---
 name: quickbill
+owner: my-team                 # Who owns this experiment. Used as project_owner in analytics.
 type: web-app                  # Product archetype (web-app | service | cli). Default: web-app.
 level: 3                       # Product: auth + payments + complete features
 status: draft

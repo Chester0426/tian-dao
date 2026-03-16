@@ -1071,6 +1071,7 @@ def main() -> int:
     # Required fields for experiment.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
     BASE_REQUIRED_EXPERIMENT_FIELDS = [
         "name",
+        "owner",
         "type",
         "description",
         "thesis",
