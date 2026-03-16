@@ -992,7 +992,26 @@ Verdict Page [Start New Experiment with Pivot]
   └── Redirect to / (Landing, idea pre-filled with pivot context)
 ```
 
-**Lab shows lineage:** Round 1 → Round 2 (REFINE), Original → Pivot (PIVOT). Users can trace the full decision trail.
+**UPGRADE return flow (SCALE/REFINE verdict):**
+
+```
+Verdict Page [Upgrade to L2]  (only shown when experiment_level < 3)
+  │
+  ├── Navigate to /assay?idea={idea_text}&type={type}&level={level+1}&upgrade_from={experiment_id}
+  │
+  ├── Assay page detects upgrade_from param
+  │   └── Shows "Upgrading from L{level}" indicator
+  │
+  ├── User reviews L2 spec → [Create & Launch]
+  │
+  ├── POST /api/spec/claim { session_token, upgrade_from }
+  │   ├── Create new experiment with parent_experiment_id = upgrade_from
+  │   └── Original experiment status → completed (graduated)
+  │
+  └── Redirect to /launch/{new_experiment_id}
+```
+
+**Lab shows lineage:** Round 1 → Round 2 (REFINE), Original → Pivot (PIVOT), L1 → L2 (UPGRADE). Users can trace the full decision trail.
 
 ### Distribution ROI
 
@@ -2132,8 +2151,11 @@ Supabase = sole source of truth. No dual-source-of-truth problem.
 - User can preview and edit AI content before deployment.
 - `spec-reasoning.md` is the single source of truth for AI spec generation logic. Both CLI (`spec.md`) and web (`/api/spec/stream`) import it. Never duplicate reasoning rules.
 - Web spec generation uses inference mode — no follow-up questions, aggressive inference with `[inferred]` markers. `input_too_vague` event is the only fallback (<5% of inputs).
-- Rate limit `/api/spec/stream` (anonymous: 3/24h per session_token; free accounts: 5/24h per user_id). Vercel serverless has no shared memory.
-- **Billing gate** (`/api/operations/authorize`) required before every billable skill execution. No skill runs without authorized `operation_ledger` row.
+- Rate limit `/api/spec/stream` (anonymous: 3/24h per session_token; free accounts: 5/24h per user_id). Vercel serverless has no shared memory — spec/stream rate limiting uses `anonymous_specs` table row count (DB-backed). General API rate limiting uses a dual strategy: critical routes (auth, billing) use Supabase-backed `rate_limit_entries` table (~5ms overhead); non-critical routes use per-instance in-memory Map with 60s cleanup (acceptable cold-start reset).
+- **Billing gate** (`/api/operations/authorize`) required before every billable skill execution. No skill runs without authorized `operation_ledger` row. Exception: auto-fix operations use `billing_source='free'` with `price_cents=0` — the cron creates the `operation_ledger` row directly and triggers Cloud Run via `triggerCloudRunJob()` using service role key.
+- **Past-due subscription gate**: billing gate checks `subscription_status` — if `past_due`, pool access is blocked (PAYG balance still usable). Error code: `subscription_past_due`.
+- **Stripe webhook idempotency**: every webhook handler deduplicates by `event.id` via `stripe_webhook_events` table before processing. Prevents double-charging on network retries.
+- **OAuth token refresh**: distribution adapters call `getValidToken()` before every platform API call. If access token expired, auto-refresh via refresh token. If refresh fails (revoked), create `ad_account_suspended` alert for that channel and skip it — other channels continue independently.
 - **Operation classifier** (Haiku) determines Change vs Small fix. Default to Change on low confidence.
 - **PAYG balance**: atomic decrement via Supabase RPC to prevent race conditions.
 - **Pool reset**: triggered by Stripe `customer.subscription.updated` webhook when `current_period_start` changes.

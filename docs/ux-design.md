@@ -956,13 +956,17 @@ Not all bugs surface during the Quality Gate. Some appear only under real traffi
 - Any page returning 5xx errors in PostHog data
 
 **Response (fully automatic, no user action):**
-1. System runs Playwright tests against the live experiment, simulating the golden_path
-2. Identifies the failing step
-3. AI diagnoses root cause
-4. Applies fix via /change
-5. Re-verifies
-6. Redeploys
-7. Notifies user via email:
+1. Metrics sync cron creates `operation_ledger` row (billing_source='free', price_cents=0) and `skill_executions` row
+2. Triggers Cloud Run Job internally via `triggerCloudRunJob()` (shared function, service role key — not user JWT)
+3. Cloud Run runs Playwright tests against the live experiment, simulating the golden_path
+4. Identifies the failing step
+5. AI diagnoses root cause
+6. Applies fix via /change
+7. Re-verifies
+8. Redeploys
+9. On completion: updates `operation_ledger` (free → no charge), creates `bug_auto_fixed` alert + notification (immediate, not batched)
+10. If auto-fix fails after 3 retries: creates `dimension_dropping` alert, notifies user for manual action
+11. Notifies user via email:
 
 ```
 +--------------------------------------------------------------+
@@ -2514,6 +2518,7 @@ This UX design and `docs/assayer-product-design.md` are fully aligned. The produ
 | Scorecard ratios | 15-minute Vercel Cron syncs PostHog + ad platforms -> `experiment_metric_snapshots` |
 | Alert banners | `experiment_alerts` table, 7 alert types (incl. `bug_auto_fixed`), non-blocking |
 | REFINE return flow | `experiment_rounds` table (same experiment, new round) |
+| UPGRADE return flow (L1→L2→L3) | [Upgrade to L2] navigates to `/assay?...&level={L+1}&upgrade_from={id}`, `POST /api/spec/claim { upgrade_from }` sets `parent_experiment_id`, original marked `completed` (graduated) |
 | Portfolio grouping | `experiments.status` with `verdict_ready` state between `active` and `completed` |
 | Ambient notifications | `notifications` table, 7 triggers (incl. `bug_auto_fixed`), Resend emails with mini scorecards |
 | Pricing plans | PAYG + subscription hybrid; `user_billing` table tracks plan, pool counters, PAYG balance; `operation_ledger` gates every billable execution; overage at PAYG rates |
