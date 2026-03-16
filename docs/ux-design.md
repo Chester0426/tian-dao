@@ -124,7 +124,7 @@ Assayer's value is proportional to the number of **verdicts** a user gets. A ver
 | Auto-fix | Free | Free | Free | Free |
 | Hosting | 30 days | $5/mo | 3 included | 10 included |
 | Paid distribution | -- | -- | Yes | Yes |
-| Portfolio Intelligence | -- | -- | Score + AI Insight | Score + AI Insight + Budget Optimizer |
+| Portfolio Intelligence | Score | Score | Score + AI Insight | Score + AI Insight + Budget Optimizer |
 | Team seats | 1 | 1 | 1 | 5 |
 | Overage | -- | N/A | PAYG rates | PAYG 90% |
 | Priority build | -- | -- | -- | Yes |
@@ -1009,9 +1009,10 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |     RETAIN   -- (L3)                                        |
 |                                                              |
 |     --- DISTRIBUTION ROI ----------------------------        |
-|     $200 spent . 502 qualified clicks . $0.40/click          |
-|     Best:  Google Ads -- $0.17/click, 3.8% CTR              |
-|     Worst: Meta Ads -- $0.89/click, 0.9% CTR                |
+|     $200 spent . 502 clicks . $0.40/click                    |
+|     -> 8 activations . $25/activation . 3.2x signal          |
+|     Best:  Google Ads -- $0.17/click, 6 activations          |
+|     Worst: Meta Ads -- $0.89/click, 2 activations            |
 |                                                              |
 |     Recommendation for L2:                                   |
 |     . Double Google Ads budget ($240)                        |
@@ -1047,6 +1048,7 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |                                                              |
 |     --- DISTRIBUTION ROI ----------------------------        |
 |     $420 spent . 34 clicks . $12.35/click                    |
+|     -> 0 activations . No signal.                            |
 |     All channels underperformed.                             |
 |                                                              |
 |     You saved approximately 3 months of building.            |
@@ -1087,7 +1089,8 @@ When /iterate produces a verdict, or the user clicks "Analyze Now", this should 
 |                                                              |
 |     --- DISTRIBUTION ROI ----------------------------        |
 |     $200 spent . 502 clicks . $0.40/click                    |
-|     Best:  Google Ads -- $0.17/click, 3.8% CTR              |
+|     -> 8 activations . $25/activation . 3.2x signal          |
+|     Best:  Google Ads -- $0.17/click, 6 activations          |
 |                                                              |
 |     Recommendation:                                          |
 |     . Adjust pricing/value prop on landing page              |
@@ -1335,6 +1338,7 @@ Users with multiple experiments see them as an investment portfolio. Not called 
 6. **AI Insight appears only with sufficient data.** Requires 2+ RUNNING experiments AND at least one with 30+ visits. Prevents premature cross-experiment advice.
 7. **Budget tab is Team-only.** Portfolio budget overview, AI Budget Optimizer, and custom allocation sliders are gated to Team plan ($299/mo).
 8. **Three compressed dimension ratios per card** (`R 1.9x D 1.3x M .7x`) — richer than a single bottleneck ratio but still fits one line. Lets users spot which dimension is weak without opening the experiment.
+9. **Dual-label system: score-status vs verdict-labels.** Lab cards use score-status labels (ON TRACK / PROMISING / LOW ! / DANGER / CRITICAL) derived from the Assayer Score range, for health monitoring at a glance. Mobile Glance mode and notifications use verdict-labels (SCALE / REFINE / KILL) for action orientation — mobile users need to know "what should I do?" not "how is it?". Both are derived from the same Assayer Score but serve different cognitive purposes.
 
 #### Empty state
 
@@ -1862,7 +1866,7 @@ The Lab is a **status board** on mobile — glanceable experiment health. Experi
 |                                          |
 |  NEEDS ATTENTION (1)                     |
 |  +--------------------------------------+|
-|  | Crypto Widget         ★ 12  DANGER  ||
+|  | Crypto Widget         ★ 12  CRITICAL||
 |  | 0 activations · $200 spent          ||
 |  | AI recommends: Kill                  ||
 |  | [Kill & Free Budget] [View ->]      ||
