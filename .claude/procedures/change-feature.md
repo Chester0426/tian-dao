@@ -24,6 +24,10 @@
      - **Logic tasks** → spawn implementer (`agents/implementer.md`)
      - **Visual tasks** (.tsx pages/components) → spawn visual-implementer (`agents/visual-implementer.md`) — this agent auto-loads frontend-design skill and applies design quality during the GREEN phase
      You MUST NOT implement any planned task directly — every task goes through an agent with the full RED→GREEN→REFACTOR cycle. No exceptions for "trivial," "wiring," or "already tested elsewhere."
+
+> **Worktree isolation is mandatory.** Every `Agent(...)` call for implementer/visual-implementer
+> MUST include `isolation: "worktree"`. Omitting this parameter is a process violation — Gate Keeper
+> G4 will BLOCK verification if worktree merge evidence is absent from git history.
   5. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
   6. Continue to Step 7
 - If `quality` is absent or `mvp` (default):

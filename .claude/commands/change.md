@@ -27,6 +27,7 @@ Make a change to the existing app: $ARGUMENTS
 - Verify `package.json` exists. If not, stop and tell the user: "No app found. Run `/bootstrap` first, or if you already have a bootstrap PR open, merge it before running `/change`."
 - Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
 - Run `npm run build` to confirm the project compiles before making changes (unless `$ARGUMENTS` describes a fix). If the build fails and the change is not a build fix: stop and tell the user: "The app has build errors that need to be fixed first. Run `/change fix build errors` to address them."
+- **G1 Pre-flight Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G1 Pre-flight Gate. Verify: package.json exists, EVENTS.yaml exists, build passes (unless fix type), $ARGUMENTS is non-empty." If gate-keeper returns BLOCK, stop and report blocking items to user.
 
 ## Step 1: Branch Setup
 
@@ -116,6 +117,8 @@ Present the plan using the template for the classified type from `.claude/proced
 - Production plans: verify each task with business logic has a specification test in its description
 If validation fails, fix the plan before presenting.
 
+- **G2 Plan Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G2 Plan Gate. Verify: on a feature branch (not main), current-plan.md exists with YAML frontmatter, classification is one of [Feature/Upgrade/Fix/Polish/Analytics/Test], verification scope matches classification, no source code files modified yet (only .claude/ and experiment/ files)." If gate-keeper returns BLOCK, fix blocking items before presenting plan.
+
 ### STOP. End your response here. Say:
 > Plan ready. How would you like to proceed?
 > 1. **approve** — continue implementation now
@@ -202,6 +205,8 @@ Before proceeding to Step 5, execute the process gate:
 
 > **Skip condition:** If `.claude/current-plan.md` already contains `## Process Checklist`, skip to Step 5.
 
+- **G3 Spec Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G3 Spec Gate for type [classification]. Verify: current-plan.md has `## Process Checklist`, checkpoint is at phase2-step6 or later. For Feature: experiment.yaml behaviors updated. For Upgrade: .env.example updated if needed. For Production quality: stack.testing present." If gate-keeper returns BLOCK, fix blocking items.
+
 ### Step 5: Update specs (type-specific)
 
 > **Gate check:** Read `.claude/current-plan.md` and look for `## Process Checklist`.
@@ -276,6 +281,8 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > - If `quality: production` — spec-reviewer MUST be spawned.
 > - `.claude/verify-report.md` MUST be written before Step 8.
 
+- **G4 Implementation Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G4 Implementation Gate for quality [quality]. Verify: `npm run build` passes. If quality: production — check git log for worktree merge commits (evidence implementer agents were spawned, not direct implementation). Check no `// TODO: implement` or `throw new Error('not implemented')` markers in new code." If gate-keeper returns BLOCK, fix blocking items before Step 7.
+
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
 
 ### Step 7: Verify
@@ -284,6 +291,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
   2. Save notable patterns (if you fixed errors)
   3. Template observation review (ALWAYS — even if no errors were fixed)
 - **Note**: If `quality: production` is set in experiment.yaml, `/verify` automatically spawns spec-reviewer as an additional parallel agent (regardless of scope). spec-reviewer validates all behaviors are implemented and specification tests are present. No extra action needed — just be aware it runs.
+- **Write conflict prevention**: verify.md now requires edit-capable agents (design-critic, ux-journeyer) to run serially — not in parallel. The verification procedure handles this automatically. No extra action needed.
 - Re-read `.claude/current-plan.md` to verify implementation matches the approved plan. Check that every item in the plan has been addressed.
 - Type-specific checks:
   - **Feature**: trace the user flow — can a user discover, use, and complete the feature? Verify all new analytics events fire.
@@ -302,15 +310,11 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
 ### Step 8: Commit, push, open PR
 
-> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
-> STOP — go back and run Step 7 above. Do NOT commit without a verification report.
-> Additionally verify:
-> - `agents_expected` equals `agents_completed` (all agents finished)
-> - If `consistency_scan: skipped` and 2+ implementer agents were spawned → STOP
-> - If `auto_observe: skipped-no-fixes` but the report shows fix cycles ran → STOP
+- **G5 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G5 Verification Gate. Verify: .claude/verify-report.md exists. Read it and check: agents_expected equals agents_completed; if 2+ implementer agents spawned, consistency_scan is not 'skipped'; if fix cycles ran, auto_observe is not 'skipped-no-fixes'; build result is pass." If gate-keeper returns BLOCK, go back and complete Step 7.
 
 - You are already on a feature branch (created in Step 0). Do not create another branch.
 - Commit message: imperative mood describing the change (e.g., "Add invoice email reminders", "Fix email validation on signup form", "Polish landing copy and error states")
+- **G6 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G6 PR Gate. Verify: on feature branch (not main), `git status` shows no uncommitted changes to tracked files, commit message follows imperative mood convention." If gate-keeper returns BLOCK, fix blocking items before pushing.
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
   - **Summary**: plain-English description of the change
   - **How to Test**: steps to verify the change works after merging

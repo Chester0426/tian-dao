@@ -65,7 +65,11 @@ For each attempt:
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
-## Parallel Review (after build passes)
+## Agent Review (after build passes)
+
+> **Write Conflict Prevention**: Edit-capable agents (design-critic, ux-journeyer, security-fixer)
+> MUST run serially in the order listed below — never in parallel. They modify source files and
+> concurrent edits cause file-level conflicts. Read-only agents run in parallel as before.
 
 ### File Boundary for Edit-Capable Agents
 
@@ -81,9 +85,8 @@ Pass this list to each agent that has Edit/Write permissions (design-critic, ux-
 
 Read-only agents (observer, build-info-collector, behavior-verifier, security-attacker, security-defender, spec-reviewer, accessibility-scanner, performance-reporter) are unaffected.
 
-Spawn review agents simultaneously using parallel Agent tool calls based on the
-current **scope** (default: `full` — see Scope Parameter above). All agents read
-already-built code and have no data dependencies on each other.
+**Phase 1 — Parallel read-only agents**: Spawn these agents simultaneously using parallel
+Agent tool calls (they have no Edit/Write permissions and cannot conflict):
 
 ### build-info-collector
 
@@ -94,10 +97,6 @@ in this verification run. Collect the diff and summaries."
 
 If no errors were fixed, pass: "No build errors were fixed."
 
-### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`)
-
-Spawn the `design-critic` agent (`subagent_type: design-critic`). No additional context needed.
-
 ### security-defender (if scope is `full` or `security`)
 
 Spawn the `security-defender` agent (`subagent_type: security-defender`). No additional context needed.
@@ -105,10 +104,6 @@ Spawn the `security-defender` agent (`subagent_type: security-defender`). No add
 ### security-attacker (if scope is `full` or `security`)
 
 Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No additional context needed.
-
-### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`)
-
-Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). No additional context needed.
 
 ### behavior-verifier (if scope is `full` or `security`)
 
@@ -129,7 +124,20 @@ Spawn the `spec-reviewer` agent (`subagent_type: spec-reviewer`). Pass: "Read `.
 
 If `quality` is absent or not `production`, skip this agent.
 
-**Wait for all agents to complete before continuing.**
+**Wait for all Phase 1 read-only agents to complete before proceeding to Phase 2.**
+
+**Phase 2 — Serial edit-capable agents**: Spawn these agents ONE AT A TIME. Each must
+complete and pass `npm run build` before the next is spawned. This prevents write conflicts.
+
+### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
+
+Spawn the `design-critic` agent (`subagent_type: design-critic`). Pass PR file boundary. **Wait for completion.**
+After completion: run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
+
+### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
+
+Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). Pass PR file boundary. **Wait for completion.**
+After completion: run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 ## Merge Security Results (if scope is `full` or `security`)
 
