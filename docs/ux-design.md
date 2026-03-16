@@ -124,7 +124,7 @@ Assayer's value is proportional to the number of **verdicts** a user gets. A ver
 | Auto-fix | Free | Free | Free | Free |
 | Hosting | 30 days | $5/mo | 3 included | 10 included |
 | Paid distribution | -- | -- | Yes | Yes |
-| Comparison view | -- | -- | Yes | Yes |
+| Portfolio Intelligence | -- | -- | Score + AI Insight | Score + AI Insight + Budget Optimizer |
 | Team seats | 1 | 1 | 1 | 5 |
 | Overage | -- | N/A | PAYG rates | PAYG 90% |
 | Priority build | -- | -- | -- | Yes |
@@ -210,11 +210,17 @@ Landing (no auth)
                                       +-> PIVOT: return to Landing (pre-filled)
 
 Lab (Your Lab)
-  |-> Running (bottleneck + channels + spend)
+  |-> Running (sorted by Assayer Score)
+  |     |-> Per-experiment card (★ Score + R/D/M ratios)
+  |     +-> AI Insight (when 2+ running, 30+ visits)
   |-> Verdict Ready (needs attention)
   |-> Completed (historical verdicts)
   |-> Linked rounds (Round 1 → Round 2)
   |-> Pivot lineage (Original → Pivot)
+  |-> [Budget] tab (Team plan)
+  |     |-> Portfolio budget overview
+  |     |-> AI Budget Optimizer
+  |     +-> Custom allocation sliders
   +-> [+ New Idea]
 
 Settings
@@ -230,7 +236,8 @@ Notifications (email + optional browser push)
   |-> Verdict ready
   |-> Budget alert
   |-> Dimension dropping
-  +-> Bug auto-fixed (L2/L3)
+  |-> Bug auto-fixed (L2/L3)
+  +-> Portfolio insight ready (when 2+ running)
 ```
 
 ---
@@ -1247,17 +1254,31 @@ Users with multiple experiments see them as an investment portfolio. Not called 
 
 ```
 +--------------------------------------------------------------+
-|  Your Lab                                     [+ New Idea]   |
+|  Your Lab    [Experiments]  [Budget]            [+ New Idea]  |
 |                                                              |
-|  RUNNING (2)                                                 |
+|  RUNNING (3)                          sorted by Assayer Score|
 |  +---------------------+  +---------------------+           |
-|  | AI Invoice Tool     |  | SaaS Analytics      |           |
+|  | AI Invoice Tool  ★89|  | Task Manager     ★54|           |
 |  |                     |  |                     |           |
-|  | ############.. 1.90x|  | ######........ 0.89x|           |
+|  | R 1.9x D 1.3x M .7x|  | R .9x D .6x M ---  |           |
 |  | Day 3/7    ON TRACK |  | Day 5/14    LOW !   |           |
-|  | 4 channels . $62    |  | 2 channels . $180   |           |
+|  | 4 ch · $62 · 502 cl |  | 2 ch · $180 · 90 cl|           |
 |  | L1 Pitch            |  | L2 Proto            |           |
 |  +---------------------+  +---------------------+           |
+|                                                              |
+|  +---------------------+                                    |
+|  | Crypto Widget    ★12|                                    |
+|  | R .4x D .3x M ---   |                                    |
+|  | Day 10/14  DANGER   |                                    |
+|  | 1 ch · $200 · 34 cl |                                    |
+|  +---------------------+                                    |
+|                                                              |
+|  == AI INSIGHT ============================================= |
+|  "AI Invoice Tool has the strongest signal (89). Consider    |
+|   doubling its ad budget. Crypto Widget shows no demand      |
+|   signal after 200 clicks — consider killing it to free      |
+|   $280 for better-performing experiments."                   |
+|  [Apply suggestions ->]                        [Dismiss]     |
 |                                                              |
 |  VERDICT READY (1)                                           |
 |  +---------------------+                                    |
@@ -1275,6 +1296,33 @@ Users with multiple experiments see them as an investment portfolio. Not called 
 |  +----------+ +----------+ +----------+                     |
 |                                                              |
 +--------------------------------------------------------------+
+
+  [Budget] tab (Team plan only):
+
++--------------------------------------------------------------+
+|  Your Lab    [Experiments]  [Budget]            [+ New Idea]  |
+|                                                              |
+|  PORTFOLIO BUDGET                                            |
+|                                                              |
+|  Total allocated: $442 / $500          Remaining: $58        |
+|  =========================================......             |
+|                                                              |
+|  +-- EXPERIMENT ----+-- SPENT --+-- REMAINING --+-- SCORE --+|
+|  | AI Invoice Tool  |  $62      |  $138         |  ★ 89    ||
+|  | Task Manager     |  $180     |  $120         |  ★ 54    ||
+|  | Crypto Widget    |  $200     |  $0 (spent)   |  ★ 12    ||
+|  +------------------+-----------+---------------+-----------+|
+|                                                              |
+|  == AI BUDGET OPTIMIZER ==================================== |
+|                                                              |
+|  CURRENT              →    RECOMMENDED                       |
+|  AI Invoice:  $200         AI Invoice:  $380 (+$180)         |
+|  Task Mgr:    $300         Task Mgr:    $120 (-$180)         |
+|  Crypto:      $200         Crypto:      $0   (kill)          |
+|                                                              |
+|  [Apply Rebalance ->]                          [Customize]   |
+|                                                              |
++--------------------------------------------------------------+
 ```
 
 **Design decisions:**
@@ -1283,6 +1331,10 @@ Users with multiple experiments see them as an investment portfolio. Not called 
 2. **Each card shows ONE number: bottleneck ratio.** Not 5 metrics — the most critical one. This is Robinhood's approach — your portfolio homepage shows total return, not each stock's P/E ratio.
 3. **"VERDICT READY" is a separate group.** When /iterate produces a verdict, the experiment card moves from RUNNING to VERDICT READY with a prominent visual cue. This creates an "opening a present" moment.
 4. **Channel count + spend on each card** — at-a-glance distribution status.
+5. **Assayer Score (★) is the sort key for RUNNING experiments.** Cards ordered by score descending — highest-signal experiments appear first, visually communicating priority.
+6. **AI Insight appears only with sufficient data.** Requires 2+ RUNNING experiments AND at least one with 30+ visits. Prevents premature cross-experiment advice.
+7. **Budget tab is Team-only.** Portfolio budget overview, AI Budget Optimizer, and custom allocation sliders are gated to Team plan ($299/mo).
+8. **Three compressed dimension ratios per card** (`R 1.9x D 1.3x M .7x`) — richer than a single bottleneck ratio but still fits one line. Lets users spot which dimension is weak without opening the experiment.
 
 #### Empty state
 
@@ -1362,22 +1414,31 @@ If Assayer's variant #3 promises "Run 5 Experiments, Build the Winner", the prod
 
 ```
 +--------------------------------------------------------------+
-|  Compare Experiments                                         |
+|  Compare Experiments                    [Export CSV]          |
 |                                                              |
-|              AI Invoice   Meal Prep   SaaS Dash              |
-|  REACH        1.90x ok     0.41x x     1.23x ok             |
-|  DEMAND       1.34x ok     1.12x ok    0.87x !              |
-|  ACTIVATE     -- (L1)      -- (L1)     1.05x ok             |
-|  MONETIZE     0.65x !      -- (L1)     0.92x !              |
-|  RETAIN       -- (L1)      -- (L1)     -- (L2)              |
+|              AI Invoice  Task Mgr    Crypto Widget           |
+|  Score        ★ 89       ★ 54        ★ 12                   |
+|  REACH        1.90x ok    0.89x !     0.41x x               |
+|  DEMAND       1.34x ok    0.55x !     0.32x x               |
+|  ACTIVATE     -- (L1)     1.05x ok    -- (L1)               |
+|  MONETIZE     0.65x !     -- (L2)     -- (L1)               |
+|  RETAIN       -- (L1)     -- (L2)     -- (L1)               |
 |  -----------------------------------------------------------  |
-|  Verdict      REFINE       KILL        REFINE                |
-|  Confidence   reliable     reliable    directional           |
-|  Cost         $262         $420        $350                  |
-|  Time         7 days       14 days     10 days               |
-|  Best channel Google Ads   --          Twitter/X             |
+|  Verdict      on track    behind      danger                 |
+|  Confidence   reliable    directional insufficient           |
+|  Ad Spend     $62         $180        $200                   |
+|  CPA          $7.75       $60         --                     |
+|  Best Channel Google Ads  Twitter     --                     |
 |                                                              |
-|  * Recommended: AI Invoice Tool has strongest signal         |
+|  == AI RECOMMENDATION ==================================== = |
+|                                                              |
+|     ★ AI Invoice Tool is your strongest bet.                 |
+|                                                              |
+|     1. Kill Crypto Widget → save $280 remaining budget       |
+|     2. Move saved budget to AI Invoice → Google Ads          |
+|     3. Give Task Manager 5 more days before deciding         |
+|                                                              |
+|     [Apply All ->]    [Apply #1 only]    [Dismiss]           |
 |                                                              |
 +--------------------------------------------------------------+
 ```
@@ -1455,6 +1516,7 @@ Errors appear as **alert banners** at the top of the Experiment Page (Screen 6) 
 | 5 | Budget alert | "Google Ads budget 90% spent. Add budget or continue organic?" | When threshold hit |
 | 6 | Dimension dropping | "MONETIZE trending down -- 0.72x -> 0.65x. Consider adjusting pricing." | When decline detected |
 | 7 | Bug auto-fixed (L2/L3) | "We detected and fixed an issue with your experiment." | After auto-fix completes |
+| 8 | Portfolio insight ready | "Portfolio Update: {N} experiments. ★ {top_name} leads at {score}." | Daily (when 2+ running) |
 
 ### Email template wireframe
 
@@ -1479,6 +1541,31 @@ Every notification contains a **mini scorecard** — enough information to decid
 |  [View Full Experiment ->]                                   |
 |                                                              |
 |  Day 3/7 . $62 spent . 200 clicks                           |
+|                                                              |
++--------------------------------------------------------------+
+```
+
+#### Portfolio Update email template
+
+When AI Insight generates cross-experiment recommendations (2+ running experiments), a Portfolio Update email is sent daily.
+
+```
++--------------------------------------------------------------+
+|                                                              |
+|  Assayer                                                     |
+|                                                              |
+|  Portfolio Update — 3 experiments                            |
+|                                                              |
+|  ★ 72 Portfolio Health                                       |
+|                                                              |
+|  AI Invoice Tool  ★89  ↑  SCALE signal strengthening        |
+|  Task Manager     ★54  →  Holding, needs 5 more days        |
+|  Crypto Widget    ★12  ↓  Recommend: Kill                    |
+|                                                              |
+|  Suggested action:                                           |
+|  Kill Crypto Widget → free $280 → add to AI Invoice          |
+|                                                              |
+|  [Open Lab ->]                                               |
 |                                                              |
 +--------------------------------------------------------------+
 ```
@@ -1762,51 +1849,49 @@ The scorecard is the hero — it must be **immediately visible** without scrolli
 
 #### Lab / Dashboard (Mobile)
 
-The Lab is a **status board** on mobile — glanceable experiment health.
+The Lab is a **status board** on mobile — glanceable experiment health. Experiments are grouped by urgency (NEEDS ATTENTION first), not just state.
 
 ```
 +------------------------------------------+
-|  [⚗️ Assayer]                  [Avatar]   |
+|  [Assayer]                     [Avatar]   |
 +------------------------------------------+
 |                                          |
-|  ↓ Pull to refresh                       |
+|  Your Lab              Portfolio: ★ 72   |
 |                                          |
-|  ── Active (2) ─────────────────────     |
+|  ↓ Pull to refresh (triggers score recalc)|
 |                                          |
-|  ┌──────────────────────────────────┐    |
-|  │▌ SaaS Idea Alpha                │    |  ← 4px left border = verdict color
-|  │▌ L2 · Day 3/7 · 2.1x avg       │    |     (green=SCALE, amber=REFINE,
-|  │▌ REACH ████░░ 1.2x              │    |      red=KILL, blue=PIVOT,
-|  └──────────────────────────────────┘    |      gray=pending)
+|  NEEDS ATTENTION (1)                     |
+|  +--------------------------------------+|
+|  | Crypto Widget         ★ 12  DANGER  ||
+|  | 0 activations · $200 spent          ||
+|  | AI recommends: Kill                  ||
+|  | [Kill & Free Budget] [View ->]      ||
+|  +--------------------------------------+|
 |                                          |
-|  ┌──────────────────────────────────┐    |
-|  │▌ B2B Tool Beta                   │    |
-|  │▌ L1 · Verdict ready!            │    |  ← Highlighted state
-|  │▌ DEMAND ██░░░░ 0.7x  ⚠️          │    |
-|  └──────────────────────────────────┘    |
-|                                          |
-|  ── Completed (3) ───────────────────    |
-|                                          |
-|  ┌──────────────────────────────────┐    |
-|  │▌ Previous Experiment             │    |
-|  │▌ KILL · Saved 3 months           │    |
-|  └──────────────────────────────────┘    |
-|  ...                                     |
+|  ON TRACK (2)                            |
+|  +--------------------------------------+|
+|  | AI Invoice Tool      ★ 89  SCALE    ||
+|  | 8 activations · $62 spent           ||
+|  +--------------------------------------+|
+|  +--------------------------------------+|
+|  | Task Manager          ★ 54  REFINE  ||
+|  | 3 activations · $180 spent          ||
+|  +--------------------------------------+|
 |                                          |
 +------------------------------------------+
-|              [＋]                         |  ← FAB above tab bar
-|    🧪 Lab        ✨ New       ⚙️ Settings  |
+|              [＋]                         |
+|   Lab        New        Settings         |
 +------------------------------------------+
 ```
 
 **Key mobile adaptations:**
-- Full-width card stack, grouped by experiment state (Active / Completed / Archived)
-- Verdict color as 4px left border (not inline badge) — glanceable status
-- Inline mini-scorecard: top bottleneck dimension shown directly on card
+- **Portfolio Health Score (★ XX) in page header** — one number summarizes all experiments
+- **Grouped by urgency, not state:** NEEDS ATTENTION first (score < 20 OR verdict ready OR budget exhausted), ON TRACK second
+- **NEEDS ATTENTION cards show inline action buttons** — [Kill & Free Budget] [View ->] directly on card, no detail page needed
+- **ON TRACK cards compressed** — name + score + one-line status only; no action needed = no actions shown
+- **Pull-to-refresh triggers score recalculation** — long-pull fetches latest analytics and recomputes Assayer Scores
 - FAB (floating action button): positioned above tab bar for quick experiment creation
-- Pull-to-refresh: custom indicator with Assayer spinner animation
 - Long-press on card: quick action sheet (Archive, View Verdict, Share)
-- Swipe-left on card: reveal archive action
 
 #### Settings (Mobile)
 
