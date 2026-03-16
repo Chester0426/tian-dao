@@ -84,6 +84,8 @@ DO NOT write any code, create any files, or run any install commands during this
      - `pain_points` must have exactly 3 items per variant
      - If any validation fails: stop and list the specific errors
 
+- **BG1 Validation Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG1 Validation Gate. Read experiment/experiment.yaml and verify: all required fields present and non-empty, name is lowercase-hyphen, no TODO values, archetype-specific field present, stack dependency rules (payment→auth+db, email→auth+db), quality:production→testing, variants structure if present." If gate-keeper returns BLOCK, stop and report — do NOT present the plan until validation passes.
+
 3b. **Check for duplicate experiments and update repo description**
 
    1. Detect the GitHub org: run `gh repo view --json owner --jq '.owner.login'`.
@@ -432,6 +434,8 @@ completes.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-wire`.
 
+- **BG2 Orchestration Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2 Orchestration Gate. Verify: npm run build passes, scaffold output files exist (src/lib/*.ts, .claude/current-visual-brief.md, archetype-specific pages/routes/commands from experiment.yaml), analytics constants not TODO if stack.analytics, landing page exists if surface≠none, checkpoint is phase2-scaffold or later." If gate-keeper returns BLOCK, fix missing outputs before Wire Phase.
+
 ### Wire Phase
 
 Spawn a subagent via Agent with:
@@ -467,12 +471,11 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-pr`.
 
 ### Commit, Push, Open PR
 
-> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
-> STOP — go back and run the Verify Phase above. Do NOT commit without
-> a verification report.
+- **BG3 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG3 Verification Gate. Verify: .claude/verify-report.md exists with YAML frontmatter, build_attempts present with Result pass, agents_expected non-empty, agents_completed matches agents_expected, scope is full, auto_observe not skipped-no-fixes if fixes were applied." If gate-keeper returns BLOCK, go back and complete the Verify Phase.
 
 The lead executes wire.md Step 9 directly:
 - Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
+- **BG4 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG4 PR Gate. Verify: on feature branch (not main), git status shows no uncommitted changes to tracked files, commit message follows imperative mood." If gate-keeper returns BLOCK, fix blocking items before pushing.
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format
 - Include completion reports from all subagents for PR body context
 - Populate the PR Verification checklist from `.claude/verify-report.md` contents
