@@ -110,6 +110,12 @@ Present the plan using the template for the classified type from `.claude/proced
 
 **Validate the plan against the codebase**: Before presenting the plan to the user, follow `.claude/procedures/plan-validation.md`. If validation flags conflicts, adjust the plan or add items to the Questions section prefixed with "[Validation]".
 
+**Plan structure validation** (before presenting for approval):
+- Feature plans classified as Multi-layer: verify `## Approaches` section exists
+- All plans: if `.claude/iterate-manifest.json` exists, verify the plan's Why section references the iterate bottleneck
+- Production plans: verify each task with business logic has a specification test in its description
+If validation fails, fix the plan before presenting.
+
 ### STOP. End your response here. Say:
 > Plan ready. How would you like to proceed?
 > 1. **approve** — continue implementation now
@@ -298,6 +304,10 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
 > **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
 > STOP — go back and run Step 7 above. Do NOT commit without a verification report.
+> Additionally verify:
+> - `agents_expected` equals `agents_completed` (all agents finished)
+> - If `consistency_scan: skipped` and 2+ implementer agents were spawned → STOP
+> - If `auto_observe: skipped-no-fixes` but the report shows fix cycles ran → STOP
 
 - You are already on a feature branch (created in Step 0). Do not create another branch.
 - Commit message: imperative mood describing the change (e.g., "Add invoice email reminders", "Fix email validation on signup form", "Polish landing copy and error states")

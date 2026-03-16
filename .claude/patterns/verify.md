@@ -67,6 +67,20 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
 ## Parallel Review (after build passes)
 
+### File Boundary for Edit-Capable Agents
+
+Before spawning review agents, compute the PR file boundary:
+
+```bash
+git diff --name-only $(git merge-base HEAD main)...HEAD
+```
+
+Pass this list to each agent that has Edit/Write permissions (design-critic, ux-journeyer, security-fixer) as a hard constraint in the agent prompt:
+
+> "You may ONLY modify files in this list: [files]. If you find issues in files outside this list, REPORT them in your verdict but do NOT edit them."
+
+Read-only agents (observer, build-info-collector, behavior-verifier, security-attacker, security-defender, spec-reviewer, accessibility-scanner, performance-reporter) are unaffected.
+
 Spawn review agents simultaneously using parallel Agent tool calls based on the
 current **scope** (default: `full` — see Scope Parameter above). All agents read
 already-built code and have no data dependencies on each other.
@@ -162,6 +176,10 @@ After all review agents, fix cycles, and auto-observe complete, write `.claude/v
 timestamp: [ISO 8601]
 scope: [full|security|visual|build]
 build_attempts: [1-3]
+agents_expected: [list from scope table]
+agents_completed: [list as they finish]
+consistency_scan: pass | skipped | N/A
+auto_observe: ran | skipped-no-fixes | observations-filed
 ---
 
 ## Build
