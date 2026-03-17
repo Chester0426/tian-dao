@@ -1,5 +1,11 @@
 # Verification Procedure
 
+> **Process fidelity > throughput.** Every step exists because its value
+> shows up in edge cases, not in the happy path. When a step's output
+> "seems obvious," that is precisely when you must execute it — you
+> cannot confirm it is obvious without executing. Skipping a step saves
+> 2 minutes; fixing the consequences costs 2 hours.
+
 Run this procedure after making code changes and before committing.
 
 > **Do NOT skip this procedure.** Do NOT claim the build passes without running it. Do NOT commit without a passing build. There are no exceptions.
@@ -25,6 +31,21 @@ behavior-verifier runs for all archetypes (web-app, service, cli) — it has arc
 Build & Lint Loop, Auto-Observe, and Save Notable Patterns ALWAYS run regardless of scope.
 
 > **Agent spawning is determined by scope and archetype only** — never by which files were changed in this PR. Do NOT skip agents because "no pages were modified" or "only backend changed." If the scope table says an agent runs for this scope+archetype combination, spawn it.
+
+> **The scope table is the sole authority.** The absence of a running app, missing screenshots, or "obvious" results are NEVER valid reasons to skip a scope-required agent. Agents degrade gracefully to static analysis when runtime is unavailable — but they still run. No exceptions.
+
+## Error Fix Log
+
+Maintain a running log throughout verification. Every time you fix an
+error (build, lint, visual, security), immediately append:
+
+> **Fix N:** `<file>` — Symptom: `<what broke>` — Cause: `<why>` — Fix: `<what you changed>`
+
+Build & Lint Loop fixes, design-critic fixes, ux-journeyer fixes, and
+security-fixer fixes all append to the same log. After each edit-capable
+agent completes, read its completion report and append its fixes.
+
+This log drives both Auto-Observe and Save Notable Patterns.
 
 ## Build & Lint Loop (max 3 attempts)
 
@@ -70,6 +91,30 @@ Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 > **Write Conflict Prevention**: Edit-capable agents (design-critic, ux-journeyer, security-fixer)
 > MUST run serially in the order listed below — never in parallel. They modify source files and
 > concurrent edits cause file-level conflicts. Read-only agents run in parallel as before.
+
+### Dev Server Preamble (if archetype is `web-app`)
+
+Before spawning review agents, start the dev server in demo mode so
+that all visual agents have a running app to screenshot:
+
+1. Start dev server:
+   ```bash
+   DEMO_MODE=true NEXT_PUBLIC_DEMO_MODE=true npm run dev &
+   DEV_PID=$!
+   ```
+2. Wait for ready: poll `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000`
+   until 200 (max 30s, 2s interval). If timeout: warn user, continue —
+   agents degrade to static analysis but are NOT skipped.
+3. Pass `base_url: http://localhost:3000` to all agents that accept it.
+4. After ALL review agents (Phase 1 + Phase 2) complete: `kill $DEV_PID`.
+
+> **Why DEMO_MODE.** All external clients (Supabase, Stripe, Anthropic,
+> PostHog) have demo fallbacks returning safe stub data. The dev server
+> runs fully functional pages without any API keys. Playwright is
+> installed during Setup Phase (`npx playwright install chromium`).
+>
+> **There is no valid reason to skip visual agents during bootstrap.**
+> DEMO_MODE + Playwright = zero external dependencies.
 
 ### File Boundary for Edit-Capable Agents
 
@@ -162,16 +207,18 @@ Pass: merged Defender table + Attacker findings.
 
 ## Auto-Observe
 
-If build-info-collector reported "no build fixes" AND no fix cycles ran,
+If the Error Fix Log is empty (no fixes during this verification run),
 skip this section.
 
-1. Combine all collected diffs (from build-info-collector + design-critic + ux-journeyer + security-fixer).
-2. Combine all fix summaries.
+If the Fix Log has any entries:
+
+1. For each file mentioned in the Fix Log, capture its targeted diff.
+2. Combine the per-file diffs + Fix Log summaries.
 3. Get template file list (from build-info-collector, or generate now:
    run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null`
    and add `Makefile` and `CLAUDE.md`).
 4. Spawn the `observer` agent (`subagent_type: observer`).
-   Pass ONLY: combined diff, combined summaries, template file list.
+   Pass ONLY: combined fix diffs, Fix Log summaries, template file list.
    Do NOT include experiment.yaml content, project name, or feature descriptions.
 5. Report the observer's result.
 
@@ -221,21 +268,32 @@ auto_observe: ran | skipped-no-fixes | observations-filed
 
 Only include agents that were spawned (per scope). Mark others as "skipped — out of scope".
 
+> **Completion audit.** Before writing verify-report.md, compare
+> `agents_expected` (from scope table) against `agents_completed`.
+> If any expected agent was not spawned:
+> - List it as `"SKIPPED — PROCESS VIOLATION"` (not `"skipped — out of scope"`)
+> - Set `process_violation: true` in verify-report.md frontmatter
+> - BG3 gate will BLOCK on process violations
+
 > **This file is a hard gate.** The commit/PR step in the calling skill
 > reads this file and includes its contents in the PR body. If the file
 > does not exist, the PR step must run verify.md first.
 
-## Save Notable Patterns (if you fixed any errors above)
+## Save Notable Patterns (if Fix Log is non-empty)
 
-After a successful verification where you fixed any errors (build, lint, visual, or security):
+Read the Error Fix Log accumulated during this verification run.
 
-1. For each error you fixed, decide: is this **universal** or **project-specific**?
-   - **Universal** (applies to any project with this stack): add the pattern to the relevant
-     `.claude/stacks/<category>/<value>.md` file
-   - **Project-specific** (unique to this codebase): save a brief entry to your auto memory
-     with the error, cause, and fix
-2. Skip if: the error was a simple typo or something unlikely to recur
-3. **Planning patterns**: If the change revealed patterns useful for future planning (distinct from error-fix patterns — these capture architectural knowledge):
+1. **For each entry in the Fix Log**, classify:
+   - **Universal** (any project with this stack would hit this) →
+     add to `.claude/stacks/<category>/<value>.md`
+   - **Project-specific** (unique to this codebase) →
+     save to auto memory with error, cause, and fix
+   - **Simple typo** unlikely to recur → skip
+
+2. **Verify completeness:** Count entries in Fix Log. Count patterns
+   saved + skipped. The numbers must match. If not, re-read the log.
+
+3. **Planning patterns** (architectural knowledge for future plans):
    - Auth flow interactions (e.g., "OAuth callback must be registered before adding social login pages")
    - Stack integration quirks that affected architecture (e.g., "Supabase RLS requires service role key for admin operations")
    - Codebase conventions that future plans should follow (e.g., "this project co-locates API types in a shared types.ts")

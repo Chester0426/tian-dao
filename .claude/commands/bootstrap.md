@@ -377,6 +377,12 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 
 ### Externals: User Decisions + Execution
 
+> **BLOCKING — present to user even if classification seems obvious.**
+> The purpose is explicit user buy-in on external dependencies, not
+> efficiency. Even if scaffold-externals reports "No external
+> dependencies", confirm to the user: "No external dependencies
+> detected. Proceeding." NEVER self-decide. NEVER skip this interaction.
+
 After the externals subagent returns its classification table:
 
 1. **Present classification to user**: show the core/non-core table and
@@ -388,8 +394,8 @@ After the externals subagent returns its classification table:
    scaffold-externals.md Steps 6-8), write env vars to `.env.local` and
    `.env.example`, create Fake Door entries.
 
-If the externals subagent reported "No external dependencies", skip this
-section entirely.
+If the externals subagent reported "No external dependencies", confirm
+to the user and proceed.
 
 ### Fake Door Integration
 
@@ -403,6 +409,8 @@ feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
 - Shows a Dialog: "[Feature Name] is coming soon — we're building this now."
 - Import and render the Fake Door component in the parent page where the feature would naturally live
 - The component should look like a real feature entry point — not a placeholder or disabled button
+
+- **BG2.5 Externals Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2.5 Externals Gate. Verify: either (a) scaffold-externals reported 'No external dependencies' AND the lead confirmed this to the user, or (b) the externals classification table was presented and user confirmation exists in conversation. BLOCK if externals classification was returned but no user interaction occurred."
 
 ### Merged Checkpoint + Semantic Validation
 
@@ -419,11 +427,11 @@ Run combined verification after all four parallel subagents complete — these c
    - If archetype is `cli`: for each command in experiment.yaml `commands`, verify
      `src/commands/<command-name>.ts` exists
 3. **Analytics wiring** (if `stack.analytics` is present): for each
-   event in experiment/EVENTS.yaml events map, grep for the event name in `src/`
-   to confirm a tracking call exists. Also verify analytics constants:
-   grep `src/lib/analytics*.ts` for `PROJECT_NAME` and `PROJECT_OWNER` —
-   `PROJECT_NAME` must equal the actual experiment.yaml `name` value and
-   `PROJECT_OWNER` must equal the `owner` value, neither may be `"TODO"`
+   event in experiment/EVENTS.yaml events map (filtered by `requires`
+   and `archetypes` for current stack and archetype), grep for the event
+   name in `src/` to confirm a tracking call exists. Also verify
+   `PROJECT_NAME` and `PROJECT_OWNER` in `src/lib/analytics*.ts` are
+   not `"TODO"`. Report missing events. Fix directly (budget: 2 attempts).
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
 
@@ -434,7 +442,7 @@ completes.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-wire`.
 
-- **BG2 Orchestration Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2 Orchestration Gate. Verify: npm run build passes, scaffold output files exist (src/lib/*.ts, .claude/current-visual-brief.md, archetype-specific pages/routes/commands from experiment.yaml), analytics constants not TODO if stack.analytics, landing page exists if surface≠none, checkpoint is phase2-scaffold or later." If gate-keeper returns BLOCK, fix missing outputs before Wire Phase.
+- **BG2 Orchestration Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2 Orchestration Gate. Verify: (1) npm run build passes; (2) scaffold output files exist (src/lib/*.ts, .claude/current-visual-brief.md, archetype-specific pages/routes/commands from experiment.yaml); (3) landing page exists if surface≠none; (4) checkpoint is phase2-scaffold or later; (5) if stack.analytics present: for each event in experiment/EVENTS.yaml events map (filtered by requires and archetypes for current stack and archetype), grep for the event name in src/ — BLOCK if any event is missing; (6) if stack.analytics present: grep src/lib/analytics*.ts for PROJECT_NAME and PROJECT_OWNER — BLOCK if either is 'TODO'." If gate-keeper returns BLOCK, fix missing outputs before Wire Phase.
 
 ### Wire Phase
 
@@ -471,7 +479,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-pr`.
 
 ### Commit, Push, Open PR
 
-- **BG3 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG3 Verification Gate. Verify: .claude/verify-report.md exists with YAML frontmatter, build_attempts present with Result pass, agents_expected non-empty, agents_completed matches agents_expected, scope is full, auto_observe not skipped-no-fixes if fixes were applied." If gate-keeper returns BLOCK, go back and complete the Verify Phase.
+- **BG3 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG3 Verification Gate. Verify: .claude/verify-report.md exists with YAML frontmatter, build_attempts present with Result pass, agents_expected non-empty, agents_completed matches agents_expected, scope is full, auto_observe not skipped-no-fixes if fixes were applied, process_violation is absent or false in frontmatter." If gate-keeper returns BLOCK, go back and complete the Verify Phase — if process_violation is true, run the skipped agents or get explicit user approval.
 
 The lead executes wire.md Step 9 directly:
 - Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
