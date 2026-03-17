@@ -531,7 +531,7 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
 
 读 docs/assayer-product-design.md 和 docs/ux-design.md。
 
-这是 Assayer 平台本身（不是用户的实验）的 experiment.yaml。根据两个设计文档，手动编写 experiment.yaml：
+这是 Assayer 平台本身（不是用户的实验）的 experiment.yaml。根据两个设计文档，手动编写 experiment.yaml，覆盖全部 7 个 sections（Identity, Intent, Behaviors, Journey, Variants, Funnel, Stack）：
 
 1. Identity:
    - name: assayer
@@ -553,7 +553,38 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    payment: stripe
    ai: anthropic
 
-3. Behaviors — 必须精确 29 条（b-01~b-29），ID 和分组如下。Checkpoints 验证规则：CP1 验证已实现的 b-16~b-29，CP2 验证 b-01~b-15，CP3 验证 b-01~b-18 + b-22~b-25（跳过 b-19~b-21 system behaviors），CP4 验证 b-01~b-18 + b-22~b-29（同样跳过 b-19~b-21），CP5 验证全部 b-01~b-29（100%）。Payment deep tests: b-22/b-23/b-25。不要重新编号或合并/拆分。
+3. Intent:
+   description: |
+     Founders waste months building products nobody wants because they lack a fast,
+     structured way to validate ideas before committing. Assayer is a verdict machine:
+     paste an idea, watch AI generate a testable spec, deploy a live experiment with
+     one click, and receive a data-backed SCALE/REFINE/PIVOT/KILL verdict in days.
+   thesis: "If indie hackers can go from idea to live experiment verdict in under 30 minutes, then >5% of landing visitors will sign up and >40% of signups will generate a spec, as measured by signup and spec completion rates"
+   target_user: Indie hackers and solo founders validating startup ideas
+   distribution: Reddit (r/startups, r/SideProject, r/indiehackers), Indie Hackers, Twitter/X #buildinpublic, Google Ads, Meta Ads
+   hypotheses（5 条，依赖链 h-01→h-02→h-03→h-04→h-05）:
+     - id: h-01, category: reach
+       statement: "Ad click-through rate exceeds 2% across paid channels"
+       metric: { formula: "visit_landing / ad_impressions", threshold: 0.02, operator: gte }
+       priority_score: 95, experiment_level: 1, depends_on: []
+     - id: h-02, category: demand
+       statement: ">5% of landing page visitors sign up for an account"
+       metric: { formula: "signup_complete / visit_landing", threshold: 0.05, operator: gte }
+       priority_score: 90, experiment_level: 1, depends_on: [h-01]
+     - id: h-03, category: activate
+       statement: ">40% of signed-up users generate at least one spec"
+       metric: { formula: "spec_generated / signup_complete", threshold: 0.40, operator: gte }
+       priority_score: 80, experiment_level: 2, depends_on: [h-02]
+     - id: h-04, category: monetize
+       statement: ">3% of signed-up users convert to Pro plan"
+       metric: { formula: "pay_success / signup_complete", threshold: 0.03, operator: gte }
+       priority_score: 70, experiment_level: 3, depends_on: [h-03]
+     - id: h-05, category: retain
+       statement: ">30% of signed-up users return within 30 days"
+       metric: { formula: "retain_return / signup_complete", threshold: 0.30, operator: gte }
+       priority_score: 60, experiment_level: 3, depends_on: [h-04]
+
+4. Behaviors — 必须精确 29 条（b-01~b-29），ID 和分组如下。Checkpoints 验证规则：CP1 验证已实现的 b-16~b-29，CP2 验证 b-01~b-15，CP3 验证 b-01~b-18 + b-22~b-25（跳过 b-19~b-21 system behaviors），CP4 验证 b-01~b-18 + b-22~b-29（同样跳过 b-19~b-21），CP5 验证全部 b-01~b-29（100%）。Payment deep tests: b-22/b-23/b-25。不要重新编号或合并/拆分。
 
    **b-01~b-15: UI behaviors（Sessions 5-6b 实现，CP2 验证）**
    - b-01: Landing — hero 渲染，"Test it" CTA 导航到 /assay?idea=...
@@ -604,34 +635,198 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    actor: system 用于 cron jobs、webhooks、Cloud Run Jobs。
    tests[] 条目对应 quality: production 要求的 spec test assertions。
 
-4. Golden path — 从 ux-design.md Information Architecture 推导：
-   landing → assay → launch → experiment → verdict → lab → compare → settings
+   示例格式（三种类型）：
+
+   UI behavior:
+   - id: b-01
+     hypothesis_id: h-02
+     given: "A visitor arrives at the Assayer landing page"
+     when: "They read the value proposition and variant messaging"
+     then: "The page renders with headline, subheadline, CTA, and social proof"
+     tests:
+       - "Landing page renders without errors"
+       - "Variant-specific content displays correctly"
+     level: 1
+
+   System behavior:
+   - id: b-19
+     actor: system
+     trigger: "vercel cron 15min"
+     hypothesis_id: h-05
+     given: "Running experiments exist with active distribution"
+     when: "The 15-minute cron fires"
+     then: "Metrics are synced from PostHog and ad platforms into experiment scorecard"
+     tests:
+       - "cron route responds 200 with CRON_SECRET"
+       - "experiment_metric_snapshots row created"
+       - "alert created when spend > 90% budget"
+     level: 3
+
+   Payment behavior:
+   - id: b-23
+     hypothesis_id: h-04
+     given: "A user initiates subscription, top-up, or billing management"
+     when: "They call /api/billing/subscribe, /api/billing/topup, or /api/billing/portal"
+     then: "Stripe checkout session or billing portal URL is returned"
+     tests:
+       - "Subscribe creates a valid Stripe subscription checkout"
+       - "Topup creates a valid PAYG top-up checkout ($10-$500)"
+       - "Portal redirects to Stripe billing management"
+     level: 3
+
+5. Golden path — 从 ux-design.md Information Architecture 推导（核心路径 8 步）：
+   - step: "Visit landing page", event: visit_landing, page: landing
+   - step: "Enter idea, click 'Test it'", event: cta_click, page: landing
+   - step: "Watch AI spec materialize", event: spec_generated, page: assay
+   - step: "Sign up to save", event: signup_complete, page: assay
+   - step: "Review build, approve launch", event: experiment_created, page: launch
+   - step: "Monitor live experiment", event: experiment_viewed, page: experiment
+   - step: "Receive verdict", event: verdict_delivered, page: verdict
+   - step: "View all experiments", event: lab_viewed, page: lab
+   target_clicks: 5
    注意：signup 不是独立页面，是 Assay 页面上的 modal overlay（ux-design.md Screen 3）。
-   compare 和 settings 是补充页面，包含在 golden_path 中以确保 bootstrap 创建对应 page.tsx。
+   compare 和 settings 不在 golden_path 中（它们是补充页面），但包含在 Pages 列表中。
+   Event names 必须与 EVENTS.yaml 中定义的 event 名称一致。
 
-5. Variants — Assayer 自身的 A/B messaging：
-   - "verdict-machine": "Know if it's gold before you dig."
-   - "time-saver": "Stop building the wrong thing."
-   - "data-driven": "Data-backed verdicts in days, not months."
+6. Variants — Assayer 自身的 A/B messaging（4 个 variant，每对 headline 词汇差异 >30%）：
+   - slug: verdict-machine
+     headline: "Know if it's gold before you dig."
+     subheadline: "Paste your idea. Get a live experiment and a data-backed verdict in days."
+     cta: "Test My Idea"
+     pain_points:
+       - "You spent months building something nobody wanted"
+       - "Surveys and interviews give you opinions, not data"
+       - "Setting up analytics, ads, and landing pages takes weeks"
+     promise: "A clear SCALE/REFINE/PIVOT/KILL verdict backed by real user data"
+     proof: "Built on the same validation framework used by Y Combinator founders"
+     urgency: "Every week without validation is a week building the wrong thing"
+   - slug: time-saver
+     headline: "Stop building the wrong thing."
+     subheadline: "From idea to validated experiment in 30 minutes. No code, no guesswork."
+     cta: "Validate in 30 Minutes"
+     pain_points:
+       - "Building an MVP takes weeks even with no-code tools"
+       - "You don't know if low traction means bad idea or bad execution"
+       - "Pivoting after launch wastes months of effort"
+     promise: "Skip months of building to find out if your idea has legs"
+     proof: "Founders validated 500+ ideas in beta — average time to verdict: 5 days"
+     urgency: "Your runway is burning. Get answers before you run out"
+   - slug: data-driven
+     headline: "Data-backed verdicts in days, not months."
+     subheadline: "AI generates your experiment. Real users deliver the verdict."
+     cta: "Get My Verdict"
+     pain_points:
+       - "You're making bet-the-company decisions on gut feeling"
+       - "A/B testing requires traffic you don't have yet"
+       - "Analytics tools show you what happened, not what to do"
+     promise: "Replace gut feelings with funnel data and statistical confidence"
+     proof: "93% of ideas that scored KILL would have failed within 6 months"
+     urgency: "The market won't wait — validate now or watch someone else win"
+   - slug: budget-friendly
+     headline: "Validate ideas for less than a landing page costs."
+     subheadline: "One click. Real traffic. A verdict you can trust — starting at $0."
+     cta: "Start Free"
+     pain_points:
+       - "Hiring a designer for a landing page costs more than your validation budget"
+       - "Ad platforms have minimum spends that eat into your runway"
+       - "Most validation tools charge monthly before you know if they work"
+     promise: "Get your first verdict with zero upfront cost"
+     proof: "Free tier includes 3 experiments — enough to validate your top ideas"
+     urgency: "Your best idea costs nothing to test. Your worst idea costs everything to build"
 
-6. Funnel thresholds — 这是 Assayer 平台自身的验证：
-   - REACH: Ad CTR > 2%
-   - DEMAND: Signup rate > 5%
-   - ACTIVATE: Spec completion rate > 40%
-   - MONETIZE: Pro conversion > 3%
-   - RETAIN: 30-day return > 30%
+7. Funnel — Assayer 平台自身的验证框架：
+   available_from:
+     reach: L1
+     demand: L1
+     activate: L2
+     monetize: L3
+     retain: L3
+   decision_framework:
+     scale: "All tested dimensions >= 1.0"
+     kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+     pivot: "2+ dimensions < 0.8"
+     refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
+   （具体阈值已在 Section 3 hypotheses 中定义，funnel 只需 available_from + decision_framework。）
 
-7. 同时编写 EVENTS.yaml，定义：
-   - events flat map with funnel_stage tags（visit_landing, cta_click, signup_complete, checkout_started, payment_complete, etc.）
-   - payment events have requires: [payment]
-   - global_properties: { experiment_name: "assayer", experiment_id: "platform" }
-   - 自定义 events：spec_generated, experiment_created, verdict_delivered, distribution_launched
+8. 同时编写 EVENTS.yaml，按页面分组定义所有 analytics events（~50 events）：
+   global_properties: { experiment_name: "assayer", experiment_id: "platform" }
 
-8. Pages 列表（来自 product-design.md Section 6 Pages）：
+   Landing（4 events）:
+     - visit_landing (reach) — user loads landing page（properties: variant, referrer, utm_source/medium/campaign/content, gclid, click_id）
+     - cta_click (demand) — user clicks primary CTA（properties: variant, cta_text）
+     - variant_displayed (reach) — variant messaging rendered（properties: variant, page）
+     - pricing_viewed (demand) — user scrolls to pricing section（properties: variant）
+
+   Assay（6 events）:
+     - idea_submitted (activate) — user submits idea text（properties: idea_length, anonymous）
+     - spec_generated (activate) — AI spec generation completes（properties: anonymous, idea_length, generation_time_ms）
+     - spec_saved (activate) — user saves generated spec（properties: experiment_id）
+     - spec_edited (activate) — user edits spec fields（properties: experiment_id, field）
+     - spec_claimed (activate) — anonymous spec claimed after signup（properties: experiment_id）
+     - round_started (activate) — user starts new experiment round（properties: experiment_id, round_number）
+
+   Auth（3 events）:
+     - signup_start (demand) — user opens signup modal（properties: method）
+     - signup_complete (demand) — user successfully creates account（properties: method）
+     - login_complete (retain) — existing user logs in（properties: method）
+
+   Launch（8 events）:
+     - experiment_created (activate) — user creates experiment from spec（properties: experiment_id, level）
+     - build_started (activate) — build process initiated（properties: experiment_id）
+     - build_completed (activate) — build finishes successfully（properties: experiment_id, duration_ms）
+     - deploy_started (activate) — deploy initiated（properties: experiment_id）
+     - deploy_completed (activate) — deploy finishes（properties: experiment_id, duration_ms）
+     - quality_gate_passed (activate) — L2/L3 quality gate passed（properties: experiment_id, level）
+     - content_check_completed (activate) — content review completed（properties: experiment_id）
+     - distribution_approved (activate) — user approves distribution plan（properties: experiment_id, channels）
+
+   Experiment（7 events）:
+     - experiment_viewed (activate) — user views experiment scorecard（properties: experiment_id）
+     - scorecard_dimension_clicked (activate) — user expands scorecard dimension（properties: experiment_id, dimension）
+     - alert_viewed (activate) — user views alert detail（properties: experiment_id, alert_type）
+     - alert_dismissed (activate) — user dismisses alert（properties: experiment_id, alert_type）
+     - change_request_submitted (activate) — user submits change request（properties: experiment_id, change_type）
+     - traffic_breakdown_viewed (activate) — user views per-channel traffic（properties: experiment_id）
+     - distribution_launched (activate) — distribution goes live（properties: experiment_id, channels）
+
+   Verdict（4 events）:
+     - verdict_delivered (activate) — system delivers verdict（properties: experiment_id, verdict, confidence）
+     - verdict_viewed (activate) — user views verdict page（properties: experiment_id, verdict）
+     - return_flow_started (activate) — user starts REFINE→edit / PIVOT→new / UPGRADE→L+1（properties: experiment_id, flow_type）
+     - distribution_roi_viewed (activate) — user views channel ROI breakdown（properties: experiment_id）
+
+   Lab（6 events）:
+     - lab_viewed (activate) — user views lab portfolio page（properties: experiment_count）
+     - experiment_card_clicked (activate) — user clicks experiment card（properties: experiment_id）
+     - lab_filtered (activate) — user filters/sorts experiment list（properties: filter_type）
+     - insight_viewed (activate) — user views AI Insight card（properties: insight_id）
+     - insight_applied (activate) — user applies AI recommendation（properties: insight_id, experiment_id）
+     - budget_allocated (activate) — user allocates budget（properties: experiment_id, amount_cents）
+
+   Settings（5 events）:
+     - settings_viewed (retain) — user views settings page（properties: tab）
+     - channel_connected (activate) — user connects OAuth distribution channel（properties: channel）
+     - channel_disconnected (activate) — user disconnects a channel（properties: channel）
+     - plan_comparison_viewed (monetize) — user views plan comparison table
+     - billing_portal_opened (monetize) — user opens Stripe billing portal
+
+   Server-side（7 events — trackServerEvent, not typed wrappers）:
+     - pay_start (monetize, requires: [payment]) — user enters checkout flow（properties: plan, amount_cents）
+     - pay_success (monetize, requires: [payment]) — payment confirmed via webhook（properties: plan, amount_cents, provider）
+     - checkout_started (monetize, requires: [payment]) — Stripe checkout session created（properties: plan, amount_cents）
+     - payment_complete (monetize, requires: [payment]) — checkout.session.completed webhook（properties: plan, amount_cents, provider）
+     - subscription_changed (monetize, requires: [payment]) — subscription created/updated/deleted（properties: plan, status）
+     - retain_return (retain) — user returns after 24+ hours（properties: days_since_last）
+     - activate (activate) — core activation action completed（properties: action, fake_door）
+
+   每个 event 需要完整的 properties 定义（type + required + description）。
+   Payment events 必须有 requires: [payment]。
+
+9. Pages 列表（来自 product-design.md Section 6 Pages）：
    landing, assay, launch, experiment, verdict, lab, compare, settings
    （共 8 个 page.tsx。signup 是 modal overlay on /assay，不是独立页面）
 
-验证：experiment.yaml 格式正确，behaviors 覆盖所有 pages 和 API route groups。
+验证：experiment.yaml 格式正确，包含全部 7 个 sections（Identity, Intent, Behaviors, Journey, Variants, Funnel, Stack），behaviors 覆盖所有 pages 和 API route groups，golden_path events 与 EVENTS.yaml 中的 event 名称一致，hypotheses formulas 引用 EVENTS.yaml 中定义的 events。
 ```
 
 ---
