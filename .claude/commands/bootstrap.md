@@ -139,8 +139,7 @@ DO NOT write any code, create any files, or run any install commands during this
           - `phase2-design` → Design Phase (setup done)
           - `phase2-scaffold` → Parallel Scaffold Phase (design done)
           - `phase2-wire` → Wire Phase (scaffold done)
-          - `phase2-verify` → Verify Phase (wire done)
-          - `phase2-pr` → Commit/Push/PR (verify done)
+          - `awaiting-verify` → Bootstrap complete. Run `/verify` to validate and create PR.
         - Tell user: "Resuming bootstrap from [checkpoint]. Archetype: [archetype]."
      2. If no frontmatter (old format): fall back to current behavior — skip Phase 1, jump to Phase 2: Step 1.
    - If `package.json` exists AND the `src/` directory contains application files (check for any `.ts` or `.tsx` files): stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
@@ -462,33 +461,15 @@ Spawn a subagent via Agent with:
      in the prompt so the wire subagent has context
   4. Follow CLAUDE.md Rules 1, 4, 5, 6, 7, 8, 10, 12
 
-Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-verify`.
+Update checkpoint in `.claude/current-plan.md` frontmatter to `awaiting-verify`.
 
-### Verify Phase
+### Commit and Push
 
-After the wire subagent completes, the lead runs verify.md directly.
-The lead has the Agent tool, which is required to spawn the parallel
-review subagents (design-critic, security-defender, security-attacker).
-
-Follow the FULL verification procedure in `.claude/patterns/verify.md`:
-1. Build & lint loop (max 3 attempts)
-2. Save notable patterns (if you fixed errors)
-3. Template observation review (ALWAYS — even if no errors were fixed)
-
-Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-pr`.
-
-### Commit, Push, Open PR
-
-- **BG3 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG3 Verification Gate. Verify: .claude/verify-report.md exists with YAML frontmatter, build_attempts present with Result pass, agents_expected non-empty, agents_completed matches agents_expected, scope is full, auto_observe not skipped-no-fixes if fixes were applied, process_violation is absent or false in frontmatter." If gate-keeper returns BLOCK, go back and complete the Verify Phase — if process_violation is true, run the skipped agents or get explicit user approval.
-
-The lead executes wire.md Step 9 directly:
 - Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
 - **BG4 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG4 PR Gate. Verify: on feature branch (not main), git status shows no uncommitted changes to tracked files, commit message follows imperative mood." If gate-keeper returns BLOCK, fix blocking items before pushing.
-- Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format
-- Include completion reports from all subagents for PR body context
-- Populate the PR Verification checklist from `.claude/verify-report.md` contents
-- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, and `.claude/verify-report.md`
-- Report the PR URL to the user
+- Push to the remote branch
+- Delete `.claude/current-visual-brief.md` (keep `.claude/current-plan.md` — `/verify` needs it)
+- Tell the user: "Bootstrap pushed. Run `/verify` to run verification and create the PR."
 
 If `quality: production` is set in experiment.yaml, add to the user message:
-> "Bootstrap complete with production quality mode. Run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."
+> "Bootstrap complete with production quality mode. After `/verify`, run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."

@@ -76,3 +76,13 @@ Clicks-to-value: N (target: ≤ 3)
 ## Fix Summaries
 - <one-line summary per fix>
 ```
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/ux-journeyer.json
+```
+
+Replace `<verdict>` with your final verdict: `"all pass"`, `"all fixed"`, `"partial"`, or `"blocked"`.

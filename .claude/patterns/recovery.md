@@ -29,6 +29,7 @@ checkpoint without re-deriving classification or stack.
 ### /bootstrap failure
 - **State saved:** `.claude/current-plan.md` with frontmatter (archetype, stack, checkpoint), `package.json` (installed packages)
 - **Recovery:** Re-run `/bootstrap` — Step 4 reads frontmatter checkpoint and resumes at exact phase
+- **If checkpoint is `awaiting-verify`:** Bootstrap completed successfully. Run `/verify` (not `/bootstrap`) to validate and create the PR.
 - **Manual cleanup:** If you want to start fresh: `git checkout main && make clean`
 
 ### /deploy failure (most common)
@@ -49,9 +50,9 @@ checkpoint without re-deriving classification or stack.
 - **Manual cleanup:** `git checkout main && git branch -d <branch-name>`
 
 ### /verify failure
-- **State saved:** Fix attempts on current branch
-- **Recovery:** Re-run `/verify` — starts fresh test run
-- **Manual cleanup:** None needed — verify doesn't modify infrastructure
+- **State saved:** Fix attempts on current branch, `.claude/agent-traces/` (partial trace artifacts)
+- **Recovery:** Re-run `/verify` — starts fresh test run. If resuming after bootstrap (`current-plan.md` has `checkpoint: awaiting-verify`), `/verify` detects bootstrap-verify mode and runs full verification + PR creation.
+- **Manual cleanup:** Delete `.claude/agent-traces/` to clear stale traces before re-running. Verify itself does not modify infrastructure.
 
 ### /distribute failure
 - **State saved:** `experiment/ads.yaml` (campaign config)

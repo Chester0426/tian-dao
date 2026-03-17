@@ -1,5 +1,5 @@
 ---
-description: "Run E2E tests and fix failures. Use after /change and before deploy as a quality gate."
+description: "Unified verification: build, agent review, E2E tests. Run after /bootstrap or /change. Also works standalone as a quality gate."
 type: code-writing
 reads:
   - experiment/experiment.yaml
@@ -13,18 +13,28 @@ references:
 branch_prefix: fix
 modifies_specs: false
 ---
-Run E2E tests against the local dev server and fix any failures.
+Unified verification: build, agent review, E2E tests, and (in bootstrap-verify mode) PR creation.
 
-## Step 0: Read context
+## Step 0: Read context + detect mode
 
-- Read `experiment/experiment.yaml` — understand pages (from golden_path), behaviors, stack
-- Read `experiment/EVENTS.yaml` — understand tracked events
-- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`).
-- If `stack.testing` is NOT present in experiment.yaml, stop: "No testing stack configured. Add `testing: vitest` (or another test runner) to experiment.yaml `stack` and run `/change add tests` to set up testing, or run `npm run build` to verify the app compiles."
-- If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`. It specifies the test runner, test command, prerequisites, and configuration file. Do NOT hardcode any specific test runner. Then, while still inside this `stack.testing` guard:
-  - Determine the test command (`playwright` → `npx playwright test`, `vitest` → `npx vitest run`, other → per stack file)
-  - Verify the configuration file exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest). If not: "No test configuration found. Run `/change add tests` to set up testing."
-  - Verify the required dev packages are in package.json devDependencies. If not: "Test runner is not installed. Run `npm install -D <packages listed in the stack file>`."
+1. **Detect mode** by checking `.claude/current-plan.md`:
+   - If it exists with frontmatter `skill: bootstrap` and `checkpoint: awaiting-verify` → **bootstrap-verify** mode
+   - If it exists with frontmatter `skill: change` → **change-verify** mode
+   - If it does not exist → **standalone** mode
+
+   State the detected mode: "Running in **[mode]** mode."
+
+2. **Determine scope**:
+   - bootstrap-verify → `full`
+   - change-verify → from current-plan.md frontmatter `scope` field
+   - standalone → `full`
+
+3. **Read context files**:
+   - Read `experiment/experiment.yaml` — understand pages (from golden_path), behaviors, stack
+   - Read `experiment/EVENTS.yaml` — understand tracked events
+   - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
+   - If in bootstrap-verify or change-verify mode: read all files listed in current-plan.md `context_files`
+   - If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`. Determine the test command and verify prerequisites (configuration file exists, dev packages installed).
 
 ### Full-Auth prerequisite checks (only when testing stack file's `assumes` includes `database/supabase`)
 
@@ -40,66 +50,110 @@ If the testing stack file's `assumes` list includes `database/supabase` and `aut
    Set an internal flag `STARTED_SUPABASE=true` so you know to stop it later.
 4. Apply migrations: `npx supabase db reset`
 
-## Step 1: Run tests
+## Step 1: Build & lint loop
 
-- Run the test command determined in Step 0 (e.g., `npx playwright test` for Playwright, `npx vitest run` for Vitest)
-- Capture the full output
+Follow the Build & Lint Loop in `.claude/patterns/verify.md` (max 3 attempts). If all 3 attempts fail, stop and report to the user.
 
-## Step 2: Report results
+## Step 2: Phase 1 — parallel read-only agents
 
-- If ALL tests pass: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report success with test count and summary. Then tell the user next steps based on context:
-  - **On a feature branch**: "All tests pass. Merge this PR to `main`, then run `/deploy` to deploy to production."
-  - **On `main`**: "All tests pass. Run `/deploy` to deploy to production, or run `/change` to make more improvements before deploying."
-  - **If archetype is `cli`**: replace `/deploy` guidance with: "CLIs are distributed via package registries — see `.claude/archetypes/cli.md` for details. To publish: run `npm publish` (npm registry) or create a GitHub Release (binary distribution). If a surface is configured, run `/deploy` first to deploy the marketing page, then publish the CLI. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up the experiment."
-  **Done.** No branch, no PR, no further steps.
-- If any tests fail: proceed to Step 3
+Follow the Agent Trace Directory setup and Phase 1 sections in `.claude/patterns/verify.md` with the scope from Step 0. Spawn all scope-appropriate read-only agents in parallel. Wait for all to complete.
 
-## Step 3: Branch setup
+## Step 3: Phase 2 — serial edit-capable agents
 
-Follow `.claude/patterns/branch.md` with prefix `fix` and name `fix/e2e-failures`.
+Follow Phase 2 in `.claude/patterns/verify.md` with the scope from Step 0.
+- design-critic → `npm run build` check → ux-journeyer → `npm run build` check
+- Each agent runs serially; build must pass between them.
 
-## Step 4: Fix failures (max 3 attempts)
+## Step 4: Merge security → security-fixer
+
+Follow the Merge Security Results and Parallel Fix Cycles sections in `.claude/patterns/verify.md`. Only applies when scope includes security agents and they reported issues.
+
+## Step 5: E2E tests
+
+Run E2E tests on the **final** code after all agent fixes.
+
+- If `stack.testing` is NOT present in experiment.yaml: warn "No testing stack configured — skipping E2E tests." Continue to Step 6.
+- If `stack.testing` is present but no test configuration file exists: warn "No test configuration found — skipping E2E tests." Continue to Step 6.
+- Otherwise:
+  1. Run the test command determined in Step 0
+  2. If ALL tests pass: continue to Step 6
+  3. If tests fail: proceed to fix loop below
+
+### Fix failures (max 3 attempts)
 
 For each attempt:
 1. Read the test output — identify which tests failed and why
 2. Read the failing test files and the app code they exercise
 3. Fix the issues (may be test code or app code — fix whatever is actually wrong)
-4. Re-run the test command from Step 0
-5. If all pass: proceed to Step 5
+4. Re-run the test command
+5. If all pass: continue to Step 6
 6. If still failing: note what you tried, start next attempt
 
-If all 3 attempts fail: if `STARTED_SUPABASE=true`, run `npx supabase stop`. Report to the user with attempt history and remaining errors.
-Offer options: (1) tell me what to try, (2) save progress as WIP commit on this branch.
+**If all 3 attempts fail:**
+- **standalone mode**: Follow `.claude/patterns/branch.md` with prefix `fix` and name `fix/e2e-failures` (if not already on a fix branch). Report to user with attempt history. Offer: (1) tell me what to try, (2) save progress as WIP commit on this branch.
+- **bootstrap-verify or change-verify**: Report failures to the user with attempt history. Offer: (1) tell me what to try, (2) save progress as WIP commit.
 
-## Step 5: Verify build
+## Step 6: Auto-observe + verify report + save patterns
 
-Follow the FULL verification procedure in `.claude/patterns/verify.md`:
-1. Build & lint loop (max 3 attempts)
-2. Save notable patterns (if you fixed errors)
-3. Template observation review (ALWAYS — even if no errors were fixed)
+1. Follow Auto-Observe in `.claude/patterns/verify.md` (skip if Error Fix Log is empty)
+2. Follow Write Verification Report in `.claude/patterns/verify.md` — includes completion audit and trace audit
+3. Follow Save Notable Patterns in `.claude/patterns/verify.md` (if Fix Log is non-empty)
 
-## Step 6: Commit, push, open PR
+## Step 7: Finalize (mode-dependent)
 
-> **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
-> STOP — go back and run Step 5 above. Do NOT commit without a verification report.
+### bootstrap-verify mode
 
-- Commit: descriptive message about what was fixed (e.g., "Fix landing page title assertion in E2E smoke test")
-- Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md`:
-  - **Summary**: what tests were failing and what was fixed
-  - **How to Test**: "Run `npm test` (or `npm run test:e2e` for Playwright) — all tests should pass"
-  - **What Changed**: files modified and why
-  - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
-  - **Checklist**: standard checks
-- Delete `.claude/verify-report.md` after PR is created.
-- After PR is created, tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If the archetype is `cli`, add: "Then publish via `npm publish` or GitHub Releases — see the archetype file." Otherwise, add: "Then run `/deploy` to deploy to production."
+- **BG3 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG3 Verification Gate. Verify: .claude/verify-report.md exists with YAML frontmatter, build_attempts present with Result pass, agents_expected non-empty, agents_completed matches agents_expected, scope is full, auto_observe not skipped-no-fixes if fixes were applied, process_violation is absent or false in frontmatter, .claude/agent-traces/ contains .json files matching agents_completed count." If gate-keeper returns BLOCK, go back and complete the skipped steps — if process_violation is true, run the skipped agents or get explicit user approval.
+
+- Stage all new and changed files
+- Commit: "Bootstrap MVP scaffold from experiment.yaml"
+- **BG4 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG4 PR Gate. Verify: on feature branch (not main), git status shows no uncommitted changes to tracked files, commit message follows imperative mood." If gate-keeper returns BLOCK, fix blocking items before pushing.
+- Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
+  - Include completion reports from all subagents for PR body context
+  - Populate the PR Verification checklist from `.claude/verify-report.md` contents
+- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, `.claude/verify-report.md`, and `.claude/agent-traces/`
+- Report the PR URL to the user
+- Tell the user: "Bootstrap complete. Next: review and merge the PR to `main`. Then run `/deploy` to deploy to production, or `/change` to make changes before deploying."
+- If `quality: production` is set in experiment.yaml, also add:
+  > "Production quality mode is active. After merging, run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."
+
+### change-verify mode
+
+- Report verification results to the user
+- Do NOT create a PR — `/change` Step 8 handles PR creation
+- Do NOT delete `.claude/current-plan.md` — `/change` Step 8 needs it
+- Leave `.claude/verify-report.md` and `.claude/agent-traces/` in place for `/change` Step 8
+
+### standalone mode
+
+- If ALL tests pass (or no tests configured):
+  - Report success with test count and summary. Tell the user next steps:
+    - **On a feature branch**: "All tests pass. Merge this PR to `main`, then run `/deploy` to deploy to production."
+    - **On `main`**: "All tests pass. Run `/deploy` to deploy to production, or run `/change` to make more improvements before deploying."
+    - **If archetype is `cli`**: replace `/deploy` guidance with: "CLIs are distributed via package registries — see `.claude/archetypes/cli.md` for details."
+  - **Done.** No branch, no PR, no further steps.
+- If tests failed and fixes were committed on a `fix/` branch:
+  - > **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
+  > STOP — go back and run Step 6 above.
+  - Commit: descriptive message about what was fixed
+  - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md`:
+    - **Summary**: what tests were failing and what was fixed
+    - **How to Test**: "Run the test command — all tests should pass"
+    - **What Changed**: files modified and why
+    - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
+    - **Checklist**: standard checks
+  - Delete `.claude/verify-report.md` and `.claude/agent-traces/` after PR is created
+  - Tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If archetype is `cli`, add CLI-specific guidance. Otherwise, add: "Then run `/deploy` to deploy to production."
 
 ## Cleanup
 
-After tests complete (whether all pass or after Step 6): if `STARTED_SUPABASE=true`, run `npx supabase stop` to shut down the local Supabase instance this skill started.
+After all steps complete (any mode): if `STARTED_SUPABASE=true`, run `npx supabase stop`.
 
 ## Do NOT
 - Modify experiment.yaml or experiment/EVENTS.yaml
-- Add new features — only fix what tests expose
+- Add new features — only fix what tests and agents expose
 - Run tests against production (always use local dev server)
 - Skip the build verification step
+- Skip agent review steps required by the scope
 - Commit to main directly
+- Create a PR in change-verify mode (that's /change's job)

@@ -108,3 +108,13 @@ Status values: **fixed** (resolved), **unfixed** (could not resolve in 2 cycles)
 ## Unfixed Items (if any)
 - <description of what remains>
 ```
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/security-fixer.json
+```
+
+Replace `<verdict>` with your final status: `"all fixed"`, `"partial"`, or `"none"`.

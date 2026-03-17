@@ -35,6 +35,7 @@ Thumbs.db
 .claude/current-plan.md
 .claude/current-visual-brief.md
 .claude/verify-report.md
+.claude/agent-traces/
 
 # TypeScript
 *.tsbuildinfo
