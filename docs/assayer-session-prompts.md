@@ -553,7 +553,7 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    payment: stripe
    ai: anthropic
 
-3. Behaviors — 必须精确 29 条（b-01~b-29），ID 和分组如下。Checkpoints 硬编码了这些 ID 范围（CP1: b-16~b-29, CP2: b-01~b-15, CP3: b-01~b-25 含 payment b-22/b-23/b-25, CP4/CP5: b-01~b-29）。不要重新编号或合并/拆分。
+3. Behaviors — 必须精确 29 条（b-01~b-29），ID 和分组如下。Checkpoints 验证规则：CP1 验证已实现的 b-16~b-29，CP2 验证 b-01~b-15，CP3 验证 b-01~b-18 + b-22~b-25（跳过 b-19~b-21 system behaviors），CP4 验证 b-01~b-18 + b-22~b-29（同样跳过 b-19~b-21），CP5 验证全部 b-01~b-29（100%）。Payment deep tests: b-22/b-23/b-25。不要重新编号或合并/拆分。
 
    **b-01~b-15: UI behaviors（Sessions 5-6b 实现，CP2 验证）**
    - b-01: Landing — hero 渲染，"Test it" CTA 导航到 /assay?idea=...
@@ -1146,7 +1146,7 @@ e. 返回 { experiment_id }
 1. `npm run build` 零错误
 2. `npx tsc --noEmit` 零错误
 3. `npm test` 通过
-4. 19 张表（17 core + 2 Portfolio Intelligence: portfolio_insights, budget_allocations）的 migration 存在且语法正确
+4. 19 张表（17 core + 2 Portfolio Intelligence: portfolio_insights, budget_allocations）+ 2 infra tables（rate_limit_entries, stripe_webhook_events）的 migration 存在且语法正确
 5. RLS policies 覆盖所有表
 6. Core CRUD routes 可 curl 测试（需 Supabase local dev running）：
    - `POST /api/spec/stream` 返回 SSE events
@@ -1199,7 +1199,7 @@ e. 返回 { experiment_id }
    如有失败，修复后重新运行，最多 3 次。
 
 2. 验证数据层：
-   - 确认 19 张表（17 core + portfolio_insights + budget_allocations）的 migration 存在于 supabase/migrations/ 且语法正确
+   - 确认 19 张表（17 core + portfolio_insights + budget_allocations）+ 2 infra tables（rate_limit_entries, stripe_webhook_events）的 migration 存在于 supabase/migrations/ 且语法正确
    - 确认所有表启用 RLS 且有对应 policies
    - 确认 docs/CONVENTIONS.md 存在且包含 12 sections
    - 确认 experiment/experiment.yaml 和 EVENTS.yaml 格式正确（YAML 可解析）
@@ -2327,7 +2327,7 @@ npm run build 零错误。
     - `GET /api/billing/usage` 返回的 pool counters 与 experiment page footer 的 "Modifications: X/Y" 显示匹配
     - `POST /api/operations/authorize` 返回的 `{ operation_id, price, type, billing_source }` 与 Change Request 组件消费一致
     - Verdict page 的 distribution ROI 显示组件预期的 jsonb shape 与 `experiment_decisions.distribution_roi` 列结构匹配
-13. `quality: production` — 累积 behaviors (b-01~b-25) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。特别检查 payment flows (b-22, b-23, b-25) 有深度测试（不只是 auth guard）。
+13. `quality: production` — 已实现 behaviors (b-01~b-18, b-22~b-25) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。跳过 b-19~b-21（system behaviors，Session 11 实现）。特别检查 payment flows (b-22, b-23, b-25) 有深度测试（不只是 auth guard）。
 
 **输出**：CP3 verification report。失败项必须修复后才能进入 Phase 5。
 
@@ -2361,8 +2361,9 @@ npm run build 零错误。
    如发现偏移：修正 UI 或 API 确保两端类型一致。
 
 4. behavior.tests 覆盖验证（quality: production）：
-   读 experiment/experiment.yaml 中 behaviors b-01 到 b-25（累积到 Session 8）。
-   对每个 behavior 的 tests 条目，确认有对应测试：
+   读 experiment/experiment.yaml 中已实现 behaviors（b-01~b-18, b-22~b-25，共 22 条）。
+   跳过 b-19~b-21（system behaviors，Session 11 实现）。
+   对每个已实现 behavior 的 tests 条目，确认有对应测试：
    - API behaviors → spec test assertion
    - UI behaviors → Playwright smoke/funnel assertion
    - Payment flows (b-22, b-23, b-25) → 深度 spec test（验证 handler 逻辑，不只是 auth guard）
