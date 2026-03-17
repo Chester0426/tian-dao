@@ -49,3 +49,13 @@ Return one of:
 ## Template Files
 - <one file path per line>
 ```
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/build-info-collector.json
+```
+
+Replace `<verdict>` with `"collected"` if fixes existed, or `"no-fixes"` if none.

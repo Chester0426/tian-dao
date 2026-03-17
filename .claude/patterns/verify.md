@@ -47,6 +47,16 @@ agent completes, read its completion report and append its fixes.
 
 This log drives both Auto-Observe and Save Notable Patterns.
 
+## Agent Trace Directory
+
+Before spawning any review agents, create the trace directory:
+
+```bash
+mkdir -p .claude/agent-traces
+```
+
+Each agent writes a JSON trace file upon completion. The completion audit (below) validates that all expected traces exist.
+
 ## Build & Lint Loop (max 3 attempts)
 
 > **Budget rationale:** 3 attempts allows iterative refinement with error feedback.
@@ -171,18 +181,28 @@ If `quality` is absent or not `production`, skip this agent.
 
 **Wait for all Phase 1 read-only agents to complete before proceeding to Phase 2.**
 
+After all Phase 1 agents return, verify each spawned agent wrote a trace to `.claude/agent-traces/<name>.json`. For any missing trace, write it using the agent's reported verdict:
+
+```bash
+echo '{"agent":"<name>","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<agent-verdict>"}' > .claude/agent-traces/<name>.json
+```
+
+Only record traces for agents that were actually spawned (per scope table). Skip agents that were not spawned.
+
 **Phase 2 — Serial edit-capable agents**: Spawn these agents ONE AT A TIME. Each must
 complete and pass `npm run build` before the next is spawned. This prevents write conflicts.
 
 ### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
 Spawn the `design-critic` agent (`subagent_type: design-critic`). Pass PR file boundary. **Wait for completion.**
-After completion: run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
+After completion: verify `.claude/agent-traces/design-critic.json` exists; if missing, write it with the agent's verdict.
+Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). Pass PR file boundary. **Wait for completion.**
-After completion: run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
+After completion: verify `.claude/agent-traces/ux-journeyer.json` exists; if missing, write it with the agent's verdict.
+Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 ## Merge Security Results (if scope is `full` or `security`)
 
@@ -205,6 +225,8 @@ Pass: merged Defender table + Attacker findings.
 
 **Wait for the fixer to complete before continuing.**
 
+After security-fixer completes, verify `.claude/agent-traces/security-fixer.json` exists; if missing, write it with the fixer's reported status.
+
 ## Auto-Observe
 
 If the Error Fix Log is empty (no fixes during this verification run),
@@ -221,6 +243,7 @@ If the Fix Log has any entries:
    Pass ONLY: combined fix diffs, Fix Log summaries, template file list.
    Do NOT include experiment.yaml content, project name, or feature descriptions.
 5. Report the observer's result.
+6. Verify `.claude/agent-traces/observer.json` exists; if missing, write it with the observer's result.
 
 ## Write Verification Report
 
@@ -274,6 +297,11 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
 > - List it as `"SKIPPED — PROCESS VIOLATION"` (not `"skipped — out of scope"`)
 > - Set `process_violation: true` in verify-report.md frontmatter
 > - BG3 gate will BLOCK on process violations
+>
+> **Trace audit.** Count `.json` files in `.claude/agent-traces/`. If the count
+> does not match the number of entries in `agents_completed`:
+> - List missing traces as `"MISSING TRACE — PROCESS VIOLATION"`
+> - Set `process_violation: true` in verify-report.md frontmatter
 
 > **This file is a hard gate.** The commit/PR step in the calling skill
 > reads this file and includes its contents in the PR body. If the file

@@ -3,6 +3,7 @@ name: spec-reviewer
 description: Verifies implementation matches experiment.yaml spec. Read-only — never modifies code.
 model: sonnet
 tools:
+  - Bash
   - Read
   - Glob
   - Grep
@@ -116,3 +117,13 @@ is a FAIL — report the missing entry and behavior ID.
 ## Missing Items (if FAIL)
 - <specific item and what is missing>
 ```
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/spec-reviewer.json
+```
+
+Replace `<verdict>` with your final verdict: `"PASS"` or `"FAIL"`.

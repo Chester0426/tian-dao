@@ -102,3 +102,13 @@ Return one of:
 - `"Filed template observation: <issue-url>"`
 - `"Added comment to existing observation: <issue-url>"`
 - `"Cannot file observation (prerequisite unavailable): <one-line summary of finding>"` — use when the decision framework identified a template issue but `gh` auth, repo access, or another prerequisite failed. Include the template file name and symptom so the lead can manually file it.
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"observer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/observer.json
+```
+
+Replace `<verdict>` with `"filed"`, `"commented"`, `"no observations"`, or `"prerequisite-unavailable"`.

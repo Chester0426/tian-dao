@@ -61,11 +61,10 @@ If the provider only supports dashboard-based rollback (no CLI command), instruc
 
 ## Step 5: Health check
 
-After rollback completes, verify the app is responding:
+After rollback completes, verify the app is responding. Read `experiment/experiment.yaml` to determine the archetype (`type` field, default: `web-app`):
 
-```bash
-curl -s <canonical_url>/api/health
-```
+- **web-app or service**: `curl -s <canonical_url>/api/health`
+- **cli**: If `canonical_url` exists (surface page), `curl -s <canonical_url>`. Otherwise, skip — CLI rollback only reverts the surface deployment; the CLI binary itself is distributed via package registries and cannot be "rolled back" via hosting.
 
 If the health check fails, report the failure and suggest checking the hosting provider's dashboard for deployment logs.
 

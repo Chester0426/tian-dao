@@ -190,6 +190,8 @@ Verify verify.md ran completely:
 4. `agents_completed` matches `agents_expected` (same set)
 5. `scope` is `full`
 6. If `build_attempts` > 1: `auto_observe` is NOT `skipped-no-fixes`
+7. `process_violation` in frontmatter is absent or `false`
+8. `.claude/agent-traces/` contains `.json` files whose count matches the number of entries in `agents_completed`
 
 ### BG4 PR Gate
 

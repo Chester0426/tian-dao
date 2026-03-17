@@ -87,3 +87,13 @@ FIX: <suggested remediation>
 ```
 
 If no issues found: `"Attacker: no adversarial issues found."`
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"security-attacker","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/security-attacker.json
+```
+
+Replace `<verdict>` with `"no issues"` or `"N findings"` with the count.

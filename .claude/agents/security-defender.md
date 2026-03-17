@@ -87,3 +87,13 @@ Applies to ALL archetypes (web-app, service, cli).
 | D4. Client/server boundary | pass/FAIL/skip | <file:line if FAIL> |
 | D5. Rate limiting | pass/FAIL | <file:line if FAIL> |
 | D6. Dependency vulnerabilities | pass/FAIL/skip | <CVE + package if FAIL> |
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/security-defender.json
+```
+
+Replace `<verdict>` with your summary: `"pass"` if all checks passed, or `"N FAILs"` with the count.

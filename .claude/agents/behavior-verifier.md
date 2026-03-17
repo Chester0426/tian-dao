@@ -183,3 +183,13 @@ If all pass:
 If any FAIL:
 > **Behavioral issues found.** These require human review — the spec or the code may need to change.
 > [numbered findings above]
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/behavior-verifier.json
+```
+
+Replace `<verdict>` with your overall verdict: `"pass"`, `"pass with warnings"`, or `"FAIL"`.

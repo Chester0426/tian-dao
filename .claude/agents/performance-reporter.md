@@ -142,3 +142,13 @@ Threshold: **500ms**. Any route exceeding 500ms is flagged as WARN.
 If any pages exceed 200KB, add a note:
 
 > **Optimization hints:** Consider dynamic imports (`next/dynamic`) for heavy components, moving large dependencies to server components, or code-splitting with `React.lazy`.
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"performance-reporter","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/performance-reporter.json
+```
+
+Replace `<verdict>` with `"pass"` if no warnings, or `"N warnings"` with the count.

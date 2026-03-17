@@ -57,3 +57,13 @@ Read and follow `.claude/procedures/accessibility-scanner.md` for the full step-
 If no issues found:
 
 > All scanned files pass accessibility checks. No WCAG violations detected.
+
+## Trace Output
+
+After completing all work, write a trace file:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/accessibility-scanner.json
+```
+
+Replace `<verdict>` with `"pass"` if no issues, or `"N issues"` with the count.
