@@ -553,11 +553,55 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    payment: stripe
    ai: anthropic
 
-3. Behaviors — 从 product-design.md Section 5 的 API routes 和 ux-design.md 的 Screen-by-Screen Specification 推导：
-   - 每个 page 至少一个 behavior
-   - 每个 API route group 至少一个 behavior
-   - actor: system 用于 cron jobs、webhooks、Cloud Run Jobs
-   - tests[] 数组用于 Quality Gate
+3. Behaviors — 必须精确 29 条（b-01~b-29），ID 和分组如下。Checkpoints 硬编码了这些 ID 范围（CP1: b-16~b-29, CP2: b-01~b-15, CP3: b-01~b-25 含 payment b-22/b-23/b-25, CP4/CP5: b-01~b-29）。不要重新编号或合并/拆分。
+
+   **b-01~b-15: UI behaviors（Sessions 5-6b 实现，CP2 验证）**
+   - b-01: Landing — hero 渲染，"Test it" CTA 导航到 /assay?idea=...
+   - b-02: Landing — stats 查询（"X ideas tested"），pricing section，variant messaging
+   - b-03: Assay creation mode — SSE streaming，spec progressive rendering（skeleton → cards）
+   - b-04: Assay edit mode — 加载已有实验，Round N indicator，bottleneck highlighted
+   - b-05: Signup gate — OAuth + email/password，session_token claim，free tier quota check
+   - b-06: Launch Phase A-B — build + deploy progress，quality gate（L2/L3），auto-fix loop UI
+   - b-07: Launch Phase C-G — content check，walkthrough，distribution approval，live confirmation
+   - b-08: Experiment scorecard — 5 dimensions（REACH/DEMAND/ACTIVATE/MONETIZE/RETAIN），confidence bands
+   - b-09: Experiment alerts + traffic — 7 alert types，per-channel breakdown，change request modal
+   - b-10: Verdict — 4 verdict types（SCALE/KILL/REFINE/PIVOT），return flows（REFINE→edit, PIVOT→new, UPGRADE→L+1）
+   - b-11: Lab — portfolio grouping（RUNNING/VERDICT READY/COMPLETED），Assayer Score ★，lineage
+   - b-12: Lab advanced — AI Insight card（Pro+），Budget tab（Team），empty state
+   - b-13: Compare — side-by-side 2+ experiments，Pro/Team gate，[Export CSV]
+   - b-14: Settings — account，OAuth channels（login vs distribution），billing，plan comparison table
+   - b-15: Mobile + Content Check — tab bar，responsive layout，inline [e] editing，swipe-to-archive
+
+   **b-16~b-21: Core API behaviors（Sessions 3-4 实现，CP1 开始验证）**
+   - b-16: POST /api/spec/stream — SSE，anonymous OK，rate limit（3/24h session, 5/24h free）
+   - b-17: POST /api/spec/claim — auth required，quota check，upgrade_from support
+   - b-18: Experiments CRUD — GET/POST/PATCH/DELETE，RLS isolation，sub-resources（hypotheses, variants, rounds）
+   - b-19: Metrics + alerts API — GET /api/experiments/:id/metrics，GET .../alerts，PATCH .../alerts/:id
+   - b-20: Portfolio Intelligence API — GET /api/portfolio/insight，POST .../apply，GET /api/portfolio/budget
+   - b-21: Compare + export API — GET /api/experiments/compare?ids=...，CSV export
+
+   **b-22~b-25: Payment behaviors（Session 8 实现，CP3 深度验证）**
+   - b-22: Stripe webhooks — 5 event types，signature verification，idempotency（stripe_webhook_events dedup）
+   - b-23: Billing gate — POST /api/operations/authorize（pool + PAYG + free + past_due check），POST .../complete
+   - b-24: Stripe subscription — subscribe/topup/portal routes，checkout session creation
+   - b-25: Billing UX integration — pool usage display，PAYG→Pro conversion，hosting fee cron，operation classifier
+
+   **b-26~b-29: Infrastructure behaviors（Sessions 9-10 实现，CP4 验证）**
+   - b-26: Skill execution — POST /api/skills/execute，triggerCloudRunJob()，realtime progress，approval gate
+   - b-27: Skill runner — Docker image，workspace lifecycle，draft→active transition，experiment_live notification
+   - b-28: Distribution — 6 adapters（publish/measure/manage），OAuth callbacks，getValidToken() refresh，plan gating
+   - b-29: Cron registration — vercel.json 8 cron routes，CRON_SECRET verification，notification dispatch setup
+
+   **Session 11 不新增 behavior** — 它为已有 behaviors 接入真实数据（mock→real wiring）：
+   - b-08/b-09 的 scorecard 和 alerts 接入 metrics-sync cron 真实数据
+   - b-10 的 verdict 接入 verdict engine（per-hypothesis verdicts）
+   - b-11/b-12 的 Assayer Score 接入 compute-scores cron
+   - b-27 的 auto-fix chain 接入 runtime anomaly detection
+   - b-29 的 notification dispatch 接入 daily cron + immediate triggers
+
+   每个 behavior 使用 given/when/then 格式 + tests[] 数组。
+   actor: system 用于 cron jobs、webhooks、Cloud Run Jobs。
+   tests[] 条目对应 quality: production 要求的 spec test assertions。
 
 4. Golden path — 从 ux-design.md Information Architecture 推导：
    landing → assay → launch → experiment → verdict → lab → compare → settings
