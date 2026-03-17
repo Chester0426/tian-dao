@@ -36,6 +36,11 @@ Unified verification: build, agent review, E2E tests, and (in bootstrap-verify m
    - If in bootstrap-verify or change-verify mode: read all files listed in current-plan.md `context_files`
    - If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`. Determine the test command and verify prerequisites (configuration file exists, dev packages installed).
 
+4. **Create durable artifacts** (STATE 0 from verify.md):
+   - Write `.claude/verify-context.json` with scope, archetype, quality, and timestamp
+   - Create `.claude/fix-log.md` with header `# Error Fix Log`
+   - `mkdir -p .claude/agent-traces`
+
 ### Full-Auth prerequisite checks (only when testing stack file's `assumes` includes `database/supabase`)
 
 If the testing stack file's `assumes` list includes `database/supabase` and `auth/supabase`:
@@ -66,7 +71,7 @@ Follow Phase 2 in `.claude/patterns/verify.md` with the scope from Step 0.
 
 ## Step 4: Merge security → security-fixer
 
-Follow the Merge Security Results and Parallel Fix Cycles sections in `.claude/patterns/verify.md`. Only applies when scope includes security agents and they reported issues.
+Follow STATE 4 (SECURITY_MERGE_FIX) in `.claude/patterns/verify.md`. Only applies when scope includes security agents and they reported issues. Write `.claude/security-merge.json` before spawning security-fixer.
 
 ## Step 5: E2E tests
 
@@ -111,7 +116,7 @@ For each attempt:
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
   - Include completion reports from all subagents for PR body context
   - Populate the PR Verification checklist from `.claude/verify-report.md` contents
-- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, `.claude/verify-report.md`, and `.claude/agent-traces/`
+- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, and `.claude/security-merge.json`
 - Report the PR URL to the user
 - Tell the user: "Bootstrap complete. Next: review and merge the PR to `main`. Then run `/deploy` to deploy to production, or `/change` to make changes before deploying."
 - If `quality: production` is set in experiment.yaml, also add:
@@ -122,7 +127,7 @@ For each attempt:
 - Report verification results to the user
 - Do NOT create a PR — `/change` Step 8 handles PR creation
 - Do NOT delete `.claude/current-plan.md` — `/change` Step 8 needs it
-- Leave `.claude/verify-report.md` and `.claude/agent-traces/` in place for `/change` Step 8
+- Leave `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, and `.claude/security-merge.json` in place for `/change` Step 8
 
 ### standalone mode
 
@@ -142,7 +147,7 @@ For each attempt:
     - **What Changed**: files modified and why
     - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
     - **Checklist**: standard checks
-  - Delete `.claude/verify-report.md` and `.claude/agent-traces/` after PR is created
+  - Delete `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, and `.claude/security-merge.json` after PR is created
   - Tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If archetype is `cli`, add CLI-specific guidance. Otherwise, add: "Then run `/deploy` to deploy to production."
 
 ## Cleanup

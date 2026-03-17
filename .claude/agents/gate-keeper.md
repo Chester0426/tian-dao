@@ -196,6 +196,12 @@ Verify verify.md ran completely:
 6. If `build_attempts` > 1: `auto_observe` is NOT `skipped-no-fixes`
 7. `process_violation` in frontmatter is absent or `false`
 8. `.claude/agent-traces/` contains `.json` files whose count matches the number of entries in `agents_completed`
+9. Each trace in `.claude/agent-traces/` has a `checks_performed` array (non-empty list) — run `python3 -c "import json,glob; traces=glob.glob('.claude/agent-traces/*.json'); bad=[t for t in traces if not isinstance(json.load(open(t)).get('checks_performed'),list) or len(json.load(open(t)).get('checks_performed',[]))==0]; print('PASS' if not bad else 'BLOCK: '+','.join(bad))"`
+10. security-attacker trace has `findings_count` field — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/security-attacker.json')); print('PASS' if 'findings_count' in d else 'BLOCK')"`  (skip if security-attacker not in agents_completed)
+11. Any trace with `"recovery":true` → WARN (not BLOCK) — run `python3 -c "import json,glob; traces=glob.glob('.claude/agent-traces/*.json'); recovery=[t for t in traces if json.load(open(t)).get('recovery')]; print('WARN: '+','.join(recovery) if recovery else 'PASS')"`
+12. `.claude/verify-context.json` exists — run `test -f .claude/verify-context.json`
+13. `.claude/fix-log.md` exists — run `test -f .claude/fix-log.md`
+14. If scope is `full` or `security`: `.claude/security-merge.json` exists — extract scope from verify-context.json, check `test -f .claude/security-merge.json` (skip if scope is `visual` or `build`)
 
 ### BG4 PR Gate
 

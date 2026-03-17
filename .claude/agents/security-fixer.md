@@ -114,7 +114,7 @@ Status values: **fixed** (resolved), **unfixed** (could not resolve in 2 cycles)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/security-fixer.json
+mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["fix_code","rebuild","recheck","collect_changes","generate_tables"],"issues_fixed":<N>}' > .claude/agent-traces/security-fixer.json
 ```
 
 Replace `<verdict>` with your final status: `"all fixed"`, `"partial"`, or `"none"`.

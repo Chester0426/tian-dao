@@ -34,34 +34,58 @@ Build & Lint Loop, Auto-Observe, and Save Notable Patterns ALWAYS run regardless
 
 > **The scope table is the sole authority.** The absence of a running app, missing screenshots, or "obvious" results are NEVER valid reasons to skip a scope-required agent. Agents degrade gracefully to static analysis when runtime is unavailable — but they still run. No exceptions.
 
-## Error Fix Log
+---
 
-Maintain a running log throughout verification. Every time you fix an
-error (build, lint, visual, security), immediately append:
+## STATE 0: READ_CONTEXT
 
-> **Fix N:** `<file>` — Symptom: `<what broke>` — Cause: `<why>` — Fix: `<what you changed>`
+**PRECONDITIONS:** None — this is the entry state.
 
-Build & Lint Loop fixes, design-critic fixes, ux-journeyer fixes, and
-security-fixer fixes all append to the same log. After each edit-capable
-agent completes, read its completion report and append its fixes.
+**ACTIONS:**
 
-This log drives both Auto-Observe and Save Notable Patterns.
+1. Read context files:
+   - Read `experiment/experiment.yaml` — understand pages (from golden_path), behaviors, stack
+   - Read `experiment/EVENTS.yaml` — understand tracked events
+   - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
+   - If in bootstrap-verify or change-verify mode: read all files listed in current-plan.md `context_files`
+   - If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`
 
-## Agent Trace Directory
+2. Write `.claude/verify-context.json`:
+   ```bash
+   cat > .claude/verify-context.json << 'CTXEOF'
+   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","timestamp":"<ISO 8601>"}
+   CTXEOF
+   ```
 
-Before spawning any review agents, create the trace directory:
+3. Create `.claude/fix-log.md` on disk:
+   ```bash
+   echo '# Error Fix Log' > .claude/fix-log.md
+   ```
 
+4. Create trace directory:
+   ```bash
+   mkdir -p .claude/agent-traces
+   ```
+
+**POSTCONDITIONS:** All 3 artifacts exist on disk.
+
+**VERIFY:**
 ```bash
-mkdir -p .claude/agent-traces
+test -f .claude/verify-context.json && test -f .claude/fix-log.md && test -d .claude/agent-traces
 ```
 
-Each agent writes a JSON trace file upon completion. The completion audit (below) validates that all expected traces exist.
+**NEXT:** STATE 1
 
-## Build & Lint Loop (max 3 attempts)
+---
+
+## STATE 1: BUILD_LINT_LOOP
+
+**PRECONDITIONS:** STATE 0 complete (verify-context.json, fix-log.md, agent-traces/ exist).
 
 > **Budget rationale:** 3 attempts allows iterative refinement with error feedback.
 > Attempt 1 catches the obvious error. Attempt 2 catches cascading effects.
 > Attempt 3 is the safety net. All skills use this budget for consistency.
+
+**ACTIONS:**
 
 You have a budget of **3 attempts** to get a clean build and lint. Track each failed
 attempt so you can reference previous errors and avoid repeating them.
@@ -70,13 +94,17 @@ For each attempt:
 
 1. Run `npm run build`
 2. If build fails: note the errors (mentally log: "Attempt N — build: [error summary]").
-   Fix the errors, then start the next attempt.
+   Fix the errors. Append each fix to `.claude/fix-log.md`:
+   ```
+   **Fix N:** `<file>` — Symptom: `<what broke>` — Cause: `<why>` — Fix: `<what you changed>`
+   ```
+   Then start the next attempt.
 3. If build passes: run `npm run lint` (skip if no lint script exists).
    Warnings are OK; errors are not.
 4. If lint fails: note the errors (mentally log: "Attempt N — lint: [error summary]").
-   Fix the errors, then start the next attempt.
-5. If both pass: build and lint verification passed. Continue to Parallel Review below — do NOT skip the remaining verification steps.
-6. **Prove it.** Quote the last 3–5 lines of the build output in your response. State facts: "Build completed with 0 errors. Lint passed with 0 warnings." Never say "should work", "probably passes", or "seems fine."
+   Fix the errors. Append each fix to `.claude/fix-log.md`. Then start the next attempt.
+5. If both pass: build and lint verification passed. Continue to STATE 2 — do NOT skip the remaining verification steps.
+6. **Prove it.** Quote the last 3–5 lines of the build output **verbatim in a code block**. State facts: "Build completed with 0 errors. Lint passed with 0 warnings." Never say "should work", "probably passes", or "seems fine." The verify-report-gate hook checks for this.
 
 **If all 3 attempts fail**, stop and report to the user:
 
@@ -96,11 +124,20 @@ For each attempt:
 
 Do NOT commit code that fails build or lint. Do NOT skip this procedure.
 
-## Agent Review (after build passes)
+**POSTCONDITIONS:** Build passes. Lint passes (or no lint script).
+
+**VERIFY:** Last build command exited 0.
+
+**NEXT:** STATE 2
+
+---
+
+## STATE 2: PHASE1_PARALLEL
+
+**PRECONDITIONS:** STATE 1 complete (build passes).
 
 > **Write Conflict Prevention**: Edit-capable agents (design-critic, ux-journeyer, security-fixer)
-> MUST run serially in the order listed below — never in parallel. They modify source files and
-> concurrent edits cause file-level conflicts. Read-only agents run in parallel as before.
+> MUST run serially in Phase 3. Read-only agents run in parallel here.
 
 ### Dev Server Preamble (if archetype is `web-app`)
 
@@ -140,10 +177,13 @@ Pass this list to each agent that has Edit/Write permissions (design-critic, ux-
 
 Read-only agents (observer, build-info-collector, behavior-verifier, security-attacker, security-defender, spec-reviewer, accessibility-scanner, performance-reporter) are unaffected.
 
-**Phase 1 — Parallel read-only agents**: Spawn these agents simultaneously using parallel
-Agent tool calls (they have no Edit/Write permissions and cannot conflict):
+### ACTIONS — Spawn Phase 1 agents
 
-### build-info-collector
+> **EXPLICIT FOREGROUND INSTRUCTION**: Spawn all Phase 1 agents as parallel foreground Agent tool calls in a **SINGLE message**. Do NOT use `run_in_background: true`. The platform blocks you until ALL return. This is the enforcement mechanism — background agents can be forgotten; foreground agents cannot.
+
+Spawn the following agents simultaneously (per scope table):
+
+#### build-info-collector
 
 Spawn the `build-info-collector` agent (`subagent_type: build-info-collector`).
 
@@ -152,59 +192,97 @@ in this verification run. Collect the diff and summaries."
 
 If no errors were fixed, pass: "No build errors were fixed."
 
-### security-defender (if scope is `full` or `security`)
+#### security-defender (if scope is `full` or `security`)
 
 Spawn the `security-defender` agent (`subagent_type: security-defender`). No additional context needed.
 
-### security-attacker (if scope is `full` or `security`)
+#### security-attacker (if scope is `full` or `security`)
 
 Spawn the `security-attacker` agent (`subagent_type: security-attacker`). No additional context needed.
 
-### behavior-verifier (if scope is `full` or `security`)
+#### behavior-verifier (if scope is `full` or `security`)
 
 Spawn the `behavior-verifier` agent (`subagent_type: behavior-verifier`). No additional context needed.
 
-### performance-reporter (if scope is `full` or `visual`, AND archetype is `web-app`)
+#### performance-reporter (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `performance-reporter` agent (`subagent_type: performance-reporter`). No additional context needed.
 
-### accessibility-scanner (if scope is `full` or `visual`, AND archetype is `web-app`)
+#### accessibility-scanner (if scope is `full` or `visual`, AND archetype is `web-app`)
 
 Spawn the `accessibility-scanner` agent (`subagent_type: accessibility-scanner`). No additional context needed.
 
-### spec-reviewer (if scope is `full` or `security`, AND `quality: production` in experiment.yaml)
+#### spec-reviewer (if scope is `full` or `security`, AND `quality: production` in experiment.yaml)
 
 Read `experiment/experiment.yaml`. If `quality` field is set to `production`:
 Spawn the `spec-reviewer` agent (`subagent_type: spec-reviewer`). Pass: "Read `.claude/agents/spec-reviewer.md` and execute all checks. Read `experiment/experiment.yaml` and `.claude/current-plan.md` (if it exists) as input. Return the output contract table and verdict."
 
 If `quality` is absent or not `production`, skip this agent.
 
-**Wait for all Phase 1 read-only agents to complete before proceeding to Phase 2.**
+### Recovery traces
 
-After all Phase 1 agents return, verify each spawned agent wrote a trace to `.claude/agent-traces/<name>.json`. For any missing trace, write it using the agent's reported verdict:
+After all Phase 1 agents return, verify each spawned agent wrote a trace to `.claude/agent-traces/<name>.json`.
+
+If an agent returned output but crashed before writing its trace, write a recovery trace:
 
 ```bash
-echo '{"agent":"<name>","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<agent-verdict>"}' > .claude/agent-traces/<name>.json
+echo '{"agent":"<name>","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<agent-verdict>","checks_performed":<agent-checks-array>,"recovery":true}' > .claude/agent-traces/<name>.json
 ```
 
-Only record traces for agents that were actually spawned (per scope table). Skip agents that were not spawned.
+The `checks_performed` array must match the agent's specification (see each agent's Trace Output section). The `"recovery":true` flag marks this as a lead-written trace — gate-keeper will WARN on recovery traces.
 
-**Phase 2 — Serial edit-capable agents**: Spawn these agents ONE AT A TIME. Each must
-complete and pass `npm run build` before the next is spawned. This prevents write conflicts.
+Do NOT write traces for agents that were not spawned. Do NOT write traces for agents whose output you never received.
+
+**POSTCONDITIONS:** All scope-required Phase 1 traces exist in `.claude/agent-traces/`.
+
+**VERIFY:**
+```bash
+ls .claude/agent-traces/*.json
+```
+
+**NEXT:** STATE 3
+
+---
+
+## STATE 3: PHASE2_SERIAL
+
+**PRECONDITIONS:** All Phase 1 traces exist (hook-enforced by `phase-transition-gate.sh`).
+
+**ACTIONS:**
+
+Spawn edit-capable agents ONE AT A TIME. Each must complete and pass `npm run build` before the next is spawned. This prevents write conflicts.
+
+After each edit-capable agent completes, read its completion report and append its fixes to `.claude/fix-log.md`.
 
 ### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
 Spawn the `design-critic` agent (`subagent_type: design-critic`). Pass PR file boundary. **Wait for completion.**
-After completion: verify `.claude/agent-traces/design-critic.json` exists; if missing, write it with the agent's verdict.
+After completion: verify `.claude/agent-traces/design-critic.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). Pass PR file boundary. **Wait for completion.**
-After completion: verify `.claude/agent-traces/ux-journeyer.json` exists; if missing, write it with the agent's verdict.
+After completion: verify `.claude/agent-traces/ux-journeyer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
-## Merge Security Results (if scope is `full` or `security`)
+**POSTCONDITIONS:** All scope-required Phase 2 traces exist. Build passes.
+
+**VERIFY:** Build command exited 0 after last Phase 2 agent.
+
+**NEXT:** STATE 4
+
+---
+
+## STATE 4: SECURITY_MERGE_FIX
+
+**PRECONDITIONS:** STATE 3 complete.
+
+If security agents were not spawned (scope is `visual` or `build`), or reported no issues, skip to STATE 5.
+
+**ACTIONS:**
+
+### Merge Security Results (if scope is `full` or `security`)
 
 Combine security-defender and security-attacker outputs:
 
@@ -214,9 +292,15 @@ Combine security-defender and security-attacker outputs:
    in the Defender table, but the Attacker finding drives the fix).
 3. The merged list is the input to security-fixer.
 
-## Parallel Fix Cycles (if scope is `full` or `security`, and security agents reported issues)
+### Write security-merge.json
 
-If security agents were not spawned (scope is `visual` or `build`), or reported no issues, skip this section.
+Before spawning security-fixer, write the merge artifact:
+
+```bash
+cat > .claude/security-merge.json << 'MERGEEOF'
+{"timestamp":"<ISO 8601>","defender_fails":<N>,"attacker_findings":<N>,"merged_issues":<N>,"issues":[<summary list>]}
+MERGEEOF
+```
 
 ### security-fixer (if merged security has issues)
 
@@ -225,12 +309,28 @@ Pass: merged Defender table + Attacker findings.
 
 **Wait for the fixer to complete before continuing.**
 
-After security-fixer completes, verify `.claude/agent-traces/security-fixer.json` exists; if missing, write it with the fixer's reported status.
+After security-fixer completes: verify `.claude/agent-traces/security-fixer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 
-## Auto-Observe
+After each fix, append to `.claude/fix-log.md`.
 
-If the Error Fix Log is empty (no fixes during this verification run),
-skip this section.
+**POSTCONDITIONS:** `security-merge.json` exists. Security-fixer trace exists (if spawned).
+
+**VERIFY:**
+```bash
+test -f .claude/security-merge.json
+```
+
+**NEXT:** STATE 5
+
+---
+
+## STATE 5: AUTO_OBSERVE
+
+**PRECONDITIONS:** STATE 4 complete (or skipped).
+
+**ACTIONS:**
+
+Read `.claude/fix-log.md` from disk. If it has only the header line (`# Error Fix Log`) and no entries, skip to STATE 6.
 
 If the Fix Log has any entries:
 
@@ -243,17 +343,34 @@ If the Fix Log has any entries:
    Pass ONLY: combined fix diffs, Fix Log summaries, template file list.
    Do NOT include experiment.yaml content, project name, or feature descriptions.
 5. Report the observer's result.
-6. Verify `.claude/agent-traces/observer.json` exists; if missing, write it with the observer's result.
+6. Verify `.claude/agent-traces/observer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 
-## Write Verification Report
+**POSTCONDITIONS:** Observer ran (if fixes exist) or was correctly skipped.
 
-After all review agents, fix cycles, and auto-observe complete, write `.claude/verify-report.md`:
+**VERIFY:** If fix-log.md has entries beyond header, `observer.json` trace exists.
+
+**NEXT:** STATE 6
+
+---
+
+## STATE 6: WRITE_REPORT
+
+**PRECONDITIONS:** STATE 5 complete. All agents finished. All traces written.
+
+> **This state is gated by `verify-report-gate.sh`.** The hook checks that
+> verify-context.json, fix-log.md, and agent traces exist before allowing
+> the write. If the hook denies the write, go back and complete the missing steps.
+
+**ACTIONS:**
+
+Write `.claude/verify-report.md`:
 
 ```markdown
 ---
 timestamp: [ISO 8601]
 scope: [full|security|visual|build]
 build_attempts: [1-3]
+fix_log_entries: [N]
 agents_expected: [list from scope table]
 agents_completed: [list as they finish]
 consistency_scan: pass | skipped | N/A
@@ -307,9 +424,26 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
 > reads this file and includes its contents in the PR body. If the file
 > does not exist, the PR step must run verify.md first.
 
-## Save Notable Patterns (if Fix Log is non-empty)
+**POSTCONDITIONS:** `verify-report.md` exists with valid frontmatter.
 
-Read the Error Fix Log accumulated during this verification run.
+**VERIFY:**
+```bash
+head -1 .claude/verify-report.md | grep -q '^---$'
+```
+
+**NEXT:** STATE 7
+
+---
+
+## STATE 7: SAVE_PATTERNS
+
+**PRECONDITIONS:** STATE 6 complete.
+
+If `.claude/fix-log.md` has only the header line and no entries, this state is a no-op.
+
+**ACTIONS:**
+
+Read `.claude/fix-log.md` from disk.
 
 1. **For each entry in the Fix Log**, classify:
    - **Universal** (any project with this stack would hit this) →
@@ -326,3 +460,9 @@ Read the Error Fix Log accumulated during this verification run.
    - Stack integration quirks that affected architecture (e.g., "Supabase RLS requires service role key for admin operations")
    - Codebase conventions that future plans should follow (e.g., "this project co-locates API types in a shared types.ts")
    - Save to auto memory under "Planning Patterns" heading
+
+**POSTCONDITIONS:** Pattern count matches fix log entry count.
+
+**VERIFY:** Mental count — patterns saved + skipped = fix log entries.
+
+**NEXT:** Done — return to calling skill.

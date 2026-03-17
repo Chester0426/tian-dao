@@ -63,7 +63,7 @@ If no issues found:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/accessibility-scanner.json
+mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["axe_scan","tab_order"],"pages_scanned":<N>}' > .claude/agent-traces/accessibility-scanner.json
 ```
 
 Replace `<verdict>` with `"pass"` if no issues, or `"N issues"` with the count.

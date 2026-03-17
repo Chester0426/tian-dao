@@ -104,7 +104,7 @@ Weakest section: <name> (<score>/10)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/design-critic.json
+mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["layer1_functional","layer2_taste","layer3_antipattern","visual_regression"],"pages_reviewed":<N>}' > .claude/agent-traces/design-critic.json
 ```
 
 Replace `<verdict>` with your final verdict: `"pass"`, `"fixed"`, or `"unresolved"`.
