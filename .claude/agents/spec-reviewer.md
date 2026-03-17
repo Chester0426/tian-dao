@@ -123,7 +123,7 @@ is a FAIL — report the missing entry and behavior ID.
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/spec-reviewer.json
+mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["S1_features","S2_pages","S3_analytics","S4_golden_path","S5_system","S6_plan","S7_tdd","S8_process"]}' > .claude/agent-traces/spec-reviewer.json
 ```
 
 Replace `<verdict>` with your final verdict: `"PASS"` or `"FAIL"`.

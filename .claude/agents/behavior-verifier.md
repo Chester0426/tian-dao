@@ -189,7 +189,7 @@ If any FAIL:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/behavior-verifier.json
+mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["state_model","happy_path","error_path","system_smoke","state_continuity"],"tests_run":<N>,"tests_passed":<M>}' > .claude/agent-traces/behavior-verifier.json
 ```
 
 Replace `<verdict>` with your overall verdict: `"pass"`, `"pass with warnings"`, or `"FAIL"`.

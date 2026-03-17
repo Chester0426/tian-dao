@@ -148,7 +148,7 @@ If any pages exceed 200KB, add a note:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"performance-reporter","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/performance-reporter.json
+mkdir -p .claude/agent-traces && echo '{"agent":"performance-reporter","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["P1_build","P2_routes","P3_large_pages","P4_deps","P5_lighthouse","P6_api"],"metrics_checked":<N>}' > .claude/agent-traces/performance-reporter.json
 ```
 
 Replace `<verdict>` with `"pass"` if no warnings, or `"N warnings"` with the count.

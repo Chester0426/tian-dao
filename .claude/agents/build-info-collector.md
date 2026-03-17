@@ -55,7 +55,7 @@ Return one of:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>"}' > .claude/agent-traces/build-info-collector.json
+mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["diff_collected","summaries_written","template_files_listed"],"files_collected":<N>}' > .claude/agent-traces/build-info-collector.json
 ```
 
 Replace `<verdict>` with `"collected"` if fixes existed, or `"no-fixes"` if none.
