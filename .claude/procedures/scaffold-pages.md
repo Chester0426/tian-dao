@@ -73,11 +73,9 @@ For each entry in experiment.yaml `pages`:
 
 > **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its experiment/EVENTS.yaml event(s). Every user action listed in experiment/EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
 
-#### Self-review (web-app only)
-
-- Screenshot each generated page (follow `.claude/patterns/visual-review.md` for server setup)
-- Review per-section: any section below 8/10?
-- If yes, rewrite now
+> **Note:** Visual rendering review (screenshots, layout breaks, mobile responsiveness)
+> is performed by the design-critic agent in `/verify` (web-app only). Scaffold agents
+> are responsible for code-level quality via the Utility Self-Check above.
 
 ### service
 
