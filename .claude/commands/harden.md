@@ -3,7 +3,7 @@ description: "Transition an MVP to production quality mode. Scans code, plans ha
 type: code-writing
 reads:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, testing]
 requires_approval: true
@@ -124,7 +124,7 @@ modules:
     behaviors: [b-NN]
 context_files:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - .claude/archetypes/[archetype].md
   - [each .claude/stacks/<category>/<value>.md read in Step 1]
 ---

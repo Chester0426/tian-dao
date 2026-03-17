@@ -106,7 +106,7 @@ VARIABLE_NAME=description-or-example
      or production deployments. -->
 
 ## Analytics Integration
-- [Which EVENTS.yaml events this stack interacts with]
+- [Which experiment/EVENTS.yaml events this stack interacts with]
 - [Where to fire them]
 
 ## PR Instructions

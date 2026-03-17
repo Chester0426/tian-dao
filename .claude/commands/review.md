@@ -3,7 +3,7 @@ description: "Automated review-fix loop: find issues, fix them, validate, repeat
 type: code-writing
 reads:
   - CLAUDE.md
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - scripts/check-inventory.md
   - experiment/experiment.example.yaml
 stack_categories: []
@@ -21,7 +21,7 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 ## Step 0: Read context
 
 - Read `CLAUDE.md`
-- Read `EVENTS.yaml`
+- Read `experiment/EVENTS.yaml`
 - Read `scripts/check-inventory.md`
 - Read `experiment/experiment.example.yaml` (for understanding template structure)
 - **Check open observation issues** (use current repo via `gh`):
@@ -108,7 +108,7 @@ agent's prompt from:
 > **Shared context instruction** — include verbatim in every subagent prompt:
 >
 > Before reviewing, read these files:
-> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `experiment/experiment.example.yaml`, `EVENTS.yaml`.
+> Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `experiment/experiment.example.yaml`, `experiment/EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 **Dimension A: Cross-File Consistency**
@@ -431,7 +431,7 @@ If branch exists with changes:
 
 ## Do NOT
 
-- Modify experiment.yaml or EVENTS.yaml
+- Modify experiment.yaml or experiment/EVENTS.yaml
 - Enter plan mode or wait for user approval
 - Add new features or pages
 - Propose checks that regex-match natural-language prose

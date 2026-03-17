@@ -191,7 +191,7 @@
 ### Events
 | Event | Funnel Stage | Expected Location | Status | Issue |
 |-------|-------------|-------------------|--------|-------|
-| [event from EVENTS.yaml events map] | [funnel_stage] | [page] | ✅/❌/⚠️ | [issue or —] |
+| [event from experiment/EVENTS.yaml events map] | [funnel_stage] | [page] | ✅/❌/⚠️ | [issue or —] |
 
 ### Suggested Events (if any)
 - [event_name] — fires when [trigger] (add to events map with funnel_stage)

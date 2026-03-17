@@ -20,12 +20,12 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - Fill in the PR template at `.github/PULL_REQUEST_TEMPLATE.md` for every PR
 
 ## Rule 2: Analytics (when `stack.analytics` is present)
-- When `stack.analytics` is present in experiment.yaml, every page (web-app) or endpoint (service) and user action must fire events defined in `EVENTS.yaml` — that file is the **canonical** list of all events; always read it for the full specification. When `stack.analytics` is absent, skip analytics implementation entirely.
+- When `stack.analytics` is present in experiment.yaml, every page (web-app) or endpoint (service) and user action must fire events defined in `experiment/EVENTS.yaml` — that file is the **canonical** list of all events; always read it for the full specification. When `stack.analytics` is absent, skip analytics implementation entirely.
 - Use the analytics library for all tracking calls — never call the analytics provider directly. See your analytics stack file (`.claude/stacks/analytics/<value>.md`) for the file path, exports, and import conventions.
 - Use typed event wrappers (see analytics stack file) for standard and payment funnel events — this provides compile-time validation. For custom events, use the generic `track()` function. For server-side events (webhooks, API routes), use `trackServerEvent(event, distinctId, properties?)` from the server analytics library — `distinctId` identifies the user (e.g., `user.id`; use `"server"` when no user context is available). Typed wrappers are client-side only.
-- The analytics library auto-attaches global properties defined in EVENTS.yaml `global_properties` to every event — these distinguish experiments in the shared analytics project.
-- Wire each event from the EVENTS.yaml `events` map to its corresponding page, filtering by `requires` (match experiment stack) and `archetypes` (match experiment type). If no page provides a natural trigger for an event (e.g., no signup page), omit that event.
-- Events with `requires: [payment]` in EVENTS.yaml are included only when `stack.payment` is present in experiment.yaml.
+- The analytics library auto-attaches global properties defined in experiment/EVENTS.yaml `global_properties` to every event — these distinguish experiments in the shared analytics project.
+- Wire each event from the experiment/EVENTS.yaml `events` map to its corresponding page, filtering by `requires` (match experiment stack) and `archetypes` (match experiment type). If no page provides a natural trigger for an event (e.g., no signup page), omit that event.
+- Events with `requires: [payment]` in experiment/EVENTS.yaml are included only when `stack.payment` is present in experiment.yaml.
 - If you rename the project in experiment.yaml (`name` field), update the analytics library constants — see your analytics stack file for which constants to change.
 
 ## Rule 3: Use Stack from experiment.yaml

@@ -26,7 +26,7 @@
 - [ ] No unrelated changes bundled into this PR
 
 ### Analytics
-- [ ] All new/changed pages fire correct events from `EVENTS.yaml`
+- [ ] All new/changed pages fire correct events from `experiment/EVENTS.yaml`
 - [ ] All required event properties are included
 - [ ] `project_name` and `project_owner` are attached (via the analytics library)
 - [ ] No existing analytics were removed or broken

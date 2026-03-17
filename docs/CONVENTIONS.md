@@ -286,7 +286,7 @@ Two files, clear separation:
 | File | Purpose |
 |------|---------|
 | `src/lib/analytics.ts` | PostHog init, generic `track()`, `identify()`, `reset()` |
-| `src/lib/events.ts` | Typed event wrappers — one function per event from EVENTS.yaml |
+| `src/lib/events.ts` | Typed event wrappers — one function per event from experiment/EVENTS.yaml |
 
 ```ts
 // Client-side: use typed wrappers

@@ -3,7 +3,7 @@ description: "Use when you have analytics data and want to decide what to do nex
 type: analysis-only
 reads:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - experiment/ads.yaml
 stack_categories: [analytics]
 requires_approval: false
@@ -20,7 +20,7 @@ This skill does NOT write code. It helps you decide what action to take, then po
 - Verify `experiment/experiment.yaml` exists. If not, stop and tell the user: "No experiment found. Create `experiment/experiment.yaml` from the template first, then run `/bootstrap`."
 - If `package.json` does not exist, stop and tell the user: "No app found. Run `/bootstrap` first to create the app, then run `/iterate` to review its progress."
 - Run `npm run build`. If it fails, stop and tell the user: "The app has build errors. Run `/change fix build errors` to repair the codebase first, then return to `/iterate`."
-- Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
+- Verify `experiment/EVENTS.yaml` exists. If not, stop and tell the user: "experiment/EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the experiment/EVENTS.yaml section of the template."
 - Check if `stack.analytics` is present in experiment.yaml. If not, warn: "No analytics stack configured — skipping auto-query. You can provide funnel numbers manually in Step 2b, or add `analytics: posthog` to experiment.yaml `stack` and run `/change add analytics` for automated tracking." Skip Step 2a entirely and proceed to Step 2b.
 - Verify the app is deployed: check for `.claude/deploy-manifest.json`. If the file does not exist, warn: "No deployment detected — analytics only tracks live traffic. If you haven't deployed yet, run `/deploy` first, wait for traffic, then re-run `/iterate`. If you've deployed without using `/deploy` (manual deploy), you can proceed with manual funnel numbers in Step 2b." This is a warning, not a hard stop — the user may have deployed manually or want to provide estimates.
 - Read `experiment/experiment.yaml` — understand the hypothesis:
@@ -29,8 +29,8 @@ This skill does NOT write code. It helps you decide what action to take, then po
   - What does success look like? (`thesis`, hypothesis `metric` objects, `funnel` dimensions)
   - What behaviors exist? (`behaviors`)
   - What is the scope? (pages from `golden_path` for web-app, `endpoints` for service, `commands` for cli — from archetype's `required_experiment_fields`)
-- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Events are defined in EVENTS.yaml as a flat map with `funnel_stage` tags — filter by `requires` (match stack) and `archetypes` (match experiment type).
-- Read `EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Events are defined in experiment/EVENTS.yaml as a flat map with `funnel_stage` tags — filter by `requires` (match stack) and `archetypes` (match experiment type).
+- Read `experiment/EVENTS.yaml` — understand what's being tracked (this is the canonical list of all events)
 - If `.claude/spec-manifest.json` exists, read it for hypothesis context (used in Step 3.5 for per-hypothesis verdicts)
 
 ## Step 2: Gather funnel data and user feedback
@@ -45,8 +45,8 @@ If the auto-query succeeds, present the results for user verification:
 ## Auto-fetched Funnel Data (last <N> days)
 | Event | Unique Users |
 |-------|-------------|
-| <first event from EVENTS.yaml> | <count> |
-| <second event from EVENTS.yaml> | <count> |
+| <first event from experiment/EVENTS.yaml> | <count> |
+| <second event from experiment/EVENTS.yaml> | <count> |
 | ... | ... |
 Source: Analytics Query API (project_name = "<name>")
 **Please verify.** Reply "looks good" to proceed, or provide corrections.
@@ -66,19 +66,19 @@ Tell the user how to get the numbers. See the analytics stack file's "Dashboard 
 > **How to get your funnel numbers:**
 > Follow the dashboard instructions in your analytics stack file (`.claude/stacks/analytics/<value>.md`).
 >
-> Create a funnel using events from the EVENTS.yaml `events` map, filtered by `requires` (match experiment stack) and `archetypes` (match experiment type), ordered by funnel_stage (reach → demand → activate → monetize → retain).
+> Create a funnel using events from the experiment/EVENTS.yaml `events` map, filtered by `requires` (match experiment stack) and `archetypes` (match experiment type), ordered by funnel_stage (reach → demand → activate → monetize → retain).
 >
 > Filter by `project_name` equals your experiment.yaml `name` value. Present the actual event names to the user so they can find them in their dashboard.
 >
 > If you haven't deployed yet, the app isn't collecting data. For web-app and service archetypes, run `/deploy` first; for CLI archetypes, publish via `npm publish` or GitHub Releases (see the archetype file). Then return to `/iterate` after a few days of live traffic. For CLI tools with no surface (`surface: none`), `/deploy` and `/distribute` do not apply — publish manually and collect feedback directly from users. If you haven't set up analytics yet, rough estimates are fine too (e.g., "about 200 landing page visits, maybe 20 signups").
 
-Ask the user to provide funnel numbers — for each event in the EVENTS.yaml `events` map (filtered by `requires` and `archetypes`), how many users? Present the actual event names from EVENTS.yaml so the user knows what to look for in their dashboard.
+Ask the user to provide funnel numbers — for each event in the experiment/EVENTS.yaml `events` map (filtered by `requires` and `archetypes`), how many users? Present the actual event names from experiment/EVENTS.yaml so the user knows what to look for in their dashboard.
 
 ### 2c: Ask for qualitative data
 
 Whether funnel numbers came from auto-query (2a) or manual input (2b), also ask the user to provide whatever they have. Not all of these will be available — use what you get:
 
-1. **Additional event numbers** — if EVENTS.yaml has events not already fetched in 2a (e.g., archetype-specific events), ask for counts of each. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
+1. **Additional event numbers** — if experiment/EVENTS.yaml has events not already fetched in 2a (e.g., archetype-specific events), ask for counts of each. Include these in the Step 4 diagnosis as supplementary data below the standard funnel table.
 
 2. **Timeline** — how far into the experiment timeline are we?
 
@@ -191,7 +191,7 @@ Analyze the data to find where the funnel breaks. Present a funnel visualization
 |-------|-------|-----------|-----------|
 | [1st funnel event] | [count] | — | [diagnosis] |
 | [2nd funnel event] | [count] | [%] | ⚠️/✅/❌ [specific diagnosis] |
-| ... (one row per event from EVENTS.yaml events map, filtered by requires/archetypes) | ... | ... | ... |
+| ... (one row per event from experiment/EVENTS.yaml events map, filtered by requires/archetypes) | ... | ... | ... |
 | [monetize-stage events if stack.payment present] | ... | ... | ... |
 | [retain_return] | [count] | — | [retention diagnosis] |
 
@@ -220,7 +220,7 @@ Map funnel metrics to validation dimensions. Score each 0-100 as `(actual / thre
 
 - If experiment level < dimension level, show "—" for that row with "(not tested at this level)"
 - Confidence per-dimension is based on sample size (same tags as Step 3.5)
-- Threshold sourcing (in priority order): (1) highest-priority hypothesis per dimension's `metric.threshold` from spec-manifest.json (hypotheses are mapped to dimensions by category), (2) EVENTS.yaml funnel benchmarks as fallback. Funnel dimensions in experiment.yaml carry only `available_from` — dimension thresholds are derived from hypotheses, not from the funnel config directly.
+- Threshold sourcing (in priority order): (1) highest-priority hypothesis per dimension's `metric.threshold` from spec-manifest.json (hypotheses are mapped to dimensions by category), (2) experiment/EVENTS.yaml funnel benchmarks as fallback. Funnel dimensions in experiment.yaml carry only `available_from` — dimension thresholds are derived from hypotheses, not from the funnel config directly.
 
 #### Descriptive funnel labels by archetype
 

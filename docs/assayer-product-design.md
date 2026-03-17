@@ -1238,7 +1238,7 @@ deploy:
 Per hypothesis: parse `metric.formula`, compute from event counts, compare with `metric.threshold` using `metric.operator`.
 Verdict: CONFIRMED / REJECTED / INCONCLUSIVE.
 
-**Funnel stage mapping:** Each event in EVENTS.yaml has a `funnel_stage` tag (reach, demand, activate, monetize, retain) that directly maps it to the corresponding validation dimension. No separate mapping table is needed — the dimension is explicit on each event definition.
+**Funnel stage mapping:** Each event in experiment/EVENTS.yaml has a `funnel_stage` tag (reach, demand, activate, monetize, retain) that directly maps it to the corresponding validation dimension. No separate mapping table is needed — the dimension is explicit on each event definition.
 
 ---
 

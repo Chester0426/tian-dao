@@ -26,7 +26,7 @@ You are a world-champion of persuasion. Your landing page is the absolute limit 
 
 - Read existing theme tokens from `src/app/globals.css` — do not change them
 - Follow messaging.md for copy derivation (headline = outcome, CTA = action verb + outcome)
-- Wire analytics events per EVENTS.yaml
+- Wire analytics events per experiment/EVENTS.yaml
 - Build must pass after your changes
 
 ## Persuasion Self-Check (verify before shipping)

@@ -93,7 +93,7 @@ Rules:
 Verify before any changes begin:
 
 1. `package.json` exists in project root
-2. `EVENTS.yaml` exists in project root
+2. `experiment/EVENTS.yaml` exists
 3. The change description ($ARGUMENTS, from the invocation prompt) is non-empty
 4. `npm run build` passes (skip if change type is Fix)
 

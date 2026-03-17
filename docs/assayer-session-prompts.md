@@ -53,7 +53,7 @@ Checkpoint 失败时：修复问题后重新验证，不继续下一个 phase。
 |---------|--------|-------------|-------|
 | -1 | TODO | — | External Service Setup（人工操作，非 Session）|
 | 0 | TODO | — | mvp-template 补全（在 mvp-template repo 执行）|
-| 1 | TODO | — | experiment.yaml + EVENTS.yaml (manual) |
+| 1 | TODO | — | experiment.yaml + experiment/EVENTS.yaml (manual) |
 | 2 | TODO | — | /bootstrap |
 | 2.5 | TODO | — | Style Contract (CONVENTIONS.md) |
 | 3 | TODO | — | DB schema (19 tables) + RLS + Auth + Core CRUD + Portfolio tables |
@@ -507,9 +507,9 @@ branch: `feat/iterate-distribute-enhancements`
 
 ## Phase 1: Foundation
 
-### Session 1 — Repo + experiment.yaml + EVENTS.yaml (manual)
+### Session 1 — Repo + experiment.yaml + experiment/EVENTS.yaml (manual)
 
-**目标**：创建仓库，手动编写 experiment.yaml 和 EVENTS.yaml。
+**目标**：创建仓库，手动编写 experiment.yaml 和 experiment/EVENTS.yaml。
 
 **输入**：无（从零开始）
 
@@ -686,7 +686,7 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    target_clicks: 5
    注意：signup 不是独立页面，是 Assay 页面上的 modal overlay（ux-design.md Screen 3）。
    compare 和 settings 不在 golden_path 中（它们是补充页面），但包含在 Pages 列表中。
-   Event names 必须与 EVENTS.yaml 中定义的 event 名称一致。
+   Event names 必须与 experiment/EVENTS.yaml 中定义的 event 名称一致。
 
 6. Variants — Assayer 自身的 A/B messaging（4 个 variant，每对 headline 词汇差异 >30%）：
    - slug: verdict-machine
@@ -748,7 +748,7 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
      refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
    （具体阈值已在 Section 3 hypotheses 中定义，funnel 只需 available_from + decision_framework。）
 
-8. 同时编写 EVENTS.yaml，按页面分组定义所有 analytics events（~50 events）：
+8. 同时编写 experiment/EVENTS.yaml，按页面分组定义所有 analytics events（~50 events）：
    global_properties: { experiment_name: "assayer", experiment_id: "platform" }
 
    Landing（4 events）:
@@ -826,7 +826,7 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    landing, assay, launch, experiment, verdict, lab, compare, settings
    （共 8 个 page.tsx。signup 是 modal overlay on /assay，不是独立页面）
 
-验证：experiment.yaml 格式正确，包含全部 7 个 sections（Identity, Intent, Behaviors, Journey, Variants, Funnel, Stack），behaviors 覆盖所有 pages 和 API route groups，golden_path events 与 EVENTS.yaml 中的 event 名称一致，hypotheses formulas 引用 EVENTS.yaml 中定义的 events。
+验证：experiment.yaml 格式正确，包含全部 7 个 sections（Identity, Intent, Behaviors, Journey, Variants, Funnel, Stack），behaviors 覆盖所有 pages 和 API route groups，golden_path events 与 experiment/EVENTS.yaml 中的 event 名称一致，hypotheses formulas 引用 experiment/EVENTS.yaml 中定义的 events。
 ```
 
 ---
@@ -1497,7 +1497,7 @@ e. 返回 { experiment_id }
    - 确认 19 张表（17 core + portfolio_insights + budget_allocations）+ 2 infra tables（rate_limit_entries, stripe_webhook_events）的 migration 存在于 supabase/migrations/ 且语法正确
    - 确认所有表启用 RLS 且有对应 policies
    - 确认 docs/CONVENTIONS.md 存在且包含 12 sections
-   - 确认 experiment/experiment.yaml 和 EVENTS.yaml 格式正确（YAML 可解析）
+   - 确认 experiment/experiment.yaml 和 experiment/EVENTS.yaml 格式正确（YAML 可解析）
 
 3. behavior.tests 覆盖验证（quality: production）：
    读 experiment/experiment.yaml 中 behaviors b-16 到 b-29（API + system/cron behaviors）。

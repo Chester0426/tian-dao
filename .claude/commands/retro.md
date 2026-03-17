@@ -3,7 +3,7 @@ description: "Use at the end of an experiment or when the measurement window end
 type: analysis-only
 reads:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
 stack_categories: []
 requires_approval: false
 references: []
@@ -16,7 +16,7 @@ Run a structured retrospective for the current experiment and file it as a GitHu
 
 Verify `experiment/experiment.yaml` exists. If not, stop and tell the user: "No experiment found — `experiment/experiment.yaml` is missing. Make sure you're in the right project directory."
 
-Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
+Verify `experiment/EVENTS.yaml` exists. If not, stop and tell the user: "experiment/EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the experiment/EVENTS.yaml section of the template."
 
 If `package.json` does not exist, warn: "No app found — this retro will be based on your qualitative feedback only. If you want to include analytics data, run `/bootstrap` and `/deploy` first."
 
@@ -37,7 +37,7 @@ Collect these data points and present a summary before asking questions:
 
 3. **Spec files**
    - Read `experiment/experiment.yaml` — extract experiment name, description, target user, thesis, funnel thresholds
-   - Read `EVENTS.yaml` — list events being tracked
+   - Read `experiment/EVENTS.yaml` — list events being tracked
 
 Present the summary and then proceed to Step 2.
 
@@ -107,5 +107,5 @@ After filing the retro, guide the user:
 ## Do NOT
 - Modify any code files
 - Create branches or PRs
-- Change experiment.yaml, EVENTS.yaml, or any spec file
+- Change experiment.yaml, experiment/EVENTS.yaml, or any spec file
 - Install or remove packages

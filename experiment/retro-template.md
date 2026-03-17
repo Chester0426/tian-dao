@@ -11,7 +11,7 @@ Claude runs these commands and presents a summary:
 - Count pages in `src/app/` (excluding `api/`)
 - Count production dependencies from `package.json`
 - Read `idea/experiment.yaml` — experiment name, title, target user, thesis
-- Read `EVENTS.yaml` — events being tracked
+- Read `experiment/EVENTS.yaml` — events being tracked
 
 ## Part 2: Four Questions (Claude asks these one at a time)
 

@@ -30,7 +30,7 @@ live under `/api/*`.
 
 ## Funnel
 
-Events are defined in EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack. The `api_call` event has `archetypes: [service]` — include it for service experiments.
+Events are defined in experiment/EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack. The `api_call` event has `archetypes: [service]` — include it for service experiments.
 
 When a surface is configured (default: `co-located`), `visit_landing` fires on the surface — providing a complete acquisition → activation → retention funnel.
 
@@ -66,7 +66,7 @@ or API marketplace listings.
 
 ## Conventions
 
-- Every endpoint fires analytics events per EVENTS.yaml (server-side)
+- Every endpoint fires analytics events per experiment/EVENTS.yaml (server-side)
 - No landing page requirement — `validate-experiment.py` skips landing checks
 - No UI components — the `ui` stack category is excluded
 - Database access uses RLS (Row-Level Security) when auth is configured

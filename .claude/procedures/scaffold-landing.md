@@ -47,11 +47,11 @@ varies by archetype:
 **web-app + co-located** (React component):
 - Include: theme tokens (globals.css custom properties, tailwind config from
   Step 1), available shadcn/ui components, framework page conventions from
-  framework stack file. Derive analytics function signatures from EVENTS.yaml —
+  framework stack file. Derive analytics function signatures from experiment/EVENTS.yaml —
   the `src/lib/events.ts` file will exist at build time (created by the libs
   subagent running in parallel)
 - If no `variants`: write `src/app/page.tsx` — a complete React landing
-  page component. Must fire `visit_landing` on mount with EVENTS.yaml properties.
+  page component. Must fire `visit_landing` on mount with experiment/EVENTS.yaml properties.
 - If `variants`: write `src/components/landing-content.tsx` — a shared
   `LandingContent` component that accepts variant props (headline, subheadline,
   cta, pain_points). Features section is shared across variants (from experiment.yaml

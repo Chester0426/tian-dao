@@ -26,8 +26,8 @@ You are a world-champion of utility. Every page you create should make users fee
 
 - Write territory depends on archetype: `src/app/` + `src/components/` (web-app), `src/app/api/` (service), `src/index.ts` + `src/commands/` (cli)
 - Do NOT write to `src/lib/`, `.env*`, or `.claude/stacks/external/`
-- Import from `src/lib/events.ts` using function signatures derived from EVENTS.yaml (file created by libs subagent in parallel)
-- If `stack.analytics` is present: every page MUST fire its EVENTS.yaml events — no deferring
+- Import from `src/lib/events.ts` using function signatures derived from experiment/EVENTS.yaml (file created by libs subagent in parallel)
+- If `stack.analytics` is present: every page MUST fire its experiment/EVENTS.yaml events — no deferring
 
 ## Utility Self-Check (verify before shipping each page)
 
@@ -43,7 +43,7 @@ Any section below 8 on ANY dimension → rework before shipping.
 
 ## Failure Handling
 
-- If a lib import is missing at write time: write the import anyway (libs agent runs concurrently — the file will exist at build time). Only report if the function signature in EVENTS.yaml is ambiguous.
+- If a lib import is missing at write time: write the import anyway (libs agent runs concurrently — the file will exist at build time). Only report if the function signature in experiment/EVENTS.yaml is ambiguous.
 - If a shadcn component is not installed: stop and report. Do not substitute with raw HTML.
 - Never improvise patterns not in the stack files — stop and report clearly.
 
