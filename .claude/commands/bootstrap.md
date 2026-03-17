@@ -25,242 +25,481 @@ modifies_specs: false
 ---
 Bootstrap the MVP from experiment.yaml.
 
-## Step 0: Branch Setup
+## State Index
+
+| State | Name | Phase | Key Gate |
+|-------|------|-------|----------|
+| 0 | BRANCH_SETUP | Plan | — |
+| 1 | READ_CONTEXT | Plan | — |
+| 2 | RESOLVE_ARCHETYPE_STACK | Plan | — |
+| 3 | VALIDATE_EXPERIMENT | Plan | — |
+| 3a | BG1_GATE | Plan | BG1 |
+| 3b | DUPLICATE_CHECK | Plan | — |
+| 4 | CHECK_PRECONDITIONS | Plan | — |
+| 5 | PRESENT_PLAN | Plan | — |
+| 6 | USER_APPROVAL | Plan | — |
+| 7 | SAVE_PLAN | Plan | — |
+| 8 | PREFLIGHT | Implement | — |
+| 9 | SETUP_PHASE | Implement | — |
+| 10 | DESIGN_PHASE | Implement | — |
+| 11 | PARALLEL_SCAFFOLD | Implement | — |
+| 12 | EXTERNALS_DECISIONS | Implement | BG2.5 |
+| 13 | MERGED_VALIDATION | Implement | BG2 |
+| 14 | WIRE_PHASE | Implement | — |
+| 15 | COMMIT_AND_PUSH | Implement | BG4 |
+
+---
+
+## STATE 0: BRANCH_SETUP
+
+**PRECONDITIONS**
+- Git repository exists in working directory
+- Current branch is `main` (or resuming on existing `feat/bootstrap*` branch)
+
+**ACTIONS**
 
 Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch prefix `feat` and branch name `feat/bootstrap`.
 
 > **If resuming from a failed bootstrap:** see `.claude/patterns/recovery.md` for recovery options.
 
-## Phase 1: Plan (BEFORE writing any code)
+**POSTCONDITIONS**
+- Current branch is `feat/bootstrap` (or `feat/bootstrap-N` if prior branch exists)
+- Branch is not `main`
 
-DO NOT write any code, create any files, or run any install commands during this phase.
+**VERIFY**
+- `git branch --show-current` returns `feat/bootstrap*`
 
-1. **Read context files**
-   - Read `experiment/experiment.yaml` — this is the single source of truth
-   - Read `experiment/EVENTS.yaml` — these are the canonical analytics events to wire up
-   - Read `CLAUDE.md` — these are the rules to follow
+**NEXT** -> STATE 1
 
-2. **Resolve the archetype and stack**
-   - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). The archetype defines required experiment.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per experiment.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
-   - Read experiment.yaml `stack`. For each category present in experiment.yaml `stack`, read `.claude/stacks/<category>/<value>.md`. Which categories are required, optional, or excluded depends on the archetype (see the archetype file's `required_stacks`, `optional_stacks`, and `excluded_stacks` fields).
-   - If a stack file doesn't exist for a given value:
-     1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
-     2. Read existing stack files in the same category (`.claude/stacks/<category>/*.md`) as reference for conventions and structure. If no files exist in that category, read a well-populated stack file from another category (e.g., `database/supabase.md` or `analytics/posthog.md`) as a structural reference.
-     3. Generate `.claude/stacks/<category>/<value>.md` with:
-        - Complete frontmatter (assumes, packages, files, env, ci_placeholders, clean, gitignore) — populate each field based on knowledge of the technology. Use empty lists/dicts for fields that genuinely don't apply.
-        - Code templates for library files and route handlers using `### \`path\`` heading format.
-        - Environment Variables, Packages, and Patterns sections following the TEMPLATE.md structure.
-     4. Run `python3 scripts/validate-frontmatter.py` to verify the generated file passes structural checks. If it fails, fix the frontmatter and re-run (max 2 attempts). If still failing, stop and tell the user: "Could not generate a valid stack file for `<category>/<value>`. Create `.claude/stacks/<category>/<value>.md` manually using TEMPLATE.md as a guide, then re-run `/bootstrap`."
-     5. Tell the user: "Generated `.claude/stacks/<category>/<value>.md` — this is auto-generated from Claude's knowledge and has not been team-reviewed. Review it after bootstrap completes."
-     6. File an observation per `.claude/patterns/observe.md` noting the missing stack file, so the template repo can add a reviewed version.
-     7. Continue bootstrap using the generated stack file.
-   - These files define packages, library files, env vars, and patterns for each technology.
-   - For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
+---
 
-3. **Validate experiment.yaml**
-   - Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `owner`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_experiment_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
-   - If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
-   - If the archetype requires pages (web-app): verify `golden_path` includes at least one entry with `page: landing`
-   - If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
-   - If the archetype requires `commands` (cli): verify `commands` is a non-empty list
-   - Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
-   - For each category in the archetype's `excluded_stacks` list: if that category is present in experiment.yaml `stack`, stop and tell the user: "The `<archetype>` archetype excludes `<category>`. Remove `<category>: <value>` from your experiment.yaml `stack` section, or switch to a different archetype."
-   - If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your experiment.yaml `stack` section."
-   - If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
-   - If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your experiment.yaml `stack` section."
-   - If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
-   - If `stack.testing` is `playwright` and archetype is `service` or `cli`: stop and tell the user: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` (or another server-side test runner) instead."
-   - If `quality: production` is set in experiment.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to experiment.yaml `stack`."
-   - If `stack.auth_providers` is present:
-     - Verify `stack.auth` is also present. If not: stop — "OAuth providers require an auth system. Add `auth: supabase` to your experiment.yaml `stack` section."
-     - Verify it is a non-empty list of strings. If empty: stop — "auth_providers is empty. Either add providers (e.g., `[google, github]`) or remove the field."
-     - Warn (don't stop) for unrecognized slugs — Supabase may add new providers.
-   - If `variants` is present in experiment.yaml, validate the variants list:
-     - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
-     - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
-     - Each `slug` must be lowercase, start with a letter, and use only a-z, 0-9, hyphens
-     - Slugs must be unique across all variants
-     - No slug may collide with a page name from `golden_path`
-     - `pain_points` must have exactly 3 items per variant
-     - If any validation fails: stop and list the specific errors
+## STATE 1: READ_CONTEXT
 
-- **BG1 Validation Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG1 Validation Gate. Read experiment/experiment.yaml and verify: all required fields present and non-empty, name is lowercase-hyphen, no TODO values, archetype-specific field present, stack dependency rules (payment→auth+db, email→auth+db), quality:production→testing, variants structure if present." If gate-keeper returns BLOCK, stop and report — do NOT present the plan until validation passes.
+**PRECONDITIONS**
+- On `feat/bootstrap*` branch (STATE 0 POSTCONDITIONS met)
 
-3b. **Check for duplicate experiments and update repo description**
+**ACTIONS**
 
-   1. Detect the GitHub org: run `gh repo view --json owner --jq '.owner.login'`.
-      If this fails (not a GitHub repo, or `gh` not authed), skip this entire step silently.
+DO NOT write any code, create any files, or run any install commands during States 1-7.
 
-   2. Update the repo description with experiment.yaml `name` and `description` (first line):
-      ```bash
-      gh repo edit --description "<experiment.yaml name>: <first line of description>"
-      ```
-      If this fails, warn but continue — description is cosmetic.
+Read these three context files:
+- Read `experiment/experiment.yaml` — this is the single source of truth
+- Read `experiment/EVENTS.yaml` — these are the canonical analytics events to wire up
+- Read `CLAUDE.md` — these are the rules to follow
 
-   3. Hard check — name collision:
-      Run `gh repo list <org> --json name,url --limit 200 --no-archived`.
-      If any repo name exactly matches experiment.yaml `name` AND is not the current repo,
-      stop: "A repo named '<name>' already exists in <org>: <url>. Pick a different
-      `name` in experiment.yaml or confirm with the team that this is intentional."
+**POSTCONDITIONS**
+- All three files have been read: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`, `CLAUDE.md`
+- Their contents are in context for subsequent states
 
-   4. Soft check — LLM-filtered duplicate detection:
-      Run `gh repo list <org> --json name,description,url --limit 200 --no-archived`.
-      Exclude the current repo from the list. Review the remaining repo names and
-      descriptions against the current experiment.yaml (`name`, `description`,
-      `target_user`). Identify repos that appear to solve a substantially similar
-      problem for a similar audience.
+**VERIFY**
+- All three files exist: `test -f experiment/experiment.yaml && test -f experiment/EVENTS.yaml && test -f CLAUDE.md`
 
-      If no suspicious matches → proceed silently.
+**NEXT** -> STATE 2
 
-      If suspicious matches found → present them:
+---
 
-      > **Potential overlaps detected.** These existing experiments may overlap with yours:
-      >
-      > | Repo | Description | Link |
-      > |------|-------------|------|
-      > | ... | ... | https://github.com/\<org\>/... |
-      >
-      > **Why these flagged:** [1-sentence reason per repo]
-      >
-      > If these are intentionally different (different audience, angle, or distribution),
-      > proceed. If this is an accidental duplicate, stop and coordinate with the team.
+## STATE 2: RESOLVE_ARCHETYPE_STACK
 
-      Wait for user confirmation before proceeding.
+**PRECONDITIONS**
+- Context files read (STATE 1 POSTCONDITIONS met)
+- `experiment/experiment.yaml` content is in context
 
-4. **Check preconditions**
-   - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`:
-     1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
-        - Parse `archetype`, `stack`, and `checkpoint` from frontmatter
-        - Use these values directly — do NOT re-resolve archetype or stack
-        - Read archetype file and stack files using frontmatter values
-        - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
-        - Resume at the phase indicated by `checkpoint`:
-          - `phase2-setup` → Setup Phase
-          - `phase2-design` → Design Phase (setup done)
-          - `phase2-scaffold` → Parallel Scaffold Phase (design done)
-          - `phase2-wire` → Wire Phase (scaffold done)
-          - `awaiting-verify` → Bootstrap complete. Run `/verify` to validate and create PR.
-        - Tell user: "Resuming bootstrap from [checkpoint]. Archetype: [archetype]."
-     2. If no frontmatter (old format): fall back to current behavior — skip Phase 1, jump to Phase 2: Step 1.
-   - If `package.json` exists AND the `src/` directory contains application files (check for any `.ts` or `.tsx` files): stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
-   - If `package.json` exists but the `src/` directory does NOT contain application files: warn the user: "A previous bootstrap may have partially completed. I'll continue from the beginning — packages may be reinstalled." Note: the branch name `feat/bootstrap` may already exist from the previous attempt. If so, this run will use `feat/bootstrap-2` — you can delete the old branch later with `git branch -d feat/bootstrap`. Then proceed.
+**ACTIONS**
 
-5. **Present the plan** in plain language the user can verify:
+- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). The archetype defines required experiment.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per experiment.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
+- Read experiment.yaml `stack`. For each category present in experiment.yaml `stack`, read `.claude/stacks/<category>/<value>.md`. Which categories are required, optional, or excluded depends on the archetype (see the archetype file's `required_stacks`, `optional_stacks`, and `excluded_stacks` fields).
+- If a stack file doesn't exist for a given value:
+  1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
+  2. Read existing stack files in the same category (`.claude/stacks/<category>/*.md`) as reference for conventions and structure. If no files exist in that category, read a well-populated stack file from another category (e.g., `database/supabase.md` or `analytics/posthog.md`) as a structural reference.
+  3. Generate `.claude/stacks/<category>/<value>.md` with:
+     - Complete frontmatter (assumes, packages, files, env, ci_placeholders, clean, gitignore) — populate each field based on knowledge of the technology. Use empty lists/dicts for fields that genuinely don't apply.
+     - Code templates for library files and route handlers using `### \`path\`` heading format.
+     - Environment Variables, Packages, and Patterns sections following the TEMPLATE.md structure.
+  4. Run `python3 scripts/validate-frontmatter.py` to verify the generated file passes structural checks. If it fails, fix the frontmatter and re-run (max 2 attempts). If still failing, stop and tell the user: "Could not generate a valid stack file for `<category>/<value>`. Create `.claude/stacks/<category>/<value>.md` manually using TEMPLATE.md as a guide, then re-run `/bootstrap`."
+  5. Tell the user: "Generated `.claude/stacks/<category>/<value>.md` — this is auto-generated from Claude's knowledge and has not been team-reviewed. Review it after bootstrap completes."
+  6. File an observation per `.claude/patterns/observe.md` noting the missing stack file, so the template repo can add a reviewed version.
+  7. Continue bootstrap using the generated stack file.
+- These files define packages, library files, env vars, and patterns for each technology.
+- For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
 
+**POSTCONDITIONS**
+- Archetype file read and type recorded
+- All stack files for categories in experiment.yaml `stack` exist and have been read
+- All `assumes` entries validated — no incompatibilities
+
+**VERIFY**
+- Glob `.claude/stacks/**/*.md` returns a file for each category in experiment.yaml `stack`
+- Archetype file `.claude/archetypes/<type>.md` exists
+
+**NEXT** -> STATE 3
+
+---
+
+## STATE 3: VALIDATE_EXPERIMENT
+
+**PRECONDITIONS**
+- Archetype and stack resolved (STATE 2 POSTCONDITIONS met)
+- All stack files and archetype file are in context
+
+**ACTIONS**
+
+- Every one of these fields must be present and non-empty (strings must be non-blank, lists must have at least one item): `name`, `owner`, `type`, `description`, `thesis`, `target_user`, `distribution`, `behaviors`, `stack`, plus fields from the archetype's `required_experiment_fields` (e.g., `golden_path` for web-app, `endpoints` for service)
+- If ANY field still contains "TODO" or is missing: stop, list exactly which fields need to be filled in, and do nothing else
+- If the archetype requires pages (web-app): verify `golden_path` includes at least one entry with `page: landing`
+- If the archetype requires `endpoints` (service): verify `endpoints` is a non-empty list
+- If the archetype requires `commands` (cli): verify `commands` is a non-empty list
+- Verify `name` is lowercase with hyphens only (no spaces, no uppercase)
+- For each category in the archetype's `excluded_stacks` list: if that category is present in experiment.yaml `stack`, stop and tell the user: "The `<archetype>` archetype excludes `<category>`. Remove `<category>: <value>` from your experiment.yaml `stack` section, or switch to a different archetype."
+- If `stack.payment` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Payment requires authentication to identify the paying user. Add `auth: supabase` (or another auth provider) to your experiment.yaml `stack` section."
+- If `stack.payment` is present, verify `stack.database` is also present. If not: stop and tell the user: "Payment requires a database to record transaction state. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
+- If `stack.email` is present, verify `stack.auth` is also present. If not: stop and tell the user: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to your experiment.yaml `stack` section."
+- If `stack.email` is present, verify `stack.database` is also present. If not: stop and tell the user: "Email nudge requires a database to check user activation status. Add `database: supabase` (or another database provider) to your experiment.yaml `stack` section."
+- If `stack.testing` is `playwright` and archetype is `service` or `cli`: stop and tell the user: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` (or another server-side test runner) instead."
+- If `quality: production` is set in experiment.yaml: verify `stack.testing` is present. If absent: stop — "Production quality requires a testing framework. Add `testing: playwright` (web-app) or `testing: vitest` (service/cli) to experiment.yaml `stack`."
+- If `stack.auth_providers` is present:
+  - Verify `stack.auth` is also present. If not: stop — "OAuth providers require an auth system. Add `auth: supabase` to your experiment.yaml `stack` section."
+  - Verify it is a non-empty list of strings. If empty: stop — "auth_providers is empty. Either add providers (e.g., `[google, github]`) or remove the field."
+  - Warn (don't stop) for unrecognized slugs — Supabase may add new providers.
+- If `variants` is present in experiment.yaml, validate the variants list:
+  - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
+  - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
+  - Each `slug` must be lowercase, start with a letter, and use only a-z, 0-9, hyphens
+  - Slugs must be unique across all variants
+  - No slug may collide with a page name from `golden_path`
+  - `pain_points` must have exactly 3 items per variant
+  - If any validation fails: stop and list the specific errors
+
+**POSTCONDITIONS**
+- All required fields present and non-empty
+- `name` matches `^[a-z][a-z0-9-]*$`
+- No TODO values remain
+- Archetype-specific fields validated
+- Stack dependency rules satisfied (payment→auth+db, email→auth+db)
+- Quality/testing dependency satisfied if applicable
+- Variant structure valid if applicable
+
+**VERIFY**
+- Validation is the verify — each check above is a pass/fail assertion. All must pass.
+
+**NEXT** -> STATE 3a
+
+---
+
+## STATE 3a: BG1_GATE
+
+**PRECONDITIONS**
+- All validations pass (STATE 3 POSTCONDITIONS met)
+
+**ACTIONS**
+
+Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG1 Validation Gate. Read experiment/experiment.yaml and verify: all required fields present and non-empty, name is lowercase-hyphen, no TODO values, archetype-specific field present, stack dependency rules (payment→auth+db, email→auth+db), quality:production→testing, variants structure if present."
+
+If gate-keeper returns BLOCK, stop and report — do NOT proceed until validation passes.
+
+**POSTCONDITIONS**
+- BG1 Validation Gate verdict is PASS
+
+**VERIFY**
+- Gate-keeper returned `**Verdict: PASS**`
+
+**NEXT** -> STATE 3b
+
+---
+
+## STATE 3b: DUPLICATE_CHECK
+
+**PRECONDITIONS**
+- BG1 PASS (STATE 3a POSTCONDITIONS met)
+
+**ACTIONS**
+
+1. Detect the GitHub org: run `gh repo view --json owner --jq '.owner.login'`.
+   If this fails (not a GitHub repo, or `gh` not authed), skip this entire state silently.
+
+2. Update the repo description with experiment.yaml `name` and `description` (first line):
+   ```bash
+   gh repo edit --description "<experiment.yaml name>: <first line of description>"
    ```
-   ## What I'll Build
+   If this fails, warn but continue — description is cosmetic.
 
-   **Pages:**
-   - Landing Page (/) — [purpose from experiment.yaml]
-   - [Page Name] (/route) — [purpose from experiment.yaml]
-   - ...
+3. Hard check — name collision:
+   Run `gh repo list <org> --json name,url --limit 200 --no-archived`.
+   If any repo name exactly matches experiment.yaml `name` AND is not the current repo,
+   stop: "A repo named '<name>' already exists in <org>: <url>. Pick a different
+   `name` in experiment.yaml or confirm with the team that this is intentional."
 
-   **Behaviors:**
-   - [b-NN: behavior description] → built in [file(s)]
-   - [b-NN: behavior description] → built in [file(s)]
-   - ...
+4. Soft check — LLM-filtered duplicate detection:
+   Run `gh repo list <org> --json name,description,url --limit 200 --no-archived`.
+   Exclude the current repo from the list. Review the remaining repo names and
+   descriptions against the current experiment.yaml (`name`, `description`,
+   `target_user`). Identify repos that appear to solve a substantially similar
+   problem for a similar audience.
 
-   **Variants (if experiment.yaml has `variants`):**
-   - [slug] — "[headline]" → /v/[slug]
-   - [slug] — "[headline]" → /v/[slug]
-   - Root `/` renders: [first variant slug]
+   If no suspicious matches → proceed silently.
 
-   **Database Tables (if any):**
-   - [table name] — stores [what]
-   - ...
+   If suspicious matches found → present them:
 
-   **External Dependencies (decided in Phase 2, Step 4b):**
-   - [service] — [credentials needed] — **core** — must integrate (credentials at bootstrap or /deploy)
-   - [service] — [credentials needed] — **non-core** — Fake Door (default) / Skip / Full Integration
-   - ...
-   - (Or: "None — all features use stack-managed services")
+   > **Potential overlaps detected.** These existing experiments may overlap with yours:
+   >
+   > | Repo | Description | Link |
+   > |------|-------------|------|
+   > | ... | ... | https://github.com/\<org\>/... |
+   >
+   > **Why these flagged:** [1-sentence reason per repo]
+   >
+   > If these are intentionally different (different audience, angle, or distribution),
+   > proceed. If this is an accidental duplicate, stop and coordinate with the team.
 
-   Core = removing it prevents users from validating the thesis.
+   Wait for user confirmation before proceeding.
 
-   **Analytics Events:**
-   - [For each event in experiment/EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
+**POSTCONDITIONS**
+- No name collision found, OR user confirmed intentional overlap
+- Repo description updated (or skipped if gh unavailable)
 
-   **Golden Path (from experiment.yaml):**
-   | Step | Page | Event |
-   |------|------|-------|
-   | 1. [step] | [page] | [event] |
-   Target: [target_clicks] clicks
+**VERIFY**
+- `gh repo list` check completed (or skipped if gh unavailable)
 
-   If experiment.yaml has no `golden_path` field: derive one from behaviors + experiment/EVENTS.yaml events map,
-   present it in the plan, and write it back to experiment.yaml after approval (Step 7).
+**NEXT** -> STATE 4
 
-   **System/Cron Behaviors (from experiment.yaml):**
-   | Behavior | Actor | Trigger | Then |
-   |----------|-------|---------|------|
-   | [b-NN] | [actor] | [trigger] | [then] |
+---
 
-   If no behaviors have `actor: system` or `actor: cron`: "None defined — all behaviors are user-initiated."
+## STATE 4: CHECK_PRECONDITIONS
 
-   **Activation mapping:**
-   - experiment.yaml thesis: [thesis]
-   - activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all behaviors are descriptive, activate will be omitted" if no behavior involves an interactive user action
+**PRECONDITIONS**
+- Duplicate check resolved (STATE 3b POSTCONDITIONS met)
 
-   **Tests (if stack.testing present):**
-   - Test runner: [testing stack value]
-   - [If web-app] Template path: Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list])
-   - [If web-app] Smoke tests for: [list each page name]
-   - [If web-app] Funnel test: landing → [activate action] → login → [core value pages]
-   - [If service] Endpoint smoke tests for: /api/health, [list each endpoint]
-   - [If cli] Command smoke tests for: --version, --help, [list each command] --help
+**ACTIONS**
 
-   **Technical Decisions:**
-   - Data model: [for each table — key columns, relationships, RLS approach]
-   - API patterns: [REST conventions, error shape, pagination approach if applicable]
-   - Auth flow: [if stack.auth present — signup → verify → session approach]
-   - State management: [client-side approach — server components vs client state]
-   - (Or: "Standard defaults — no notable architectural decisions for this MVP")
+- If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`:
+  1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
+     - Parse `archetype`, `stack`, and `checkpoint` from frontmatter
+     - Use these values directly — do NOT re-resolve archetype or stack
+     - Read archetype file and stack files using frontmatter values
+     - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
+     - Resume at the phase indicated by `checkpoint`:
+       - `phase2-setup` → **jump to STATE 9**
+       - `phase2-design` → **jump to STATE 10** (setup done)
+       - `phase2-scaffold` → **jump to STATE 11** (design done)
+       - `phase2-wire` → **jump to STATE 14** (scaffold done)
+       - `awaiting-verify` → **TERMINAL**. Bootstrap complete. Run `/verify` to validate and create PR.
+     - Tell user: "Resuming bootstrap from [checkpoint]. Archetype: [archetype]."
+  2. If no frontmatter (old format): fall back to current behavior — skip States 1-7, jump to STATE 8.
+- If `package.json` exists AND the `src/` directory contains application files (check for any `.ts` or `.tsx` files): stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
+- If `package.json` exists but the `src/` directory does NOT contain application files: warn the user: "A previous bootstrap may have partially completed. I'll continue from the beginning — packages may be reinstalled." Note: the branch name `feat/bootstrap` may already exist from the previous attempt. If so, this run will use `feat/bootstrap-2` — you can delete the old branch later with `git branch -d feat/bootstrap`. Then proceed.
 
-   **Questions:**
-   - [any ambiguities — or "None"]
-   ```
+**POSTCONDITIONS**
+- Decision made: fresh start, resume at specific state, or stop (already bootstrapped)
+- If resuming: archetype, stack, and checkpoint restored from frontmatter
 
-6. **STOP.** End your response here. Say:
-   > Plan ready. How would you like to proceed?
-   > 1. **approve** — continue implementation now
-   > 2. **approve and clear** — save plan, then clear context for a fresh start
-   > 3. Or tell me what to change
+**VERIFY**
+- For fresh start: no `current-plan.md` or no `src/*.ts` files
+- For resume: `checkpoint` value extracted and matched to a valid state
 
-   DO NOT proceed to Phase 2 until the user explicitly replies with approval.
-   If the user requests changes instead of approving, revise the plan to address their feedback and present it again. Repeat until approved.
+**NEXT** -> STATE 5 (fresh) | STATE 9/10/11/14 (resume) | TERMINAL (awaiting-verify)
 
-7. **Save the approved plan.** Write the plan to `.claude/current-plan.md` with YAML frontmatter:
+---
 
-   ```yaml
-   ---
-   skill: bootstrap
-   archetype: [from experiment.yaml type, default web-app]
-   branch: feat/bootstrap
-   stack: { [category]: [value], ... }
-   checkpoint: phase2-setup
-   context_files:
-     - experiment/experiment.yaml
-     - experiment/EVENTS.yaml
-     - .claude/archetypes/[archetype].md
-     - [each .claude/stacks/<category>/<value>.md read in Step 2]
-   ---
-   ```
+## STATE 5: PRESENT_PLAN
 
-   Then append the plan body. The frontmatter enables resume-after-clear without re-deriving archetype or stack. If `golden_path` was derived (not already in experiment.yaml), write it back to `experiment/experiment.yaml` after approval.
+**PRECONDITIONS**
+- Preconditions checked, fresh start path (STATE 4 POSTCONDITIONS met, not resuming)
 
-   If the user replied **"approve and clear"** or **"2"**:
-     1. Save the plan with frontmatter (same as above)
-     2. Tell the user: "Plan saved. Run `/clear`, then re-run `/bootstrap`. I'll resume at the checkpoint."
-     3. STOP — do NOT proceed to Phase 2.
+**ACTIONS**
 
-## Phase 2: Implement (only after the user has approved)
+Present the plan in plain language the user can verify:
+
+```
+## What I'll Build
+
+**Pages:**
+- Landing Page (/) — [purpose from experiment.yaml]
+- [Page Name] (/route) — [purpose from experiment.yaml]
+- ...
+
+**Behaviors:**
+- [b-NN: behavior description] → built in [file(s)]
+- [b-NN: behavior description] → built in [file(s)]
+- ...
+
+**Variants (if experiment.yaml has `variants`):**
+- [slug] — "[headline]" → /v/[slug]
+- [slug] — "[headline]" → /v/[slug]
+- Root `/` renders: [first variant slug]
+
+**Database Tables (if any):**
+- [table name] — stores [what]
+- ...
+
+**External Dependencies (decided in STATE 12):**
+- [service] — [credentials needed] — **core** — must integrate (credentials at bootstrap or /deploy)
+- [service] — [credentials needed] — **non-core** — Fake Door (default) / Skip / Full Integration
+- ...
+- (Or: "None — all features use stack-managed services")
+
+Core = removing it prevents users from validating the thesis.
+
+**Analytics Events:**
+- [For each event in experiment/EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
+
+**Golden Path (from experiment.yaml):**
+| Step | Page | Event |
+|------|------|-------|
+| 1. [step] | [page] | [event] |
+Target: [target_clicks] clicks
+
+If experiment.yaml has no `golden_path` field: derive one from behaviors + experiment/EVENTS.yaml events map,
+present it in the plan, and write it back to experiment.yaml after approval (STATE 7).
+
+**System/Cron Behaviors (from experiment.yaml):**
+| Behavior | Actor | Trigger | Then |
+|----------|-------|---------|------|
+| [b-NN] | [actor] | [trigger] | [then] |
+
+If no behaviors have `actor: system` or `actor: cron`: "None defined — all behaviors are user-initiated."
+
+**Activation mapping:**
+- experiment.yaml thesis: [thesis]
+- activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all behaviors are descriptive, activate will be omitted" if no behavior involves an interactive user action
+
+**Tests (if stack.testing present):**
+- Test runner: [testing stack value]
+- [If web-app] Template path: Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list])
+- [If web-app] Smoke tests for: [list each page name]
+- [If web-app] Funnel test: landing → [activate action] → login → [core value pages]
+- [If service] Endpoint smoke tests for: /api/health, [list each endpoint]
+- [If cli] Command smoke tests for: --version, --help, [list each command] --help
+
+**Technical Decisions:**
+- Data model: [for each table — key columns, relationships, RLS approach]
+- API patterns: [REST conventions, error shape, pagination approach if applicable]
+- Auth flow: [if stack.auth present — signup → verify → session approach]
+- State management: [client-side approach — server components vs client state]
+- (Or: "Standard defaults — no notable architectural decisions for this MVP")
+
+**Questions:**
+- [any ambiguities — or "None"]
+```
+
+**POSTCONDITIONS**
+- Plan displayed to user with all required sections
+
+**VERIFY**
+- Plan output contains all required sections: Pages, Behaviors, Analytics Events, Golden Path, Technical Decisions
+
+**NEXT** -> STATE 6
+
+---
+
+## STATE 6: USER_APPROVAL
+
+**PRECONDITIONS**
+- Plan presented (STATE 5 POSTCONDITIONS met)
+
+**ACTIONS**
+
+**STOP.** End your response here. Say:
+> Plan ready. How would you like to proceed?
+> 1. **approve** — continue implementation now
+> 2. **approve and clear** — save plan, then clear context for a fresh start
+> 3. Or tell me what to change
+
+DO NOT proceed to STATE 7 until the user explicitly replies with approval.
+If the user requests changes instead of approving, revise the plan to address their feedback and present it again (return to STATE 5). Repeat until approved.
+
+**POSTCONDITIONS**
+- User has explicitly approved the plan (option 1 or 2)
+
+**VERIFY**
+- User message contains approval (e.g., "approve", "1", "2", "approve and clear", "looks good", "proceed")
+
+**NEXT** -> STATE 7
+
+---
+
+## STATE 7: SAVE_PLAN
+
+**PRECONDITIONS**
+- User approved the plan (STATE 6 POSTCONDITIONS met)
+
+**ACTIONS**
+
+Write the plan to `.claude/current-plan.md` with YAML frontmatter:
+
+```yaml
+---
+skill: bootstrap
+archetype: [from experiment.yaml type, default web-app]
+branch: feat/bootstrap
+stack: { [category]: [value], ... }
+checkpoint: phase2-setup
+context_files:
+  - experiment/experiment.yaml
+  - experiment/EVENTS.yaml
+  - .claude/archetypes/[archetype].md
+  - [each .claude/stacks/<category>/<value>.md read in STATE 2]
+---
+```
+
+Then append the plan body. The frontmatter enables resume-after-clear without re-deriving archetype or stack. If `golden_path` was derived (not already in experiment.yaml), write it back to `experiment/experiment.yaml` after approval.
+
+**Append Process Checklist** (skip if `current-plan.md` already contains `## Process Checklist`):
+
+```markdown
+## Process Checklist
+- Skill: bootstrap
+- Archetype: [archetype]
+- [ ] BG1 Validation Gate passed
+- [ ] Duplicate check resolved
+- [ ] User approved plan
+- [ ] TSP-LSP check completed
+- [ ] scaffold-setup completed
+- [ ] scaffold-init completed
+- [ ] scaffold-libs completed
+- [ ] scaffold-pages completed
+- [ ] scaffold-externals completed
+- [ ] scaffold-landing completed (or N/A: surface=none)
+- [ ] Externals user decisions collected
+- [ ] BG2.5 Externals Gate passed
+- [ ] Merged checkpoint validation passed
+- [ ] BG2 Orchestration Gate passed
+- [ ] scaffold-wire completed
+- [ ] BG4 PR Gate passed
+```
+
+Check off items already completed at this point:
+- `- [x] BG1 Validation Gate passed`
+- `- [x] Duplicate check resolved`
+- `- [x] User approved plan`
+
+If the user replied **"approve and clear"** or **"2"**:
+  1. Save the plan with frontmatter (same as above)
+  2. Tell the user: "Plan saved. Run `/clear`, then re-run `/bootstrap`. I'll resume at the checkpoint."
+  3. STOP — do NOT proceed to STATE 8.
+
+**POSTCONDITIONS**
+- `.claude/current-plan.md` exists with YAML frontmatter
+- Plan body is appended
+- `## Process Checklist` section present with all 16 checklist items
+- Items completed so far are checked off
+
+**VERIFY**
+- `test -f .claude/current-plan.md`
+- `grep '## Process Checklist' .claude/current-plan.md`
+
+**NEXT** -> STATE 8 (approve) | TERMINAL (approve and clear)
+
+---
+
+## STATE 8: PREFLIGHT
+
+**PRECONDITIONS**
+- Plan saved with Process Checklist (STATE 7 POSTCONDITIONS met)
+
+**ACTIONS**
 
 **Do NOT assemble file contents into the prompt.** Subagents are independent
 Claude Code sessions with full file access — they read files themselves. The
 prompt tells them WHICH files to read and WHAT to do.
-
-### Preamble: Pre-flight checks
-
-Before spawning any subagents, the lead performs user-interactive checks:
 
 1. **Production quality check**: If `quality: production` is set in experiment.yaml, pass this flag to each scaffold-* agent prompt: "quality: production is set. Generate tests alongside each file you create." Agent test ownership:
    - scaffold-setup: create testing config (playwright.config.ts or vitest.config.ts)
@@ -288,7 +527,27 @@ Before spawning any subagents, the lead performs user-interactive checks:
 This value is passed to subagents in their prompts (subagents cannot
 interact with users).
 
-### Setup Phase
+Check off in `.claude/current-plan.md`: `- [x] TSP-LSP check completed`
+
+**POSTCONDITIONS**
+- `tsp_status` is set to `"available"` or `"skipped"`
+- Quality flag recorded (production or MVP)
+
+**VERIFY**
+- `tsp_status` variable is non-empty
+- Quality flag is set
+
+**NEXT** -> STATE 9
+
+---
+
+## STATE 9: SETUP_PHASE
+
+**PRECONDITIONS**
+- Preflight done (STATE 8 POSTCONDITIONS met)
+- `tsp_status` and quality flag available for subagent prompts
+
+**ACTIONS**
 
 Spawn a subagent via Agent with:
 - subagent_type: scaffold-setup
@@ -313,7 +572,29 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
 3. If the archetype's `excluded_stacks` includes `hosting` and `stack.surface` is not set: `detached`.
 4. Otherwise infer from hosting: `stack.services[0].hosting` present → `co-located`; absent → `detached`.
 
-### Design Phase
+Check off in `.claude/current-plan.md`: `- [x] scaffold-setup completed`
+
+**POSTCONDITIONS**
+- `package.json` exists with `dependencies`
+- `node_modules/` exists and is non-empty
+- Surface type resolved
+- Checkpoint updated to `phase2-design`
+
+**VERIFY**
+- `test -f package.json && test -d node_modules`
+
+**NEXT** -> STATE 10
+
+---
+
+## STATE 10: DESIGN_PHASE
+
+**PRECONDITIONS**
+- Setup done (STATE 9 POSTCONDITIONS met)
+- `package.json` and `node_modules/` exist
+- Surface type resolved
+
+**ACTIONS**
 
 Spawn a subagent via Agent with:
 - subagent_type: scaffold-init
@@ -329,7 +610,28 @@ Wait for design to complete before proceeding.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-scaffold`.
 
-### Parallel Scaffold Phase
+Check off in `.claude/current-plan.md`: `- [x] scaffold-init completed`
+
+**POSTCONDITIONS**
+- `.claude/current-visual-brief.md` exists
+- Theme tokens written (e.g., `src/app/globals.css` has `--primary`)
+- Checkpoint updated to `phase2-scaffold`
+
+**VERIFY**
+- `test -f .claude/current-visual-brief.md`
+
+**NEXT** -> STATE 11
+
+---
+
+## STATE 11: PARALLEL_SCAFFOLD
+
+**PRECONDITIONS**
+- Design done (STATE 10 POSTCONDITIONS met)
+- `.claude/current-visual-brief.md` exists
+- Theme tokens available
+
+**ACTIONS**
 
 Spawn four subagents simultaneously using parallel Agent tool calls (three if surface = none):
 
@@ -374,7 +676,36 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
      `src/app/globals.css` (theme tokens from init phase)
   3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
-### Externals: User Decisions + Execution
+Wait for all subagents to return.
+
+Check off in `.claude/current-plan.md` for each completed subagent:
+- `- [x] scaffold-libs completed`
+- `- [x] scaffold-pages completed`
+- `- [x] scaffold-externals completed`
+- `- [x] scaffold-landing completed` (or mark N/A if surface=none)
+
+**POSTCONDITIONS**
+- All subagents returned completion reports
+- `src/lib/` contains ≥1 `.ts` file
+- Page/route files created per archetype
+- Externals classification available
+- Landing page created (if surface ≠ none)
+
+**VERIFY**
+- `ls src/lib/*.ts` returns files
+- Archetype-specific: web-app → `test -f src/app/layout.tsx`; service → `ls src/app/api/`; cli → `test -f src/index.ts`
+
+**NEXT** -> STATE 12
+
+---
+
+## STATE 12: EXTERNALS_DECISIONS
+
+**PRECONDITIONS**
+- Scaffold done, all subagents returned (STATE 11 POSTCONDITIONS met)
+- Externals classification table available from scaffold-externals
+
+**ACTIONS**
 
 > **BLOCKING — present to user even if classification seems obvious.**
 > The purpose is explicit user buy-in on external dependencies, not
@@ -409,11 +740,34 @@ feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
 - Import and render the Fake Door component in the parent page where the feature would naturally live
 - The component should look like a real feature entry point — not a placeholder or disabled button
 
-- **BG2.5 Externals Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2.5 Externals Gate. Verify: either (a) scaffold-externals reported 'No external dependencies' AND the lead confirmed this to the user, or (b) the externals classification table was presented and user confirmation exists in conversation. BLOCK if externals classification was returned but no user interaction occurred."
+Check off in `.claude/current-plan.md`:
+- `- [x] Externals user decisions collected`
 
-### Merged Checkpoint + Semantic Validation
+**BG2.5 Externals Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2.5 Externals Gate. Verify: either (a) scaffold-externals reported 'No external dependencies' AND the lead confirmed this to the user, or (b) the externals classification table was presented and user confirmation exists in conversation. BLOCK if externals classification was returned but no user interaction occurred."
 
-Run combined verification after all four parallel subagents complete — these checks catch compilation and semantic issues:
+Check off in `.claude/current-plan.md`: `- [x] BG2.5 Externals Gate passed`
+
+**POSTCONDITIONS**
+- BG2.5 Externals Gate verdict is PASS
+- User decisions collected for all external dependencies
+- Fake Door components created (if any)
+- Env vars written (if any)
+
+**VERIFY**
+- Gate-keeper returned `**Verdict: PASS**` for BG2.5
+
+**NEXT** -> STATE 13
+
+---
+
+## STATE 13: MERGED_VALIDATION
+
+**PRECONDITIONS**
+- Externals done, BG2.5 PASS (STATE 12 POSTCONDITIONS met)
+
+**ACTIONS**
+
+Run combined verification after all parallel subagents complete — these checks catch compilation and semantic issues:
 
 1. **Build**: run `npm run build` — the project must compile
 2. **Page/endpoint/command existence:**
@@ -441,9 +795,33 @@ completes.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-wire`.
 
-- **BG2 Orchestration Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2 Orchestration Gate. Verify: (1) npm run build passes; (2) scaffold output files exist (src/lib/*.ts, .claude/current-visual-brief.md, archetype-specific pages/routes/commands from experiment.yaml); (3) landing page exists if surface≠none; (4) checkpoint is phase2-scaffold or later; (5) if stack.analytics present: for each event in experiment/EVENTS.yaml events map (filtered by requires and archetypes for current stack and archetype), grep for the event name in src/ — BLOCK if any event is missing; (6) if stack.analytics present: grep src/lib/analytics*.ts for PROJECT_NAME and PROJECT_OWNER — BLOCK if either is 'TODO'." If gate-keeper returns BLOCK, fix missing outputs before Wire Phase.
+Check off in `.claude/current-plan.md`: `- [x] Merged checkpoint validation passed`
 
-### Wire Phase
+**BG2 Orchestration Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2 Orchestration Gate. Verify: (1) npm run build passes; (2) scaffold output files exist (src/lib/*.ts, .claude/current-visual-brief.md, archetype-specific pages/routes/commands from experiment.yaml); (3) landing page exists if surface≠none; (4) checkpoint is phase2-scaffold or later; (5) if stack.analytics present: for each event in experiment/EVENTS.yaml events map (filtered by requires and archetypes for current stack and archetype), grep for the event name in src/ — BLOCK if any event is missing; (6) if stack.analytics present: grep src/lib/analytics*.ts for PROJECT_NAME and PROJECT_OWNER — BLOCK if either is 'TODO'." If gate-keeper returns BLOCK, fix missing outputs before STATE 14.
+
+Check off in `.claude/current-plan.md`: `- [x] BG2 Orchestration Gate passed`
+
+**POSTCONDITIONS**
+- `npm run build` passes (exit code 0)
+- All pages/endpoints/commands exist per archetype
+- Analytics wired (if applicable)
+- BG2 Orchestration Gate verdict is PASS
+- Checkpoint updated to `phase2-wire`
+
+**VERIFY**
+- Gate-keeper returned `**Verdict: PASS**` for BG2
+- `npm run build` exit code 0
+
+**NEXT** -> STATE 14
+
+---
+
+## STATE 14: WIRE_PHASE
+
+**PRECONDITIONS**
+- BG2 PASS, build passes (STATE 13 POSTCONDITIONS met)
+
+**ACTIONS**
 
 Spawn a subagent via Agent with:
 - subagent_type: scaffold-wire
@@ -463,7 +841,27 @@ Spawn a subagent via Agent with:
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `awaiting-verify`.
 
-### Commit and Push
+Check off in `.claude/current-plan.md`: `- [x] scaffold-wire completed`
+
+**POSTCONDITIONS**
+- API routes created (if mutation behaviors exist)
+- Wire integration complete
+- Checkpoint updated to `awaiting-verify`
+
+**VERIFY**
+- Archetype-specific: web-app with mutations → `ls src/app/api/` shows route files; service → same; cli → commands wired
+
+**NEXT** -> STATE 15
+
+---
+
+## STATE 15: COMMIT_AND_PUSH
+
+**PRECONDITIONS**
+- Wire done (STATE 14 POSTCONDITIONS met)
+- Checkpoint is `awaiting-verify`
+
+**ACTIONS**
 
 - Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
 - **BG4 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG4 PR Gate. Verify: on feature branch (not main), git status shows no uncommitted changes to tracked files, commit message follows imperative mood." If gate-keeper returns BLOCK, fix blocking items before pushing.
@@ -473,3 +871,18 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `awaiting-verify`.
 
 If `quality: production` is set in experiment.yaml, add to the user message:
 > "Bootstrap complete with production quality mode. After `/verify`, run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."
+
+Check off in `.claude/current-plan.md`: `- [x] BG4 PR Gate passed`
+
+**POSTCONDITIONS**
+- All files committed (no uncommitted tracked changes)
+- BG4 PR Gate verdict is PASS
+- Branch pushed to remote
+- `.claude/current-visual-brief.md` deleted
+
+**VERIFY**
+- Gate-keeper returned `**Verdict: PASS**` for BG4
+- `git status` shows clean working tree (tracked files)
+- `git log -1 --oneline` shows "Bootstrap MVP scaffold from experiment.yaml"
+
+**NEXT** -> TERMINAL (run `/verify` next)

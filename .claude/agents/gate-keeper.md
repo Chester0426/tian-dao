@@ -178,7 +178,11 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 4. If `stack.analytics`: grep `src/lib/analytics` for `PROJECT_NAME` and `PROJECT_OWNER` — neither must equal `"TODO"`
 5. If surface ≠ `none`: landing page file exists
 6. `.claude/current-plan.md` frontmatter `checkpoint` is `phase2-scaffold` or later
-7. `npm run build` passes
+7. scaffold-setup contract: `package.json` has `dependencies` key, `node_modules/` non-empty — run `test -d node_modules && ls node_modules | head -1`
+8. scaffold-landing contract: if `variants` in experiment.yaml, landing file contains at least one variant slug (grep for slug); otherwise landing file > 20 lines (`wc -l`). Skip if surface = `none`.
+9. scaffold-wire contract: if mutation behaviors exist in experiment.yaml (behaviors with `actor: user` that imply writes), `src/app/api/` has route files — run `ls src/app/api/`
+10. Process Checklist: `.claude/current-plan.md` contains `## Process Checklist` with ≥ 10 checklist items — run `grep -c '^\- \[' .claude/current-plan.md`
+11. `npm run build` passes
 
 ### BG3 Verification Gate
 

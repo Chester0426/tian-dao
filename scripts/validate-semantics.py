@@ -2014,12 +2014,18 @@ def main() -> int:
         with open(bootstrap_path_22) as f:
             bootstrap_content_22 = f.read()
 
-        # Find the Phase 1 Step 3 validation section (a numbered list item: "3. **Validate experiment.yaml**")
+        # Find the Phase 1 Step 3 validation section (narrative or state machine format)
         validate_section_match = re.search(
             r"(?i)(?:###?\s*|\d+\.\s*(?:\*\*)?)Validate (?:idea|experiment)\.yaml(?:\*\*)?\s*\n(.*?)(?=\n\d+\.\s*\*\*|\n###?\s|\n##\s|\Z)",
             bootstrap_content_22,
             re.DOTALL,
         )
+        if not validate_section_match:
+            validate_section_match = re.search(
+                r"(?i)##\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n##\s*STATE|\Z)",
+                bootstrap_content_22,
+                re.DOTALL,
+            )
         if validate_section_match:
             validate_section = validate_section_match.group(1)
             has_db_check = bool(
@@ -2730,12 +2736,18 @@ def main() -> int:
         with open(bootstrap_path_44) as f:
             bootstrap_content_44 = f.read()
 
-        # Find the "Validate experiment.yaml" section (Step 3)
+        # Find the "Validate experiment.yaml" section (Step 3 or STATE 3)
         validate_section_match = re.search(
             r"##.*(?:Step 3|Validate (?:idea|experiment)\.yaml).*?\n(.*?)(?=\n## |\Z)",
             bootstrap_content_44,
             re.DOTALL,
         )
+        if not validate_section_match:
+            validate_section_match = re.search(
+                r"(?i)##\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n##\s*STATE|\Z)",
+                bootstrap_content_44,
+                re.DOTALL,
+            )
         if validate_section_match:
             validate_text = validate_section_match.group(1)
             has_variant_validation = bool(
