@@ -10,6 +10,10 @@ out/
 .env.local
 .env.*.local
 
+# Python
+__pycache__/
+*.pyc
+
 # OS files
 .DS_Store
 Thumbs.db

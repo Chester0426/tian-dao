@@ -4,7 +4,7 @@ set -euo pipefail
 # consistency-check.sh — Verify facts live in canonical sources, not in rules/skills
 #
 # Canonical (facts SHOULD appear here):
-#   EVENTS.yaml, .claude/stacks/**/*.md, experiment/experiment.yaml
+#   experiment/EVENTS.yaml, .claude/stacks/**/*.md, experiment/experiment.yaml
 #
 # Reference-only (facts should NOT appear here):
 #   CLAUDE.md, .claude/commands/*.md
@@ -37,14 +37,14 @@ echo ""
 # 1. Event name enumerations in CLAUDE.md (bullet + backtick-event + dash)
 check_absent "CLAUDE.md" \
   '^\s*-\s*`(visit_landing|signup_start|signup_complete|activate|retain_return|pay_start|pay_success)` — ' \
-  "enumerated event definitions (should reference EVENTS.yaml)"
+  "enumerated event definitions (should reference experiment/EVENTS.yaml)"
 
 # 2. Event name enumerations in skill files
 for f in .claude/commands/*.md; do
   [ -f "$f" ] || continue
   check_absent "$f" \
     '^\s*[\-\|]\s*`?(visit_landing|signup_start|signup_complete|activate|retain_return|pay_start|pay_success)`?\s*(on |— |\| [a-z])' \
-    "enumerated event names (should reference EVENTS.yaml)"
+    "enumerated event names (should reference experiment/EVENTS.yaml)"
 done
 
 # 3. Hardcoded analytics import path in skills
@@ -112,7 +112,7 @@ done
 
 echo ""
 if [ "$ERRORS" -gt 0 ]; then
-  echo "FAILED: $ERRORS violation(s). Move facts to canonical sources (EVENTS.yaml, stack files)."
+  echo "FAILED: $ERRORS violation(s). Move facts to canonical sources (experiment/EVENTS.yaml, stack files)."
   exit 1
 else
   echo "PASSED: No consistency violations."

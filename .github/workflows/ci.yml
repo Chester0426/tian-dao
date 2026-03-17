@@ -45,7 +45,7 @@ jobs:
           python3 -c "
           import yaml, sys
           errors = []
-          for f in ['experiment/experiment.yaml', 'EVENTS.yaml']:
+          for f in ['experiment/experiment.yaml', 'experiment/EVENTS.yaml']:
               try:
                   with open(f) as fh:
                       yaml.safe_load(fh)
@@ -55,28 +55,28 @@ jobs:
               except yaml.YAMLError as e:
                   errors.append(f'{f}: {e}')
                   print(f'{f}: INVALID')
-          # Validate EVENTS.yaml structure
+          # Validate experiment/EVENTS.yaml structure
           try:
-              with open('EVENTS.yaml') as fh:
+              with open('experiment/EVENTS.yaml') as fh:
                   data = yaml.safe_load(fh)
               if data:
                   events = data.get('events')
                   if events is None:
-                      errors.append('EVENTS.yaml: missing required key \"events\"')
+                      errors.append('experiment/EVENTS.yaml: missing required key \"events\"')
                   elif not isinstance(events, dict):
-                      errors.append('EVENTS.yaml: \"events\" must be a dict')
+                      errors.append('experiment/EVENTS.yaml: \"events\" must be a dict')
                   else:
                       valid_stages = {'reach', 'demand', 'activate', 'monetize', 'retain'}
                       for name, ev in events.items():
                           if not isinstance(ev, dict):
-                              errors.append(f'EVENTS.yaml: events.{name} must be a dict')
+                              errors.append(f'experiment/EVENTS.yaml: events.{name} must be a dict')
                               continue
                           if 'funnel_stage' not in ev:
-                              errors.append(f'EVENTS.yaml: events.{name} missing \"funnel_stage\"')
+                              errors.append(f'experiment/EVENTS.yaml: events.{name} missing \"funnel_stage\"')
                           elif ev['funnel_stage'] not in valid_stages:
-                              errors.append(f'EVENTS.yaml: events.{name} invalid funnel_stage')
+                              errors.append(f'experiment/EVENTS.yaml: events.{name} invalid funnel_stage')
                           if 'trigger' not in ev:
-                              errors.append(f'EVENTS.yaml: events.{name} missing \"trigger\"')
+                              errors.append(f'experiment/EVENTS.yaml: events.{name} missing \"trigger\"')
           except FileNotFoundError:
               pass
           if errors:

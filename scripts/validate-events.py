@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Validate EVENTS.yaml structure: flat events map with funnel_stage tags."""
+"""Validate experiment/EVENTS.yaml structure: flat events map with funnel_stage tags."""
 
 import sys
 
 import yaml
 
-data = yaml.safe_load(open("EVENTS.yaml"))
+data = yaml.safe_load(open("experiment/EVENTS.yaml"))
 errors = []
 
 if not data:
-    errors.append("EVENTS.yaml is empty")
+    errors.append("experiment/EVENTS.yaml is empty")
 else:
     events = data.get("events")
     if events is None:
@@ -33,7 +33,7 @@ else:
                 errors.append(f'events.{name} missing "trigger"')
 
 if errors:
-    print("EVENTS.yaml issues:")
+    print("experiment/EVENTS.yaml issues:")
     for e in errors:
         print(f"  - {e}")
     sys.exit(1)
