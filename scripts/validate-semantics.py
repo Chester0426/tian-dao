@@ -34,7 +34,7 @@ Checks:
   30. Analytics Dashboard Navigation Section — analytics stack files include Dashboard Navigation
   31. Change Testing Assumes Revalidation — change skill revalidates testing assumes for all change types
   32. Analytics Test Blocking Section — analytics stack files include Test Blocking
-  33. Skill Prose Phantom Event Names — backtick-wrapped event names in skill prose exist in EVENTS.yaml
+  33. Skill Prose Phantom Event Names — backtick-wrapped event names in skill prose exist in experiment/EVENTS.yaml
   34. Stack Files Conditional Files Frontmatter — fallback stacks annotate conditional files in frontmatter
   35. No-Auth CI Template Database Env Vars — no-auth CI template includes database placeholder env vars if full-auth template does
   36. (removed)
@@ -44,9 +44,9 @@ Checks:
   40. Distribute Skill Prose Event Names — distribute.md contains feedback_submitted event definition
   41. Distribution Docs References Exist — docs/*.md files referenced in distribute.md or distribution stack files exist
   42. Distribute Skill Validates Analytics Stack — distribute.md preconditions validate stack.analytics
-  43. Distribute Skill Validates EVENTS.yaml events Structure — distribute.md preconditions validate events is a dict
+  43. Distribute Skill Validates experiment/EVENTS.yaml events Structure — distribute.md preconditions validate events is a dict
   44. Bootstrap Skill Validates Variants — bootstrap.md Step 3 contains variant validation logic
-  45. visit_landing Has Variant Property — EVENTS.yaml visit_landing event includes variant property
+  45. visit_landing Has Variant Property — experiment/EVENTS.yaml visit_landing event includes variant property
   46. Iterate Skill Experiment Verdict — iterate.md contains verdict/GO/NO-GO with pace logic
   47. Deploy Dashboard Setup — deploy.md contains analytics dashboard and scheduled digest setup
   48. Iterate Next Check-in — iterate.md contains Next Check-in schedule section
@@ -708,7 +708,7 @@ def check_33_phantom_event_names(
     global_props: set[str],
     event_props: set[str],
 ) -> list[str]:
-    """Check 33: Backtick-wrapped event names in skill prose exist in EVENTS.yaml."""
+    """Check 33: Backtick-wrapped event names in skill prose exist in experiment/EVENTS.yaml."""
     errors: list[str] = []
     skip_tokens = {
         "stack", "testing", "payment", "analytics", "database",
@@ -782,7 +782,7 @@ def check_33_phantom_event_names(
             errors.append(
                 f"[33] {sf}:{line_num}: prose references event name "
                 f"'{token}' near event/fire context, but it is not "
-                f"defined in EVENTS.yaml"
+                f"defined in experiment/EVENTS.yaml"
             )
     return errors
 
@@ -1732,7 +1732,7 @@ def main() -> int:
     # Spec files that should be in reads when referenced as a source of truth.
     # Excludes runtime-check files (package.json, .env.example) which are existence
     # checks, not files Claude reads for context.
-    SPEC_REFERENCE_FILES = {"CLAUDE.md", "EVENTS.yaml"}
+    SPEC_REFERENCE_FILES = {"CLAUDE.md", "experiment/EVENTS.yaml"}
 
     for sf, content in skill_contents.items():
         fm = parse_frontmatter(sf)
@@ -2370,7 +2370,7 @@ def main() -> int:
     # Check 33: Skill Prose Phantom Event Names
     # ---------------------------------------------------------------------------
 
-    events_yaml_path = "EVENTS.yaml"
+    events_yaml_path = "experiment/EVENTS.yaml"
     if os.path.isfile(events_yaml_path):
         with open(events_yaml_path) as f:
             events_data = yaml.safe_load(f) or {}
@@ -2595,7 +2595,7 @@ def main() -> int:
     # Check 40: Distribute Skill Prose Event Names
     # ---------------------------------------------------------------------------
 
-    # The distribute skill adds feedback_submitted to EVENTS.yaml at runtime.
+    # The distribute skill adds feedback_submitted to experiment/EVENTS.yaml at runtime.
     # Verify that distribute.md contains the event definition in a code block
     # (so it can be added during Step 7c).
     distribute_path = ".claude/commands/distribute.md"
@@ -2613,7 +2613,7 @@ def main() -> int:
             error(
                 f"[40] {distribute_path}: must contain a YAML code block "
                 f"defining the 'feedback_submitted' event (added to "
-                f"EVENTS.yaml events map during Step 7c)"
+                f"experiment/EVENTS.yaml events map during Step 7c)"
             )
 
     # ---------------------------------------------------------------------------
@@ -2677,7 +2677,7 @@ def main() -> int:
             )
 
     # ---------------------------------------------------------------------------
-    # Check 43: Distribute Skill Validates EVENTS.yaml events Structure
+    # Check 43: Distribute Skill Validates experiment/EVENTS.yaml events Structure
     # ---------------------------------------------------------------------------
 
     distribute_path_43 = ".claude/commands/distribute.md"
@@ -2712,7 +2712,7 @@ def main() -> int:
             if not has_events_validation:
                 error(
                     f"[43] {distribute_path_43}: preconditions section does not "
-                    f"validate that EVENTS.yaml `events` is a well-formed "
+                    f"validate that experiment/EVENTS.yaml `events` is a well-formed "
                     f"dict before proceeding"
                 )
         else:
@@ -2761,7 +2761,7 @@ def main() -> int:
     # Check 45: visit_landing Event Has Variant Property
     # ---------------------------------------------------------------------------
 
-    events_path_45 = "EVENTS.yaml"
+    events_path_45 = "experiment/EVENTS.yaml"
     if os.path.isfile(events_path_45):
         with open(events_path_45) as f:
             events_data_45 = yaml.safe_load(f)

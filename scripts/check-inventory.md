@@ -46,7 +46,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify env loading outside Next.js runtime | Non-`src/` templates using `process.env` load env config |
 | Validate warning differentiation | Makefile validate target differentiates clean pass from pass with warnings |
 | Verify hardcoded provider names match assumes | Code blocks using provider-specific identifiers must have matching `assumes` declaration |
-| Verify prose file references in reads frontmatter | Spec files (CLAUDE.md, EVENTS.yaml) referenced in skill prose must appear in `reads` frontmatter |
+| Verify prose file references in reads frontmatter | Spec files (CLAUDE.md, experiment/EVENTS.yaml) referenced in skill prose must appear in `reads` frontmatter |
 | Verify fixture coverage for stack file branching | Conditional stack paths (`when stack.X is NOT Y`) must have fixture coverage for the alternate branch |
 | Verify stack fallback when assumes not met | Stack files with optional-category `assumes` must have a fallback section for absent dependencies |
 | Verify Makefile deploy hosting guard | Deploy target using provider-specific commands must check `stack.hosting` |
@@ -68,17 +68,17 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify analytics stack files include Dashboard Navigation section | Every `.claude/stacks/analytics/*.md` file must contain a `## Dashboard Navigation` heading (case-insensitive) |
 | Verify change skill revalidates testing assumes for all change types | change.md preconditions step must contain testing assumes validation that is NOT gated by the Test-type classification |
 | Verify analytics stack files include Test Blocking section | Every `.claude/stacks/analytics/*.md` file must contain a `## Test Blocking` heading (case-insensitive) |
-| Verify skill prose event names exist in EVENTS.yaml | Backtick-wrapped snake_case tokens in skill prose appearing near event/fire context must exist in EVENTS.yaml, be defined in a YAML code block within the same skill, or reference "from/in EVENTS.yaml" within 100 chars |
+| Verify skill prose event names exist in experiment/EVENTS.yaml | Backtick-wrapped snake_case tokens in skill prose appearing near event/fire context must exist in experiment/EVENTS.yaml, be defined in a YAML code block within the same skill, or reference "from/in experiment/EVENTS.yaml" within 100 chars |
 | Verify stack files with fallback sections annotate conditional files in frontmatter | Stack files with fallback sections listing assumes-dependent files in `files` frontmatter must include a `# conditional` annotation |
 | Verify no-auth CI template includes commented database placeholder env vars | If the full-auth CI Job Template in the testing stack includes database-related env var names, the No-Auth CI Job Template must also contain them (commented or uncommented) |
 | Verify Makefile validate warns about bootstrap-excluded stack categories | Makefile `validate` target must check for `testing` in experiment.yaml `stack` and warn that bootstrap rejects it |
 | Verify change skill classification precedes classification-dependent checks | In change.md, the step heading containing "Classify" must appear before any step heading whose body contains "classified as" or "is a Fix" or "is NOT Test" |
 | Verify ads.yaml schema | If `experiment/ads.yaml` exists: channel-aware validation — universal keys (campaign_name, project_name, landing_url, budget, targeting, conversions, guardrails, thresholds) required for all channels; google-ads requires keywords + ads with RSA constraints and guardrails.max_cpc_cents; twitter requires tweets (≥2, ≤280 chars); reddit requires posts (≥2, headline ≤300 chars); budget within limits; thresholds.expected_activations is int >= 0, go_signal and no_go_signal are non-empty strings |
 | Verify ads.yaml campaign_name matches experiment.yaml name | `campaign_name` in ads.yaml must start with experiment.yaml `name` |
-| Verify distribute skill prose event names | distribute.md must contain a YAML code block defining the `feedback_submitted` event (added to EVENTS.yaml `events` map during Step 7c) |
+| Verify distribute skill prose event names | distribute.md must contain a YAML code block defining the `feedback_submitted` event (added to experiment/EVENTS.yaml `events` map during Step 7c) |
 | Verify distribution docs references exist | If distribute.md or any `.claude/stacks/distribution/*.md` file contains a backtick-wrapped `docs/*.md` reference, that file must exist on disk |
 | Verify distribute skill validates analytics stack in experiment.yaml | distribute.md preconditions section (Step 1) must validate that `stack.analytics` is present in experiment.yaml before proceeding |
-| Verify distribute skill validates EVENTS.yaml events structure | distribute.md preconditions section (Step 1) must validate that EVENTS.yaml `events` is a well-formed dict |
+| Verify distribute skill validates experiment/EVENTS.yaml events structure | distribute.md preconditions section (Step 1) must validate that experiment/EVENTS.yaml `events` is a well-formed dict |
 | Verify trackServerEvent calls are awaited in stack file code blocks | `trackServerEvent()` calls in stack file code blocks (excluding function definitions) must be preceded by `await` on the same line |
 | Verify Supabase CLI commands use correct flag syntax | Code blocks containing `supabase projects delete` must include the `--project-ref` flag |
 | Verify procedure files have production branch | Feature/Upgrade/Fix procedure files must contain `quality: production` or `quality.*production` |
