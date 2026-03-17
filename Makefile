@@ -159,9 +159,9 @@ deploy: ## Deploy to Vercel (first run will prompt to link project)
 	@if [ -f experiment/experiment.yaml ]; then \
 		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('experiment/experiment.yaml')); print(d.get('stack',{}).get('hosting',''))" 2>/dev/null); \
 		if [ -n "$$HOSTING" ] && [ "$$HOSTING" != "vercel" ]; then \
-			echo "Warning: stack.hosting is '$$HOSTING', but this Makefile only has a Vercel deploy command."; \
-			echo "To deploy: replace 'npx vercel deploy --prod' on the last line of the deploy target with your hosting provider's CLI command (e.g., 'npx netlify deploy --prod', 'fly deploy')."; \
-			echo "Or deploy directly from your terminal — this Makefile target is optional."; \
+			echo "Warning: stack.hosting is '$$HOSTING', but this Makefile only supports Vercel."; \
+			echo "Use the /deploy skill in Claude Code — it reads your hosting stack file and handles any provider."; \
+			echo "Or deploy directly from your terminal using your hosting provider's CLI."; \
 			exit 1; \
 		fi; \
 	fi

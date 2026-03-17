@@ -76,6 +76,8 @@ State: "Verification scope: **[scope]**"
 
 ## Step 4: Check type-specific preconditions
 
+> **Branch cleanup on failure:** Any "stop" in this step leaves you on a feature branch (created in Step 1). Include in the stop message: "To abort: `git checkout main && git branch -D <branch-name>`. To fix and retry: make the required changes to experiment.yaml, then re-run `/change`."
+
 - If `.claude/current-plan.md` exists and the current branch starts with `change/`:
   1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
      - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter

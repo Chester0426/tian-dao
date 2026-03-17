@@ -128,6 +128,7 @@ Verify after implementation:
 1. `npm run build` passes
 2. If `quality: production`:
    - `git log --oneline main..HEAD` contains worktree merge commits (implementer agent evidence). No merge evidence → BLOCK
+   - Count worktree merge commits in `git log --oneline main..HEAD`. Read `.claude/current-plan.md` and count planned implementation tasks (distinct task items under the plan's implementation section). If merge count < task count by 2 or more → BLOCK: "Fewer worktree merges (N) than planned tasks (M) — some tasks may have been implemented directly instead of via implementer agents."
    - Grep new/modified source files for `// TODO: implement` or `throw new Error('not implemented')` — BLOCK if found
 3. If `stack.analytics` in experiment.yaml: spot-check new pages/routes for analytics imports
 
