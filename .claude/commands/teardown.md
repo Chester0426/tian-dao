@@ -13,15 +13,26 @@ modifies_specs: false
 ---
 Tear down the cloud infrastructure created by `/deploy`.
 
-This skill is hosting-agnostic: it reads `hosting.provider` and `database.provider` from the deploy manifest, loads the corresponding stack files, and executes teardown commands from their `## Deploy Interface > Teardown` sections.
+This skill is hosting-agnostic: it reads `hosting.provider` and `database.provider` from the deploy manifest (when present), loads the corresponding stack files, and executes teardown commands from their `## Deploy Interface > Teardown` sections.
 
 ## Step 0: Validate preconditions
 
 1. Read `.claude/deploy-manifest.json`. If missing, stop: "No deploy manifest found.
    Run `/deploy` first, or delete resources manually via each provider's dashboard."
-2. Read `experiment/experiment.yaml` — extract `name` for confirmation prompt.
-3. Read `hosting.provider` and `database.provider` from the manifest. Load the corresponding
-   stack files at `.claude/stacks/hosting/<provider>.md` and `.claude/stacks/database/<provider>.md`.
+2. Read `experiment/experiment.yaml` — extract `name`, `type`, and `stack.surface` for validation.
+   Read the archetype file at `.claude/archetypes/<type>.md` (default `web-app`).
+   If archetype is `cli` and surface is `none` (only from explicit `stack.surface: none` —
+   CLI defaults to `detached` since `hosting` is in `excluded_stacks`):
+   - If the manifest has no `surface_url` (or `surface_url` is null): stop: "No cloud resources
+     to tear down. CLI tools with no surface are distributed via `npm publish` — no `/deploy`
+     infrastructure was created."
+   - If the manifest has a non-null `surface_url`: warn: "experiment.yaml says `surface: none`
+     but the deploy manifest shows surface infrastructure exists. Proceeding with teardown of
+     deployed resources."
+3. If `hosting` is in the manifest: read `hosting.provider` and load the hosting stack file at
+   `.claude/stacks/hosting/<provider>.md`.
+   If `database` is in the manifest: read `database.provider` and load the database stack file at
+   `.claude/stacks/database/<provider>.md`.
 4. Check CLI installation and auth — read each stack file's `## Deploy Interface > Prerequisites`
    and run the checks (only for services present in the manifest):
    - If `hosting` in manifest: run hosting stack file's `install_check` + `auth_check`
@@ -44,8 +55,9 @@ Present a summary:
 2. [If stripe] Stripe webhook endpoint: <url>
 3. [If hosting.domain] Custom domain: <domain>
 4. [If hosting] Hosting project (<provider>): <project> — unlinks integrations
-5. [If database] Database project (<provider>): <ref/id> — permanent data loss
-6. [If external_services] External services (manual): <list>
+5. [If surface_url and no hosting] Surface project: <surface_url> — standalone surface deployment
+6. [If database] Database project (<provider>): <ref/id> — permanent data loss
+7. [If external_services] External services (manual): <list>
 
 This action is irreversible. All data in the database will be permanently deleted.
 
@@ -110,11 +122,23 @@ Read the hosting stack file's `## Deploy Interface > Teardown`. Execute the remo
 
 If fails: report and continue.
 
-### 3d: Hosting project
+### 3d: Hosting project (if present in manifest)
 
 Read the hosting stack file's `## Deploy Interface > Teardown`. Execute the remove-project command.
 
 If fails: report with the dashboard URL from the stack file's Teardown section for manual fallback.
+
+### 3d.5: Surface project (if `surface_url` in manifest and no `hosting` in manifest)
+
+This applies to archetypes with detached surfaces (e.g., CLI) where the surface is deployed
+independently — no hosting project was created. Read the surface stack file at
+`.claude/stacks/surface/detached.md` → `## Teardown`. Execute the teardown command
+(e.g., remove the Vercel project that hosts the surface).
+
+If the surface stack file has no `## Teardown` section, report: "Surface at <surface_url> —
+delete manually via the hosting provider's dashboard."
+
+If fails: report with the provider dashboard URL for manual fallback.
 
 ### 3e: Database project (if present in manifest)
 
