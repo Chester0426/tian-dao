@@ -1,497 +1,153 @@
-# experiment.yaml — Assayer platform spec
+# experiment.yaml — Describe your MVP experiment
 #
-# Assayer is a "verdict machine" that transforms uncertain startup ideas
-# into data-backed SCALE/REFINE/PIVOT/KILL verdicts.
+# RECOMMENDED: Run `/spec 'your idea'` in Claude Code — it fills this file
+# automatically with hypotheses, behaviors, variants, and stack choices.
+#
+# ALTERNATIVE: Fill in manually. Replace every "TODO" value with your content.
+# See idea/experiment.example.yaml for a complete worked example.
+#
+# When you're done (either way), run: make validate → /bootstrap
 
 # --- 1. Identity ---
-name: assayer
-type: web-app
-level: 3
+name: TODO                  # Lowercase slug, hyphens only (e.g., "quick-bill"). Used in analytics.
+# type: web-app               # Product archetype (default: web-app). See .claude/archetypes/
+# level: 2                    # Experiment scope: 1 (Pitch), 2 (Prototype), 3 (Product).
+                               # /spec sets this automatically. Manual: omit to let /bootstrap infer from stack.
 status: draft
-quality: production
+# quality: production          # Uncomment for TDD, per-task implementer, spec review.
+                               # Default (absent): MVP mode — smoke tests, fast iteration.
+                               # Use /harden to analyze existing code before upgrading.
 
 # --- 2. Intent ---
 description: |
-  Founders waste months building products nobody wants because they lack a fast,
-  structured way to validate ideas before committing. Assayer is a verdict machine:
-  paste an idea, watch AI generate a testable spec, deploy a live experiment with
-  one click, and receive a data-backed SCALE/REFINE/PIVOT/KILL verdict in days.
+  TODO: Describe the problem and your proposed solution in 2-3 sentences.
+  Who has this problem? What does the user get that they don't have today?
 
-thesis: "If indie hackers can go from idea to live experiment verdict in under 30 minutes, then >5% of landing visitors will sign up and >40% of signups will generate a spec, as measured by signup and spec completion rates"
-target_user: Indie hackers and solo founders validating startup ideas
+thesis: "TODO: If [action], then [outcome], as measured by [metric]"
+target_user: "TODO: Be specific (e.g., freelance designers billing <5 clients/month)"
 
 distribution: |
-  Reddit (r/startups, r/SideProject, r/indiehackers), Indie Hackers community,
-  Twitter/X organic posts targeting #buildinpublic. Google Ads and Meta Ads
-  for paid acquisition targeting "validate startup idea" keywords.
+  TODO: How will you get this in front of target users?
+  e.g., Post in r/freelance, Indie Hackers, LinkedIn outreach
 
-hypotheses:
-  - id: h-01
-    category: reach
-    statement: "Ad click-through rate exceeds 2% across paid channels"
-    metric:
-      formula: "visit_landing / ad_impressions"
-      threshold: 0.02
-      operator: gte
-    priority_score: 95
-    experiment_level: 1
-    depends_on: []
-    status: pending
-  - id: h-02
-    category: demand
-    statement: ">5% of landing page visitors sign up for an account"
-    metric:
-      formula: "signup_complete / visit_landing"
-      threshold: 0.05
-      operator: gte
-    priority_score: 90
-    experiment_level: 1
-    depends_on: [h-01]
-    status: pending
-  - id: h-03
-    category: activate
-    statement: ">40% of signed-up users generate at least one spec"
-    metric:
-      formula: "spec_generated / signup_complete"
-      threshold: 0.40
-      operator: gte
-    priority_score: 80
-    experiment_level: 2
-    depends_on: [h-02]
-    status: pending
-  - id: h-04
-    category: monetize
-    statement: ">3% of signed-up users convert to Pro plan"
-    metric:
-      formula: "pay_success / signup_complete"
-      threshold: 0.03
-      operator: gte
-    priority_score: 70
-    experiment_level: 3
-    depends_on: [h-03]
-    status: pending
-  - id: h-05
-    category: retain
-    statement: ">30% of signed-up users return within 30 days"
-    metric:
-      formula: "retain_return / signup_complete"
-      threshold: 0.30
-      operator: gte
-    priority_score: 60
-    experiment_level: 3
-    depends_on: [h-04]
-    status: pending
+# hypotheses:
+#   - id: h-01
+#     category: demand          # demand | reach | feasibility | monetize | retain
+#     statement: "TODO: Testable prediction with specific numbers"
+#     success_metric: "TODO: What to measure"
+#     threshold: "TODO: Pass/fail number (e.g., > 5% CTR)"
+#     priority_score: 90        # 0-100, higher = test first
+#     experiment_level: 1       # Minimum level needed to test this
+#     depends_on: []
+#     status: pending           # pending | resolved
 
 # --- 3. Behaviors ---
-behaviors:
-  # Landing page
-  - id: b-01
-    hypothesis_id: h-02
-    given: "A visitor arrives at the Assayer landing page"
-    when: "They read the value proposition and variant messaging"
-    then: "The page renders with headline, subheadline, CTA, and social proof"
-    tests:
-      - "Landing page renders without errors"
-      - "Variant-specific content displays correctly"
-    level: 1
-  - id: b-02
-    hypothesis_id: h-02
-    given: "A visitor is on the landing page"
-    when: "They click the primary CTA button"
-    then: "They are navigated to the assay page with idea input focused"
-    tests:
-      - "CTA button is visible and clickable"
-      - "Navigation to /assay occurs on click"
-    level: 1
-
-  # Assay page (spec generation)
-  - id: b-03
-    hypothesis_id: h-03
-    given: "An anonymous visitor is on the assay page"
-    when: "They enter an idea and click 'Test it'"
-    then: "AI generates a spec via SSE stream, displayed in real-time"
-    tests:
-      - "Idea input accepts text and submits"
-      - "Spec streams in and renders progressively"
-    level: 2
-  - id: b-04
-    hypothesis_id: h-03
-    given: "An anonymous visitor has a generated spec"
-    when: "They click 'Save' or 'Launch'"
-    then: "A signup modal appears; after signup the spec is claimed to their account"
-    tests:
-      - "Signup modal triggers on save/launch for anonymous users"
-      - "Spec is associated with user after signup"
-    level: 2
-  - id: b-05
-    hypothesis_id: h-03
-    given: "An authenticated user is on the assay page"
-    when: "They enter an idea and click 'Test it'"
-    then: "AI generates a spec and saves it to their account automatically"
-    tests:
-      - "Spec is saved to user's experiments"
-      - "User can view the spec in their lab"
-    level: 2
-
-  # Launch page
-  - id: b-06
-    hypothesis_id: h-03
-    given: "An authenticated user views a generated spec on the launch page"
-    when: "They review the build preview (stack, behaviors, variants)"
-    then: "They see a complete experiment configuration ready for deployment"
-    tests:
-      - "Build preview shows stack, behaviors, and variants"
-      - "All spec sections are populated"
-    level: 2
-  - id: b-07
-    hypothesis_id: h-03
-    given: "An authenticated user approves a spec on the launch page"
-    when: "They click 'Deploy' and pass quality gate and distribution approval"
-    then: "An experiment is created and deployment is initiated"
-    tests:
-      - "Deploy button triggers experiment creation"
-      - "Quality gate validation runs before deployment"
-    level: 3
-
-  # Experiment page (scorecard)
-  - id: b-08
-    hypothesis_id: h-05
-    given: "An authenticated user has a running experiment"
-    when: "They visit the experiment page"
-    then: "They see a live scorecard with funnel metrics, hypothesis status, and confidence intervals"
-    tests:
-      - "Scorecard renders with current metrics"
-      - "Hypothesis pass/fail indicators display correctly"
-    level: 3
-  - id: b-09
-    hypothesis_id: h-05
-    given: "An authenticated user is viewing an experiment scorecard"
-    when: "They submit a change request (pivot variant, adjust budget, extend timeline)"
-    then: "The change is queued for execution and reflected in the experiment"
-    tests:
-      - "Change request form submits successfully"
-      - "Experiment state updates after change"
-    level: 3
-
-  # Verdict page
-  - id: b-10
-    hypothesis_id: h-05
-    given: "An experiment has collected sufficient data"
-    when: "The user views the verdict page"
-    then: "A SCALE/REFINE/PIVOT/KILL verdict is displayed with supporting evidence"
-    tests:
-      - "Verdict renders with correct recommendation"
-      - "Supporting metrics and rationale are shown"
-    level: 3
-  - id: b-11
-    hypothesis_id: h-01
-    given: "A user is viewing the verdict page"
-    when: "They review distribution ROI"
-    then: "Channel-level cost, impressions, CTR, and CPA are displayed"
-    tests:
-      - "Distribution ROI table renders with channel data"
-      - "Cost and performance metrics are accurate"
-    level: 3
-
-  # Lab page (portfolio)
-  - id: b-12
-    hypothesis_id: h-05
-    given: "An authenticated user visits the lab page"
-    when: "The page loads"
-    then: "All their experiments are listed with status, verdict, and key metrics"
-    tests:
-      - "Lab page renders experiment list"
-      - "Each experiment shows status and summary metrics"
-    level: 2
-  - id: b-13
-    hypothesis_id: h-05
-    given: "A user is on the lab page"
-    when: "They click an experiment card"
-    then: "They navigate to that experiment's scorecard or verdict page"
-    tests:
-      - "Experiment cards are clickable"
-      - "Navigation goes to correct experiment"
-    level: 2
-
-  # Compare page
-  - id: b-14
-    hypothesis_id: h-05
-    given: "A user has multiple experiments"
-    when: "They visit the compare page and select experiments"
-    then: "A side-by-side comparison of funnel metrics and verdicts is displayed"
-    tests:
-      - "Compare page renders with experiment selectors"
-      - "Side-by-side metrics display correctly"
-    level: 3
-
-  # Settings page
-  - id: b-15
-    hypothesis_id: h-04
-    given: "An authenticated user visits the settings page"
-    when: "They view account settings"
-    then: "They can manage account info, OAuth channel connections, and billing/subscription"
-    tests:
-      - "Settings page renders with account, channels, and billing sections"
-      - "Billing section shows current plan and manage link"
-    level: 3
-
-  # API: /api/spec/*
-  - id: b-16
-    hypothesis_id: h-03
-    given: "A client sends a POST to /api/spec/stream with an idea"
-    when: "The request is processed"
-    then: "An SSE stream returns the AI-generated spec in real-time"
-    tests:
-      - "Endpoint returns SSE content-type"
-      - "Spec data streams progressively"
-    level: 2
-  - id: b-17
-    hypothesis_id: h-03
-    given: "An authenticated user sends a POST to /api/spec/claim with a spec ID"
-    when: "The spec was generated anonymously"
-    then: "The spec is associated with the user's account"
-    tests:
-      - "Spec ownership transfers to authenticated user"
-      - "Unauthenticated requests are rejected"
-    level: 2
-
-  # API: /api/experiments/*
-  - id: b-18
-    hypothesis_id: h-05
-    given: "An authenticated user sends requests to /api/experiments"
-    when: "They create, read, update, or delete experiments"
-    then: "CRUD operations succeed with RLS enforcing ownership"
-    tests:
-      - "Users can only access their own experiments"
-      - "CRUD operations return correct status codes"
-    level: 2
-  - id: b-19
-    hypothesis_id: h-05
-    given: "An authenticated user accesses experiment sub-resources"
-    when: "They request hypotheses, variants, insights, research, rounds, metrics, or alerts"
-    then: "Sub-resource data is returned scoped to the experiment"
-    tests:
-      - "Sub-resources are scoped to the parent experiment"
-      - "Missing experiments return 404"
-    level: 3
-
-  # API: /api/skills/*
-  - id: b-20
-    hypothesis_id: h-03
-    given: "An authenticated user triggers a skill (deploy, distribute, iterate)"
-    when: "They send a POST to /api/skills/{skill}"
-    then: "The skill execution is queued and status is trackable"
-    tests:
-      - "Skill execution starts and returns a job ID"
-      - "Unauthorized skills are rejected"
-    level: 3
-  - id: b-21
-    hypothesis_id: h-03
-    given: "A skill requires user approval (e.g., deploy, budget change)"
-    when: "The approval gate is reached"
-    then: "Execution pauses until the user approves or rejects"
-    tests:
-      - "Approval-gated skills pause and wait"
-      - "User can approve or reject pending skills"
-    level: 3
-
-  # API: /api/operations/* + /api/billing/*
-  - id: b-22
-    hypothesis_id: h-04
-    given: "A user action requires billing authorization (deploy, distribute)"
-    when: "The operation checks billing status"
-    then: "Free-tier limits are enforced; Pro features require active subscription"
-    tests:
-      - "Free-tier users are blocked from Pro-only operations"
-      - "Pro users can access all operations"
-    level: 3
-  - id: b-23
-    hypothesis_id: h-04
-    given: "A user initiates subscription, top-up, or billing management"
-    when: "They call /api/billing/subscribe, /api/billing/topup, or /api/billing/portal"
-    then: "Stripe checkout session (subscription or PAYG top-up) or billing portal URL is returned"
-    tests:
-      - "Subscribe creates a valid Stripe subscription checkout"
-      - "Topup creates a valid PAYG top-up checkout ($10-$500)"
-      - "Portal redirects to Stripe billing management"
-    level: 3
-
-  # API: /api/distribution/*
-  - id: b-24
-    hypothesis_id: h-01
-    given: "An authenticated user manages distribution campaigns"
-    when: "They list, sync, or manage campaigns via /api/experiments/:id/distribution"
-    then: "Campaign config is saved and synced with ad platforms"
-    tests:
-      - "Campaign CRUD operations work correctly"
-      - "Sync status is tracked per channel"
-    level: 3
-
-  # System: Stripe webhook
-  - id: b-25
-    actor: system
-    trigger: "stripe webhook"
-    hypothesis_id: h-04
-    given: "A Stripe webhook event is received"
-    when: "The event is checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, or invoice.payment_failed"
-    then: "User billing and subscription state is updated in the database"
-    tests:
-      - "Webhook signature is verified"
-      - "Subscription state reflects webhook events"
-    level: 3
-
-  # Cron: Metrics sync
-  - id: b-26
-    actor: cron
-    trigger: "15min cron"
-    hypothesis_id: h-05
-    given: "Running experiments exist with active distribution"
-    when: "The 15-minute cron fires"
-    then: "Metrics are synced from PostHog and ad platforms into experiment scorecard"
-    tests:
-      - "Metrics table is updated with fresh data"
-      - "Stale data is detected and flagged"
-    level: 3
-
-  # Cron: Alert detection
-  - id: b-27
-    actor: cron
-    trigger: "15min cron"
-    hypothesis_id: h-05
-    given: "Metrics have been synced for running experiments"
-    when: "The 15-minute cron fires"
-    then: "Alerts are created for budget exhaustion, stale metrics, or dropping dimensions"
-    tests:
-      - "Budget exhaustion triggers alert"
-      - "Dropping dimension triggers alert"
-    level: 3
-
-  # Cron: Anonymous spec cleanup
-  - id: b-28
-    actor: cron
-    trigger: "1h cron"
-    hypothesis_id: h-03
-    given: "Anonymous specs older than 24 hours exist"
-    when: "The hourly cron fires"
-    then: "Unclaimed anonymous specs are deleted"
-    tests:
-      - "Specs older than 24h without an owner are removed"
-      - "Claimed specs are not affected"
-    level: 2
-
-  # Cron: Notification dispatch
-  - id: b-29
-    actor: cron
-    trigger: "daily cron"
-    hypothesis_id: h-05
-    given: "Experiments have reached milestones, verdicts, or alert conditions"
-    when: "The daily cron fires"
-    then: "Notifications are dispatched to experiment owners"
-    tests:
-      - "Milestone notifications are sent"
-      - "Verdict notifications are sent"
-    level: 3
+# Given/when/then specifications derived from hypotheses.
+# Each behavior IS a feature requirement — they replace the features list.
+# behaviors:
+#   - id: b-01
+#     hypothesis_id: h-01
+#     given: "TODO: Initial condition"
+#     when: "TODO: User action or trigger"
+#     then: "TODO: Observable, measurable outcome"
+#     tests:
+#       - "TODO: Verification assertion"
+#     level: 1
+#   # System behavior example:
+#   - id: b-05
+#     actor: system             # system | cron (default: user)
+#     trigger: "TODO: What starts this (e.g., stripe webhook checkout.session.completed)"
+#     hypothesis_id: h-03
+#     given: "TODO: Initial condition"
+#     when: "TODO: System event"
+#     then: "TODO: Observable outcome"
+#     tests:
+#       - "TODO: Verification assertion"
+#     level: 3
 
 # --- 4. Journey ---
+# The user journey from landing to value delivery.
+# Drives ux-journeyer, funnel tests, and plan reviews.
 golden_path:
-  - step: "Visit landing page"
+  - step: "TODO: What happens first (e.g., Visit landing page)"
     event: visit_landing
     page: landing
-  - step: "Enter idea, click 'Test it'"
-    event: cta_click
-    page: landing
-  - step: "Watch AI spec materialize"
-    event: spec_generated
-    page: assay
-  - step: "Sign up to save"
-    event: signup_complete
-    page: assay
-  - step: "Review build, approve launch"
-    event: experiment_created
-    page: launch
-  - step: "Monitor live experiment"
-    event: experiment_viewed
-    page: experiment
-  - step: "Receive verdict"
-    event: verdict_delivered
-    page: verdict
-  - step: "View all experiments"
-    event: lab_viewed
-    page: lab
-  - step: "Compare experiments side-by-side"
-    event: experiment_viewed
-    page: compare
-  - step: "Manage account and billing"
+  - step: "TODO: What action delivers value?"
     event: activate
-    page: settings
-target_clicks: 5
+    page: TODO
+target_clicks: 3
 
-# --- 5. Variants ---
-variants:
-  - slug: verdict-machine
-    headline: "Know if it's gold before you dig."
-    subheadline: "Paste your idea. Get a live experiment and a data-backed verdict in days."
-    cta: "Test My Idea"
-    promise: "A clear SCALE/REFINE/PIVOT/KILL verdict backed by real user data"
-    proof: "Built on the same validation framework used by Y Combinator founders"
-    urgency: "Every week without validation is a week building the wrong thing"
-    pain_points:
-      - "You spent months building something nobody wanted"
-      - "Surveys and interviews give you opinions, not data"
-      - "Setting up analytics, ads, and landing pages takes weeks"
-  - slug: time-saver
-    headline: "Stop building the wrong thing."
-    subheadline: "From idea to validated experiment in 30 minutes. No code, no guesswork."
-    cta: "Validate in 30 Minutes"
-    promise: "Skip months of building to find out if your idea has legs"
-    proof: "Founders validated 500+ ideas in beta — average time to verdict: 5 days"
-    urgency: "Your runway is burning. Get answers before you run out"
-    pain_points:
-      - "Building an MVP takes weeks even with no-code tools"
-      - "You don't know if low traction means bad idea or bad execution"
-      - "Pivoting after launch wastes months of effort"
-  - slug: data-driven
-    headline: "Data-backed verdicts in days, not months."
-    subheadline: "AI generates your experiment. Real users deliver the verdict."
-    cta: "Get My Verdict"
-    promise: "Replace gut feelings with funnel data and statistical confidence"
-    proof: "93% of ideas that scored KILL would have failed within 6 months"
-    urgency: "The market won't wait — validate now or watch someone else win"
-    pain_points:
-      - "You're making bet-the-company decisions on gut feeling"
-      - "A/B testing requires traffic you don't have yet"
-      - "Analytics tools show you what happened, not what to do"
+# --- 5. Variants (optional) ---
+# Test different messaging for the same product. Each variant gets its own
+# landing page URL (/v/<slug>) and its own ad group in the distribution channel.
+# Omit this section for a single-variant experiment (the default).
+# variants:
+#   - slug: TODO
+#     headline: "TODO: Value proposition variant A"
+#     subheadline: "TODO: How it works, variant A"
+#     cta: "TODO: Action verb + outcome"
+#     promise: "TODO: Core benefit in one phrase"         # generated by /spec
+#     proof: "TODO: Evidence or credibility signal"       # generated by /spec
+#     urgency: "TODO: Why act now"                        # generated by /spec
+#     pain_points:
+#       - "TODO: Pain point 1"
+#       - "TODO: Pain point 2"
+#       - "TODO: Pain point 3"
+#   - slug: TODO
+#     headline: "TODO: Value proposition variant B"
+#     subheadline: "TODO: How it works, variant B"
+#     cta: "TODO: Action verb + outcome"
+#     promise: "TODO: Core benefit in one phrase"         # generated by /spec
+#     proof: "TODO: Evidence or credibility signal"       # generated by /spec
+#     urgency: "TODO: Why act now"                        # generated by /spec
+#     pain_points:
+#       - "TODO: Pain point 1"
+#       - "TODO: Pain point 2"
+#       - "TODO: Pain point 3"
 
 # --- 6. Funnel ---
-funnel:
-  available_from:
-    reach: L1
-    demand: L1
-    activate: L2
-    monetize: L3
-    retain: L3
-  decision_framework:
-    scale: "All tested dimensions >= 1.0"
-    kill: "Any top-funnel (REACH or DEMAND) < 0.5"
-    pivot: "2+ dimensions < 0.8"
-    refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
+# funnel:
+#   reach:
+#     metric: "TODO: Top-of-funnel metric (e.g., Ad CTR)"
+#     threshold: "TODO: Pass/fail (e.g., > 2%)"
+#     available_from: L1
+#   demand:
+#     metric: "TODO: Signup/interest metric"
+#     threshold: "TODO: Pass/fail (e.g., > 5%)"
+#     available_from: L1
+#   monetize:
+#     metric: "TODO: Revenue/pricing metric"
+#     threshold: "TODO: Pass/fail (e.g., > 7%)"
+#     available_from: L2
+#   retain:
+#     metric: "TODO: Retention metric"
+#     threshold: "TODO: Pass/fail (e.g., > 30%)"
+#     available_from: L3
+# decision_framework:
+#   scale: "TODO: When to scale (e.g., All tested dimensions >= threshold)"
+#   refine: "TODO: When to refine (e.g., Bottleneck ratio >= 0.7)"
+#   pivot: "TODO: When to pivot (e.g., Bottleneck ratio < 0.7)"
+#   kill: "TODO: When to kill (e.g., Top-funnel < 0.5)"
 
 # --- 7. Stack + Deploy ---
+# Per-service values (runtime, hosting, ui, testing) live under services[].
+# Shared values (database, auth, analytics, payment) live directly under stack.
+# Each value maps to a stack file at .claude/stacks/<category>/<value>.md
 stack:
   services:
     - name: app
-      runtime: nextjs
-      hosting: vercel
-      ui: shadcn
-      testing: playwright
-  database: supabase
-  auth: supabase
-  auth_providers:
-    - google
-    - github
-  analytics: posthog
-  payment: stripe
-  ai: anthropic
+      runtime: nextjs          # Web framework — leave default
+      hosting: vercel           # Where the app is deployed — leave default
+      ui: shadcn               # UI component library — leave default
+      testing: playwright      # Page-load smoke tests — created by bootstrap
+  database: supabase           # Database and backend — leave default
+  auth: supabase               # Login/signup system — leave default
+  # auth_providers:            # OAuth providers (e.g., [google, github]). Omit for email-only auth.
+  #   - google
+  #   - github
+  analytics: posthog           # Usage tracking — leave default
+  # payment: stripe            # Uncomment if your experiment involves payments
+  # email: resend              # Uncomment for welcome email + activation nudge
 
 deploy:
   url: null
