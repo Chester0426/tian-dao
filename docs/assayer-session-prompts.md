@@ -553,11 +553,56 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
    payment: stripe
    ai: anthropic
 
-3. Behaviors — 从 product-design.md Section 5 的 API routes 和 ux-design.md 的 Screen-by-Screen Specification 推导：
-   - 每个 page 至少一个 behavior
-   - 每个 API route group 至少一个 behavior
-   - actor: system 用于 cron jobs、webhooks、Cloud Run Jobs
-   - tests[] 数组用于 Quality Gate
+3. Behaviors — 必须精确 29 条（b-01~b-29），ID 和分组如下。Checkpoints 硬编码了这些 ID 范围（CP1: b-16~b-29, CP2: b-01~b-15, CP3: b-01~b-25 含 payment b-22/b-23/b-25, CP4/CP5: b-01~b-29）。不要重新编号或合并/拆分。
+
+   **b-01~b-15: UI behaviors（Sessions 5-6b 实现，CP2 验证）**
+   - b-01: Landing — hero 渲染，"Test it" CTA 导航到 /assay?idea=...
+   - b-02: Landing — stats 查询（"X ideas tested"），pricing section，variant messaging
+   - b-03: Assay creation mode — SSE streaming，spec progressive rendering（skeleton → cards）
+   - b-04: Assay edit mode — 加载已有实验，Round N indicator，bottleneck highlighted
+   - b-05: Signup gate — OAuth + email/password，session_token claim，free tier quota check
+   - b-06: Launch Phase A-B — build + deploy progress，quality gate（L2/L3），auto-fix loop UI
+   - b-07: Launch Phase C-G — content check，walkthrough，distribution approval，live confirmation
+   - b-08: Experiment scorecard — 5 dimensions（REACH/DEMAND/ACTIVATE/MONETIZE/RETAIN），confidence bands
+   - b-09: Experiment alerts + traffic — 7 alert types，per-channel breakdown，change request modal
+   - b-10: Verdict — 4 verdict types（SCALE/KILL/REFINE/PIVOT），return flows（REFINE→edit, PIVOT→new, UPGRADE→L+1）
+   - b-11: Lab — portfolio grouping（RUNNING/VERDICT READY/COMPLETED），Assayer Score ★，lineage
+   - b-12: Lab advanced — AI Insight card（Pro+），Budget tab（Team），empty state
+   - b-13: Compare — side-by-side 2+ experiments，Pro/Team gate，[Export CSV]
+   - b-14: Settings — account，OAuth channels（login vs distribution），billing，plan comparison table
+   - b-15: Mobile + Content Check — tab bar，responsive layout，inline [e] editing，swipe-to-archive
+
+   **b-16~b-18: Core API behaviors（Sessions 3-4 实现，CP1 开始验证）**
+   - b-16: Spec generation — POST /api/spec/stream（SSE，anonymous，rate limit 3/24h）+ POST /api/spec/claim（auth，quota，upgrade_from）
+   - b-17: Experiments CRUD — GET/POST/PATCH/DELETE + RLS isolation + sub-resources（hypotheses, variants, rounds, metrics, alerts）+ compare + CSV export
+   - b-18: Portfolio Intelligence API — GET /api/portfolio/insight，POST .../apply，POST .../dismiss，GET /api/portfolio/budget，POST .../allocate
+
+   **b-19~b-21: System behaviors（Session 11 实现，CP5 验证。actor: system）**
+   - b-19: Metrics pipeline — actor: system, trigger: vercel cron 15min。Sync PostHog events + ad platform APIs → compute 5 scorecard dimension ratios + confidence bands → compute Assayer Score (formula from product-design.md) → detect 7 alert conditions (budget_exhausted, dimension_dropping, metrics_stale, ad_account_suspended, post_removed, runtime_bug, bug_auto_fixed) → create experiment_alerts rows。tests: "cron route responds 200 with CRON_SECRET", "experiment_metric_snapshots row created", "alert created when spend > 90% budget"
+   - b-20: Verdict engine + notifications — actor: system, trigger: metrics sync + force_verdict。Guard clause (clicks < 100 OR duration < 50%) → per-hypothesis verdicts (CONFIRMED/REJECTED/INCONCLUSIVE/BLOCKED) → experiment-level verdict (SCALE/KILL/REFINE/PIVOT) → distribution ROI computation → write experiment_decisions → status → verdict_ready。Notification dispatch: 7 triggers (experiment_live, first_traffic, mid_experiment, verdict_ready, budget_alert, dimension_dropping, bug_auto_fixed), email via Resend + browser push via Web Push API, notification CRUD API (GET list, PATCH read, POST mark-all-read, POST push-subscribe)。tests: "verdict computed correctly for SCALE scenario", "notification created on verdict_ready", "guard clause returns null when insufficient data"
+   - b-21: Auto-fix + portfolio crons — actor: system, trigger: various crons。Runtime auto-fix: 0.0x ratio + sufficient traffic → triggerCloudRunJob(verify) → /change → redeploy → bug_auto_fixed alert (max 3 retries per dimension per 7 days)。Portfolio: AI insight generation (daily, Sonnet, 2+ running experiments) → portfolio_insights table。Auto-rebalance (daily, Team only, Thompson Sampling) → budget_allocations。Cost monitor (weekly) → margin + Cloud Run budget check ($50 alert, $100 hard limit)。Cleanup (hourly) → DELETE expired anonymous_specs + rate_limit_entries + stripe_webhook_events。Hosting billing (monthly) → $5/mo overage charge + free tier 30-day auto-pause。tests: "auto-fix creates bug_auto_fixed alert", "portfolio insight generated for user with 2+ experiments", "expired anonymous_specs deleted"
+
+   **b-22~b-25: Payment behaviors（Session 8 实现，CP3 深度验证）**
+   - b-22: Stripe webhooks — 5 event types，signature verification，idempotency（stripe_webhook_events dedup）
+   - b-23: Billing gate — POST /api/operations/authorize（pool + PAYG + free + past_due check），POST .../complete，POST .../extend
+   - b-24: Stripe subscription — subscribe/topup/portal routes，checkout session creation
+   - b-25: Billing UX integration — pool usage display，PAYG→Pro conversion，operation classifier（Haiku），token budget enforcement（80% warning, 100% hard stop + "Continue for $X?" gate）
+
+   **b-26~b-29: Infrastructure behaviors（Sessions 9-10 实现，CP4 验证）**
+   - b-26: Skill execution — POST /api/skills/execute，triggerCloudRunJob()（共享函数 src/lib/cloud-run.ts），realtime progress（Supabase Broadcast exec:{id}），approval gate pattern（poll/resume/timeout）
+   - b-27: Skill runner — Docker image，8-step workspace lifecycle，draft→active status transition，experiment_live notification（immediate），per-experiment hosting（Vercel/Railway）
+   - b-28: Distribution — 6 adapters（twitter-organic, reddit-organic, email-resend, google-ads, meta-ads, twitter-ads），OAuth callbacks，getValidToken() token refresh，plan-gated channels，distribution plan generator
+   - b-29: Cron + notification infrastructure — vercel.json 8 cron routes with CRON_SECRET verification，Resend email integration，Web Push API + service worker（public/sw.js），push subscription management
+
+   **Session 11 实现 b-19~b-21 的完整逻辑** — 不是 "wiring"，是独立的系统 behaviors：
+   - b-19 metrics pipeline 实现真实的 PostHog + ad platform sync（替换 seed data）
+   - b-20 verdict engine 实现 per-hypothesis verdict + decision framework（之前只有 UI 展示 mock 数据）
+   - b-21 auto-fix + portfolio crons 实现所有 8 个 cron route 的业务逻辑
+   - CP4 验证时 b-19~b-21 尚未实现（Session 11 在 CP4 之后），CP5 要求 100% 覆盖
+
+   每个 behavior 使用 given/when/then 格式 + tests[] 数组。
+   actor: system 用于 cron jobs、webhooks、Cloud Run Jobs。
+   tests[] 条目对应 quality: production 要求的 spec test assertions。
 
 4. Golden path — 从 ux-design.md Information Architecture 推导：
    landing → assay → launch → experiment → verdict → lab → compare → settings
@@ -2901,9 +2946,9 @@ npm run build 零错误。
 8. 6 adapters 实现 DistributionAdapter interface
 9. OAuth flow routes 存在
 10. Realtime channel 订阅模式正确
-11. `quality: production` — 累积 behaviors (b-01~b-29) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。
+11. `quality: production` — 已实现 behaviors (b-01~b-18, b-22~b-29) 的 `tests` 条目均有对应 spec test 或 Playwright assertion。注意：b-19~b-21（system behaviors）在 Session 11 实现，CP4 跳过验证，CP5 要求 100% 覆盖。
 
-**输出**：CP4 verification report。失败项必须修复后才能进入 Phase 5。
+**输出**：CP4 verification report。失败项必须修复后才能进入 Phase 6。
 
 **Prompt**:
 
@@ -2928,13 +2973,14 @@ npm run build 零错误。
    - 确认 Realtime channel 订阅模式正确
 
 3. behavior.tests 覆盖验证（quality: production）：
-   读 experiment/experiment.yaml 中 ALL behaviors b-01 到 b-29（累积到 Session 10）。
-   对每个 behavior 的 tests 条目，确认有对应测试。
+   读 experiment/experiment.yaml 中已实现 behaviors（b-01~b-18, b-22~b-29，共 25 条）。
+   跳过 b-19~b-21（system behaviors，Session 11 实现）。
+   对每个已实现 behavior 的 tests 条目，确认有对应测试。
    缺失的覆盖：补上。补完后重新运行 npm test 确认通过。
 
 4. 生成 checkpoint report 写入 docs/cp4-report.md。
 
-所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 5。
+所有检查项通过后，报告结果。失败项必须修复后才能进入 Phase 6。
 ```
 
 ---
