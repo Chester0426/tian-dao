@@ -839,44 +839,144 @@ experiment/EVENTS.yaml      → 含 events (flat map with funnel_stage), global_
 
 **输出**：
 - 完整的 Next.js 项目结构
-- 所有 pages 的 stub
+- 所有 pages 的 stub（含 dynamic route segments: launch/[id], experiment/[id], verdict/[id]）
 - shadcn/ui 组件安装
 - PostHog analytics 集成
-- Playwright 测试 stub
+- Playwright + Vitest 双 test runner（quality: production 要求 vitest co-install）
 - Supabase 初始配置
 - `.env.example` 包含所有环境变量
 
 **输出合约**（Session 2.5 验证）：
 ```
-src/app/page.tsx                     → exists (Landing page stub)
-src/app/assay/page.tsx               → exists (Assay page stub)
-src/app/launch/[id]/page.tsx         → exists (Launch page stub)
-src/app/experiment/[id]/page.tsx     → exists (Experiment page stub)
-src/app/verdict/[id]/page.tsx        → exists (Verdict page stub)
-src/app/lab/page.tsx                 → exists (Lab page stub)
-src/app/compare/page.tsx             → exists (Compare page stub)
-src/app/settings/page.tsx            → exists (Settings page stub)
-.env.example                         → exists with NEXT_PUBLIC_SUPABASE_URL
-package.json                         → contains "next", "react" in dependencies
+experiment/experiment.yaml             → contains `owner:` field (non-empty)
+src/app/page.tsx                       → exists (Landing page stub)
+src/app/assay/page.tsx                 → exists (Assay page stub)
+src/app/launch/[id]/page.tsx           → exists (Launch page stub, dynamic route)
+src/app/experiment/[id]/page.tsx       → exists (Experiment page stub, dynamic route)
+src/app/verdict/[id]/page.tsx          → exists (Verdict page stub, dynamic route)
+src/app/lab/page.tsx                   → exists (Lab page stub)
+src/app/compare/page.tsx               → exists (Compare page stub)
+src/app/settings/page.tsx              → exists (Settings page stub)
+src/lib/analytics.ts                   → exists, PROJECT_NAME = "assayer", PROJECT_OWNER ≠ "TODO"
+.env.example                           → exists with NEXT_PUBLIC_SUPABASE_URL, ANTHROPIC_API_KEY
+package.json                           → contains "next", "react" in dependencies
+playwright.config.ts                   → exists
+vitest.config.ts                       → exists (quality: production co-install)
 ```
 
 **Prompt**:
 
 ```
-先读 docs/assayer-session-prompts.md 中本 session 的「输出合约」和前序 session 的「输出合约」，执行文件顶部 "Session Preamble Template" 中的合约验证步骤。
+先读 docs/assayer-session-prompts.md 中 Session 2 和 Session 1 的「输出合约」section（不要读整个文件），
+执行文件顶部 "Session Preamble Template" 中的合约验证步骤。
 
-读 experiment/experiment.yaml 和 experiment/EVENTS.yaml。
+## Phase 0: 前置检查
+
+1. 读 experiment/experiment.yaml。
+
+2. 检查 `owner` 字段：
+   BG1 Validation Gate 要求 `owner` 字段存在且非空。Session 1 的 prompt 未包含此字段。
+   - 如果 `owner` 字段缺失或为空，在 Identity section（`name:` 下方）添加：
+     ```yaml
+     owner: <GitHub org 或用户名>
+     ```
+     通过 `gh repo view --json owner --jq '.owner.login'` 获取值。
+     如果 `gh` 不可用，直接问用户要 GitHub owner。
+   - 这是 analytics PROJECT_OWNER 的来源，必须在 /bootstrap 之前就位。
+
+3. 读 experiment/EVENTS.yaml。
+
+## Phase 1: 运行 /bootstrap
 
 运行 /bootstrap。
 
-Bootstrap 完成后验证：
-1. npm run build 零错误
-2. 所有 8 个 pages 有对应的 page.tsx（landing, assay, launch, experiment, verdict, lab, compare, settings）
-3. analytics 库已配置，PostHog 集成就绪
-4. .env.example 包含所有需要的环境变量（包括 ANTHROPIC_API_KEY）
-5. Playwright 配置就绪
+### 交互点指引
 
-注意：bootstrap 会创建 Supabase 初始 migration。后续 Session 3 会添加完整的 19-table schema。
+/bootstrap 不是 one-shot —— 它有多个 STOP 点需要用户响应。按以下预设处理：
+
+**STOP 1 — Phase 1 Step 6 Plan Approval**
+/bootstrap 完成 Phase 1 后会展示完整 plan 并 STOP 等待审批。
+Assayer 配置大（29 behaviors + 4 variants + 50 events），上下文可能接近限制。
+→ **选择 option 2 "approve and clear"**。这会保存 plan 到 `.claude/current-plan.md`，
+  然后你需要 /clear 并重新运行 /bootstrap，它会从 checkpoint 恢复。
+
+**STOP 2 — Preamble: TSP-LSP check**
+/bootstrap 检测 `typescript-language-server` 是否已全局安装。
+→ 如果未安装，**安装它**（`npm install -g typescript-language-server typescript`）。
+  它给 subagents 提供 real-time type checking，对生成正确类型代码至关重要。
+
+**STOP 3 — Externals: Dependency Classification**
+scaffold-externals subagent 会列出需要外部 credentials 的 services：
+- Anthropic API — **core**（选 Provide now 或 Provision at deploy）
+- Google Ads API, Meta Ads API, Twitter Ads API, Reddit API — **全部 Skip**
+  （Session 10 Distribution System 负责完整构建，此时构建只会产生未使用代码）
+- Stripe — 已由 `stack.payment: stripe` 覆盖，不会出现在 externals
+- Resend — 如在 stack 中声明则已覆盖，否则 Skip（Session 11 处理 email）
+
+如果有上述之外的 dependency 被检出，评估是否属于 Session 10+ 范围后决定。
+
+## Phase 2: 验证
+
+Bootstrap 完成后执行以下检查。每项包含 ON FAIL 操作。
+
+1. **npm run build 零错误**
+   ON FAIL: 读 build error log，修复后重新 build（max 3 attempts，参考 .claude/patterns/verify.md）
+
+2. **8 个 pages 路径正确**（含 dynamic segments）
+   ```
+   src/app/page.tsx                    # landing
+   src/app/assay/page.tsx              # assay
+   src/app/launch/[id]/page.tsx        # launch（需要 [id]）
+   src/app/experiment/[id]/page.tsx    # experiment（需要 [id]）
+   src/app/verdict/[id]/page.tsx       # verdict（需要 [id]）
+   src/app/lab/page.tsx                # lab
+   src/app/compare/page.tsx            # compare
+   src/app/settings/page.tsx           # settings
+   ```
+   ON FAIL: 创建缺失的 page stub（参考其他 page 格式），或修正路径（确保 launch/experiment/verdict 有 [id] segment）。
+
+3. **analytics 库正确配置**
+   检查 `src/lib/analytics.ts`（或 analytics.tsx）：
+   - `PROJECT_NAME` === "assayer"
+   - `PROJECT_OWNER` === experiment.yaml 中的 `owner` 值
+   - PostHog provider setup 正确
+   ON FAIL: 修复 constants 值。
+
+4. **.env.example 完整**
+   必须包含：NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+   NEXT_PUBLIC_POSTHOG_KEY, NEXT_PUBLIC_POSTHOG_HOST, ANTHROPIC_API_KEY
+   ON FAIL: 追加缺失的变量。
+
+5. **双 test runner 就绪**
+   - `playwright.config.ts` 存在
+   - `vitest.config.ts` 存在（quality: production + testing: playwright → vitest co-install）
+   - `npx vitest run --passWithNoTests` 不报错
+   ON FAIL: 如果 vitest.config.ts 缺失，参考 `.claude/stacks/testing/vitest.md` 模板创建。
+   如果 vitest 未安装：`npm install -D vitest @vitest/coverage-v8`。
+
+6. **Supabase 初始 migration 存在**
+   `supabase/migrations/` 下至少 1 个 .sql 文件。
+   这是 bootstrap 自动创建的初始 schema — **不要在此 session 手动添加 application tables**。
+   Session 3 负责完整的 19-table schema。
+
+## 错误恢复
+
+如果 /bootstrap 在任何阶段崩溃或被中断：
+- /bootstrap 是 idempotent — 在同一 branch 上重新运行即可
+- `.claude/current-plan.md` 的 frontmatter `checkpoint` 字段记录了最新完成阶段
+- 重新运行 /bootstrap 时，它读取 checkpoint 并从断点恢复
+- 如果需要完全重来：`git checkout main && make clean`
+
+Gate-keeper BLOCK 恢复：
+- **BG1 BLOCK**（validation）：缺失字段 — 检查 gate-keeper 输出的 Observed 列，补充后重新运行
+- **BG2 BLOCK**（orchestration）：scaffold 输出不完整 — 检查具体缺失文件，手动创建或重新运行对应 phase
+- **BG3 BLOCK**（verification）：verify.md 未完成 — 告诉 Claude "complete the verification phase"
+- **BG4 BLOCK**（PR）：通常是 uncommitted changes 或在 main 分支 — 检查 git status
+
+## npm 兼容性提示
+
+shadcn/ui + Next.js 15 + React 19 可能产生 peer dependency 冲突。
+如果 `npm install` 报 ERESOLVE 错误，使用 `npm install --legacy-peer-deps`。
 ```
 
 ---
