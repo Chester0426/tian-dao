@@ -27,7 +27,7 @@ no `src/app/` directory, and no `src/components/` directory. The `hosting`,
 
 ## Funnel
 
-Events are defined in EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack. The `command_run` event has `archetypes: [cli]` — include it for CLI experiments.
+Events are defined in experiment/EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack. The `command_run` event has `archetypes: [cli]` — include it for CLI experiments.
 
 When a surface is configured (default: `detached`), `visit_landing` fires on the surface — providing a complete acquisition → activation → retention funnel.
 
@@ -71,7 +71,7 @@ A successful version output confirms the binary is installed and executable.
 
 ## Conventions
 
-- Every command fires analytics events per EVENTS.yaml (server-side, opt-in)
+- Every command fires analytics events per experiment/EVENTS.yaml (server-side, opt-in)
 - No landing page requirement — `validate-experiment.py` skips landing checks
 - No UI components — the `ui` stack category is excluded
 - No server hosting — the `hosting` stack category is excluded

@@ -168,7 +168,7 @@ Wait for the agent to complete. Include the scanner's output table in the Step 5
 
 **What's preserved:**
 - All source code on main branch
-- experiment.yaml, EVENTS.yaml (experiment definition)
+- experiment.yaml, experiment/EVENTS.yaml (experiment definition)
 - Migration files (can re-deploy with /deploy)
 
 To re-deploy this experiment: run `/deploy` again.

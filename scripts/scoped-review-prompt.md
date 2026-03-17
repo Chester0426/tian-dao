@@ -13,7 +13,7 @@ Read these files:
 1. `scripts/check-inventory.md` — canonical list of all automated checks
 2. `CLAUDE.md`
 3. `experiment/experiment.example.yaml`
-4. `EVENTS.yaml`
+4. `experiment/EVENTS.yaml`
 
 ---
 
@@ -29,7 +29,7 @@ one per dimension below. Construct each agent's prompt from:
 > **Shared context instruction** — include verbatim in every subagent prompt:
 >
 > Before reviewing, read these files:
-> `scripts/check-inventory.md`, `CLAUDE.md`, `experiment/experiment.example.yaml`, `EVENTS.yaml`.
+> `scripts/check-inventory.md`, `CLAUDE.md`, `experiment/experiment.example.yaml`, `experiment/EVENTS.yaml`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 ### Dimension A: Cross-File Consistency

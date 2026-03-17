@@ -91,7 +91,7 @@ If `stack.testing` is present in experiment.yaml:
 - If `stack.testing` is present, generate `e2e/funnel.spec.ts` with a comprehensive funnel test:
   - Read the funnel test template from the testing stack file
   - If experiment.yaml has `golden_path`: use it as the funnel sequence. Each step with an `action` becomes a test step. Read actual page source files for selectors. Steps marked as activation points get an additional assertion that the action produces a visible result (not just page load).
-  - If experiment.yaml has no `golden_path`: fall back to reading experiment.yaml pages and EVENTS.yaml to determine funnel sequence
+  - If experiment.yaml has no `golden_path`: fall back to reading experiment.yaml pages and experiment/EVENTS.yaml to determine funnel sequence
   - Read actual page source files (created in Step 4) to extract real selectors
   - Generate tests: landing content → activate action (if applicable) → login → core value pages
   - For landing page CTA and success-message selectors, use `.first()` — the CTA appears at least twice on landing pages (messaging.md Section B), so selectors will match 2+ elements. Other pages have unique selectors and don't need `.first()`.
@@ -173,7 +173,7 @@ Re-read `.claude/current-plan.md` and `experiment/experiment.yaml` now. Verify e
 
 **Feature and analytics checks:**
 - For each behavior in `behaviors`: confirm the implementation addresses it
-- For each event in the EVENTS.yaml `events` map (filtered by `requires` matching experiment stack and `archetypes` matching experiment type), confirm a tracking call exists in the appropriate page/route/command
+- For each event in the experiment/EVENTS.yaml `events` map (filtered by `requires` matching experiment stack and `archetypes` matching experiment type), confirm a tracking call exists in the appropriate page/route/command
 - If archetype is `cli` and `stack.analytics` is present: confirm `analytics-server.ts` wraps `trackServerEvent()` with an opt-in consent check (see analytics stack file's "CLI Opt-In Consent" section). CLI telemetry must be opt-in per the CLI archetype contract.
 - If surface ≠ none and archetype is `service`: confirm root route exists and returns HTML (Content-Type: text/html)
 - If surface ≠ none and archetype is `cli`: confirm `site/index.html` exists

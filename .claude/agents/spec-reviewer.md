@@ -54,9 +54,9 @@ Every experiment.yaml `behavior` has corresponding implementation. Grep for feat
 Every experiment.yaml `page` (web-app) / `endpoint` (service) / `command` (cli) exists as a file. Missing file is a FAIL.
 
 **S3. Analytics wiring**
-> Skip if no `EVENTS.yaml` exists.
+> Skip if no `experiment/EVENTS.yaml` exists.
 
-Every event in `EVENTS.yaml` has a tracking call in source code. Grep for each event name. Missing tracking call is a FAIL.
+Every event in `experiment/EVENTS.yaml` has a tracking call in source code. Grep for each event name. Missing tracking call is a FAIL.
 
 **S4. Golden path reachability**
 > Skip if no `golden_path` in experiment.yaml.

@@ -3,7 +3,7 @@ description: "Use when starting a new experiment from a filled-in experiment.yam
 type: code-writing
 reads:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, ui, payment, email, hosting, testing]
 requires_approval: true
@@ -37,7 +37,7 @@ DO NOT write any code, create any files, or run any install commands during this
 
 1. **Read context files**
    - Read `experiment/experiment.yaml` — this is the single source of truth
-   - Read `EVENTS.yaml` — these are the canonical analytics events to wire up
+   - Read `experiment/EVENTS.yaml` — these are the canonical analytics events to wire up
    - Read `CLAUDE.md` — these are the rules to follow
 
 2. **Resolve the archetype and stack**
@@ -133,7 +133,7 @@ DO NOT write any code, create any files, or run any install commands during this
         - Parse `archetype`, `stack`, and `checkpoint` from frontmatter
         - Use these values directly — do NOT re-resolve archetype or stack
         - Read archetype file and stack files using frontmatter values
-        - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
+        - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
         - Resume at the phase indicated by `checkpoint`:
           - `phase2-setup` → Setup Phase
           - `phase2-design` → Design Phase (setup done)
@@ -179,7 +179,7 @@ DO NOT write any code, create any files, or run any install commands during this
    Core = removing it prevents users from validating the thesis.
 
    **Analytics Events:**
-   - [For each event in EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
+   - [For each event in experiment/EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
 
    **Golden Path (from experiment.yaml):**
    | Step | Page | Event |
@@ -187,7 +187,7 @@ DO NOT write any code, create any files, or run any install commands during this
    | 1. [step] | [page] | [event] |
    Target: [target_clicks] clicks
 
-   If experiment.yaml has no `golden_path` field: derive one from behaviors + EVENTS.yaml events map,
+   If experiment.yaml has no `golden_path` field: derive one from behaviors + experiment/EVENTS.yaml events map,
    present it in the plan, and write it back to experiment.yaml after approval (Step 7).
 
    **System/Cron Behaviors (from experiment.yaml):**
@@ -240,7 +240,7 @@ DO NOT write any code, create any files, or run any install commands during this
    checkpoint: phase2-setup
    context_files:
      - experiment/experiment.yaml
-     - EVENTS.yaml
+     - experiment/EVENTS.yaml
      - .claude/archetypes/[archetype].md
      - [each .claude/stacks/<category>/<value>.md read in Step 2]
    ---
@@ -338,7 +338,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-libs
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
-  2. Read context files: `experiment/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
      `.claude/current-plan.md`, all stack files
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
 
@@ -346,7 +346,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-pages
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
-  2. Read context files: `experiment/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
      `.claude/current-plan.md`, archetype file,
      framework/UI stack files, `.claude/patterns/design.md`,
      `.claude/current-visual-brief.md`
@@ -367,7 +367,7 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
 - subagent_type: scaffold-landing
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
-  2. Read context files: `experiment/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      framework/UI/surface stack files,
      `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
@@ -419,7 +419,7 @@ Run combined verification after all four parallel subagents complete — these c
    - If archetype is `cli`: for each command in experiment.yaml `commands`, verify
      `src/commands/<command-name>.ts` exists
 3. **Analytics wiring** (if `stack.analytics` is present): for each
-   event in EVENTS.yaml events map, grep for the event name in `src/`
+   event in experiment/EVENTS.yaml events map, grep for the event name in `src/`
    to confirm a tracking call exists. Also verify analytics constants:
    grep `src/lib/analytics*.ts` for `PROJECT_NAME` and `PROJECT_OWNER` —
    `PROJECT_NAME` must equal the actual experiment.yaml `name` value and
@@ -443,7 +443,7 @@ Spawn a subagent via Agent with:
 - prompt: Tell the subagent to:
   1. Read `.claude/procedures/wire.md` and execute Steps 5 through 8b ONLY.
      Do NOT run Step 8 (verify.md) or Step 9 (PR).
-  2. Read context files before starting: `experiment/experiment.yaml`, `EVENTS.yaml`,
+  2. Read context files before starting: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
      `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
      all `.claude/stacks/<category>/<value>.md` for categories in experiment.yaml `stack`,
      `.claude/patterns/visual-review.md`,

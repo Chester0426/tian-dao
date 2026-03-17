@@ -10,7 +10,7 @@
 ## Concurrent dependency note
 
 Pages import from `src/lib/events.ts` (created by the libs subagent running in parallel).
-Write import statements using function signatures derived from EVENTS.yaml — the
+Write import statements using function signatures derived from experiment/EVENTS.yaml — the
 file will exist at build time when the merged checkpoint runs `npm run build`.
 
 ## Instructions by archetype
@@ -19,7 +19,7 @@ file will exist at build time when the merged checkpoint runs `npm run build`.
 
 #### App shell (Step 3)
 - Follow the framework stack file's file structure and page conventions
-- **Root layout**: metadata from experiment.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (chosen font via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and EVENTS.yaml
+- **Root layout**: metadata from experiment.yaml `title`, import globals.css. Set up the display font per the UI stack file's "Theme Setup" section (chosen font via `next/font/google`, apply variable to `<html>`). Also implement `retain_return` tracking following the framework stack file's `retain_return` section and experiment/EVENTS.yaml
 - **404 page**: simple not-found page with link back to `/`
 - **Error boundary**: user-friendly message and retry button
 
@@ -29,9 +29,9 @@ For each entry in experiment.yaml `pages`:
 - Otherwise → create a page at the appropriate route
 - Every page file must:
   - Follow page conventions from the framework stack file
-  - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate EVENTS.yaml event(s) on the correct trigger
+  - If `stack.analytics` is present: import tracking functions per the analytics stack file conventions and fire the appropriate experiment/EVENTS.yaml event(s) on the correct trigger
   - Follow `.claude/patterns/design.md` quality invariants (form input sizing). Aim for a distinctive, polished look that matches the product domain.
-  - If an event from the EVENTS.yaml events map has no matching page in experiment.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
+  - If an event from the experiment/EVENTS.yaml events map has no matching page in experiment.yaml (e.g., no signup page for signup_start/signup_complete), omit that event — do not create a page just to fire it
 - **Landing page**: Do NOT generate the landing page content here — it is
   created by the landing-page subagent (see `scaffold-landing.md`). If
   experiment.yaml has `variants`, create only the structural routing files here:
@@ -44,7 +44,7 @@ For each entry in experiment.yaml `pages`:
     for all variant routes. Returns `notFound()` for unknown slugs.
   If no `variants`, skip entirely — the landing-page subagent creates `src/app/page.tsx`.
 - **Auth pages (if listed)**: signup/login forms using auth provider UI (see auth stack file).
-  Fire the corresponding EVENTS.yaml events at their specified triggers.
+  Fire the corresponding experiment/EVENTS.yaml events at their specified triggers.
   If `stack.auth_providers` is present in experiment.yaml: add OAuth login buttons for each
   listed provider below the email/password form, using the OAuth button template and
   `handleOAuthLogin` function from the auth stack file's "OAuth buttons" section.
@@ -71,7 +71,7 @@ For each entry in experiment.yaml `pages`:
   Each page must have heading, description matching purpose, and a clear
   next-action CTA
 
-> **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its EVENTS.yaml event(s). Every user action listed in EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
+> **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its experiment/EVENTS.yaml event(s). Every user action listed in experiment/EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
 
 #### Self-review (web-app only)
 

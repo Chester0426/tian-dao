@@ -5,7 +5,7 @@
 
 ## Prerequisites from change.md
 
-- experiment.yaml and EVENTS.yaml have been read (Step 2)
+- experiment.yaml and experiment/EVENTS.yaml have been read (Step 2)
 - Change classified as Upgrade (Step 3)
 - Preconditions checked (Step 4)
 - Plan approved (Phase 1)

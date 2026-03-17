@@ -5,7 +5,7 @@ reads:
   - experiment/experiment.yaml
   - .env.example
   - CLAUDE.md
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
 stack_categories: [hosting, database, auth, analytics, payment, email]
 requires_approval: true
 references:
@@ -190,7 +190,7 @@ Configure services using `canonical_url` (custom domain if added in Step 4.2, ot
 #### 5b preamble: determine which agents to spawn
 
 Assemble the shared context block (read-only inputs for all agents):
-- `canonical_url`, experiment.yaml contents (name, description, variants, stack, type), `EVENTS.yaml` contents, archetype type
+- `canonical_url`, experiment.yaml contents (name, description, variants, stack, type), `experiment/EVENTS.yaml` contents, archetype type
 - If Steps 3–4 were executed (not skipped for CLI detached): hosting env var method (from hosting stack file's `## Deploy Interface > Environment Variables`), database refs/keys (from Step 3), hosting project `name` and team/account (from Step 4), hosting and database stack file paths
 - CLI statuses from Step 0 (if Step 0.10 was executed)
 
@@ -266,7 +266,7 @@ If webhook creation fails, return `{status: "failed", message: "<error details>"
 #### Agent C — Analytics Dashboard
 
 **Spawn condition:** `stack.analytics: posthog`
-**Receives:** `canonical_url`, experiment.yaml `name`/`description`/`variants`, archetype type, `EVENTS.yaml` content, `stack.payment` presence
+**Receives:** `canonical_url`, experiment.yaml `name`/`description`/`variants`, archetype type, `experiment/EVENTS.yaml` content, `stack.payment` presence
 **Returns:** `{status: "ok"|"failed"|"skipped", message: "<details>", dashboard_url: "<url>"|null, env_vars_added: []}`
 
 Instructions for Agent C:
@@ -301,7 +301,7 @@ curl -s -X POST "https://us.i.posthog.com/api/projects/$POSTHOG_PROJECT_ID/dashb
   -d '{"name": "<project-name> Experiment", "description": "Auto-created by /deploy for <project-name>"}'
 ```
 
-Extract the dashboard `id` from the response. Then create funnel insight. Build the funnel series from EVENTS.yaml `events` map: filter by `requires` (match experiment stack) and `archetypes` (match experiment type), order by funnel_stage (reach → demand → activate → monetize → retain). For web-app this typically yields `visit_landing → signup_start → signup_complete → activate` (plus `pay_start` and `pay_success` if `stack.payment` is present). For service/cli, this yields the events defined in the fixture (typically `activate → retain_return`).
+Extract the dashboard `id` from the response. Then create funnel insight. Build the funnel series from experiment/EVENTS.yaml `events` map: filter by `requires` (match experiment stack) and `archetypes` (match experiment type), order by funnel_stage (reach → demand → activate → monetize → retain). For web-app this typically yields `visit_landing → signup_start → signup_complete → activate` (plus `pay_start` and `pay_success` if `stack.payment` is present). For service/cli, this yields the events defined in the fixture (typically `activate → retain_return`).
 
 ```bash
 # Create funnel insight and add to dashboard
@@ -466,7 +466,7 @@ Print a deployment summary:
   1. Go to PostHog → Dashboards → New dashboard → name it "<project-name> Experiment"
   2. Add a Funnel insight: visit_landing → signup_start → signup_complete → activate [→ pay_start → pay_success if payment]. Filter by project_name = "<project-name>".
   If experiment.yaml has `variants`: add a second Funnel insight with the same events, but add Breakdown → Event property → `variant`. Name it "<project-name> Funnel by Variant".
-  3. Add a Trend insight: all events from EVENTS.yaml events map, daily, last 14 days, filtered by project_name.
+  3. Add a Trend insight: all events from experiment/EVENTS.yaml events map, daily, last 14 days, filtered by project_name.
 
 **Scheduled digest (recommended):** In PostHog → Dashboards → "<project-name> Experiment" → click "Subscribe" (bell icon) → set frequency to every 3 days → add your email. You'll receive funnel charts by email automatically — no need to remember to check.
 

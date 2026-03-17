@@ -55,17 +55,17 @@ validate: ## Check experiment.yaml for valid YAML, TODOs, name format, and struc
 	@STACK_WARN=0; \
 	python3 scripts/validate-experiment.py || STACK_WARN=$$?; \
 	if [ "$$STACK_WARN" -ne 0 ] && [ "$$STACK_WARN" -ne 2 ]; then exit 1; fi; \
-	if [ -f EVENTS.yaml ]; then \
+	if [ -f experiment/EVENTS.yaml ]; then \
 		python3 scripts/validate-events.py || exit 1; \
-		echo "EVENTS.yaml looks good — valid structure."; \
+		echo "experiment/EVENTS.yaml looks good — valid structure."; \
 	else \
-		echo "Warning: EVENTS.yaml not found — /bootstrap will fail. Ensure EVENTS.yaml exists in the repo root."; \
+		echo "Warning: experiment/EVENTS.yaml not found — /bootstrap will fail. Ensure experiment/EVENTS.yaml exists in the experiment/ folder."; \
 	fi; \
 	python3 scripts/validate-semantics.py || exit 1; \
 	if [ "$$STACK_WARN" -eq 2 ]; then \
 		echo "Validation passed with warnings — review above."; \
 	else \
-		echo "Validation passed — experiment.yaml and EVENTS.yaml look good."; \
+		echo "Validation passed — experiment.yaml and experiment/EVENTS.yaml look good."; \
 	fi; \
 	if [ -f package.json ]; then \
 		echo "Note: project is already bootstrapped. Open Claude Code and run /change to make changes."; \
@@ -226,7 +226,7 @@ clean: ## Remove generated files (lets you re-run bootstrap)
 	rm -rf e2e playwright.config.ts test-results playwright-report blob-report  # testing/playwright
 	rm -rf tests vitest.config.ts                          # testing/vitest
 	@echo "Cleaned. You can now open Claude Code and run /bootstrap again."
-	@echo "Note: experiment/experiment.yaml, EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
+	@echo "Note: experiment/experiment.yaml, experiment/EVENTS.yaml, and supabase/ were NOT removed. Use 'make clean-all' for a full reset."
 
 clean-all: ## Remove everything including migrations (full reset)
 	@echo "This will delete ALL generated files including database migrations."

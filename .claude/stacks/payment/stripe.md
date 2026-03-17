@@ -185,7 +185,7 @@ export async function POST(request: Request) {
 Notes:
 - Reads the raw request body (do NOT parse JSON before verification)
 - Verifies the webhook signature using `STRIPE_WEBHOOK_SECRET`
-- Handles `checkout.session.completed` event: should update payment status (see TODO in template) and fires `pay_success` server-side via `trackServerEvent()` with all required EVENTS.yaml properties (`plan`, `amount_cents`, `provider`)
+- Handles `checkout.session.completed` event: should update payment status (see TODO in template) and fires `pay_success` server-side via `trackServerEvent()` with all required experiment/EVENTS.yaml properties (`plan`, `amount_cents`, `provider`)
 - The `// TODO: Update user's payment status in database` compiles silently — unlike the checkout route's `user.id` reference which fails the build. You must implement the database update using the `userId` extracted from session metadata before the payment flow is complete. Without this, successful payments are not recorded.
 - Extracts `user_id`, `plan`, and `amount_cents` from session metadata (set during checkout creation)
 - Returns `200` for all event types (don't error on unknown events)
@@ -206,7 +206,7 @@ Notes:
 ## Analytics Integration
 - `pay_start`: fire client-side when the client receives the Checkout URL and redirects — use the typed `trackPayStart()` wrapper from `events.ts` (per CLAUDE.md Rule 2)
 - `pay_success`: fired server-side in the webhook handler via `trackServerEvent()` from `analytics-server.ts` after confirming `checkout.session.completed` — includes all required properties (`plan`, `amount_cents`, `provider`)
-- See EVENTS.yaml for the full property spec for both events
+- See experiment/EVENTS.yaml for the full property spec for both events
 
 ## PR Instructions
 - After merging, set these environment variables in your hosting provider:

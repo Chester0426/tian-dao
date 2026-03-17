@@ -26,7 +26,7 @@ Pages are React components rendered in the browser. The landing page
 
 ## Funnel
 
-Events are defined in EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack.
+Events are defined in experiment/EVENTS.yaml with `funnel_stage` tags. Filter by `requires` and `archetypes` fields based on experiment stack.
 
 Standard web funnel events:
 1. `visit_landing` (reach) — user loads the landing page
@@ -35,11 +35,11 @@ Standard web funnel events:
 4. `activate` (activate) — user completes the core action for the first time
 5. `retain_return` (retain) — user returns after initial activation
 
-Payment events (`pay_start`, `pay_success`) have `requires: [payment]` in EVENTS.yaml and are included when `stack.payment` is present in experiment.yaml.
+Payment events (`pay_start`, `pay_success`) have `requires: [payment]` in experiment/EVENTS.yaml and are included when `stack.payment` is present in experiment.yaml.
 
 ## Conventions
 
-- Every page fires analytics events per EVENTS.yaml
+- Every page fires analytics events per experiment/EVENTS.yaml
 - Landing page is required — `validate-experiment.py` enforces this
 - UI components come from the configured UI stack (e.g., shadcn/ui)
 - API routes live under `src/app/api/` for mutations and server-side logic

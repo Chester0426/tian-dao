@@ -3,7 +3,7 @@ description: "Generate distribution campaign config from experiment.yaml. Requir
 type: code-writing
 reads:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - experiment/ads.yaml
 stack_categories: [analytics, hosting, distribution, ui, framework]
 requires_approval: true
@@ -30,8 +30,8 @@ If surface ≠ none, proceed regardless of archetype. Follow `.claude/patterns/b
 ## Step 1: Validate preconditions
 
 1. Verify `experiment/experiment.yaml` exists and is complete. If not, stop: "No experiment found. Create `experiment/experiment.yaml` from the template first, then run `/bootstrap`."
-2. Verify `EVENTS.yaml` exists. If not, stop: "EVENTS.yaml not found. This file defines all analytics events and is required."
-3. Verify `EVENTS.yaml` contains an `events` key that is a dict (flat map). If not, stop: "EVENTS.yaml is malformed — the `events` key is missing or not a dict. Run `make validate` to diagnose, or restore the file from the template."
+2. Verify `experiment/EVENTS.yaml` exists. If not, stop: "experiment/EVENTS.yaml not found. This file defines all analytics events and is required."
+3. Verify `experiment/EVENTS.yaml` contains an `events` key that is a dict (flat map). If not, stop: "experiment/EVENTS.yaml is malformed — the `events` key is missing or not a dict. Run `make validate` to diagnose, or restore the file from the template."
 4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
 5. Verify the app is deployed: check `landing_url` in existing `experiment/ads.yaml`, or check `surface_url` (then `canonical_url`) in `.claude/deploy-manifest.json`, or ask the user for the deployed URL. For CLI archetype, the surface URL IS the target URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live surface page. Run `/deploy` first, then re-run `/distribute`."
 6. **Channel selection:**
@@ -211,7 +211,7 @@ Present the full config for review.
 
 - Read the analytics stack file (`.claude/stacks/analytics/<value>.md`) to understand the tracking API
 - Ensure `visit_landing` event captures `utm_source`, `utm_medium`, `utm_campaign` from URL params
-- EVENTS.yaml has these as optional properties on `visit_landing` — the surface must parse them from URL params and pass them to the tracking call
+- experiment/EVENTS.yaml has these as optional properties on `visit_landing` — the surface must parse them from URL params and pass them to the tracking call
 - **web-app**: parse from `window.location.search` in the landing page component
 - **service (co-located)**: parse from the request URL in the root route handler and embed in the HTML response's tracking script
 - **cli (detached) or service (detached)**: add an inline `<script>` in `site/index.html` that parses `window.location.search` and fires the tracking call via the analytics snippet
@@ -222,13 +222,13 @@ Present the full config for review.
 
 - Read the selected channel's stack file "Click ID" section to get the parameter name (e.g., `gclid` for google-ads, `twclid` for twitter, `rdt_cid` for reddit)
 - Capture the channel's click ID from URL params on landing page load alongside UTM params
-- Store the value as the generic `click_id` property in the `visit_landing` analytics event (EVENTS.yaml defines `click_id` as an optional property)
+- Store the value as the generic `click_id` property in the `visit_landing` analytics event (experiment/EVENTS.yaml defines `click_id` as an optional property)
 - Also capture `gclid` separately for backward compatibility (it remains an optional property on `visit_landing`)
 - This enables conversion attribution in the channel's ad platform
 
 ### 7c: Feedback widget (post-activation)
 
-Add `feedback_submitted` to EVENTS.yaml `events` map:
+Add `feedback_submitted` to experiment/EVENTS.yaml `events` map:
 
 ```yaml
   feedback_submitted:
@@ -299,7 +299,7 @@ Run the verification procedure per `.claude/patterns/verify.md`.
 Commit, push, and open a PR with:
 - **Summary**: what was generated and why (include the selected channel)
 - **Distribution Setup**: step-by-step channel + analytics setup instructions (from stack file)
-- **What Changed**: files modified (landing page UTM capture, EVENTS.yaml, ads.yaml, FeedbackWidget)
+- **What Changed**: files modified (landing page UTM capture, experiment/EVENTS.yaml, ads.yaml, FeedbackWidget)
 - The full `ads.yaml` content in the PR body for easy review
 
 ## Step 9: Campaign creation

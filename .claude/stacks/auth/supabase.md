@@ -266,7 +266,7 @@ When `stack.auth_providers` is absent, do not add OAuth buttons — email/passwo
 Follows the same structure as the signup page above, with these differences:
 - Calls `supabase.auth.signInWithPassword()` instead of `signUp()`
 - No password minimum-length validation (existing accounts may have any length)
-- No analytics events (EVENTS.yaml defines no login event)
+- No analytics events (experiment/EVENTS.yaml defines no login event)
 
 #### When `stack.database` is also `supabase` (shared client):
 ```tsx

@@ -1,7 +1,7 @@
 ---
 description: "Transform an idea + level into a complete experiment.yaml with hypotheses, behaviors, variants, and stack."
 type: code-writing
-reads: [EVENTS.yaml]
+reads: [experiment/EVENTS.yaml]
 stack_categories: []
 requires_approval: true
 references:
@@ -211,7 +211,7 @@ Each hypothesis must have:
   category: demand               # demand | reach | activate | monetize | retain
   statement: "..."               # Testable claim with specific numbers
   metric:
-    formula: "event_a / event_b" # References event names from EVENTS.yaml
+    formula: "event_a / event_b" # References event names from experiment/EVENTS.yaml
     threshold: 0.05              # Numeric pass/fail value (e.g., 0.05 for 5%)
     operator: gte                # gt | gte | lt | lte
   priority_score: 80             # 0-100, higher = test first
@@ -222,7 +222,7 @@ Each hypothesis must have:
 
 ### Rules
 - Research-type hypotheses from Step 2 are included with `status: resolved` and their verdicts
-- Every hypothesis MUST have a `metric:` object with numeric `threshold`, `formula` referencing EVENTS.yaml event names, and an `operator` — no vague language
+- Every hypothesis MUST have a `metric:` object with numeric `threshold`, `formula` referencing experiment/EVENTS.yaml event names, and an `operator` — no vague language
 - Filter: only include hypotheses where `experiment_level <= selected level`
 - Counts below are for **pending** hypotheses only (require building product + real user data). The 4 resolved research hypotheses from Step 2 are separate and don't count toward these minimums.
 - At least one hypothesis per required category:
@@ -246,7 +246,7 @@ Hypothesis Quality Review
 ─────────────────────────
   [✓/⚠/✗] Metric structure: [all have formula, numeric threshold, and operator?]
   [✓/⚠/✗] Grounded thresholds: [based on benchmarks/data or guesswork?]
-  [✓/⚠/✗] Formula references: [formulas reference valid EVENTS.yaml event names?]
+  [✓/⚠/✗] Formula references: [formulas reference valid experiment/EVENTS.yaml event names?]
   [✓/⚠/✗] Category coverage: [all required categories present?]
   [✓/⚠/✗] No duplicates: [each tests independent risk?]
   [✓/⚠/✗] Dependencies explicit: [depends_on correctly set?]

@@ -4,7 +4,7 @@ Every skill reads this baseline context before executing its specific logic.
 
 ## Required Context (always read)
 1. `experiment/experiment.yaml` — single source of truth (scope, features, stack, metrics)
-2. `EVENTS.yaml` — canonical analytics event list
+2. `experiment/EVENTS.yaml` — canonical analytics event list
 3. Archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
 
 ## Stack Context (read when `stack_categories` in skill frontmatter includes the category)

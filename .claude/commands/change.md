@@ -3,7 +3,7 @@ description: "Use for any modification to an existing bootstrapped app: new feat
 type: code-writing
 reads:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - CLAUDE.md
 stack_categories: [framework, database, auth, analytics, ui, payment, email, testing, hosting]
 requires_approval: true
@@ -25,9 +25,9 @@ Make a change to the existing app: $ARGUMENTS
 - If `$ARGUMENTS` is empty or unclear: stop and ask the user to describe what they want to change.
 - If `$ARGUMENTS` contains `#<number>` or is just a number: read the GitHub issue via `gh issue view <number>` and use its content as the change description. If `gh issue view` fails (issue not found, permission denied, or network error), tell the user: "Could not read issue #<number>. Describe the change directly, or check `gh auth status` and retry."
 - Verify `package.json` exists. If not, stop and tell the user: "No app found. Run `/bootstrap` first, or if you already have a bootstrap PR open, merge it before running `/change`."
-- Verify `EVENTS.yaml` exists. If not, stop and tell the user: "EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the EVENTS.yaml section of the template."
+- Verify `experiment/EVENTS.yaml` exists. If not, stop and tell the user: "experiment/EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the experiment/EVENTS.yaml section of the template."
 - Run `npm run build` to confirm the project compiles before making changes (unless `$ARGUMENTS` describes a fix). If the build fails and the change is not a build fix: stop and tell the user: "The app has build errors that need to be fixed first. Run `/change fix build errors` to address them."
-- **G1 Pre-flight Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G1 Pre-flight Gate. Verify: package.json exists, EVENTS.yaml exists, build passes (unless fix type), $ARGUMENTS is non-empty." If gate-keeper returns BLOCK, stop and report blocking items to user.
+- **G1 Pre-flight Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G1 Pre-flight Gate. Verify: package.json exists, experiment/EVENTS.yaml exists, build passes (unless fix type), $ARGUMENTS is non-empty." If gate-keeper returns BLOCK, stop and report blocking items to user.
 
 ## Step 1: Branch Setup
 
@@ -36,7 +36,7 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 ## Step 2: Read context
 
 - Read `experiment/experiment.yaml` — understand the current scope, pages (derived from golden_path), existing behaviors, target user, thesis
-- Read `EVENTS.yaml` — understand existing analytics events (this is the canonical event list)
+- Read `experiment/EVENTS.yaml` — understand existing analytics events (this is the canonical event list)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references. If the archetype is `cli`, new capabilities map to subcommand modules (`src/commands/`), not page folders or API routes. Skip Fake Door, landing page, and API route references.
 - Resolve the stack: read experiment.yaml `stack`. For each category, read `.claude/stacks/<category>/<value>.md`. If a stack file doesn't exist for a given value, generate it: read `.claude/stacks/TEMPLATE.md` for the schema, read existing files in the same category as reference, and create `.claude/stacks/<category>/<value>.md` with complete frontmatter and code templates. Run `python3 scripts/validate-frontmatter.py` to verify (max 2 fix attempts). If validation fails, stop: "Could not generate a valid stack file for `<category>/<value>`. Create it manually using TEMPLATE.md as a guide." File an observation per `.claude/patterns/observe.md` for the missing stack file.
 - Scan `src/app/` to understand the current page structure and codebase state
@@ -81,7 +81,7 @@ State: "Verification scope: **[scope]**"
      - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter
      - Use these values directly — do NOT re-classify or re-resolve stack
      - Read archetype file and stack files using frontmatter values
-     - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
+     - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
      - Resume at the step indicated by `checkpoint`:
        - `phase2-gate` → Phase 2 Pre-flight (read procedures, write process checklist)
        - `phase2-step5` → Step 5 (update specs)
@@ -143,7 +143,7 @@ stack: { [category]: [value], ... }
 checkpoint: phase2-gate
 context_files:
   - experiment/experiment.yaml
-  - EVENTS.yaml
+  - experiment/EVENTS.yaml
   - .claude/archetypes/[archetype].md
   - [each .claude/stacks/<category>/<value>.md read in Step 2]
 ---
@@ -214,9 +214,9 @@ Before proceeding to Step 5, execute the process gate:
 
 - **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey (adds a page to the main flow, changes a CTA destination, or changes a key step), update `golden_path` in experiment.yaml accordingly. Do NOT remove or modify existing behaviors.
 - **Upgrade**: do NOT modify experiment.yaml `behaviors` (the behavior already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
-- **Analytics**: if the user approved custom events, add them to the `events` map in EVENTS.yaml with appropriate `funnel_stage`, following the `<object>_<action>` naming convention with all properties.
-- **Fix / Polish**: do NOT modify experiment.yaml or EVENTS.yaml.
-- **Test**: do NOT modify EVENTS.yaml. If adding tests for the first time (no `stack.testing` in experiment.yaml and no `playwright.config.ts` on disk), add `testing: <value>` to experiment.yaml `stack` section. Do not modify other parts of experiment.yaml.
+- **Analytics**: if the user approved custom events, add them to the `events` map in experiment/EVENTS.yaml with appropriate `funnel_stage`, following the `<object>_<action>` naming convention with all properties.
+- **Fix / Polish**: do NOT modify experiment.yaml or experiment/EVENTS.yaml.
+- **Test**: do NOT modify experiment/EVENTS.yaml. If adding tests for the first time (no `stack.testing` in experiment.yaml and no `playwright.config.ts` on disk), add `testing: <value>` to experiment.yaml `stack` section. Do not modify other parts of experiment.yaml.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step6`.
 
@@ -261,7 +261,7 @@ Follow the procedure in `.claude/procedures/change-fix.md`.
 
 #### Analytics constraints
 - Fix gaps per the audit: add missing tracking calls with all required properties, add missing properties to incomplete calls
-- Do NOT change event names — they must match EVENTS.yaml exactly
+- Do NOT change event names — they must match experiment/EVENTS.yaml exactly
 - Do NOT remove existing correct analytics calls
 - Only add custom events the user explicitly approved
 
@@ -304,7 +304,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
     - If archetype requires pages: confirm `src/app/<page-name>/page.tsx` exists for each unique page referenced in experiment.yaml `golden_path`
     - If archetype requires `endpoints`: confirm API route exists for each endpoint in experiment.yaml `endpoints` (path depends on framework stack file)
     - If archetype requires `commands` (cli): confirm `src/commands/<command-name>.ts` exists for each entry in the experiment.yaml command list
-    - For each behavior in `behaviors`, confirm the implementation addresses it. For each event in `EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
+    - For each behavior in `behaviors`, confirm the implementation addresses it. For each event in `experiment/EVENTS.yaml`, confirm tracking calls are intact. If anything is missing, fix it before proceeding.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
@@ -336,7 +336,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 - Remove or break existing analytics events (unless the change is specifically about fixing analytics)
 - Add libraries not in experiment.yaml `stack` without user approval
 - Skip updating experiment.yaml when adding new behaviors — the source of truth must always reflect the current app
-- Change analytics event names — they must match EVENTS.yaml
+- Change analytics event names — they must match experiment/EVENTS.yaml
 - Add custom analytics events without user approval
 - Add error-state tests — funnel happy path only (Rule 4)
 - Mock services in tests — the whole point is testing real integrations

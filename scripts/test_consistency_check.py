@@ -47,7 +47,7 @@ class TestCheck1EventEnumerationsInClaudeMd:
     def test_passes_when_clean(self, tmp_path):
         write_file(
             str(tmp_path / "CLAUDE.md"),
-            "# Rules\nSee EVENTS.yaml for event definitions.\n",
+            "# Rules\nSee experiment/EVENTS.yaml for event definitions.\n",
         )
         # Need a code-writing skill to populate CODE_WRITING_SKILLS array (bash set -u)
         (tmp_path / ".claude" / "commands").mkdir(parents=True)

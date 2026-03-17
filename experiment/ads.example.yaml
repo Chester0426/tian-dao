@@ -71,7 +71,7 @@ targeting:
 
 # --- Conversion Tracking ---
 conversions:
-  primary_action: activate          # EVENTS.yaml event to optimize for
+  primary_action: activate          # experiment/EVENTS.yaml event to optimize for
   secondary_actions:
     - signup_complete               # intermediate funnel step
   import_method: posthog_webhook    # PostHog -> Google Ads Offline Conversions

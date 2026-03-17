@@ -5,7 +5,7 @@
 
 ## Prerequisites from change.md
 
-- experiment.yaml and EVENTS.yaml have been read (Step 2)
+- experiment.yaml and experiment/EVENTS.yaml have been read (Step 2)
 - Change classified as Feature (Step 3)
 - Preconditions checked (Step 4)
 - Plan approved (Phase 1)
@@ -50,7 +50,7 @@
      - Checkpoint: `npm run build` — full app must compile
 
   4. **Analytics wiring**:
-     - Add tracking calls per EVENTS.yaml
+     - Add tracking calls per experiment/EVENTS.yaml
      - Checkpoint: `npm run build` — final verification
 
   Update `.claude/current-plan.md` after each completed step:
@@ -69,9 +69,9 @@
 - If the change touches auth or payment code (per CLAUDE.md Rule 4): verify `tests/flows.test.ts` has tests that go beyond auth guards for payment flows — assert handler logic (session creation, database state changes, webhook payload processing), not just 401/400 status codes. Add missing payment flow tests if absent.
 - Wire analytics: every user action in the new feature must fire a tracked event
 - Create new pages following the framework stack file's file structure
-- Every new page: follow page conventions from the framework stack file, import tracking functions per the analytics stack file, fire appropriate EVENTS.yaml events
+- Every new page: follow page conventions from the framework stack file, import tracking functions per the analytics stack file, fire appropriate experiment/EVENTS.yaml events
 
-> **STOP** — verify analytics before proceeding. Every new page must fire its events from EVENTS.yaml. Every user action in the new feature must have a tracking call. Do not proceed until confirmed. "I'll add analytics later" is not acceptable.
+> **STOP** — verify analytics before proceeding. Every new page must fire its events from experiment/EVENTS.yaml. Every user action in the new feature must have a tracking call. Do not proceed until confirmed. "I'll add analytics later" is not acceptable.
 
 - Create or modify API routes for any new mutations (see framework stack file for route conventions). Every API route: validate input with zod, return proper HTTP status codes. If `stack.database` is present, use the server-side database client for data access.
 - If database tables are needed: create a migration following the database stack file (next sequential number, `IF NOT EXISTS`), add TypeScript types, add post-merge instructions to PR body (CI auto-applies migrations on merge; otherwise `make migrate` or Supabase Dashboard). Note: concurrent branches may create conflicting migration numbers — resolve by renumbering the later-merged migration at merge time.

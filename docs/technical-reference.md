@@ -47,9 +47,9 @@ experiment/
 ```
 experiment/experiment.yaml           # Your experiment definition (edit this first)
 experiment/experiment.example.yaml   # Worked example for reference
-experiment/retro-template.md   # Retrospective template
+experiment/EVENTS.yaml               # Analytics event dictionary
+experiment/retro-template.md         # Retrospective template
 CLAUDE.md                # Rules for Claude Code (don't edit unless you know what you're doing)
-EVENTS.yaml              # Analytics event dictionary
 .claude/commands/        # Claude Code skills
 .claude/patterns/        # Shared patterns referenced by skills
 .claude/stacks/          # Stack implementation files (one per technology)

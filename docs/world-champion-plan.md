@@ -515,7 +515,7 @@ modifies_specs: false
    - If `$ARGUMENTS` is empty or unclear: stop and ask the user to describe what they want to change
    - If `$ARGUMENTS` contains `#<number>`: read the GitHub issue via `gh issue view <number>`
    - Verify `package.json` exists. If not → stop
-   - Verify `EVENTS.yaml` exists. If not → stop
+   - Verify `experiment/EVENTS.yaml` exists. If not → stop
    - Run `npm run build` to confirm the project compiles (unless Fix type)
    ```
 
@@ -590,7 +590,7 @@ Every skill reads this baseline context before executing its specific logic.
 
 ## Required Context (always read)
 1. `experiment/experiment.yaml` — single source of truth (scope, features, stack, metrics)
-2. `EVENTS.yaml` — canonical analytics event list
+2. `experiment/EVENTS.yaml` — canonical analytics event list
 3. Archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
 
 ## Stack Context (read when `stack_categories` in skill frontmatter includes the category)
@@ -875,7 +875,7 @@ Step 6: Make changes (type-specific)
 > Read the full change skill at `.claude/commands/change.md` for lifecycle context.
 
 ## Prerequisites from change.md
-- experiment.yaml and EVENTS.yaml have been read (Step 2)
+- experiment.yaml and experiment/EVENTS.yaml have been read (Step 2)
 - Change has been classified as [Type] (Step 3)
 - Preconditions have been checked (Step 4/5)
 - Plan has been approved (Phase 1)
