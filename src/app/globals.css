@@ -4,179 +4,76 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * ASSAYER — "Crucible" Design System
- *
- * Palette derived from the metallurgical assaying metaphor:
- * molten gold, heated crucibles, oxidized minerals.
- *
- * Dark-first. Warm obsidian backgrounds with ember-gold accents.
- * Verdict colors: SCALE (viridian), REFINE (amber), PIVOT (copper), KILL (cinnabar).
- *
- * Fonts:
- *   Display: Instrument Serif — editorial authority, the weight of a verdict
- *   Body: DM Sans — geometric clarity, high legibility at density
- */
-
 :root {
-    /* --- Light mode: warm parchment with charcoal ink --- */
-    --background: oklch(0.975 0.004 80);
-    --foreground: oklch(0.18 0.012 55);
-    --card: oklch(0.99 0.002 80);
-    --card-foreground: oklch(0.18 0.012 55);
-    --popover: oklch(0.99 0.002 80);
-    --popover-foreground: oklch(0.18 0.012 55);
-
-    /* Primary: deep obsidian-warm */
-    --primary: oklch(0.22 0.015 55);
-    --primary-foreground: oklch(0.97 0.008 80);
-
-    /* Secondary: warm stone */
-    --secondary: oklch(0.94 0.008 75);
-    --secondary-foreground: oklch(0.25 0.012 55);
-
-    /* Muted: pale sandstone */
-    --muted: oklch(0.95 0.006 75);
-    --muted-foreground: oklch(0.50 0.015 60);
-
-    /* Accent: molten gold */
-    --accent: oklch(0.78 0.155 75);
-    --accent-foreground: oklch(0.18 0.015 55);
-
+    --background: oklch(0.98 0.002 250);
+    --foreground: oklch(0.14 0.004 260);
+    --card: oklch(0.99 0.001 250);
+    --card-foreground: oklch(0.14 0.004 260);
+    --popover: oklch(0.99 0.001 250);
+    --popover-foreground: oklch(0.14 0.004 260);
+    --primary: oklch(0.21 0.006 260);
+    --primary-foreground: oklch(0.98 0.002 250);
+    --secondary: oklch(0.96 0.003 250);
+    --secondary-foreground: oklch(0.21 0.006 260);
+    --muted: oklch(0.96 0.003 250);
+    --muted-foreground: oklch(0.55 0.014 260);
+    --accent: oklch(0.96 0.003 250);
+    --accent-foreground: oklch(0.21 0.006 260);
     --destructive: oklch(0.55 0.22 25);
-
-    /* Borders: warm bisque */
-    --border: oklch(0.90 0.012 75);
-    --input: oklch(0.91 0.010 75);
-    --ring: oklch(0.72 0.12 75);
-
-    /* Chart palette: gold > copper > teal > slate > ember */
-    --chart-1: oklch(0.78 0.155 75);
-    --chart-2: oklch(0.62 0.14 55);
-    --chart-3: oklch(0.65 0.12 185);
-    --chart-4: oklch(0.50 0.04 260);
-    --chart-5: oklch(0.60 0.16 35);
-
+    --border: oklch(0.91 0.004 260);
+    --input: oklch(0.91 0.004 260);
+    --ring: oklch(0.71 0.007 260);
+    --chart-1: oklch(0.65 0.19 150);
+    --chart-2: oklch(0.55 0.18 230);
+    --chart-3: oklch(0.60 0.16 50);
+    --chart-4: oklch(0.55 0.14 310);
+    --chart-5: oklch(0.65 0.14 20);
     --radius: 0.5rem;
-
-    /* Sidebar */
-    --sidebar: oklch(0.97 0.005 75);
-    --sidebar-foreground: oklch(0.18 0.012 55);
-    --sidebar-primary: oklch(0.22 0.015 55);
-    --sidebar-primary-foreground: oklch(0.97 0.008 80);
-    --sidebar-accent: oklch(0.93 0.010 75);
-    --sidebar-accent-foreground: oklch(0.22 0.015 55);
-    --sidebar-border: oklch(0.90 0.012 75);
-    --sidebar-ring: oklch(0.72 0.12 75);
-
-    /* --- Assayer custom tokens --- */
-    --gold: oklch(0.78 0.155 75);
-    --gold-dim: oklch(0.62 0.12 72);
-    --gold-bright: oklch(0.88 0.14 80);
-    --ember: oklch(0.60 0.16 35);
-    --ember-dim: oklch(0.45 0.14 30);
-    --copper: oklch(0.58 0.13 50);
-    --mineral: oklch(0.65 0.12 185);
-    --mineral-dim: oklch(0.50 0.10 190);
-    --obsidian: oklch(0.16 0.012 55);
-    --obsidian-light: oklch(0.22 0.015 55);
-    --charcoal: oklch(0.28 0.012 55);
-    --ash: oklch(0.42 0.010 60);
-    --parchment: oklch(0.975 0.004 80);
-    --parchment-dark: oklch(0.94 0.008 75);
-
-    /* Verdict colors */
-    --verdict-scale: oklch(0.62 0.17 155);
-    --verdict-refine: oklch(0.78 0.155 75);
-    --verdict-pivot: oklch(0.65 0.14 55);
-    --verdict-kill: oklch(0.55 0.22 25);
-
-    /* Glow / depth */
-    --glow-gold: oklch(0.78 0.155 75 / 25%);
-    --glow-ember: oklch(0.60 0.16 35 / 20%);
-    --surface-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    --sidebar: oklch(0.98 0.002 250);
+    --sidebar-foreground: oklch(0.14 0.004 260);
+    --sidebar-primary: oklch(0.21 0.006 260);
+    --sidebar-primary-foreground: oklch(0.98 0.002 250);
+    --sidebar-accent: oklch(0.96 0.003 250);
+    --sidebar-accent-foreground: oklch(0.21 0.006 260);
+    --sidebar-border: oklch(0.91 0.004 260);
+    --sidebar-ring: oklch(0.71 0.007 260);
 }
 
 .dark {
-    /* --- Dark mode: warm obsidian — the crucible --- */
-    --background: oklch(0.14 0.010 55);
-    --foreground: oklch(0.93 0.010 75);
-    --card: oklch(0.19 0.012 55);
-    --card-foreground: oklch(0.93 0.010 75);
-    --popover: oklch(0.19 0.012 55);
-    --popover-foreground: oklch(0.93 0.010 75);
-
-    /* Primary: warm bone-white */
-    --primary: oklch(0.93 0.010 75);
-    --primary-foreground: oklch(0.16 0.012 55);
-
-    /* Secondary: charcoal elevated */
-    --secondary: oklch(0.24 0.012 55);
-    --secondary-foreground: oklch(0.90 0.010 75);
-
-    /* Muted: deep charcoal */
-    --muted: oklch(0.24 0.012 55);
-    --muted-foreground: oklch(0.62 0.015 65);
-
-    /* Accent: molten gold (same hue, adjusted for dark) */
-    --accent: oklch(0.75 0.15 75);
-    --accent-foreground: oklch(0.14 0.010 55);
-
+    --background: oklch(0.14 0.004 260);
+    --foreground: oklch(0.93 0.003 260);
+    --card: oklch(0.19 0.004 260);
+    --card-foreground: oklch(0.93 0.003 260);
+    --popover: oklch(0.19 0.004 260);
+    --popover-foreground: oklch(0.93 0.003 260);
+    --primary: oklch(0.93 0.003 260);
+    --primary-foreground: oklch(0.14 0.004 260);
+    --secondary: oklch(0.24 0.005 260);
+    --secondary-foreground: oklch(0.93 0.003 260);
+    --muted: oklch(0.24 0.005 260);
+    --muted-foreground: oklch(0.63 0.010 260);
+    --accent: oklch(0.24 0.005 260);
+    --accent-foreground: oklch(0.93 0.003 260);
     --destructive: oklch(0.65 0.20 22);
-
-    /* Borders: warm translucent */
-    --border: oklch(1 0.01 75 / 10%);
-    --input: oklch(1 0.01 75 / 14%);
-    --ring: oklch(0.75 0.15 75 / 50%);
-
-    /* Chart palette (dark-adjusted) */
-    --chart-1: oklch(0.80 0.15 75);
-    --chart-2: oklch(0.65 0.14 55);
-    --chart-3: oklch(0.68 0.12 185);
-    --chart-4: oklch(0.55 0.05 260);
-    --chart-5: oklch(0.63 0.16 35);
-
-    /* Sidebar */
-    --sidebar: oklch(0.17 0.012 55);
-    --sidebar-foreground: oklch(0.93 0.010 75);
-    --sidebar-primary: oklch(0.75 0.15 75);
-    --sidebar-primary-foreground: oklch(0.14 0.010 55);
-    --sidebar-accent: oklch(0.22 0.012 55);
-    --sidebar-accent-foreground: oklch(0.90 0.010 75);
-    --sidebar-border: oklch(1 0.01 75 / 10%);
-    --sidebar-ring: oklch(0.75 0.15 75 / 50%);
-
-    /* --- Assayer dark overrides --- */
-    --gold: oklch(0.80 0.15 75);
-    --gold-dim: oklch(0.60 0.12 72);
-    --gold-bright: oklch(0.90 0.13 80);
-    --ember: oklch(0.63 0.16 35);
-    --ember-dim: oklch(0.48 0.14 30);
-    --copper: oklch(0.60 0.13 50);
-    --mineral: oklch(0.68 0.12 185);
-    --mineral-dim: oklch(0.52 0.10 190);
-    --obsidian: oklch(0.14 0.010 55);
-    --obsidian-light: oklch(0.19 0.012 55);
-    --charcoal: oklch(0.26 0.012 55);
-    --ash: oklch(0.45 0.010 60);
-    --parchment: oklch(0.93 0.010 75);
-    --parchment-dark: oklch(0.85 0.010 75);
-
-    /* Verdict colors (dark-adjusted for vibrancy) */
-    --verdict-scale: oklch(0.68 0.18 155);
-    --verdict-refine: oklch(0.80 0.15 75);
-    --verdict-pivot: oklch(0.68 0.14 55);
-    --verdict-kill: oklch(0.65 0.20 22);
-
-    /* Glow / depth (more visible on dark) */
-    --glow-gold: oklch(0.78 0.155 75 / 18%);
-    --glow-ember: oklch(0.60 0.16 35 / 15%);
-    --surface-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    --border: oklch(1 0.005 260 / 10%);
+    --input: oklch(1 0.005 260 / 14%);
+    --ring: oklch(0.55 0.010 260);
+    --chart-1: oklch(0.70 0.19 150);
+    --chart-2: oklch(0.60 0.18 230);
+    --chart-3: oklch(0.65 0.16 50);
+    --chart-4: oklch(0.60 0.14 310);
+    --chart-5: oklch(0.70 0.14 20);
+    --sidebar: oklch(0.17 0.004 260);
+    --sidebar-foreground: oklch(0.93 0.003 260);
+    --sidebar-primary: oklch(0.93 0.003 260);
+    --sidebar-primary-foreground: oklch(0.14 0.004 260);
+    --sidebar-accent: oklch(0.22 0.005 260);
+    --sidebar-accent-foreground: oklch(0.93 0.003 260);
+    --sidebar-border: oklch(1 0.005 260 / 10%);
+    --sidebar-ring: oklch(0.55 0.010 260);
 }
 
 @theme inline {
-    --font-sans: var(--font-dm-sans);
-    --font-display: var(--font-instrument-serif);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -215,33 +112,7 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
-
-    /* Assayer custom color tokens for Tailwind */
-    --color-gold: var(--gold);
-    --color-gold-dim: var(--gold-dim);
-    --color-gold-bright: var(--gold-bright);
-    --color-ember: var(--ember);
-    --color-ember-dim: var(--ember-dim);
-    --color-copper: var(--copper);
-    --color-mineral: var(--mineral);
-    --color-mineral-dim: var(--mineral-dim);
-    --color-obsidian: var(--obsidian);
-    --color-obsidian-light: var(--obsidian-light);
-    --color-charcoal: var(--charcoal);
-    --color-ash: var(--ash);
-    --color-parchment: var(--parchment);
-    --color-parchment-dark: var(--parchment-dark);
-    --color-verdict-scale: var(--verdict-scale);
-    --color-verdict-refine: var(--verdict-refine);
-    --color-verdict-pivot: var(--verdict-pivot);
-    --color-verdict-kill: var(--verdict-kill);
-    --color-glow-gold: var(--glow-gold);
-    --color-glow-ember: var(--glow-ember);
 }
-
-/* ============================================================
-   BASE LAYER
-   ============================================================ */
 
 @layer base {
   * {
@@ -250,313 +121,4 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
-  html {
-    @apply font-sans;
-  }
-
-  /* --- Typography scale --- */
-  h1, .h1 {
-    @apply font-display text-5xl md:text-7xl tracking-tight leading-[1.05];
-  }
-  h2, .h2 {
-    @apply font-display text-3xl md:text-5xl tracking-tight leading-[1.1];
-  }
-  h3, .h3 {
-    @apply font-display text-2xl md:text-3xl tracking-tight leading-[1.15];
-  }
-  h4, .h4 {
-    @apply font-sans text-lg md:text-xl font-semibold tracking-tight leading-snug;
-  }
-
-  /* 16px floor for all inputs (iOS zoom prevention) */
-  input, select, textarea {
-    @apply text-base;
-  }
-}
-
-/* ============================================================
-   UTILITY LAYER — depth, glow, texture
-   ============================================================ */
-
-@layer utilities {
-  /* Noise texture overlay */
-  .noise-overlay {
-    position: relative;
-  }
-  .noise-overlay::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: var(--surface-noise);
-    background-repeat: repeat;
-    background-size: 256px 256px;
-    pointer-events: none;
-    z-index: 1;
-    mix-blend-mode: overlay;
-  }
-
-  /* Gold glow for CTAs and focus rings */
-  .glow-gold {
-    box-shadow:
-      0 0 20px var(--glow-gold),
-      0 0 60px oklch(0.78 0.155 75 / 10%);
-  }
-
-  /* Ember glow for hover/active states */
-  .glow-ember {
-    box-shadow:
-      0 0 16px var(--glow-ember),
-      0 0 48px oklch(0.60 0.16 35 / 8%);
-  }
-
-  /* Crucible gradient — primary background treatment */
-  .bg-crucible {
-    background:
-      radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.78 0.155 75 / 8%) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 80%, oklch(0.60 0.16 35 / 6%) 0%, transparent 50%),
-      var(--background);
-  }
-
-  /* Crucible with elevated surface for landing sections */
-  .bg-crucible-elevated {
-    background:
-      radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.78 0.155 75 / 12%) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 80%, oklch(0.60 0.16 35 / 10%) 0%, transparent 50%),
-      oklch(0.17 0.012 55);
-  }
-
-  /* Deep crucible — darker for contrast alternation */
-  .bg-crucible-deep {
-    background:
-      radial-gradient(ellipse 100% 70% at 20% 120%, oklch(0.60 0.16 35 / 8%) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 50% at 90% -20%, oklch(0.65 0.12 185 / 6%) 0%, transparent 50%),
-      oklch(0.12 0.010 55);
-  }
-
-  /* Molten gradient for hero sections */
-  .bg-molten {
-    background:
-      radial-gradient(ellipse 100% 80% at 30% -20%, oklch(0.78 0.155 75 / 12%) 0%, transparent 50%),
-      radial-gradient(ellipse 80% 60% at 70% 100%, oklch(0.60 0.16 35 / 8%) 0%, transparent 40%),
-      radial-gradient(ellipse 50% 40% at 90% 20%, oklch(0.65 0.12 185 / 5%) 0%, transparent 50%),
-      var(--background);
-  }
-
-  /* Ember glow divider between sections */
-  .section-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, oklch(0.78 0.155 75 / 30%) 20%, oklch(0.60 0.16 35 / 40%) 50%, oklch(0.78 0.155 75 / 30%) 80%, transparent 100%);
-  }
-
-  /* Card lift on hover */
-  .card-lift {
-    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
-  }
-  .card-lift:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 8px 24px oklch(0 0 0 / 12%),
-      0 2px 8px oklch(0 0 0 / 8%);
-  }
-
-  /* Verdict badge backgrounds */
-  .verdict-scale {
-    background: oklch(0.62 0.17 155 / 15%);
-    color: var(--verdict-scale);
-    border-color: oklch(0.62 0.17 155 / 30%);
-  }
-  .verdict-refine {
-    background: oklch(0.78 0.155 75 / 15%);
-    color: var(--verdict-refine);
-    border-color: oklch(0.78 0.155 75 / 30%);
-  }
-  .verdict-pivot {
-    background: oklch(0.65 0.14 55 / 15%);
-    color: var(--verdict-pivot);
-    border-color: oklch(0.65 0.14 55 / 30%);
-  }
-  .verdict-kill {
-    background: oklch(0.55 0.22 25 / 15%);
-    color: var(--verdict-kill);
-    border-color: oklch(0.55 0.22 25 / 30%);
-  }
-
-  /* Staggered animation delays for page-load choreography */
-  .stagger-1 { animation-delay: 0ms; }
-  .stagger-2 { animation-delay: 80ms; }
-  .stagger-3 { animation-delay: 160ms; }
-  .stagger-4 { animation-delay: 240ms; }
-  .stagger-5 { animation-delay: 320ms; }
-  .stagger-6 { animation-delay: 400ms; }
-
-  /* Skeleton shimmer for loading states */
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      var(--muted) 0%,
-      oklch(0.80 0.01 75 / 40%) 40%,
-      oklch(0.80 0.01 75 / 40%) 60%,
-      var(--muted) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.8s ease-in-out infinite;
-  }
-
-  /* Glass surface for overlays and modals */
-  .glass {
-    background: oklch(from var(--background) l c h / 70%);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  }
-
-  /* Warm inner shadow for inset containers */
-  .inner-glow {
-    box-shadow: inset 0 1px 2px oklch(0 0 0 / 8%), inset 0 0 20px oklch(0.78 0.155 75 / 4%);
-  }
-}
-
-/* ============================================================
-   ANIMATIONS
-   ============================================================ */
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-@keyframes fade-in-up {
-  0% {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-@keyframes scale-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pulse-gold {
-  0%, 100% {
-    box-shadow: 0 0 20px var(--glow-gold);
-  }
-  50% {
-    box-shadow: 0 0 32px var(--glow-gold), 0 0 64px oklch(0.78 0.155 75 / 8%);
-  }
-}
-
-@keyframes slide-in-right {
-  0% {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-left {
-  0% {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes scale-up-reveal {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) translateY(8px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  33% {
-    transform: translateY(-8px) rotate(1deg);
-  }
-  66% {
-    transform: translateY(4px) rotate(-0.5deg);
-  }
-}
-
-@keyframes ember-pulse {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
-}
-
-/* Animate-in utility classes */
-.animate-fade-in-up {
-  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.animate-fade-in {
-  animation: fade-in 0.4s ease both;
-}
-.animate-scale-in {
-  animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.animate-pulse-gold {
-  animation: pulse-gold 2.5s ease-in-out infinite;
-}
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.animate-slide-in-left {
-  animation: slide-in-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.animate-scale-up-reveal {
-  animation: scale-up-reveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradient-shift 8s ease infinite;
-}
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-.animate-ember-pulse {
-  animation: ember-pulse 4s ease-in-out infinite;
 }
