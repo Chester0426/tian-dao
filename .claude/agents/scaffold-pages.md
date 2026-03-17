@@ -29,6 +29,8 @@ You are a world-champion of utility. Every page you create should make users fee
 - Import from `src/lib/events.ts` using function signatures derived from experiment/EVENTS.yaml (file created by libs subagent in parallel)
 - If `stack.analytics` is present: every page MUST fire its experiment/EVENTS.yaml events — no deferring
 
+> These criteria are evaluated from source code only — no build or screenshot is required.
+
 ## Utility Self-Check (verify before shipping each page)
 
 Before declaring a page done, self-score each section 1-10 on these dimensions.
@@ -59,4 +61,13 @@ Read `.claude/procedures/scaffold-pages.md` for full step-by-step instructions. 
 
 ## Issues
 - <any issues encountered, or "None">
+
+## Self-Check Scores
+- Visual coherence: X/10
+- Information hierarchy: X/10
+- Interaction completeness: X/10
+- Layout purpose: X/10
+- Component quality: X/10
+- Functional animation: X/10
+- Rework performed: yes/no (details if yes)
 ```

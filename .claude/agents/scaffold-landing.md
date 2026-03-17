@@ -29,6 +29,8 @@ You are a world-champion of persuasion. Your landing page is the absolute limit 
 - Wire analytics events per experiment/EVENTS.yaml
 - Build must pass after your changes
 
+> These criteria are evaluated from source code only — no build or screenshot is required.
+
 ## Persuasion Self-Check (verify before shipping)
 
 Before declaring done, self-score each section 1-10 on these dimensions.
@@ -59,4 +61,13 @@ Read `.claude/procedures/scaffold-landing.md` for full step-by-step instructions
 
 ## Build Result
 <pass | fail (with error details)>
+
+## Self-Check Scores
+- Custom palette: X/10
+- Typography hierarchy: X/10
+- Visual depth: X/10
+- Layout variation: X/10
+- Conversion pull: X/10
+- Scroll dynamism: X/10
+- Rework performed: yes/no (details if yes)
 ```

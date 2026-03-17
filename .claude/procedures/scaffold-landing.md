@@ -74,14 +74,11 @@ If `stack.analytics` is present and not already included:
 - For web-app: verify event imports and tracking calls exist
 - For service/cli: add inline snippet per surface stack file's analytics section
 
-### 4b. Self-review
+> **Note:** Visual rendering review (screenshots, layout breaks, mobile responsiveness)
+> is performed by the design-critic agent in `/verify` (web-app only). Scaffold agents
+> are responsible for code-level quality via the Persuasion Self-Check above.
 
-- Screenshot the landing page you just generated (follow `.claude/patterns/visual-review.md` for server setup)
-- Review per-section: is there ANY section you'd rate below 8/10?
-- If yes, rewrite it now — don't leave it for the verify phase
-
-### 5. Build verification
-
-- Run `npm run build` to verify the landing page compiles (web-app only)
-- If build fails: fix errors, re-run (1 attempt budget)
+> **Note:** Build verification occurs at the merged checkpoint (STATE 13), after all
+> parallel subagents complete. Do not run `npm run build` here — `src/lib/events.ts`
+> may not exist yet (created by libs subagent in parallel).
 
