@@ -28,7 +28,7 @@ If no scope is specified, the default is `full`.
 
 behavior-verifier runs for all archetypes (web-app, service, cli) — it has archetype-specific procedures internally.
 
-Build & Lint Loop, Auto-Observe, and Save Notable Patterns ALWAYS run regardless of scope.
+Build & Lint Loop, E2E Tests, Auto-Observe, and Save Notable Patterns ALWAYS run regardless of scope.
 
 > **Agent spawning is determined by scope and archetype only** — never by which files were changed in this PR. Do NOT skip agents because "no pages were modified" or "only backend changed." If the scope table says an agent runs for this scope+archetype combination, spawn it.
 
@@ -171,6 +171,11 @@ Before spawning review agents, compute the PR file boundary:
 git diff --name-only $(git merge-base HEAD main)...HEAD
 ```
 
+> If `git diff` returns empty (standalone on `main` or shallow clone), fall back to all source files:
+> ```bash
+> find src/ -type f -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx'
+> ```
+
 Pass this list to each agent that has Edit/Write permissions (design-critic, ux-journeyer, security-fixer) as a hard constraint in the agent prompt:
 
 > "You may ONLY modify files in this list: [files]. If you find issues in files outside this list, REPORT them in your verdict but do NOT edit them."
@@ -278,7 +283,7 @@ Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 **PRECONDITIONS:** STATE 3 complete.
 
-If security agents were not spawned (scope is `visual` or `build`), or reported no issues, skip to STATE 5.
+If security agents were not spawned (scope is `visual` or `build`), skip to STATE 5 (E2E_TESTS).
 
 **ACTIONS:**
 
@@ -320,17 +325,59 @@ After each fix, append to `.claude/fix-log.md`.
 test -f .claude/security-merge.json
 ```
 
-**NEXT:** STATE 5
+**NEXT:** STATE 5 (E2E_TESTS)
 
 ---
 
-## STATE 5: AUTO_OBSERVE
+## STATE 5: E2E_TESTS
 
-**PRECONDITIONS:** STATE 4 complete (or skipped).
+**PRECONDITIONS:** STATE 4 complete (or skipped for visual/build scope).
 
 **ACTIONS:**
 
-Read `.claude/fix-log.md` from disk. If it has only the header line (`# Error Fix Log`) and no entries, skip to STATE 6.
+- If `stack.testing` is NOT present in experiment.yaml → write `.claude/e2e-result.json`:
+  ```bash
+  echo '{"skipped":true,"reason":"no testing stack"}' > .claude/e2e-result.json
+  ```
+  Skip to STATE 6.
+
+- If `stack.testing` is present but no test configuration file exists → write `.claude/e2e-result.json`:
+  ```bash
+  echo '{"skipped":true,"reason":"no test configuration"}' > .claude/e2e-result.json
+  ```
+  Skip to STATE 6.
+
+- Otherwise: run E2E tests (3-attempt budget). For each failed attempt:
+  1. Read test output, identify failures
+  2. Fix issues (test code or app code)
+  3. Append each fix to `.claude/fix-log.md`
+  4. Re-run tests
+
+  After tests pass (or budget exhausted), write `.claude/e2e-result.json`:
+  ```bash
+  cat > .claude/e2e-result.json << 'E2EEOF'
+  {"passed":<true|false>,"attempts":<N>,"fixes":<N>}
+  E2EEOF
+  ```
+
+**POSTCONDITIONS:** `e2e-result.json` exists.
+
+**VERIFY:**
+```bash
+test -f .claude/e2e-result.json
+```
+
+**NEXT:** STATE 6
+
+---
+
+## STATE 6: AUTO_OBSERVE
+
+**PRECONDITIONS:** STATE 5 complete (e2e-result.json exists).
+
+**ACTIONS:**
+
+Read `.claude/fix-log.md` from disk. If it has only the header line (`# Error Fix Log`) and no entries, skip to STATE 7.
 
 If the Fix Log has any entries:
 
@@ -349,13 +396,13 @@ If the Fix Log has any entries:
 
 **VERIFY:** If fix-log.md has entries beyond header, `observer.json` trace exists.
 
-**NEXT:** STATE 6
+**NEXT:** STATE 7
 
 ---
 
-## STATE 6: WRITE_REPORT
+## STATE 7: WRITE_REPORT
 
-**PRECONDITIONS:** STATE 5 complete. All agents finished. All traces written.
+**PRECONDITIONS:** STATE 6 complete. All agents finished. All traces written.
 
 > **This state is gated by `verify-report-gate.sh`.** The hook checks that
 > verify-context.json, fix-log.md, and agent traces exist before allowing
@@ -431,15 +478,15 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
 head -1 .claude/verify-report.md | grep -q '^---$'
 ```
 
-**NEXT:** STATE 7
+**NEXT:** STATE 8
 
 ---
 
-## STATE 7: SAVE_PATTERNS
+## STATE 8: SAVE_PATTERNS
 
-**PRECONDITIONS:** STATE 6 complete.
+**PRECONDITIONS:** STATE 7 complete.
 
-If `.claude/fix-log.md` has only the header line and no entries, this state is a no-op.
+If `.claude/fix-log.md` has only the header line and no entries, this state is a no-op — write `.claude/patterns-saved.json` with `{"saved":0,"skipped":0,"total":0}` and return.
 
 **ACTIONS:**
 
@@ -461,8 +508,18 @@ Read `.claude/fix-log.md` from disk.
    - Codebase conventions that future plans should follow (e.g., "this project co-locates API types in a shared types.ts")
    - Save to auto memory under "Planning Patterns" heading
 
-**POSTCONDITIONS:** Pattern count matches fix log entry count.
+4. **Write classification artifact:**
+   ```bash
+   cat > .claude/patterns-saved.json << 'PEOF'
+   {"saved":<N>,"skipped":<N>,"total":<N>}
+   PEOF
+   ```
 
-**VERIFY:** Mental count — patterns saved + skipped = fix log entries.
+**POSTCONDITIONS:** `patterns-saved.json` exists. Pattern count matches fix log entry count.
+
+**VERIFY:**
+```bash
+test -f .claude/patterns-saved.json
+```
 
 **NEXT:** Done — return to calling skill.

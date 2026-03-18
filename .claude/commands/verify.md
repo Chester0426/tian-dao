@@ -71,28 +71,11 @@ Follow Phase 2 in `.claude/patterns/verify.md` with the scope from Step 0.
 
 ## Step 4: Merge security → security-fixer
 
-Follow STATE 4 (SECURITY_MERGE_FIX) in `.claude/patterns/verify.md`. Only applies when scope includes security agents and they reported issues. Write `.claude/security-merge.json` before spawning security-fixer.
+Follow STATE 4 (SECURITY_MERGE_FIX) in `.claude/patterns/verify.md`. Always write `.claude/security-merge.json` when scope includes security agents (even with 0 issues). Only spawn security-fixer when merged issues > 0.
 
 ## Step 5: E2E tests
 
-Run E2E tests on the **final** code after all agent fixes.
-
-- If `stack.testing` is NOT present in experiment.yaml: warn "No testing stack configured — skipping E2E tests." Continue to Step 6.
-- If `stack.testing` is present but no test configuration file exists: warn "No test configuration found — skipping E2E tests." Continue to Step 6.
-- Otherwise:
-  1. Run the test command determined in Step 0
-  2. If ALL tests pass: continue to Step 6
-  3. If tests fail: proceed to fix loop below
-
-### Fix failures (max 3 attempts)
-
-For each attempt:
-1. Read the test output — identify which tests failed and why
-2. Read the failing test files and the app code they exercise
-3. Fix the issues (may be test code or app code — fix whatever is actually wrong)
-4. Re-run the test command
-5. If all pass: continue to Step 6
-6. If still failing: note what you tried, start next attempt
+Follow STATE 5 (E2E_TESTS) in `.claude/patterns/verify.md`.
 
 **If all 3 attempts fail:**
 - **standalone mode**: Follow `.claude/patterns/branch.md` with prefix `fix` and name `fix/e2e-failures` (if not already on a fix branch). Report to user with attempt history. Offer: (1) tell me what to try, (2) save progress as WIP commit on this branch.
@@ -116,7 +99,7 @@ For each attempt:
 - Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
   - Include completion reports from all subagents for PR body context
   - Populate the PR Verification checklist from `.claude/verify-report.md` contents
-- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, and `.claude/security-merge.json`
+- Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, `.claude/security-merge.json`, `.claude/e2e-result.json`, and `.claude/patterns-saved.json`
 - Report the PR URL to the user
 - Tell the user: "Bootstrap complete. Next: review and merge the PR to `main`. Then run `/deploy` to deploy to production, or `/change` to make changes before deploying."
 - If `quality: production` is set in experiment.yaml, also add:
@@ -127,7 +110,7 @@ For each attempt:
 - Report verification results to the user
 - Do NOT create a PR — `/change` Step 8 handles PR creation
 - Do NOT delete `.claude/current-plan.md` — `/change` Step 8 needs it
-- Leave `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, and `.claude/security-merge.json` in place for `/change` Step 8
+- Leave `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, `.claude/security-merge.json`, `.claude/e2e-result.json`, and `.claude/patterns-saved.json` in place for `/change` Step 8
 
 ### standalone mode
 
@@ -147,7 +130,7 @@ For each attempt:
     - **What Changed**: files modified and why
     - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
     - **Checklist**: standard checks
-  - Delete `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, and `.claude/security-merge.json` after PR is created
+  - Delete `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, `.claude/security-merge.json`, `.claude/e2e-result.json`, and `.claude/patterns-saved.json` after PR is created
   - Tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If archetype is `cli`, add CLI-specific guidance. Otherwise, add: "Then run `/deploy` to deploy to production."
 
 ## Cleanup

@@ -45,6 +45,11 @@ Thumbs.db
 .claude/verify-report.md
 .claude/agent-traces/
 .claude/gate-verdicts/
+.claude/verify-context.json
+.claude/fix-log.md
+.claude/security-merge.json
+.claude/e2e-result.json
+.claude/patterns-saved.json
 externals-decisions.json
 
 # TypeScript

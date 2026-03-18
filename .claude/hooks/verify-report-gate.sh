@@ -100,6 +100,11 @@ if [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
   fi
 fi
 
+# Check 7: e2e-result.json must exist (STATE 5 ran or explicitly skipped)
+if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
+  ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) did not run")
+fi
+
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")
