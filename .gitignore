@@ -48,6 +48,7 @@ Thumbs.db
 .claude/verify-context.json
 .claude/fix-log.md
 .claude/security-merge.json
+.claude/design-ux-merge.json
 .claude/e2e-result.json
 .claude/patterns-saved.json
 externals-decisions.json

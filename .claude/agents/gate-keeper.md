@@ -238,6 +238,8 @@ Verify verify.md ran completely:
 12. `.claude/verify-context.json` exists — run `test -f .claude/verify-context.json`
 13. `.claude/fix-log.md` exists — run `test -f .claude/fix-log.md`
 14. If scope is `full` or `security`: `.claude/security-merge.json` exists — extract scope from verify-context.json, check `test -f .claude/security-merge.json` (skip if scope is `visual` or `build`)
+15. design-critic trace has `min_score` field — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/design-critic.json')); print('PASS' if 'min_score' in d else 'BLOCK')"` (skip if design-critic not in agents_completed)
+16. ux-journeyer trace has `dead_ends` field — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/ux-journeyer.json')); print('PASS' if 'dead_ends' in d else 'BLOCK')"` (skip if ux-journeyer not in agents_completed)
 
 ### BG4 PR Gate
 

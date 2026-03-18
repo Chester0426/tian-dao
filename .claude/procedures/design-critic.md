@@ -140,3 +140,14 @@ rm -rf /tmp/visual-review
 Collect all changes made:
 - Run `git diff` to capture diffs
 - Write a one-line summary for each fix
+
+### 9. Compute Trace Metrics
+
+Before writing the trace file, compute these metrics from your review:
+
+- **`min_score`**: the lowest Layer 2 per-section score across all pages, measured *after* fixes are applied. If no sections were reviewed, use `0`.
+- **`weakest_page`**: the page name that contains the section with the lowest post-fix score. If tied, pick the first page alphabetically.
+- **`sections_below_8`**: count of sections that scored below 8 *before* fixes were applied. This captures how much work was needed.
+- **`fixes_applied`**: total number of fixes applied across all pages (Layer 1 + Layer 2 + Layer 3 combined). Use `0` if no fixes were needed.
+
+These metrics are written into the trace JSON (see agent definition for the trace command).

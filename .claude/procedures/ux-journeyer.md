@@ -90,3 +90,15 @@ kill %1 2>/dev/null || true
 ```
 
 Remove any temp files created during navigation.
+
+### 10. Compute Trace Metrics
+
+Before writing the trace file, compute these metrics from your journey:
+
+- **`clicks_to_value`**: total clicks from the landing page to the value moment (the step where the user first experiences core product value). If the value moment was never reached, use the total clicks navigated.
+- **`dead_ends`**: number of pages where no forward navigation was possible (no CTA, broken link, or error page). Intentional fake-door pages count as dead ends in the trace — the lead distinguishes fake-doors from real failures.
+- **`golden_path_steps`**: total number of golden path steps navigated (including failed steps). This is the denominator for coverage.
+- **`coverage_pct`**: percentage of golden_path steps from experiment.yaml that were successfully completed, as an integer 0-100. Formula: `(successful_steps / total_golden_path_steps) * 100`, rounded down.
+- **`fixes_applied`**: total number of fixes applied (redirect fixes, empty-state CTAs added, navigation fixes, etc.). Use `0` if no fixes were needed.
+
+These metrics are written into the trace JSON (see agent definition for the trace command).
