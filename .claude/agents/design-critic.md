@@ -104,7 +104,13 @@ Weakest section: <name> (<score>/10)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["layer1_functional","layer2_taste","layer3_antipattern","visual_regression"],"pages_reviewed":<N>}' > .claude/agent-traces/design-critic.json
+mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["layer1_functional","layer2_taste","layer3_antipattern","visual_regression"],"pages_reviewed":<N>,"min_score":<S>,"weakest_page":"<page-name>","sections_below_8":<B>,"fixes_applied":<F>}' > .claude/agent-traces/design-critic.json
 ```
 
-Replace `<verdict>` with your final verdict: `"pass"`, `"fixed"`, or `"unresolved"`.
+Replace placeholders with actual values:
+- `<verdict>`: final verdict — `"pass"`, `"fixed"`, or `"unresolved"`
+- `<N>`: number of pages reviewed
+- `<S>`: lowest Layer 2 score across all pages after fixes (integer 1-10)
+- `<page-name>`: page containing the weakest-scoring section after fixes
+- `<B>`: count of sections that scored below 8 before fixes were applied
+- `<F>`: total number of fixes applied (0 if none)

@@ -105,6 +105,31 @@ if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
   ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) did not run")
 fi
 
+# Check 8: If scope is full/visual AND archetype is web-app, design-ux-merge.json must exist
+if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+  SCOPE_DUX=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
+    print(d.get('scope', ''))
+except:
+    print('')
+" 2>/dev/null || echo "")
+  ARCHETYPE_DUX=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
+    print(d.get('archetype', ''))
+except:
+    print('')
+" 2>/dev/null || echo "")
+  if [[ ("$SCOPE_DUX" == "full" || "$SCOPE_DUX" == "visual") && "$ARCHETYPE_DUX" == "web-app" ]]; then
+    if [[ ! -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]]; then
+      ERRORS+=("design-ux-merge.json not found — Design-UX merge step was skipped (scope=$SCOPE_DUX, archetype=$ARCHETYPE_DUX)")
+    fi
+  fi
+fi
+
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")

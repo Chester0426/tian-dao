@@ -82,7 +82,14 @@ Clicks-to-value: N (target: ≤ 3)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>}' > .claude/agent-traces/ux-journeyer.json
+mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>,"clicks_to_value":<C>,"dead_ends":<D>,"golden_path_steps":<G>,"coverage_pct":<P>,"fixes_applied":<F>}' > .claude/agent-traces/ux-journeyer.json
 ```
 
-Replace `<verdict>` with your final verdict: `"all pass"`, `"all fixed"`, `"partial"`, or `"blocked"`.
+Replace placeholders with actual values:
+- `<verdict>`: final verdict — `"all pass"`, `"all fixed"`, `"partial"`, or `"blocked"`
+- `<N>`: number of journeys tested
+- `<C>`: clicks from landing page to value moment (integer)
+- `<D>`: number of pages that are dead ends (no forward navigation possible)
+- `<G>`: total golden path steps navigated
+- `<P>`: percentage of golden_path steps successfully completed (integer 0-100)
+- `<F>`: total number of fixes applied (0 if none)

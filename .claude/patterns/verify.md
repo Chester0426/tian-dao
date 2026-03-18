@@ -265,15 +265,53 @@ Spawn the `design-critic` agent (`subagent_type: design-critic`). Pass PR file b
 After completion: verify `.claude/agent-traces/design-critic.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
+#### Lead-side validation (design-critic)
+
+1. Read `.claude/agent-traces/design-critic.json` trace.
+2. Verify `pages_reviewed` >= number of pages in experiment.yaml `golden_path`.
+3. If `min_score` < 8 and `verdict` ≠ `"pass"`, record a quality warning in the verify report (not a hard failure — design quality is subjective and the agent has already attempted fixes).
+4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
+
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
 Spawn the `ux-journeyer` agent (`subagent_type: ux-journeyer`). Pass PR file boundary. **Wait for completion.**
 After completion: verify `.claude/agent-traces/ux-journeyer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
-**POSTCONDITIONS:** All scope-required Phase 2 traces exist. Build passes.
+#### Lead-side validation (ux-journeyer)
 
-**VERIFY:** Build command exited 0 after last Phase 2 agent.
+1. Read `.claude/agent-traces/ux-journeyer.json` trace.
+2. If `verdict` == `"blocked"`, this is a **hard gate failure** — the golden path cannot be completed. Stop and report the blocked location to the user. Do NOT proceed to STATE 4.
+3. If `dead_ends` > 0, read the agent's Flow Issues output to distinguish intentional fake-door pages from real navigation failures. Real failures should be noted in the verify report.
+4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (ux-journeyer):`.
+
+### Design-UX Merge (if scope is `full` or `visual`, AND archetype is `web-app`)
+
+After both design-critic and ux-journeyer have completed and their builds pass:
+
+1. Read both traces:
+   - `.claude/agent-traces/design-critic.json`
+   - `.claude/agent-traces/ux-journeyer.json`
+
+2. Compute the quality gate verdict:
+   - **fail**: ux-journeyer verdict is `"blocked"` (should have already stopped above — this is a safety net)
+   - **warn**: design-critic `min_score` < 8 OR ux-journeyer `dead_ends` > 0
+   - **pass**: neither condition triggered
+
+3. Write `.claude/design-ux-merge.json`:
+   ```bash
+   cat > .claude/design-ux-merge.json << 'DUXEOF'
+   {"timestamp":"<ISO 8601>","verdict":"<pass|warn|fail>","design_critic":{"verdict":"<verdict>","min_score":<S>,"weakest_page":"<page>","sections_below_8":<B>,"fixes_applied":<F>},"ux_journeyer":{"verdict":"<verdict>","clicks_to_value":<C>,"dead_ends":<D>,"coverage_pct":<P>,"fixes_applied":<F>}}
+   DUXEOF
+   ```
+
+**POSTCONDITIONS:** All scope-required Phase 2 traces exist. Build passes. `design-ux-merge.json` exists (when scope is `full` or `visual` AND archetype is `web-app`).
+
+**VERIFY:**
+```bash
+test -f .claude/design-ux-merge.json
+```
+Build command exited 0 after last Phase 2 agent.
 
 **NEXT:** STATE 4
 
