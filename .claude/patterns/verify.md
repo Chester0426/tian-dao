@@ -269,8 +269,10 @@ Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 1. Read `.claude/agent-traces/design-critic.json` trace.
 2. Verify `pages_reviewed` >= number of pages in experiment.yaml `golden_path`.
-3. If `min_score` < 8 and `verdict` ≠ `"pass"`, record a quality warning in the verify report (not a hard failure — design quality is subjective and the agent has already attempted fixes).
-4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
+3. If `verdict` == `"unresolved"`, this is a **hard gate failure** — design quality threshold (8/10) was not met after 2 fix attempts. Skip STATEs 4-6 but still write verify-report.md (STATE 7) recording the failure. Report failure to user with the `unresolved_sections` count.
+4. If `min_score` < 8 and `verdict` == `"fixed"`, note in verify report that threshold was met after fixes.
+5. If `pre_existing_debt` is non-empty, note pre-existing quality debt in verify report (informational, does not block).
+6. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
 
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
@@ -294,14 +296,14 @@ After both design-critic and ux-journeyer have completed and their builds pass:
    - `.claude/agent-traces/ux-journeyer.json`
 
 2. Compute the quality gate verdict:
-   - **fail**: ux-journeyer verdict is `"blocked"` (should have already stopped above — this is a safety net)
-   - **warn**: design-critic `min_score` < 8 OR ux-journeyer `dead_ends` > 0
+   - **fail**: design-critic verdict is `"unresolved"` OR ux-journeyer verdict is `"blocked"`
+   - **warn**: ux-journeyer `dead_ends` > 0 (but design-critic passed)
    - **pass**: neither condition triggered
 
 3. Write `.claude/design-ux-merge.json`:
    ```bash
    cat > .claude/design-ux-merge.json << 'DUXEOF'
-   {"timestamp":"<ISO 8601>","verdict":"<pass|warn|fail>","design_critic":{"verdict":"<verdict>","min_score":<S>,"weakest_page":"<page>","sections_below_8":<B>,"fixes_applied":<F>},"ux_journeyer":{"verdict":"<verdict>","clicks_to_value":<C>,"dead_ends":<D>,"coverage_pct":<P>,"fixes_applied":<F>}}
+   {"timestamp":"<ISO 8601>","verdict":"<pass|warn|fail>","design_critic":{"verdict":"<verdict>","min_score":<S>,"weakest_page":"<page>","sections_below_8":<B>,"fixes_applied":<F>,"unresolved_sections":<U>,"pre_existing_debt":<DEBT>},"ux_journeyer":{"verdict":"<verdict>","clicks_to_value":<C>,"dead_ends":<D>,"coverage_pct":<P>,"fixes_applied":<F>}}
    DUXEOF
    ```
 

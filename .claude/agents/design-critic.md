@@ -13,7 +13,7 @@ tools:
   - ToolSearch
 disallowedTools:
   - Agent
-maxTurns: 50
+maxTurns: 70
 memory: project
 skills:
   - frontend-design
@@ -52,6 +52,7 @@ Weakest section determines page verdict. All pages same standard.
 - Scroll inertness (0 scroll-triggered events)
 
 Any Layer 1/3 failure or Layer 2 score < 8 → fix directly.
+If any in-boundary section remains < 8 after 2 fix attempts, verdict MUST be `"unresolved"` — never `"pass"` or `"fixed"`.
 
 ## Instructions
 
@@ -104,13 +105,16 @@ Weakest section: <name> (<score>/10)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["layer1_functional","layer2_taste","layer3_antipattern","visual_regression"],"pages_reviewed":<N>,"min_score":<S>,"weakest_page":"<page-name>","sections_below_8":<B>,"fixes_applied":<F>}' > .claude/agent-traces/design-critic.json
+mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["layer1_functional","layer2_taste","layer3_antipattern","visual_regression"],"pages_reviewed":<N>,"min_score":<S>,"weakest_page":"<page-name>","sections_below_8":<B>,"fixes_applied":<F>,"unresolved_sections":<U>,"min_score_all":<SA>,"pre_existing_debt":<DEBT>}' > .claude/agent-traces/design-critic.json
 ```
 
 Replace placeholders with actual values:
 - `<verdict>`: final verdict — `"pass"`, `"fixed"`, or `"unresolved"`
 - `<N>`: number of pages reviewed
-- `<S>`: lowest Layer 2 score across all pages after fixes (integer 1-10)
-- `<page-name>`: page containing the weakest-scoring section after fixes
-- `<B>`: count of sections that scored below 8 before fixes were applied
+- `<S>`: lowest Layer 2 score across **in-boundary pages** after fixes (integer 1-10)
+- `<page-name>`: page containing the weakest-scoring section after fixes (in-boundary only)
+- `<B>`: count of sections that scored below 8 before fixes were applied (in-boundary only)
 - `<F>`: total number of fixes applied (0 if none)
+- `<U>`: count of in-boundary sections still below 8 after 2 fix attempts (0 if all resolved)
+- `<SA>`: lowest Layer 2 score across ALL pages including out-of-boundary (integer 1-10)
+- `<DEBT>`: JSON array of `{"page":"<name>","score":<N>}` for out-of-boundary pages with sections below 8 (use `[]` if none)
