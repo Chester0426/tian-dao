@@ -84,6 +84,30 @@ Rules:
 - The **Observed** column shows what you actually found: branch name, file path, field value, command exit code, matched string. This is mandatory — it proves you executed the check.
 - Never return a verdict without completing all checks for the gate.
 
+### Verdict File Contract
+
+After outputting the markdown verdict table, persist the verdict to disk:
+
+```bash
+mkdir -p .claude/gate-verdicts
+cat > .claude/gate-verdicts/<gate-id>.json << 'VEOF'
+{
+  "gate": "<ID>",
+  "verdict": "<PASS|BLOCK>",
+  "branch": "<output of git branch --show-current>",
+  "timestamp": "<ISO 8601>",
+  "checks": [
+    {"name": "<check>", "status": "<PASS|BLOCK>", "observed": "<value>"}
+  ]
+}
+VEOF
+```
+
+Rules:
+- `<gate-id>` is the gate identifier in lowercase: `bg1`, `bg2`, `bg2.5`, `bg4`, `g1`, etc.
+- The `branch` field records the branch at verdict time — hooks use this for freshness validation.
+- This write is mandatory for every gate invocation. If the Bash write fails, report BLOCK.
+
 ---
 
 ## /change Gates (G1-G6)
@@ -184,6 +208,17 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 9. scaffold-wire contract: if mutation behaviors exist in experiment.yaml (behaviors with `actor: user` that imply writes), `src/app/api/` has route files — run `ls src/app/api/`
 10. Process Checklist: `.claude/current-plan.md` contains `## Process Checklist` with ≥ 10 checklist items — run `grep -c '^\- \[' .claude/current-plan.md`
 11. `npm run build` passes
+
+### BG2.5 Externals Gate
+
+Verify external dependency decisions were collected with user buy-in:
+
+1. `.claude/gate-verdicts/bg1.json` exists with verdict PASS (prior gate passed)
+2. `externals-decisions.json` exists in project root — run `test -f externals-decisions.json`
+3. If `externals-decisions.json` has `"has_externals": false`: verify `"user_confirmed"` is `true`
+4. If `externals-decisions.json` has `"has_externals": true`: verify `"decisions"` array is non-empty and each entry has `"service"`, `"classification"`, and `"user_choice"` fields
+5. `externals-decisions.json` `"timestamp"` is non-empty
+6. `.claude/current-plan.md` contains `[x] Externals user decisions collected`
 
 ### BG3 Verification Gate
 

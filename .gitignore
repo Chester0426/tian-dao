@@ -10,6 +10,14 @@ out/
 .env.local
 .env.*.local
 
+# Sensitive file patterns (defense in depth)
+*.key
+*.pem
+credentials*
+*.secret
+*.token
+service-account*.json
+
 # Python
 __pycache__/
 *.pyc
@@ -36,6 +44,8 @@ Thumbs.db
 .claude/current-visual-brief.md
 .claude/verify-report.md
 .claude/agent-traces/
+.claude/gate-verdicts/
+externals-decisions.json
 
 # TypeScript
 *.tsbuildinfo
