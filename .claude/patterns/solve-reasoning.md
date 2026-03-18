@@ -187,11 +187,39 @@ Present the final output:
 
 ## Caller Integration
 
-Other patterns can invoke this methodology:
+Other patterns can invoke this methodology with **adaptive depth** — light by
+default, full when complexity warrants it.
 
-- **`/change` Phase 1**: Use light mode for solution exploration during feature planning.
-- **`/resolve` Step 5**: Use light mode for first-principles fix design.
-- **Direct `/solve` invocation**: Default to full mode. User can override with `--light`.
+### `/resolve` Step 5
 
-When called from another pattern, return the output to the caller — do not present
-directly to the user (the caller handles presentation and next steps).
+- **Default**: light
+- **Trigger full**: `blast_radius` confirmed >= 3 files OR `severity` = HIGH
+- **Input mapping**: `divergence_point`, `blast_radius`, `reproduction`, `severity` as constraints
+- **Light output mapping**: "Recommended Solution" -> `root_cause`, "Implementation Steps" -> `fix_plan`, "Constraints Respected" -> `anti_pattern_review`, "Key Tradeoff" -> diagnosis report
+- **Full mode customization**:
+  - Phase 1 agents: Agent 1 = divergence investigation, Agent 2 = blast radius + prior fix art, Agent 3 = fix constraints (validators, archetype universality)
+  - Phase 5 Critic receives domain-specific vectors from Step 5b (configuration counterexample, blast radius gap, regression vector)
+- **Post-validation**: resolve.md Step 5 applies its own 5 fix requirements + 4 anti-patterns after solve-reasoning completes. If rejected: iterate once through self-check (light) or critic round 2 (full).
+
+### `/change` Step 2b
+
+- **Default**: light
+- **Trigger full**: `preliminary_type` in [Feature, Upgrade] AND `affected_areas` >= 3
+- **Input mapping**: `$ARGUMENTS` as problem, exploration results from Step 2 as constraints
+- **Light output**: stored in working memory, feeds into plan "How" sections
+- **Full mode customization**:
+  - Phase 1 agents: Agent 1 = change problem space, Agent 2 = reuse/prior art (extends plan-exploration), Agent 3 = hard constraints (archetype, stack, behaviors)
+  - Phase 5 Critic reviews plan mechanism choices (no extra domain vectors)
+  - Output feeds: "How" sections, Risks & Mitigations, Approaches table
+
+### Direct `/solve` invocation
+
+- **Default**: full
+- **Override**: `--light` flag selects light mode
+
+### Caller conventions
+
+- **Output ownership**: return output to the caller — do not present directly to the user (the caller handles presentation and next steps)
+- **Phase 3 merging**: when called from another pattern, Phase 3 (User Injection) questions are HELD and merged into the caller's existing STOP gate — do not prompt the user separately
+- **Domain-specific critics**: callers may inject additional critic vectors into Phase 5 (see `/resolve` Step 5b vectors)
+- **Post-validation iteration**: callers may apply their own domain validation after solve-reasoning completes and iterate once if rejected

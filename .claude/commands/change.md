@@ -13,6 +13,7 @@ references:
   - .claude/patterns/observe.md
   - .claude/patterns/messaging.md
   - .claude/patterns/design.md
+  - .claude/patterns/solve-reasoning.md
   - .claude/procedures/plan-exploration.md
   - .claude/procedures/plan-validation.md
 branch_prefix: change
@@ -45,6 +46,46 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
   - Include the verdict, bottleneck, and recommendations in the plan (Phase 1)
   - Reference: "This change addresses the [bottleneck.stage] bottleneck identified by /iterate ([bottleneck.diagnosis])"
   - This provides continuity between analysis and implementation
+
+## Step 2b: Solution Design (solve-reasoning)
+
+Before classifying the change, run a structured solution design pass using
+`.claude/patterns/solve-reasoning.md` with adaptive depth.
+
+### Complexity assessment
+
+Determine solve-reasoning depth using the preliminary classification from Step 2:
+
+```
+solve_depth = "light"  # default
+if preliminary_type in [Feature, Upgrade] AND affected_areas >= 3:
+    solve_depth = "full"
+```
+
+State the depth selection with rationale.
+
+### Light mode path
+
+Call `.claude/patterns/solve-reasoning.md` light mode (Steps 1-5).
+
+- **Inputs**: `$ARGUMENTS` as problem, exploration results from Step 2 as constraints
+- **Output**: stored in working memory, feeds into plan "How" sections in Phase 1
+
+### Full mode path
+
+Call `.claude/patterns/solve-reasoning.md` full mode (Phases 1-6).
+
+- **Phase 1 agent customization**:
+  - Agent 1 = change problem space (what needs to change, for whom, and why)
+  - Agent 2 = reuse/prior art (extends plan-exploration — find existing patterns, components, utilities that partially solve this)
+  - Agent 3 = hard constraints (archetype restrictions, stack limitations, behavior scope from experiment.yaml)
+- **Phase 3 questions**: HELD — merged into the Phase 1 STOP gate (see below)
+- **Phase 5 Critic**: reviews plan mechanism choices (no extra domain vectors)
+- **Output feeds**:
+  - "Recommended Solution" + "Implementation Checklist" -> plan "How" sections
+  - "Remaining Risks" -> Risks & Mitigations section
+  - "Alternatives" -> Approaches table (if multi-layer Feature)
+  - "Constraint Space" -> informs Step 3 classification and Step 4 prerequisite checks
 
 ## Step 3: Classify the change
 
@@ -121,6 +162,13 @@ Present the plan using the template for the classified type from `.claude/proced
 If validation fails, fix the plan before presenting.
 
 - **G2 Plan Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G2 Plan Gate. Verify: on a feature branch (not main), current-plan.md exists with YAML frontmatter, classification is one of [Feature/Upgrade/Fix/Polish/Analytics/Test], verification scope matches classification, no source code files modified yet (only .claude/ and experiment/ files)." If gate-keeper returns BLOCK, fix blocking items before presenting plan.
+
+**Full mode STOP augmentation**: If `solve_depth = "full"` in Step 2b, prepend
+to the approval prompt:
+
+> **Questions from deep analysis:**
+> [Phase 3 User Injection questions — specific gaps from research]
+> [Phase 5 TYPE C concerns — assumptions only the user can validate]
 
 ### STOP. End your response here. Say:
 > Plan ready. How would you like to proceed?
