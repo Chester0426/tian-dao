@@ -246,7 +246,7 @@ Follow the procedure in `.claude/procedures/change-upgrade.md`.
 Follow the procedure in `.claude/procedures/change-fix.md`.
 
 > **Critical assertions (Fix):**
-> - If `quality: production` — regression test must FAIL on current code BEFORE writing the fix.
+> - If `quality: production` — regression test must FAIL on current code BEFORE writing the fix. Stop and write the test first. Run it — it must fail. Only then implement the fix and verify the test passes.
 > - Minimal change only — fix root cause, no refactoring of surrounding code.
 
 #### Polish constraints

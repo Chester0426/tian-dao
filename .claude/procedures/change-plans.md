@@ -25,7 +25,7 @@
 **New analytics events (if any):**
 - [event_name] — fires when [trigger]
 
-**Golden Path impact:**
+**Golden Path impact:** (web-app: pages, service: endpoints, cli: commands — skip if archetype has no golden_path)
 - Current: [show current golden_path from experiment.yaml, or "not defined"]
 - After this change: [updated path if flow changes, or "unchanged"]
 
@@ -51,12 +51,12 @@
 - Reuses: [existing components found during exploration, or "none"]
 - Done when: [one-line, e.g., "page renders with mock data, components receive props"]
 
-**Data Flow:**
-1. Entry: [how user discovers feature — nav link, CTA, URL, redirect]
-2. [interaction step] → [component/route] → [what happens]
-3. [next step] → [component/route] → [what happens]
-4. Terminal: [success state — confirmation, redirect, data displayed]
-5. Error path: [trigger] → [API error response] → [UI recovery — toast, inline, redirect]
+**Data Flow:** (web-app: UI flow, service: request flow, cli: command flow)
+1. Entry: [how user discovers feature — nav link, CTA, URL, redirect | API endpoint | command invocation]
+2. [interaction step] → [component/route/handler] → [what happens]
+3. [next step] → [component/route/handler] → [what happens]
+4. Terminal: [success state — confirmation, redirect, data displayed | response returned | output printed]
+5. Error path: [trigger] → [error response] → [recovery — toast, inline, redirect | error code | stderr message]
 - Done when: [one-line, e.g., "user can complete full flow from entry to confirmation"]
 
 ### Approaches (Multi-layer only — skip for Simple)
