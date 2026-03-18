@@ -10,6 +10,7 @@ references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
+  - .claude/patterns/solve-reasoning.md
 branch_prefix: fix
 modifies_specs: false
 ---
@@ -146,14 +147,51 @@ Present in diagnosis report:
 - Uncorrelated: #C
 ```
 
-### Step 5: First-principles fix design
+### Step 5: First-principles fix design (solve-reasoning)
 
-Design the fix using world-champion reasoning:
+#### 5a) Complexity assessment
 
-**Root cause decomposition** — answer WHY, not just WHAT:
-- What assumption does the template make that is violated?
-- When was this assumption introduced? (git blame if helpful)
-- Is the assumption wrong, or is the input that violates it unexpected?
+Determine solve-reasoning depth:
+
+```
+solve_depth = "light"  # default
+if blast_radius confirmed >= 3: solve_depth = "full"
+if severity = HIGH: solve_depth = "full"
+```
+
+State the depth selection with rationale before proceeding.
+
+#### 5b-light) Light mode path
+
+When `solve_depth = "light"`: call `.claude/patterns/solve-reasoning.md` light mode (Steps 1-5).
+
+- **Inputs**: `divergence_point`, `blast_radius`, `reproduction`, `severity` as constraints
+- **Output mapping**:
+  - "Recommended Solution" -> `root_cause`
+  - "Implementation Steps" -> `fix_plan`
+  - "Constraints Respected" -> `anti_pattern_review`
+  - "Key Tradeoff" -> diagnosis report
+
+#### 5b-full) Full mode path
+
+When `solve_depth = "full"`: call `.claude/patterns/solve-reasoning.md` full mode (Phases 1-6).
+
+- **Phase 1 agent customization**:
+  - Agent 1 = divergence investigation (trace the assumption violation, git blame context)
+  - Agent 2 = blast radius + prior fix art (grep for the causal pattern broadly, find past fixes for similar patterns)
+  - Agent 3 = fix constraints (validator compatibility, archetype universality, backwards compatibility)
+- **Phase 3 questions**: HELD — merged into the diagnosis STOP gate (see Step 5 STOP augmentation below)
+- **Phase 5 Critic**: receives domain-specific vectors (see Step 5c below)
+- **Output mapping**:
+  - "Recommended Solution" -> `root_cause` + `fix_plan`
+  - "Constraint Space" -> hard constraints in diagnosis report
+  - "Remaining Risks" TYPE B -> system constraints in diagnosis report
+  - "Remaining Risks" TYPE C -> merged into STOP gate questions
+  - "Remaining Risks" Caveats -> caveats in diagnosis report
+
+#### 5c) Domain-specific post-validation
+
+After solve-reasoning completes (either mode), apply template-specific validation:
 
 **Fix requirements** (all must be satisfied):
 1. **Root cause**: Fix addresses the underlying cause, not just the symptom
@@ -171,10 +209,18 @@ Design the fix using world-champion reasoning:
 - **Narrow fix**: Only fixes the reported instance, ignores blast radius
 - **No prevention**: Fixes the bug but adds no guard against recurrence
 
+If validation rejects the solution:
+- **Light mode**: iterate once through solve-reasoning Step 4 (Self-Check)
+- **Full mode**: iterate once through Phase 5 critic round 2
+
 Record: `root_cause`, `fix_plan` (per-file changes), `proposed_checks` (if any),
 `anti_pattern_review` (confirm none apply).
 
-### Step 5b: Adversarial challenge
+### Step 5d: Adversarial challenge
+
+The adversarial challenge adapts based on `solve_depth`:
+
+#### Light mode adversarial challenge
 
 Launch a single Explore subagent to challenge each fix design:
 
@@ -212,6 +258,19 @@ After the agent returns:
 - **needs-revision**: incorporate revision, note in diagnosis report
 - **challenged**: present to user at STOP gate; let user decide
 
+#### Full mode adversarial challenge
+
+Step 5d is replaced by solve-reasoning Phase 5 Critic Loop (already
+executed in Step 5b-full). The 3 domain-specific challenge vectors
+above (configuration counterexample, blast radius gap, regression
+vector) are injected into the Critic prompt as additional instructions.
+
+Critic output mapping:
+- **TYPE A round 1** -> revision to `fix_plan` (already applied)
+- **TYPE A round 2** (unresolved) -> caveats in diagnosis report
+- **TYPE B** -> system constraints in diagnosis report
+- **TYPE C** -> merged into STOP gate questions (see below)
+
 Present a diagnosis report for all actionable issues:
 
 ```
@@ -226,6 +285,18 @@ Present a diagnosis report for all actionable issues:
 **Proposed validator check:** <name> in <script> | none
 **Anti-pattern review:** None apply / <which one was close and why it doesn't apply>
 **Adversarial check:** sound | revised (<what changed>) | challenged (<summary>)
+```
+
+**Full mode STOP augmentation**: If `solve_depth = "full"` for any issue, append
+to the diagnosis report before presenting:
+
+```
+### Deep Analysis Questions
+[Phase 3 User Injection questions — 3-5 specific questions from research gaps]
+[Phase 5 TYPE C concerns — assumptions only the user can validate]
+
+### System Constraints
+[Phase 5 TYPE B items — immutable constraints the fix must work around, or "None"]
 ```
 
 **STOP. Present the diagnosis report to the user and wait for approval before
