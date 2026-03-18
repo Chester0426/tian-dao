@@ -15,14 +15,15 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 TRACES_DIR="$PROJECT_DIR/.claude/agent-traces"
 ERRORS=()
 
-# Helper: read scope from verify-context.json
-read_scope() {
+# Helper: read field from verify-context.json
+read_verify_field() {
+  local FIELD="$1"
   if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
     python3 -c "
 import json, sys
 try:
     d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
-    print(d.get('scope', ''))
+    print(d.get('$FIELD', ''))
 except:
     print('')
 " 2>/dev/null || echo ""
@@ -30,6 +31,9 @@ except:
     echo ""
   fi
 }
+
+read_scope() { read_verify_field "scope"; }
+read_archetype() { read_verify_field "archetype"; }
 
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
@@ -55,10 +59,12 @@ case "$SUBAGENT_TYPE" in
     fi
 
     SCOPE=$(read_scope)
-    if [[ "$SCOPE" == "full" || "$SCOPE" == "visual" ]]; then
+    ARCH=$(read_archetype)
+    # design-critic/ux-journeyer only run for web-app archetype (scope table footnote)
+    if [[ "$ARCH" == "web-app" && ( "$SCOPE" == "full" || "$SCOPE" == "visual" ) ]]; then
       for AGENT in design-critic ux-journeyer; do
         if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
-          ERRORS+=("$AGENT.json trace missing — Phase 2 agent incomplete (scope=$SCOPE)")
+          ERRORS+=("$AGENT.json trace missing — Phase 2 agent incomplete (scope=$SCOPE, archetype=$ARCH)")
         fi
       done
     fi
