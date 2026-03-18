@@ -210,6 +210,9 @@ stack:
     - google
   analytics: posthog
   payment: stripe
+  # surface: co-located         # Optional override for surface type (co-located | detached | none).
+                                 # Default: inferred from archetype and hosting config during /bootstrap.
+                                 # Set explicitly when inference doesn't match your intent.
 
 deploy:
   url: null
