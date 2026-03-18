@@ -29,6 +29,16 @@ Read `experiment/experiment.yaml` to determine the archetype (`type` field, defa
 - **service**: A1–A4 (A5 only if auth endpoints exist)
 - **cli**: A1, A4 only
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"security-attacker","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/security-attacker.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Attack Methodology
 
 **A1. Validation Bypass**

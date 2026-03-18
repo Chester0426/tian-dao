@@ -32,6 +32,16 @@ You verify **spec adherence only**. Do NOT check or report on:
 
 If code is ugly but spec-complete, that's a PASS. If code is beautiful but missing a behavior, that's a FAIL.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/spec-reviewer.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Input
 
 - `experiment/experiment.yaml` — the specification

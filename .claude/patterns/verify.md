@@ -224,9 +224,37 @@ Spawn the `spec-reviewer` agent (`subagent_type: spec-reviewer`). Pass: "Read `.
 
 If `quality` is absent or not `production`, skip this agent.
 
+### Trace State Detection
+
+After each agent returns, check `.claude/agent-traces/<name>.json`:
+
+| State | Condition | Meaning |
+|-------|-----------|---------|
+| 1 | File does not exist | Agent never started |
+| 2 | File exists, `"status":"started"`, no `"verdict"` | Agent exhausted turns |
+| 3 | File exists, has `"verdict"` | Agent completed |
+
+Detection command:
+```bash
+verdict=$(python3 -c "
+import json, os
+f = '.claude/agent-traces/<name>.json'
+if not os.path.exists(f):
+    print('NO_FILE')
+else:
+    d = json.load(open(f))
+    print(d.get('verdict', 'MISSING'))
+" 2>/dev/null || echo "NO_FILE")
+```
+- `NO_FILE` → state 1 (agent never started)
+- `MISSING` → state 2 (agent exhausted turns — started trace only)
+- Any other value → state 3 (agent completed normally)
+
+Use this algorithm for all trace checks below and in the Exhaustion Protocol.
+
 ### Recovery traces
 
-After all Phase 1 agents return, verify each spawned agent wrote a trace to `.claude/agent-traces/<name>.json`.
+After all Phase 1 agents return, use Trace State Detection to check each spawned agent's trace in `.claude/agent-traces/<name>.json`.
 
 If an agent returned output but crashed before writing its trace, write a recovery trace:
 
@@ -237,6 +265,53 @@ echo '{"agent":"<name>","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict"
 The `checks_performed` array must match the agent's specification (see each agent's Trace Output section). The `"recovery":true` flag marks this as a lead-written trace — gate-keeper will WARN on recovery traces.
 
 Do NOT write traces for agents that were not spawned. Do NOT write traces for agents whose output you never received.
+
+### Exhaustion Protocol
+
+When an agent returns but its trace has `"status":"started"` and no `"verdict"` field (Trace State 2), it exhausted its turn budget before completing work. Handle by tier:
+
+| Tier | Agents | Action | On Double Exhaustion |
+|------|--------|--------|---------------------|
+| 1 | design-critic, ux-journeyer, security-fixer | Retry once (focused scope) | Hard gate failure, skip remaining STATEs |
+| 2 | behavior-verifier, security-attacker, security-defender | Retry once | Recovery trace with `"status":"exhausted"`, WARN, continue |
+| 3 | build-info-collector, observer, performance-reporter, accessibility-scanner, spec-reviewer | No retry | Recovery trace with `"status":"exhausted"`, WARN, continue |
+
+#### Tier 1 — Critical edit-capable agents
+
+**Detection**: Trace State 2 after agent returns.
+
+**Action**: Re-spawn the agent with a reduced scope prompt:
+- design-critic: "Focus on the lowest-scoring page only. Skip pages that already score ≥8."
+- ux-journeyer: "Focus on the primary golden path only. Skip secondary journeys."
+- security-fixer: "Fix only Critical severity issues. Skip High/Medium."
+
+**On double exhaustion** (retry also produces State 2):
+1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"exhausted","recovery":true,"checks_performed":[],"timestamp":"..."}`
+2. Set `hard_gate_failure: true` in the verify report frontmatter
+3. Skip remaining STATEs (jump to STATE 7 to write the report)
+4. Report to user: "Agent <name> exhausted turns twice. Hard gate failure — manual review required."
+
+#### Tier 2 — Critical read-only agents
+
+**Detection**: Trace State 2 after agent returns.
+
+**Action**: Re-spawn the agent once with the same prompt.
+
+**On double exhaustion**:
+1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"incomplete","recovery":true,"checks_performed":[],"timestamp":"..."}`
+2. Continue to next STATE — this is a WARN, not a BLOCK
+3. Note in verify report: "Agent <name> exhausted turns — results incomplete."
+
+#### Tier 3 — Non-critical agents
+
+**Detection**: Trace State 2 after agent returns.
+
+**Action**: No retry. Write a recovery trace immediately:
+```bash
+echo '{"agent":"<name>","status":"exhausted","verdict":"incomplete","recovery":true,"checks_performed":[],"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/<name>.json
+```
+
+Continue to next STATE. Note in verify report: "Agent <name> exhausted turns — skipped."
 
 **POSTCONDITIONS:** All scope-required Phase 1 traces exist in `.claude/agent-traces/`.
 
@@ -261,18 +336,82 @@ After each edit-capable agent completes, read its completion report and append i
 
 ### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 
+#### Determine batching
+
+Read `golden_path` pages from experiment.yaml and count them.
+
+- **Pages ≤ 4**: Single design-critic (standard behavior) — spawn one `design-critic` agent with all pages.
+- **Pages > 4**: Batched parallel execution (see below).
+
+#### Standard execution (pages ≤ 4)
+
 Spawn the `design-critic` agent (`subagent_type: design-critic`). Pass PR file boundary. **Wait for completion.**
-After completion: verify `.claude/agent-traces/design-critic.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
+After completion: use Trace State Detection to check `.claude/agent-traces/design-critic.json`. If State 2 (exhausted), follow Exhaustion Protocol Tier 1. If State 1 (never started) and agent returned output, write a recovery trace with `"recovery":true`.
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
+
+#### Batched parallel execution (pages > 4)
+
+1. **Split pages** into batches of ≤ 4 pages each.
+
+2. **Spawn one design-critic per batch IN PARALLEL** as foreground Agent calls in a single message. Each agent prompt includes:
+   - The batch's assigned pages: "You may ONLY edit files in `src/app/<assigned-pages>/`. Record shared component issues in trace `shared_issues` array but do NOT edit them."
+   - PR file boundary (filtered to batch pages)
+   - Instruction to write trace as `design-critic-N.json` (where N is batch index, 0-based)
+
+3. **Wait for all batch agents to complete.**
+
+4. **Shared issues pass**: After all batches complete, check each batch trace for `shared_issues` array. If any batch has non-empty `shared_issues`:
+   - Spawn one more design-critic for shared component files only
+   - Prompt: "Fix shared component issues only. Files: [list from shared_issues]. Write trace as `design-critic-shared.json`."
+
+5. **Merge batch traces** into `design-critic.json`:
+   ```bash
+   python3 -c "
+   import json, glob, os
+   batches = sorted(glob.glob('.claude/agent-traces/design-critic-*.json'))
+   if not batches:
+       exit(1)
+   merged = {'agent': 'design-critic', 'pages_reviewed': 0, 'min_score': 10, 'verdict': 'pass',
+             'checks_performed': [], 'batches': len(batches), 'shared_issues_fixed': 0}
+   worst_verdicts = {'unresolved': 3, 'fixed': 2, 'pass': 1}
+   for b in batches:
+       d = json.load(open(b))
+       merged['pages_reviewed'] += d.get('pages_reviewed', 0)
+       merged['min_score'] = min(merged['min_score'], d.get('min_score', 10))
+       merged['checks_performed'].extend(d.get('checks_performed', []))
+       bv = d.get('verdict', 'pass')
+       if worst_verdicts.get(bv, 0) > worst_verdicts.get(merged['verdict'], 0):
+           merged['verdict'] = bv
+       if 'design-critic-shared' in b:
+           merged['shared_issues_fixed'] = len(d.get('checks_performed', []))
+       # Copy optional fields from worst batch
+       if bv == merged['verdict']:
+           for key in ['unresolved_sections', 'pre_existing_debt', 'fixes_applied']:
+               if key in d:
+                   merged[key] = merged.get(key, 0) + d[key] if isinstance(d[key], int) else d[key]
+   merged['timestamp'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+   json.dump(merged, open('.claude/agent-traces/design-critic.json', 'w'))
+   # Clean up batch traces
+   for b in batches:
+       os.remove(b)
+   "
+   ```
+
+6. **Build check** after merge: run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
+
+> **Downstream compatibility**: phase-transition-gate.sh and gate-keeper BG3 check the merged `design-critic.json` — no changes needed. `agents_completed` still lists `"design-critic"` (singular).
+>
+> **Future**: Same batching pattern may apply to ux-journeyer (split by journey) if needed.
 
 #### Lead-side validation (design-critic)
 
-1. Read `.claude/agent-traces/design-critic.json` trace.
+1. Read `.claude/agent-traces/design-critic.json` trace (merged if batched).
 2. Verify `pages_reviewed` >= number of pages in experiment.yaml `golden_path`.
 3. If `verdict` == `"unresolved"`, this is a **hard gate failure** — design quality threshold (8/10) was not met after 2 fix attempts. Skip STATEs 4-6 but still write verify-report.md (STATE 7) recording the failure. Report failure to user with the `unresolved_sections` count.
 4. If `min_score` < 8 and `verdict` == `"fixed"`, note in verify report that threshold was met after fixes.
 5. If `pre_existing_debt` is non-empty, note pre-existing quality debt in verify report (informational, does not block).
 6. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
+7. If batched: note `batches` count and `shared_issues_fixed` count in verify report.
 
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 

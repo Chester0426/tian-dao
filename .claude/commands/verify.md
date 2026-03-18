@@ -120,6 +120,16 @@ Follow STATE 5 (E2E_TESTS) in `.claude/patterns/verify.md`.
     - **On `main`**: "All tests pass. Run `/deploy` to deploy to production, or run `/change` to make more improvements before deploying."
     - **If archetype is `cli`**: replace `/deploy` guidance with: "CLIs are distributed via package registries — see `.claude/archetypes/cli.md` for details."
   - **Done.** No branch, no PR, no further steps.
+- If ALL tests pass BUT `git status` shows modified/untracked files outside `.claude/`:
+  1. Create branch `fix/verify-$(date +%Y-%m-%d)` from current HEAD
+  2. Stage all modified/untracked files and commit: "Fix verification issues found by /verify"
+  3. Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
+     - **Summary**: verification agents found and fixed issues
+     - **How to Test**: "Run `npm run build` and tests — all should pass"
+     - **What Changed**: files modified by verification agents
+     - **Why**: quality issues found during standalone verification
+  4. Delete `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, `.claude/security-merge.json`, `.claude/design-ux-merge.json`, `.claude/e2e-result.json`, and `.claude/patterns-saved.json` after PR is created
+  5. Tell the user: "Verification fixes applied. PR created: <URL>."
 - If tests failed and fixes were committed on a `fix/` branch:
   - > **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
   > STOP — go back and run Step 6 above.

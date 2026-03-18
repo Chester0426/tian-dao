@@ -35,18 +35,35 @@ except:
 read_scope() { read_verify_field "scope"; }
 read_archetype() { read_verify_field "archetype"; }
 
+check_trace_verdict() {
+  local TRACE_FILE="$1"
+  local CONTEXT="$2"
+  if [[ -f "$TRACE_FILE" ]]; then
+    local HAS_VERDICT
+    HAS_VERDICT=$(python3 -c "import json; d=json.load(open('$TRACE_FILE')); print('yes' if 'verdict' in d else 'no')" 2>/dev/null || echo "no")
+    if [[ "$HAS_VERDICT" != "yes" ]]; then
+      local BASENAME
+      BASENAME=$(basename "$TRACE_FILE")
+      ERRORS+=("$BASENAME trace incomplete (no verdict) — $CONTEXT")
+    fi
+  fi
+}
+
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
     # Phase 2 gate: Phase 1 traces must exist
     if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
       ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
     fi
+    check_trace_verdict "$TRACES_DIR/build-info-collector.json" "agent may still be running or exhausted turns"
 
     SCOPE=$(read_scope)
     if [[ "$SCOPE" == "full" || "$SCOPE" == "security" ]]; then
       for AGENT in security-defender security-attacker behavior-verifier; do
         if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
           ERRORS+=("$AGENT.json trace missing — Phase 1 agent incomplete (scope=$SCOPE)")
+        else
+          check_trace_verdict "$TRACES_DIR/$AGENT.json" "agent may still be running or exhausted turns"
         fi
       done
     fi
@@ -57,6 +74,7 @@ case "$SUBAGENT_TYPE" in
     if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
       ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
     fi
+    check_trace_verdict "$TRACES_DIR/build-info-collector.json" "agent may still be running or exhausted turns"
 
     SCOPE=$(read_scope)
     ARCH=$(read_archetype)
@@ -65,6 +83,8 @@ case "$SUBAGENT_TYPE" in
       for AGENT in design-critic ux-journeyer; do
         if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
           ERRORS+=("$AGENT.json trace missing — Phase 2 agent incomplete (scope=$SCOPE, archetype=$ARCH)")
+        else
+          check_trace_verdict "$TRACES_DIR/$AGENT.json" "agent may still be running or exhausted turns"
         fi
       done
     fi
@@ -72,6 +92,7 @@ case "$SUBAGENT_TYPE" in
       if [[ ! -f "$TRACES_DIR/behavior-verifier.json" ]]; then
         ERRORS+=("behavior-verifier.json trace missing — Phase 1 agent incomplete (scope=$SCOPE)")
       fi
+      check_trace_verdict "$TRACES_DIR/behavior-verifier.json" "agent may still be running or exhausted turns"
     fi
     ;;
 

@@ -27,6 +27,16 @@ If archetype is **not** `web-app`, skip all checks and report:
 
 > N/A — not a web-app. Performance reporting only applies to web-app archetype.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"performance-reporter","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/performance-reporter.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Procedure
 
 ### P1. Build and Capture Output

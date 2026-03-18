@@ -58,6 +58,16 @@ If any in-boundary section remains < 8 after 2 fix attempts, verdict MUST be `"u
 
 Read and follow `.claude/procedures/design-critic.md` for the full step-by-step procedure.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/design-critic.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Output Contract
 
 ```
