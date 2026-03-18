@@ -40,6 +40,8 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
    - If surface is `detached`: this is a surface-only deployment — skip Steps 0.6–0.10 (no hosting/database infrastructure), Steps 1 and 3–4 (no infrastructure provisioning). Present a simplified plan in Step 2 (surface deployment only), then proceed directly to Step 5a.1.
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
+> **Surface-only gate:** If archetype is `cli` and surface is `detached` (resolved in step 5 above), skip Steps 0.6–0.10, Step 1, and Steps 3–4 — proceed to Step 2 (simplified plan), then directly to Step 5a.1. CLI surface-only deployments have no hosting/database infrastructure.
+
 6. **Hosting prerequisites:** Read the hosting stack file at `.claude/stacks/hosting/<stack.services[0].hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
    - Run `install_check` — if not found, stop with `install_fix` instructions
    - Run `auth_check` — if fails, stop with `auth_fix` instructions
@@ -371,7 +373,15 @@ If archetype is `cli` (surface-only deployment): skip the `/api/health` check �
 ```bash
 curl -s -o /dev/null -w "%{http_code}" <canonical_url>
 ```
-If HTTP 200 → proceed to Step 6. If not → report: "Surface returned HTTP <code>. Check the hosting dashboard." Skip Step 5d (no services to auto-fix for static surfaces).
+If HTTP 200 → proceed to Step 6. If not → report to the user:
+
+> Surface returned HTTP <code>. Recovery options:
+> 1. **Wait and retry** — DNS propagation can take 1–5 minutes after first deploy. Re-run the curl command above.
+> 2. **Check hosting dashboard** — see the hosting stack file's `## Deploy Interface > Teardown` for the dashboard URL. Verify the deployment succeeded and the domain is configured.
+> 3. **Redeploy** — re-run `/deploy` (it is idempotent — safe to repeat).
+> 4. **Teardown and restart** — run `/teardown` to remove partial infrastructure, then retry `/deploy`.
+
+Skip Step 5d (no services to auto-fix for static surfaces).
 
 For all other archetypes:
 ```bash
