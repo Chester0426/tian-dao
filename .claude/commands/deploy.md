@@ -35,10 +35,11 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
     <npm audit output>
     Reply **continue** to deploy anyway, or fix vulnerabilities first with `npm audit fix`."
     Wait for user confirmation. If no critical vulnerabilities, proceed silently.
-4. Read `experiment/experiment.yaml` — extract `name`, `stack.services[0].hosting`, `stack.database`, optional `stack.payment`, and optional `deploy` section.
-5. Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: if the archetype is `service` and the experiment defines no `golden_path` and no endpoints that serve HTML (pure API with no user-facing surface), infer `none`; otherwise `stack.services[0].hosting` present → `co-located`; absent → `detached`. If the archetype is `cli`:
+4. Read `experiment/experiment.yaml` — extract `name`, `type` (default `web-app`), `stack.database` (if present), optional `stack.payment`, and optional `deploy` section.
+5. Read the archetype file at `.claude/archetypes/<type>.md`. Resolve surface type: if `stack.surface` is set in experiment.yaml, use it. Otherwise infer: if the archetype is `service` and the experiment defines no `golden_path` and no endpoints that serve HTML (pure API with no user-facing surface), infer `none`; if the archetype's `excluded_stacks` includes `hosting`, infer `detached`; otherwise `stack.services[0].hosting` present → `co-located`; absent → `detached`. If the archetype is `cli`:
    - If surface is `detached`: this is a surface-only deployment — skip Steps 0.6–0.10 (no hosting/database infrastructure), Steps 1 and 3–4 (no infrastructure provisioning). Present a simplified plan in Step 2 (surface deployment only), then proceed directly to Step 5a.1.
    - If surface is `none`: stop: "The /deploy skill does not apply to CLI tools with no surface. CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file."
+   If the archetype's `excluded_stacks` does not include `hosting`: verify `stack.services` is a non-empty list — if not, stop: "Missing `stack.services` in experiment.yaml. Run `/bootstrap` to set up your project." Then extract `stack.services[0].hosting`.
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
 > **Surface-only gate:** If archetype is `cli` and surface is `detached` (resolved in step 5 above), skip Steps 0.6–0.10, Step 1, and Steps 3–4 — proceed to Step 2 (simplified plan), then directly to Step 5a.1. CLI surface-only deployments have no hosting/database infrastructure.
 
