@@ -39,6 +39,30 @@ if [[ ! -f "$PLAN" ]]; then
 fi
 
 if [[ -f "$PLAN" ]]; then
+  # Primary: verdict files
+  VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
+  for GATE in bg1 bg2 bg4; do
+    if [[ ! -f "$VERDICTS_DIR/$GATE.json" ]]; then
+      ERRORS+=("$GATE verdict file missing")
+    else
+      V=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/$GATE.json')).get('verdict',''))" 2>/dev/null || echo "")
+      if [[ "$V" != "PASS" ]]; then
+        ERRORS+=("$GATE verdict is $V, not PASS")
+      fi
+    fi
+  done
+
+  # Freshness: BG1 timestamp > branch creation
+  BRANCH_CREATED=$(git log --format=%aI "$(git merge-base main HEAD)" -1 2>/dev/null || echo "")
+  if [[ -n "$BRANCH_CREATED" && -f "$VERDICTS_DIR/bg1.json" ]]; then
+    VERDICT_TS=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/bg1.json')).get('timestamp',''))" 2>/dev/null || echo "")
+    if [[ -n "$VERDICT_TS" ]]; then
+      IS_FRESH=$(python3 -c "from datetime import datetime; bt=datetime.fromisoformat('$BRANCH_CREATED'.rstrip('Z')); vt=datetime.fromisoformat('$VERDICT_TS'.rstrip('Z')); print('yes' if vt>=bt else 'no')" 2>/dev/null || echo "yes")
+      [[ "$IS_FRESH" == "no" ]] && ERRORS+=("BG1 verdict older than branch creation")
+    fi
+  fi
+
+  # Secondary: checklist checks
   # Check 2: BG1 Validation Gate must be checked off
   if ! grep -q '\- \[x\].*BG1' "$PLAN"; then
     ERRORS+=("BG1 Validation Gate not checked off in Process Checklist")

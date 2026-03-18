@@ -60,6 +60,9 @@ Bootstrap the MVP from experiment.yaml.
 
 Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch prefix `feat` and branch name `feat/bootstrap`.
 
+Clean up stale artifacts from prior runs:
+- `rm -rf .claude/gate-verdicts/ externals-decisions.json`
+
 > **If resuming from a failed bootstrap:** see `.claude/patterns/recovery.md` for recovery options.
 
 **POSTCONDITIONS**
@@ -82,17 +85,16 @@ Follow the branch setup procedure in `.claude/patterns/branch.md`. Use branch pr
 
 DO NOT write any code, create any files, or run any install commands during States 1-7.
 
-Read these three context files:
+Read these two context files:
 - Read `experiment/experiment.yaml` — this is the single source of truth
 - Read `experiment/EVENTS.yaml` — these are the canonical analytics events to wire up
-- Read `CLAUDE.md` — these are the rules to follow
 
 **POSTCONDITIONS**
-- All three files have been read: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`, `CLAUDE.md`
+- Both files have been read: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`
 - Their contents are in context for subsequent states
 
 **VERIFY**
-- All three files exist: `test -f experiment/experiment.yaml && test -f experiment/EVENTS.yaml && test -f CLAUDE.md`
+- Both files exist: `test -f experiment/experiment.yaml && test -f experiment/EVENTS.yaml`
 
 **NEXT** -> STATE 2
 
@@ -284,7 +286,9 @@ If gate-keeper returns BLOCK, stop and report — do NOT proceed until validatio
        - `awaiting-verify` → **TERMINAL**. Bootstrap complete. Run `/verify` to validate and create PR.
      - Tell user: "Resuming bootstrap from [checkpoint]. Archetype: [archetype]."
   2. If no frontmatter (old format): fall back to current behavior — skip States 1-7, jump to STATE 8.
-- If `package.json` exists AND the `src/` directory contains application files (check for any `.ts` or `.tsx` files): stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
+- If `package.json` exists AND `src/app/` contains page or route entry points:
+  VERIFY: `find src/app -name 'page.tsx' -o -name 'route.ts' 2>/dev/null | head -1`
+  If output is non-empty: stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
 - If `package.json` exists but the `src/` directory does NOT contain application files: warn the user: "A previous bootstrap may have partially completed. I'll continue from the beginning — packages may be reinstalled." Note: the branch name `feat/bootstrap` may already exist from the previous attempt. If so, this run will use `feat/bootstrap-2` — you can delete the old branch later with `git branch -d feat/bootstrap`. Then proceed.
 
 **POSTCONDITIONS**
@@ -500,6 +504,12 @@ If the user replied **"approve and clear"** or **"2"**:
 **Do NOT assemble file contents into the prompt.** Subagents are independent
 Claude Code sessions with full file access — they read files themselves. The
 prompt tells them WHICH files to read and WHAT to do.
+
+> **WHY:** Embedded content becomes stale if files change between prompt
+> construction and subagent execution. The subagent cannot verify embedded
+> content matches disk, violating "observe, not trust." Embedded content
+> also inflates prompt size, reducing the subagent's effective working
+> memory (each 200 lines ≈ 2 lost reasoning turns). Let subagents read.
 
 1. **Production quality check**: If `quality: production` is set in experiment.yaml, pass this flag to each scaffold-* agent prompt: "quality: production is set. Generate tests alongside each file you create." Agent test ownership:
    - scaffold-setup: create testing config (playwright.config.ts or vitest.config.ts)
@@ -743,7 +753,21 @@ feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
 Check off in `.claude/current-plan.md`:
 - `- [x] Externals user decisions collected`
 
-**BG2.5 Externals Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2.5 Externals Gate. Verify: either (a) scaffold-externals reported 'No external dependencies' AND the lead confirmed this to the user, or (b) the externals classification table was presented and user confirmation exists in conversation. BLOCK if externals classification was returned but no user interaction occurred."
+Write the externals decisions to disk as a durable artifact:
+```bash
+cat > externals-decisions.json << 'EXTEOF'
+{
+  "has_externals": <true|false>,
+  "user_confirmed": true,
+  "decisions": [<array of {"service","feature","classification","user_choice"}>],
+  "fake_doors": [<array of {"feature","service","target_page","component_name","action_label"}>],
+  "timestamp": "<ISO 8601>"
+}
+EXTEOF
+```
+If no external dependencies: `has_externals` is `false`, arrays are `[]`.
+
+**BG2.5 Externals Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2.5 Externals Gate."
 
 Check off in `.claude/current-plan.md`: `- [x] BG2.5 Externals Gate passed`
 
@@ -863,7 +887,8 @@ Check off in `.claude/current-plan.md`: `- [x] scaffold-wire completed`
 
 **ACTIONS**
 
-- Stage all new files and commit: "Bootstrap MVP scaffold from experiment.yaml"
+- Stage files: `git add -A` (safe — `.gitignore` excludes `.env.local`, `.claude/gate-verdicts/`, and sensitive patterns). Verify: `git diff --cached --name-only | grep -iE '\.env\.local|\.key$|\.pem$|credentials|\.secret$|\.token$|service-account' && echo "STOP: secrets staged" || echo "OK"`.
+- Commit: "Bootstrap MVP scaffold from experiment.yaml"
 - **BG4 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG4 PR Gate. Verify: on feature branch (not main), git status shows no uncommitted changes to tracked files, commit message follows imperative mood." If gate-keeper returns BLOCK, fix blocking items before pushing.
 - Push to the remote branch
 - Delete `.claude/current-visual-brief.md` (keep `.claude/current-plan.md` — `/verify` needs it)
