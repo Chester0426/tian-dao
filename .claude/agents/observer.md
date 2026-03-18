@@ -19,6 +19,16 @@ maxTurns: 20
 
 You are a fresh agent with **NO project context**. You received a diff, fix summaries, and a template file list. You do NOT know what the project does — and that's intentional.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"observer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/observer.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Decision Framework
 
 For each fix, evaluate whether **all three** conditions are true:

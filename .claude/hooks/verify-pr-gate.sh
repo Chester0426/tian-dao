@@ -56,6 +56,16 @@ if [[ -f "$REPORT" ]]; then
   else
     ERRORS+=("Agent traces directory not found at $TRACES_DIR")
   fi
+
+  # Check 5: hard_gate_failure blocks PR (except standalone mode)
+  HARD_GATE=$(echo "$FRONTMATTER" | grep 'hard_gate_failure: *true' || true)
+  MODE=""
+  if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+    MODE=$(python3 -c "import json; d=json.load(open('$PROJECT_DIR/.claude/verify-context.json')); print(d.get('mode',''))" 2>/dev/null || echo "")
+  fi
+  if [[ -n "$HARD_GATE" && "$MODE" != "standalone" ]]; then
+    ERRORS+=("hard_gate_failure is true — verification hard gate(s) failed; PR blocked in non-standalone mode")
+  fi
 fi
 
 # If any check failed, deny the PR creation

@@ -48,6 +48,16 @@ If any real (non-fake-door) dead end remains after fixes, verdict MUST be `"part
 
 Read and follow `.claude/procedures/ux-journeyer.md` for the full step-by-step procedure.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/ux-journeyer.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Output Contract
 
 ```

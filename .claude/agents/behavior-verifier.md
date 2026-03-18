@@ -87,6 +87,16 @@ If you notice something outside your scope during testing, ignore it. Stay in yo
 
 Read and follow `.claude/procedures/behavior-verifier.md` for the archetype-specific step-by-step procedure.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/behavior-verifier.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Step-Level Verdicts
 
 Each step receives one verdict:

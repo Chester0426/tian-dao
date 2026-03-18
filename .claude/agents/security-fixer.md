@@ -36,6 +36,16 @@ You receive:
 
 If any Critical/High finding or Defender FAIL remains unfixed after 2 fix cycles, verdict MUST be `"partial"` with `unresolved_critical` > 0 — never `"all fixed"`.
 
+## First Action
+
+Your FIRST Bash command — before any other work — MUST be:
+
+```bash
+mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/security-fixer.json
+```
+
+This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
+
 ## Procedure
 
 ### 1. Fix Code
