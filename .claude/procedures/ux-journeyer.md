@@ -83,6 +83,18 @@ For issues found in steps 5-7:
 - Clarify ambiguous dual-CTA sections (make one primary, one secondary)
 - Run `npm run build` after fixes (must pass)
 
+### 8b. Re-navigate After Fixes
+
+After fixing issues, re-navigate the golden path once to confirm fixes work:
+
+1. Re-use the running server (still on port 3098)
+2. Write a Playwright script that re-traces the golden path from `/` to value moment
+3. For each previously-failed step, verify it now passes
+4. For each dead end that was fixed, verify forward navigation is possible
+5. Update the golden path trace with post-fix results
+
+If remaining turns < 8, skip re-navigation and write the trace immediately with current metrics.
+
 ### 9. Cleanup
 
 ```bash
@@ -100,5 +112,6 @@ Before writing the trace file, compute these metrics from your journey:
 - **`golden_path_steps`**: total number of golden path steps navigated (including failed steps). This is the denominator for coverage.
 - **`coverage_pct`**: percentage of golden_path steps from experiment.yaml that were successfully completed, as an integer 0-100. Formula: `(successful_steps / total_golden_path_steps) * 100`, rounded down.
 - **`fixes_applied`**: total number of fixes applied (redirect fixes, empty-state CTAs added, navigation fixes, etc.). Use `0` if no fixes were needed.
+- **`unresolved_dead_ends`**: count of real (non-fake-door) dead ends that remained after fixes. Intentional fake-door pages are excluded — only real navigation failures count. Use `0` if all dead ends were fixed or all are intentional.
 
 These metrics are written into the trace JSON (see agent definition for the trace command).

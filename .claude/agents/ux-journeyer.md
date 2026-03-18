@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 30
+maxTurns: 45
 memory: project
 ---
 
@@ -35,6 +35,8 @@ You test **UX flow only**: clickability, CTA clarity, redirect correctness, empt
 - **Security, accessibility, performance** — other agents handle those
 
 If a page is ugly but the CTA works and leads to the next step, that's a flow PASS.
+
+If any real (non-fake-door) dead end remains after fixes, verdict MUST be `"partial"` with `unresolved_dead_ends` > 0.
 
 ## Halt Conditions
 
@@ -82,7 +84,7 @@ Clicks-to-value: N (target: ≤ 3)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>,"clicks_to_value":<C>,"dead_ends":<D>,"golden_path_steps":<G>,"coverage_pct":<P>,"fixes_applied":<F>}' > .claude/agent-traces/ux-journeyer.json
+mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>,"clicks_to_value":<C>,"dead_ends":<D>,"golden_path_steps":<G>,"coverage_pct":<P>,"fixes_applied":<F>,"unresolved_dead_ends":<UDE>}' > .claude/agent-traces/ux-journeyer.json
 ```
 
 Replace placeholders with actual values:
@@ -93,3 +95,4 @@ Replace placeholders with actual values:
 - `<G>`: total golden path steps navigated
 - `<P>`: percentage of golden_path steps successfully completed (integer 0-100)
 - `<F>`: total number of fixes applied (0 if none)
+- `<UDE>`: count of real (non-fake-door) dead ends that remained after fixes (0 if all resolved or all are intentional fake-doors)

@@ -241,6 +241,8 @@ Verify verify.md ran completely:
 15. design-critic trace has `min_score` field — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/design-critic.json')); print('PASS' if 'min_score' in d else 'BLOCK')"` (skip if design-critic not in agents_completed)
 16. ux-journeyer trace has `dead_ends` field — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/ux-journeyer.json')); print('PASS' if 'dead_ends' in d else 'BLOCK')"` (skip if ux-journeyer not in agents_completed)
 17. design-critic trace has `unresolved_sections` field with value 0 — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/design-critic.json')); print('PASS' if d.get('unresolved_sections', 0) == 0 else 'BLOCK: %d unresolved sections' % d.get('unresolved_sections', 0))"` (skip if design-critic not in agents_completed)
+18. security-fixer trace has `unresolved_critical` field with value 0 — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/security-fixer.json')); uc=d.get('unresolved_critical',0); rec=d.get('recovery',False); v=d.get('verdict',''); print('BLOCK: recovery trace with partial verdict' if rec and v=='partial' else ('PASS' if uc==0 else 'BLOCK: %d unresolved critical issues' % uc))"` (skip if security-fixer not in agents_completed)
+19. ux-journeyer trace has `unresolved_dead_ends` field with value 0 — run `python3 -c "import json; d=json.load(open('.claude/agent-traces/ux-journeyer.json')); print('PASS' if d.get('unresolved_dead_ends', 0) == 0 else 'BLOCK: %d unresolved dead ends' % d.get('unresolved_dead_ends', 0))"` (skip if ux-journeyer not in agents_completed)
 
 ### BG4 PR Gate
 
