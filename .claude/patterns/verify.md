@@ -173,7 +173,7 @@ git diff --name-only $(git merge-base HEAD main)...HEAD
 
 > If `git diff` returns empty (standalone on `main` or shallow clone), fall back to all source files:
 > ```bash
-> find src/ -type f -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx'
+> find src/ -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \)
 > ```
 
 Pass this list to each agent that has Edit/Write permissions (design-critic, ux-journeyer, security-fixer) as a hard constraint in the agent prompt:
