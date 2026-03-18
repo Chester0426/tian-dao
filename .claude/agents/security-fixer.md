@@ -34,6 +34,8 @@ You receive:
 3. Defender FAILs
 4. **Info**-severity attacker findings: noted in report only — do NOT fix
 
+If any Critical/High finding or Defender FAIL remains unfixed after 2 fix cycles, verdict MUST be `"partial"` with `unresolved_critical` > 0 — never `"all fixed"`.
+
 ## Procedure
 
 ### 1. Fix Code
@@ -114,7 +116,10 @@ Status values: **fixed** (resolved), **unfixed** (could not resolve in 2 cycles)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["fix_code","rebuild","recheck","collect_changes","generate_tables"],"issues_fixed":<N>}' > .claude/agent-traces/security-fixer.json
+mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["fix_code","rebuild","recheck","collect_changes","generate_tables"],"issues_fixed":<N>,"unresolved_critical":<UC>}' > .claude/agent-traces/security-fixer.json
 ```
 
-Replace `<verdict>` with your final status: `"all fixed"`, `"partial"`, or `"none"`.
+Replace placeholders with actual values:
+- `<verdict>`: final status — `"all fixed"`, `"partial"`, or `"none"`
+- `<N>`: number of issues fixed (0 if none)
+- `<UC>`: count of Critical/High findings and Defender FAILs that remained unfixed after 2 fix cycles (0 if all resolved). Info-severity items are excluded.

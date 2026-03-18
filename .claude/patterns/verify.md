@@ -284,8 +284,9 @@ Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 1. Read `.claude/agent-traces/ux-journeyer.json` trace.
 2. If `verdict` == `"blocked"`, this is a **hard gate failure** — the golden path cannot be completed. Stop and report the blocked location to the user. Do NOT proceed to STATE 4.
-3. If `dead_ends` > 0, read the agent's Flow Issues output to distinguish intentional fake-door pages from real navigation failures. Real failures should be noted in the verify report.
-4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (ux-journeyer):`.
+3. If `unresolved_dead_ends` > 0, this is a **hard gate failure** — real dead ends remain after fixes. Skip STATEs 4-6 but still write verify-report.md (STATE 7) recording the failure.
+4. If `dead_ends` > 0 AND `unresolved_dead_ends` == 0, all dead ends are intentional fake-door pages. Note in verify report (informational, does not block).
+5. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (ux-journeyer):`.
 
 ### Design-UX Merge (if scope is `full` or `visual`, AND archetype is `web-app`)
 
@@ -358,7 +359,14 @@ After security-fixer completes: verify `.claude/agent-traces/security-fixer.json
 
 After each fix, append to `.claude/fix-log.md`.
 
-**POSTCONDITIONS:** `security-merge.json` exists. Security-fixer trace exists (if spawned).
+#### Lead-side validation (security-fixer)
+
+1. Read `.claude/agent-traces/security-fixer.json` trace.
+2. If `verdict` == `"partial"` AND `unresolved_critical` > 0, this is a **hard gate failure** — Critical/High security issues or Defender FAILs remain unfixed after 2 fix cycles. Skip STATEs 5-6 but still write verify-report.md (STATE 7) recording the failure. Report failure to user with the unresolved items.
+3. If trace has `"recovery": true` AND `verdict` == `"partial"`, treat as hard gate failure (recovery traces cannot confirm fixes succeeded).
+4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (security-fixer):`.
+
+**POSTCONDITIONS:** `security-merge.json` exists. Security-fixer trace exists (if spawned). If security-fixer verdict is `"partial"` with `unresolved_critical` > 0, pipeline is halted.
 
 **VERIFY:**
 ```bash
