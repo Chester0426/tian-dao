@@ -117,7 +117,7 @@ For any section rated below 8/10 in Layer 2, or any Layer 1/Layer 3 failure:
 4. Re-screenshot the fixed page
 5. Verify improvement with the Read tool
 
-This is a single pass — get it right the first time. Budget is 50 turns total.
+After fixing sections on a page, re-screenshot the entire page once and re-rate all fixed sections from that screenshot. If any fixed section is still < 8, try one more fix (max 2 fix attempts per section, matching the security-fixer re-check pattern). Budget is 70 turns total; reserve ~15 turns for re-rate verification. If remaining turns < 10, stop fixing and write the trace immediately with verdict `"unresolved"`.
 
 After all fixes are complete, save current screenshots as the new baseline:
 
@@ -145,9 +145,12 @@ Collect all changes made:
 
 Before writing the trace file, compute these metrics from your review:
 
-- **`min_score`**: the lowest Layer 2 per-section score across all pages, measured *after* fixes are applied. If no sections were reviewed, use `0`.
-- **`weakest_page`**: the page name that contains the section with the lowest post-fix score. If tied, pick the first page alphabetically.
-- **`sections_below_8`**: count of sections that scored below 8 *before* fixes were applied. This captures how much work was needed.
+- **`min_score`**: the lowest Layer 2 per-section score across **in-boundary pages only**, measured *after* fixes are applied. If no in-boundary sections were reviewed, use `0`. Out-of-boundary pages do not affect this metric.
+- **`weakest_page`**: the page name that contains the section with the lowest post-fix score (in-boundary only). If tied, pick the first page alphabetically.
+- **`sections_below_8`**: count of sections that scored below 8 *before* fixes were applied (in-boundary only). This captures how much work was needed.
 - **`fixes_applied`**: total number of fixes applied across all pages (Layer 1 + Layer 2 + Layer 3 combined). Use `0` if no fixes were needed.
+- **`unresolved_sections`**: count of in-boundary sections that remained below 8 after 2 fix attempts. Use `0` if all sections were fixed to >= 8.
+- **`min_score_all`**: the lowest Layer 2 per-section score across **all pages** (including out-of-boundary), measured after fixes. This provides full visibility into pre-existing quality debt.
+- **`pre_existing_debt`**: JSON array of `{"page":"<name>","score":<N>}` objects for out-of-boundary pages with any section scoring below 8. Use `[]` if none.
 
 These metrics are written into the trace JSON (see agent definition for the trace command).
