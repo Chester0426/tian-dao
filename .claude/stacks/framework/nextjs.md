@@ -83,6 +83,7 @@ The root `route.ts` is created only when surface is `co-located` (the default fo
 
 ## Page Conventions
 - Default to `"use client"` for all page and component files
+- Exception: `layout.tsx` MUST remain a server component (required for `metadata` export). Do NOT add "use client" to layout.tsx.
 - One `page.tsx` per route folder
 - `layout.tsx` for root layout only
 - Import analytics tracking functions in every page that fires events (see analytics stack file for exports)
@@ -90,6 +91,14 @@ The root `route.ts` is created only when surface is `co-located` (the default fo
   - `page.tsx` — server component, exports `generateStaticParams`, imports and renders the client component with props
   - `<name>-client.tsx` — `"use client"`, receives props, handles interactivity and analytics
   Next.js does not allow `generateStaticParams` in `"use client"` components.
+
+## React 19 Patterns
+- Use ref as a regular prop -- do NOT use `React.forwardRef`. React 19 passes ref as a standard prop.
+- Use `useActionState` instead of `useFormState` (renamed in React 19).
+
+## Suspense Requirements
+- Any component using `useSearchParams()` MUST be wrapped in a `<Suspense>` boundary (Next.js 15 requirement)
+- Pattern: create a client component that uses the hook, wrap it in Suspense in the parent page
 
 ## API Route Conventions
 - Route handlers in `src/app/api/<resource>/route.ts`
@@ -127,6 +136,7 @@ export async function OPTIONS() {
 - No Server Actions — use API routes for all mutations
 - No caching configuration (`revalidate`, `cache`, etc.)
 - No parallel routes or intercepting routes
+- No `@apply` with custom class names in CSS -- Tailwind v4 only supports `@apply` with utility classes. Use inline utility classes or `@theme` for custom values.
 
 ## retain_return Tracking
 Create a client component for retain_return tracking and render it in the root layout. This keeps the root layout as a server component (required for `metadata` export) while running client-side localStorage logic in a separate component.

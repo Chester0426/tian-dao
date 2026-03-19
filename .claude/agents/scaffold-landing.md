@@ -28,6 +28,8 @@ You are a world-champion of persuasion. Your landing page is the absolute limit 
 - Follow messaging.md for copy derivation (headline = outcome, CTA = action verb + outcome)
 - Wire analytics events per experiment/EVENTS.yaml
 - Build must pass after your changes
+- If a file you need to create already exists: stop and report the conflict. Do not overwrite.
+- If `src/app/v/[variant]/page.tsx` exists: variant routing is active. Create `src/components/landing-content.tsx` only -- do NOT create `src/app/page.tsx`.
 
 > These criteria are evaluated from source code only — no build or screenshot is required.
 

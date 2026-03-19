@@ -56,6 +56,18 @@ EOF
     exit 0
   fi
 
+  # For scaffold-pages and scaffold-landing: require Phase A root files exist
+  if [[ "$SUBAGENT_TYPE" == "scaffold-pages" ]] || [[ "$SUBAGENT_TYPE" == "scaffold-landing" ]]; then
+    for REQUIRED_FILE in "src/app/layout.tsx" "src/app/not-found.tsx" "src/app/error.tsx"; do
+      if [[ ! -f "$PROJECT_DIR/$REQUIRED_FILE" ]]; then
+        cat <<EOF
+{"permissionDecision": "deny", "message": "Agent '$SUBAGENT_TYPE' blocked: Phase A file '$REQUIRED_FILE' missing. Lead must create root files before spawning page/landing agents."}
+EOF
+        exit 0
+      fi
+    done
+  fi
+
   # For scaffold-wire: additionally require BG2 verdict PASS
   if [[ "$SUBAGENT_TYPE" == "scaffold-wire" ]]; then
     if [[ ! -f "$VERDICTS_DIR/bg2.json" ]]; then
