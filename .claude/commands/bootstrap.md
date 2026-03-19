@@ -644,7 +644,48 @@ Check off in `.claude/current-plan.md`: `- [x] scaffold-init completed`
 
 **ACTIONS**
 
-Spawn four subagents simultaneously using parallel Agent tool calls (three if surface = none):
+#### scaffold-pages (two-phase)
+
+**Phase A (serial, before fan-out):** The lead (not a subagent) creates:
+- Root layout (`src/app/layout.tsx`) with font imports and globals.css
+- 404 page (`src/app/not-found.tsx`)
+- Error boundary (`src/app/error.tsx`)
+- Variant routing files (if `variants` in experiment.yaml): `src/lib/variants.ts`, `src/app/page.tsx`, `src/app/v/[variant]/page.tsx`
+
+Phase A runs AFTER scaffold-init completes (STATE 10) to ensure design tokens exist.
+
+**Phase B (parallel fan-out):** Spawn one `scaffold-pages` agent per golden_path page (excluding landing — handled by scaffold-landing). All in a SINGLE parallel message alongside scaffold-libs, scaffold-externals, scaffold-landing.
+
+Each per-page agent prompt:
+- "Create SINGLE page: `<page_name>` at route `<route>`."
+- Write ONLY to `src/app/<page_name>/` — do NOT write to `src/components/` or `src/lib/`
+- Write trace as `scaffold-pages-<page_name>.json`
+- Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
+  `.claude/current-plan.md`, archetype file,
+  framework/UI stack files, `.claude/patterns/design.md`,
+  `.claude/current-visual-brief.md`
+- Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+
+After all return, merge per-page traces into `scaffold-pages.json`:
+
+```bash
+python3 -c "
+import json, glob
+batches = sorted(glob.glob('.claude/agent-traces/scaffold-pages-*.json'))
+if not batches:
+    exit(1)
+merged = {'agent': 'scaffold-pages', 'pages_created': 0, 'files_created': [], 'issues': []}
+for b in batches:
+    d = json.load(open(b))
+    merged['pages_created'] += 1
+    merged['files_created'].extend(d.get('files_created', []))
+    merged['issues'].extend(d.get('issues', []))
+json.dump(merged, open('.claude/agent-traces/scaffold-pages.json', 'w'))
+print(f'Merged {len(batches)} per-page traces into scaffold-pages.json')
+"
+```
+
+Spawn the following subagents simultaneously using parallel Agent tool calls:
 
 **Libs subagent:**
 - subagent_type: scaffold-libs
@@ -654,15 +695,9 @@ Spawn four subagents simultaneously using parallel Agent tool calls (three if su
      `.claude/current-plan.md`, all stack files
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
 
-**Pages subagent:**
+**Per-page subagents (one per golden_path page, excluding landing):**
 - subagent_type: scaffold-pages
-- prompt: Tell the subagent to:
-  1. Read `.claude/procedures/scaffold-pages.md` and execute all steps
-  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
-     `.claude/current-plan.md`, archetype file,
-     framework/UI stack files, `.claude/patterns/design.md`,
-     `.claude/current-visual-brief.md`
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+- prompt per page: See scaffold-pages two-phase instructions above.
 
 **Externals subagent (analysis only):**
 - subagent_type: scaffold-externals

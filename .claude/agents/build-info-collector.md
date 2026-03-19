@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 15
+maxTurns: 500
 ---
 
 # Build Info Collector

@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 200
+maxTurns: 500
 ---
 
 # Security Defender
@@ -101,11 +101,12 @@ Applies to ALL archetypes (web-app, service, cli).
 
 ## Trace Output
 
-After completing all work, write a trace file:
+After completing all work, write a trace file. The trace includes a `fails` array with structured details for each FAIL check (for automated security merge):
 
 ```bash
 RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["D1_secrets","D2_validation","D3_rls","D4_client_server","D5_rate_limit","D6_deps"],"fails_count":<N>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-defender.json
+mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["D1_secrets","D2_validation","D3_rls","D4_client_server","D5_rate_limit","D6_deps"],"fails_count":<N>,"fails":[<array of {"check":"D<N>","file":"<path>","desc":"<description>"} for each FAIL>],"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-defender.json
 ```
 
 Replace `<verdict>` with your summary: `"pass"` if all checks passed, or `"N FAILs"` with the count.
+Replace `<N>` with the number of FAILs. The `fails` array must contain one entry per FAIL with `check` (e.g., "D2"), `file` (path to offending file), and `desc` (what failed). If 0 FAILs, use an empty array `[]`.

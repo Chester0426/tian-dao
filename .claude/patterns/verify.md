@@ -199,6 +199,10 @@ Include these directives in every agent spawn prompt (Phase 1 and Phase 2):
 3. **Context digest**: Include the context digest summary (pages, behavior IDs, event names, golden_path steps) extracted in STATE 0 so agents don't need to re-read experiment.yaml.
 4. **Pre-existing changes**: Edit-capable agents (design-critic, ux-journeyer, security-fixer) should ignore pre-existing uncommitted changes that are outside the PR file boundary.
 
+> **Template enforcement:** Read `.claude/agent-prompt-footer.md` and append its full content
+> to every agent spawn prompt (Phase 1 and Phase 2). The phase-transition-gate hook checks
+> for the directive marker in agent prompts.
+
 ### ACTIONS — Spawn Phase 1 agents
 
 > **EXPLICIT FOREGROUND INSTRUCTION**: Spawn all Phase 1 agents as parallel foreground Agent tool calls in a **SINGLE message**. Do NOT use `run_in_background: true`. The platform blocks you until ALL return. This is the enforcement mechanism — background agents can be forgotten; foreground agents cannot.
@@ -564,22 +568,50 @@ If security agents were not spawned OR hard gate failure occurred, skip security
 
 ### Merge Security Results (if scope is `full` or `security`)
 
-Combine security-defender and security-attacker outputs:
-
-1. Collect all Defender FAILs and all Attacker findings.
-2. If both flag the same file and issue, keep the more specific Attacker
-   finding and mark the Defender check as subsumed (still counts as FAIL
-   in the Defender table, but the Attacker finding drives the fix).
-3. The merged list is the input to security-fixer.
-
-### Write security-merge.json
-
-Before spawning security-fixer, write the merge artifact:
+Run the automated security merge script:
 
 ```bash
-cat > .claude/security-merge.json << 'MERGEEOF'
-{"timestamp":"<ISO 8601>","defender_fails":<N>,"attacker_findings":<N>,"merged_issues":<N>,"issues":[<summary list>]}
-MERGEEOF
+python3 -c "
+import json, os
+traces = '.claude/agent-traces'
+ctx = json.load(open('.claude/verify-context.json'))
+run_id = ctx.get('run_id', '')
+
+defender = json.load(open(os.path.join(traces, 'security-defender.json')))
+attacker = json.load(open(os.path.join(traces, 'security-attacker.json')))
+
+d_fails = defender.get('fails', [])
+a_findings = attacker.get('findings', [])
+
+# Backward compat: block if structured arrays missing but counts > 0
+if not d_fails and defender.get('fails_count', 0) > 0:
+    raise ValueError('security-defender trace missing fails array — update agent definition')
+if not a_findings and attacker.get('findings_count', 0) > 0:
+    raise ValueError('security-attacker trace missing findings array — update agent definition')
+
+# Deduplicate: same file + same desc -> keep attacker finding
+seen = set()
+merged = []
+for f in a_findings:
+    key = (f.get('file',''), f.get('desc',''))
+    seen.add(key)
+    merged.append({**f, 'source': 'attacker'})
+for f in d_fails:
+    key = (f.get('file',''), f.get('desc',''))
+    if key not in seen:
+        merged.append({**f, 'source': 'defender'})
+
+result = {
+    'timestamp': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'defender_fails': defender.get('fails_count', 0),
+    'attacker_findings': attacker.get('findings_count', 0),
+    'merged_issues': len(merged),
+    'issues': merged,
+    'run_id': run_id
+}
+json.dump(result, open('.claude/security-merge.json', 'w'))
+print(f'Security merge: {result[\"defender_fails\"]} defender FAILs + {result[\"attacker_findings\"]} attacker findings -> {result[\"merged_issues\"]} merged issues')
+"
 ```
 
 ### security-fixer (if merged security has issues)
@@ -671,16 +703,36 @@ Read `.claude/fix-log.md` from disk. If it has only the header line (`# Error Fi
 
 If the Fix Log has any entries:
 
-1. For each file mentioned in the Fix Log, capture its targeted diff.
-2. Combine the per-file diffs + Fix Log summaries.
-3. Get template file list (from build-info-collector, or generate now:
+1. Collect targeted diffs automatically:
+
+```bash
+python3 -c "
+import re, subprocess, os, json
+fixes = open('.claude/fix-log.md').read()
+files = sorted(set(re.findall(r'\x60([^\x60]+\.(?:ts|tsx|js|jsx|json|css))\x60', fixes)))
+diffs = []
+for f in files:
+    r = subprocess.run(['git', 'diff', 'HEAD', '--', f], capture_output=True, text=True)
+    if r.stdout.strip():
+        diffs.append(f'=== {f} ===\n{r.stdout}')
+    elif os.path.exists(f):
+        r2 = subprocess.run(['git', 'diff', '--no-index', '/dev/null', f], capture_output=True, text=True)
+        if r2.stdout.strip():
+            diffs.append(f'=== {f} (new file) ===\n{r2.stdout}')
+with open('.claude/observer-diffs.txt', 'w') as out:
+    out.write('\n'.join(diffs) if diffs else '(no diffs captured)')
+print(f'Collected diffs for {len(diffs)} files -> .claude/observer-diffs.txt')
+"
+```
+
+2. Spawn the `observer` agent (`subagent_type: observer`).
+   Pass ONLY: content of `.claude/observer-diffs.txt` + Fix Log summaries + template file list.
+   Do NOT include experiment.yaml content, project name, or feature descriptions.
+   Get template file list (from build-info-collector, or generate now:
    run `find .claude/stacks .claude/commands .claude/patterns scripts -type f 2>/dev/null`
    and add `Makefile` and `CLAUDE.md`).
-4. Spawn the `observer` agent (`subagent_type: observer`).
-   Pass ONLY: combined fix diffs, Fix Log summaries, template file list.
-   Do NOT include experiment.yaml content, project name, or feature descriptions.
-5. Report the observer's result.
-6. Verify `.claude/agent-traces/observer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
+3. Report the observer's result.
+4. Verify `.claude/agent-traces/observer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 
 **POSTCONDITIONS:** Observer ran (if fixes exist) or was correctly skipped.
 
@@ -795,31 +847,16 @@ If `.claude/fix-log.md` has only the header line and no entries, this state is a
 
 **ACTIONS:**
 
-Read `.claude/fix-log.md` from disk.
+Read `.claude/fix-log.md` from disk. If it has only the header line and no entries, write
+`{"saved":0,"skipped":0,"total":0,"saved_to_files":[],"saved_to_memory":0}` to
+`.claude/patterns-saved.json` and skip to Done.
 
-1. **For each entry in the Fix Log**, classify:
-   - **Universal** (any project with this stack would hit this) →
-     add to `.claude/stacks/<category>/<value>.md`
-   - **Project-specific** (unique to this codebase) →
-     save to auto memory with error, cause, and fix
-   - **Simple typo** unlikely to recur → skip
+If the Fix Log has entries:
 
-2. **Verify completeness:** Count entries in Fix Log. Count patterns
-   saved + skipped. The numbers must match. If not, re-read the log.
-
-3. **Planning patterns** (architectural knowledge for future plans):
-   - Auth flow interactions (e.g., "OAuth callback must be registered before adding social login pages")
-   - Stack integration quirks that affected architecture (e.g., "Supabase RLS requires service role key for admin operations")
-   - Codebase conventions that future plans should follow (e.g., "this project co-locates API types in a shared types.ts")
-   - Save to auto memory under "Planning Patterns" heading
-
-4. **Write classification artifact:**
-   ```bash
-   cat > .claude/patterns-saved.json << 'PEOF'
-   {"saved":<N>,"skipped":<N>,"total":<N>,"saved_to_files":[{"path":"<relative>","type":"universal|project"}],"saved_to_memory":<M>}
-   PEOF
-   ```
-   **Invariant:** `len(saved_to_files) + saved_to_memory == saved`. The `patterns-saved-gate.sh` hook enforces this.
+1. Spawn the `pattern-classifier` agent (`subagent_type: pattern-classifier`).
+   Pass: fix-log.md content, list of stack files (`find .claude/stacks -type f`), project memory directory path.
+2. Wait for completion.
+3. Verify `.claude/patterns-saved.json` exists (the hook validates invariants automatically).
 
 **POSTCONDITIONS:** `patterns-saved.json` exists. Pattern count matches fix log entry count.
 

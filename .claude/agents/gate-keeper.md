@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 25
+maxTurns: 500
 ---
 
 # Gate Keeper

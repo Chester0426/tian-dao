@@ -72,6 +72,15 @@ for entry in saved_to_files:
         if not os.path.exists(full_path):
             errors.append(f'saved_to_files path does not exist: {path}')
 
+# Invariant 4: total must match actual fix-log entry count
+fix_log_path = os.path.join(project_dir, '.claude', 'fix-log.md')
+if os.path.exists(fix_log_path):
+    import re
+    fix_log = open(fix_log_path).read()
+    fix_count = len(re.findall(r'^\*\*Fix', fix_log, re.MULTILINE))
+    if d.get('total', 0) != fix_count:
+        errors.append(f"Invariant 4: total ({d.get('total',0)}) != fix-log entry count ({fix_count})")
+
 if errors:
     print('FAIL:' + '; '.join(errors))
 else:

@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 50
+maxTurns: 500
 skills: [frontend-design]
 ---
 

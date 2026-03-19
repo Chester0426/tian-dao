@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 100
+maxTurns: 500
 ---
 
 # Spec Reviewer

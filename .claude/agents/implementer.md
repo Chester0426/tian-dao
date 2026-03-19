@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 40
+maxTurns: 500
 ---
 
 # Implementer

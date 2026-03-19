@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 35
+maxTurns: 500
 ---
 
 # Observer

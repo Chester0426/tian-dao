@@ -100,6 +100,21 @@ else: print('OK')
   done
 }
 
+# V5 fix: check efficiency directives marker in prompt (verify flow only)
+check_efficiency_directives() {
+  if [ -f "$PROJECT_DIR/.claude/verify-context.json" ]; then
+    local PROMPT
+    PROMPT=$(python3 -c "
+import json,sys
+d=json.loads(sys.stdin.read())
+print(d.get('tool_input',{}).get('prompt',''))
+" <<< "$PAYLOAD" 2>/dev/null || echo "")
+    if ! echo "$PROMPT" | grep -q "DIRECTIVES:batch_search,pr_changed_first,context_digest,pre_existing"; then
+      ERRORS+=("Agent prompt missing efficiency directives — append .claude/agent-prompt-footer.md content")
+    fi
+  fi
+}
+
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
     # Phase 2 gate: Phase 1 traces must exist
@@ -124,7 +139,18 @@ case "$SUBAGENT_TYPE" in
     if [[ "$SUBAGENT_TYPE" == "ux-journeyer" ]]; then
       check_tier1_retry_complete "design-critic-*" "$TRACES_DIR"
       check_tier1_retry_complete "design-critic" "$TRACES_DIR"
+      # V1 fix: require design-consistency-checker when scope warrants it
+      SCOPE_V1=$(read_scope)
+      ARCH_V1=$(read_archetype)
+      if [[ "$SCOPE_V1" =~ ^(full|visual)$ ]] && [[ "$ARCH_V1" == "web-app" ]]; then
+        if [ ! -f "$TRACES_DIR/design-consistency-checker.json" ]; then
+          ERRORS+=("design-consistency-checker.json trace missing — spawn consistency checker before ux-journeyer")
+        else
+          check_trace_verdict "$TRACES_DIR/design-consistency-checker.json" "consistency checker may still be running or exhausted turns"
+        fi
+      fi
     fi
+    check_efficiency_directives
     ;;
 
   security-fixer)
@@ -157,6 +183,7 @@ case "$SUBAGENT_TYPE" in
       check_trace_verdict "$TRACES_DIR/behavior-verifier.json" "agent may still be running or exhausted turns"
       check_trace_run_id "$TRACES_DIR/behavior-verifier.json"
     fi
+    check_efficiency_directives
     ;;
 
   observer)
@@ -164,6 +191,12 @@ case "$SUBAGENT_TYPE" in
     if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
       ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) must complete before observer")
     fi
+    # V3 fix: require observer-diffs.txt when fix-log has entries
+    FIX_COUNT=$(grep -c '^\*\*Fix' "$PROJECT_DIR/.claude/fix-log.md" 2>/dev/null || echo "0")
+    if [ "$FIX_COUNT" -gt 0 ] && [ ! -s "$PROJECT_DIR/.claude/observer-diffs.txt" ]; then
+      ERRORS+=("observer-diffs.txt missing or empty — run diff collection script before spawning observer")
+    fi
+    check_efficiency_directives
     ;;
 
   *)

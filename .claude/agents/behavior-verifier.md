@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 60
+maxTurns: 500
 ---
 
 # Behavior Verifier

@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 200
+maxTurns: 500
 memory: project
 ---
 

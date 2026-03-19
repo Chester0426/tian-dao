@@ -208,6 +208,15 @@ else:
   fi
 fi
 
+# Check 13: design-consistency-checker trace required for full/visual + web-app
+SCOPE_13=$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/.claude/verify-context.json')).get('scope',''))" 2>/dev/null || echo "")
+ARCH_13=$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/.claude/verify-context.json')).get('archetype',''))" 2>/dev/null || echo "")
+if [[ "$SCOPE_13" =~ ^(full|visual)$ ]] && [[ "$ARCH_13" == "web-app" ]]; then
+  if [ ! -f "$PROJECT_DIR/.claude/agent-traces/design-consistency-checker.json" ]; then
+    ERRORS+=("Check 13: design-consistency-checker.json trace missing for scope=$SCOPE_13 archetype=$ARCH_13")
+  fi
+fi
+
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")

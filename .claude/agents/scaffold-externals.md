@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 20
+maxTurns: 500
 ---
 
 # Scaffold Externals Agent

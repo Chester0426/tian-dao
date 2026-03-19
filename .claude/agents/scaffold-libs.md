@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 30
+maxTurns: 500
 ---
 
 # Scaffold Libs Agent

@@ -13,7 +13,7 @@ tools:
   - ToolSearch
 disallowedTools:
   - Agent
-maxTurns: 40
+maxTurns: 500
 memory: project
 skills: []
 ---
