@@ -110,6 +110,8 @@ Any of these triggers automatic fix — each has a measurable threshold:
 - **Default component styling** — ≥50% of Card/Button/Badge instances use unmodified shadcn defaults (no custom colors, borders, shadows, or size overrides) → apply project theme
 - **Scroll inertness** — page has 0 scroll-triggered visual events across all sections (no reveals, parallax, counters, sticky transforms) → add scroll interaction to ≥2 sections
 
+> **Scope Lock**: When fixing sections, change ONLY visual output (CSS classes, JSX structure for layout, animation code). Do NOT refactor component architecture, rename variables, or change state management patterns. If a section needs architectural changes to fix visually, note it as unresolved.
+
 ### 6. Fix Below-Standard Sections
 
 For any section rated below 8/10 in Layer 2, or any Layer 1/Layer 3 failure:

@@ -161,7 +161,7 @@ that all visual agents have a running app to screenshot:
    until 200 (max 30s, 2s interval). If timeout: warn user, continue —
    agents degrade to static analysis but are NOT skipped.
 3. Pass `base_url: http://localhost:3000` to all agents that accept it.
-4. After ALL review agents (Phase 1 + Phase 2) complete: `kill $DEV_PID`.
+4. **CHECKPOINT — Kill dev server.** After ALL review agents (Phase 1 + Phase 2) complete AND hard gate evaluation is done: `kill $DEV_PID 2>/dev/null || true`. This is a mandatory step — do not defer to STATE 7.
 
 > **Why DEMO_MODE.** All external clients (Supabase, Stripe, Anthropic,
 > PostHog) have demo fallbacks returning safe stub data. The dev server
@@ -304,7 +304,7 @@ When an agent returns but its trace has `"status":"started"` and no `"verdict"` 
 | Tier | Agents | Action | On Double Exhaustion |
 |------|--------|--------|---------------------|
 | 1 | design-critic, ux-journeyer, security-fixer | Retry once (focused scope) | Hard gate failure, skip remaining STATEs |
-| 2 | behavior-verifier, security-attacker, security-defender | Retry once | Recovery trace with `"status":"exhausted"`, WARN, continue |
+| 2 | behavior-verifier, security-attacker, security-defender, design-consistency-checker | Retry once | Recovery trace with `"status":"exhausted"`, WARN, continue |
 | 3 | build-info-collector, observer, performance-reporter, accessibility-scanner, spec-reviewer | No retry | Recovery trace with `"status":"exhausted"`, WARN, continue |
 
 #### Tier 1 — Critical edit-capable agents
@@ -314,6 +314,8 @@ When an agent returns but its trace has `"status":"started"` and no `"verdict"` 
 **Action**: Before re-spawning, execute Atomic Execution Protocol revert (see STATE 3). Agent traces are NOT reverted.
 
 Then mark the retry in the trace:
+
+**If trace exists (State 2):**
 ```bash
 python3 -c "
 import json
@@ -324,6 +326,12 @@ json.dump(d, open(f, 'w'))
 "
 ```
 
+**If trace does NOT exist (State 1 — NO_FILE or STALE):**
+```bash
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+echo '{"agent":"<name>","status":"exhausted","retry_attempted":true,"original_state":"NO_FILE","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/<name>.json
+```
+
 Re-spawn the agent with a reduced scope prompt:
 - design-critic: "Focus on the lowest-scoring page only. Skip pages that already score ≥8."
 - ux-journeyer: "Focus on the primary golden path only. Skip secondary journeys."
@@ -332,7 +340,7 @@ Re-spawn the agent with a reduced scope prompt:
 **On double exhaustion** (retry also produces State 2):
 1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"exhausted","recovery":true,"retry_attempted":true,"checks_performed":[],"timestamp":"..."}`
 2. Set `hard_gate_failure: true` in the verify report frontmatter
-3. Skip remaining STATEs (jump to STATE 7 to write the report)
+3. Skip operational STATEs 4-6 (jump to STATE 7, then continue to STATE 8)
 4. Report to user: "Agent <name> exhausted turns twice. Hard gate failure — manual review required."
 
 #### Tier 2 — Critical read-only agents
@@ -423,13 +431,62 @@ After completion: use Trace State Detection to check each `design-critic-<page_n
 
 #### Stage 2: Consistency check + merge
 
-Spawn the `design-consistency-checker` agent (`subagent_type: design-consistency-checker`). Pass:
+##### Step A: Lead merges per-page traces
+
+Before spawning the consistency checker, the lead merges per-page traces into `design-critic.json`:
+
+```bash
+python3 -c "
+import json, glob, os
+batches = sorted(glob.glob('.claude/agent-traces/design-critic-*.json'))
+if not batches:
+    exit(1)
+run_id = ''
+try:
+    run_id = json.load(open('.claude/verify-context.json')).get('run_id', '')
+except:
+    pass
+merged = {'agent': 'design-critic', 'pages_reviewed': 0, 'min_score': 10, 'verdict': 'pass',
+          'checks_performed': [], 'pages': len(batches), 'consistency_fixes': 0,
+          'sections_below_8': 0, 'fixes_applied': 0, 'unresolved_sections': 0,
+          'min_score_all': 10, 'pre_existing_debt': [], 'run_id': run_id}
+worst_verdicts = {'unresolved': 3, 'fixed': 2, 'pass': 1}
+for b in batches:
+    d = json.load(open(b))
+    merged['pages_reviewed'] += d.get('pages_reviewed', 1)
+    merged['min_score'] = min(merged['min_score'], d.get('min_score', 10))
+    merged['min_score_all'] = min(merged['min_score_all'], d.get('min_score_all', 10))
+    merged['checks_performed'].extend(d.get('checks_performed', []))
+    merged['sections_below_8'] += d.get('sections_below_8', 0)
+    merged['fixes_applied'] += d.get('fixes_applied', 0)
+    merged['unresolved_sections'] += d.get('unresolved_sections', 0)
+    debt = d.get('pre_existing_debt', [])
+    if isinstance(debt, list):
+        merged['pre_existing_debt'].extend(debt)
+    bv = d.get('verdict', 'pass')
+    if worst_verdicts.get(bv, 0) > worst_verdicts.get(merged['verdict'], 0):
+        merged['verdict'] = bv
+        merged['weakest_page'] = d.get('weakest_page', d.get('page', ''))
+    if d.get('retry_attempted'):
+        merged['retry_attempted'] = True
+import datetime
+merged['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+json.dump(merged, open('.claude/agent-traces/design-critic.json', 'w'))
+"
+```
+
+> **Do NOT delete per-page traces** — the consistency checker needs them for cross-page comparison.
+
+##### Step B: Spawn consistency checker (cross-page visual review only)
+
+Spawn the `design-consistency-checker` agent (`subagent_type: design-consistency-checker`). It reads per-page traces and screenshots all pages for cross-page consistency — but does NOT merge traces or fix code.
+
+Pass:
 - `base_url`: `http://localhost:3000`
 - `run_id`: from verify-context.json
-- PR file boundary
 - List of pages reviewed
 
-**Wait for completion.** The consistency checker reads all per-page traces, checks cross-page consistency, fixes inconsistencies, and writes the merged `design-critic.json`.
+**Wait for completion.** Handle exhaustion per Tier 2.
 
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
@@ -439,7 +496,7 @@ Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 1. Read `.claude/agent-traces/design-critic.json` trace (merged by consistency checker).
 2. Verify `pages_reviewed` >= number of pages in experiment.yaml `golden_path`.
-3. If `verdict` == `"unresolved"`, this is a **hard gate failure** — design quality threshold (8/10) was not met after 2 fix attempts. Skip STATEs 4-6 but still write verify-report.md (STATE 7) recording the failure. Report failure to user with the `unresolved_sections` count.
+3. If `verdict` == `"unresolved"`, this is a **hard gate failure** — design quality threshold (8/10) was not met after 2 fix attempts. Skip STATEs 4-6 but still write verify-report.md (STATE 7) and execute STATE 8 (Save Patterns). Report failure to user with the `unresolved_sections` count.
 4. If `min_score` < 8 and `verdict` == `"fixed"`, note in verify report that threshold was met after fixes.
 5. If `pre_existing_debt` is non-empty, note pre-existing quality debt in verify report (informational, does not block).
 6. Extract Fix Summaries from per-page agent return messages. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
@@ -455,7 +512,7 @@ Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
 1. Read `.claude/agent-traces/ux-journeyer.json` trace.
 2. If `verdict` == `"blocked"`, this is a **hard gate failure** — the golden path cannot be completed. Stop and report the blocked location to the user. Do NOT proceed to STATE 4.
-3. If `unresolved_dead_ends` > 0, this is a **hard gate failure** — real dead ends remain after fixes. Skip STATEs 4-6 but still write verify-report.md (STATE 7) recording the failure.
+3. If `unresolved_dead_ends` > 0, this is a **hard gate failure** — real dead ends remain after fixes. Skip STATEs 4-6 but still write verify-report.md (STATE 7) and execute STATE 8 (Save Patterns).
 4. If `dead_ends` > 0 AND `unresolved_dead_ends` == 0, all dead ends are intentional fake-door pages. Note in verify report (informational, does not block).
 5. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (ux-journeyer):`.
 
@@ -495,7 +552,13 @@ Build command exited 0 after last Phase 2 agent.
 
 **PRECONDITIONS:** STATE 3 complete.
 
-If security agents were not spawned (scope is `visual` or `build`), skip to STATE 5 (E2E_TESTS).
+**Always write** `.claude/security-merge.json` — this is a metadata artifact, not an operational step:
+
+- If security agents ran: merge Defender FAILs + Attacker findings (see below)
+- If security agents did NOT run (scope `visual` or `build`): write `{"findings":[],"source":"no-security-agents","run_id":"<run_id>"}`
+- If hard gate fired in STATE 3: write full merge + `"fixer_skipped":true,"reason":"hard_gate_failure"`
+
+If security agents were not spawned OR hard gate failure occurred, skip security-fixer spawn and proceed to STATE 5.
 
 **ACTIONS:**
 
@@ -541,7 +604,7 @@ After each fix, append to `.claude/fix-log.md`.
 #### Lead-side validation (security-fixer)
 
 1. Read `.claude/agent-traces/security-fixer.json` trace.
-2. If `verdict` == `"partial"` AND `unresolved_critical` > 0, this is a **hard gate failure** — Critical/High security issues or Defender FAILs remain unfixed after 2 fix cycles. Skip STATEs 5-6 but still write verify-report.md (STATE 7) recording the failure. Report failure to user with the unresolved items.
+2. If `verdict` == `"partial"` AND `unresolved_critical` > 0, this is a **hard gate failure** — Critical/High security issues or Defender FAILs remain unfixed after 2 fix cycles. Skip STATEs 5-6 but still write verify-report.md (STATE 7) and execute STATE 8 (Save Patterns). Report failure to user with the unresolved items.
 3. If trace has `"recovery": true` AND `verdict` == `"partial"`, treat as hard gate failure (recovery traces cannot confirm fixes succeeded).
 4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (security-fixer):`.
 

@@ -83,6 +83,10 @@ For issues found in steps 5-7:
 - Clarify ambiguous dual-CTA sections (make one primary, one secondary)
 - Run `npm run build` after fixes (must pass)
 
+> **Syntax safety**: After each edit, visually verify JSX tag matching before running build. Common failure: inserting a new element without updating closing tags. If build fails with JSX syntax errors, revert your last edit and try a simpler fix.
+>
+> **Fix budget**: Fix at most 2 dead ends. If more remain, record them as `unresolved_dead_ends` in the trace and set verdict to `"partial"`.
+
 ### 8b. Re-navigate After Fixes
 
 After fixing issues, re-navigate the golden path once to confirm fixes work:
