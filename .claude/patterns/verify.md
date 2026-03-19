@@ -311,13 +311,26 @@ When an agent returns but its trace has `"status":"started"` and no `"verdict"` 
 
 **Detection**: Trace State 2 after agent returns.
 
-**Action**: Re-spawn the agent with a reduced scope prompt:
+**Action**: Before re-spawning, execute Atomic Execution Protocol revert (see STATE 3). Agent traces are NOT reverted.
+
+Then mark the retry in the trace:
+```bash
+python3 -c "
+import json
+f = '.claude/agent-traces/<name>.json'
+d = json.load(open(f))
+d['retry_attempted'] = True
+json.dump(d, open(f, 'w'))
+"
+```
+
+Re-spawn the agent with a reduced scope prompt:
 - design-critic: "Focus on the lowest-scoring page only. Skip pages that already score ≥8."
 - ux-journeyer: "Focus on the primary golden path only. Skip secondary journeys."
 - security-fixer: "Fix only Critical severity issues. Skip High/Medium."
 
 **On double exhaustion** (retry also produces State 2):
-1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"exhausted","recovery":true,"checks_performed":[],"timestamp":"..."}`
+1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"exhausted","recovery":true,"retry_attempted":true,"checks_performed":[],"timestamp":"..."}`
 2. Set `hard_gate_failure: true` in the verify report frontmatter
 3. Skip remaining STATEs (jump to STATE 7 to write the report)
 4. Report to user: "Agent <name> exhausted turns twice. Hard gate failure — manual review required."
@@ -364,6 +377,31 @@ ls .claude/agent-traces/*.json
 Spawn edit-capable agents ONE AT A TIME. Each must complete and pass `npm run build` before the next is spawned. This prevents write conflicts.
 
 After each edit-capable agent completes, read its completion report and append its fixes to `.claude/fix-log.md`.
+
+### Atomic Execution Protocol
+
+Before each edit-capable agent spawn, snapshot the working tree:
+
+```bash
+git diff --name-only > /tmp/pre-agent-snapshot.txt
+```
+
+After an agent returns with Trace State 2 (exhausted), revert **source** changes only — preserve `.claude/` artifacts:
+
+```bash
+git diff --name-only > /tmp/post-agent-snapshot.txt
+AGENT_CHANGED=$(comm -13 <(sort /tmp/pre-agent-snapshot.txt) <(sort /tmp/post-agent-snapshot.txt))
+for f in $AGENT_CHANGED; do
+  case "$f" in
+    .claude/*) ;;  # Keep traces and artifacts
+    *) git checkout -- "$f" 2>/dev/null || rm -f "$f" ;;
+  esac
+done
+```
+
+For per-page design-critic: only revert the **exhausted page's** files. Keep completed pages' changes.
+
+If the agent completes normally (Trace State 3 with verdict), do NOT revert — its changes are accepted.
 
 ### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — PARALLEL PER PAGE
 
@@ -483,10 +521,18 @@ MERGEEOF
 
 ### security-fixer (if merged security has issues)
 
+Before spawning, execute the Atomic Execution Protocol snapshot (see STATE 3):
+
+```bash
+git diff --name-only > /tmp/pre-agent-snapshot.txt
+```
+
 Spawn the `security-fixer` agent (`subagent_type: security-fixer`).
 Pass: merged Defender table + Attacker findings.
 
 **Wait for the fixer to complete before continuing.**
+
+If agent returns with Trace State 2 (exhausted), execute the Atomic Execution Protocol revert before retrying (see STATE 3 and Exhaustion Protocol Tier 1).
 
 After security-fixer completes: verify `.claude/agent-traces/security-fixer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
 
@@ -591,6 +637,20 @@ If the Fix Log has any entries:
 
 **ACTIONS:**
 
+Before writing the report, extract agent verdicts from traces:
+
+```bash
+AGENT_VERDICTS=$(python3 -c "
+import json, glob
+verdicts = {}
+for f in glob.glob('.claude/agent-traces/*.json'):
+    name = f.split('/')[-1].replace('.json','')
+    d = json.load(open(f))
+    verdicts[name] = d.get('verdict', 'missing')
+print(json.dumps(verdicts))
+" 2>/dev/null || echo "{}")
+```
+
 Write `.claude/verify-report.md`:
 
 ```markdown
@@ -603,6 +663,7 @@ agents_expected: [list from scope table]
 agents_completed: [list as they finish]
 consistency_scan: pass | skipped | N/A
 auto_observe: ran | skipped-no-fixes | observations-filed
+agent_verdicts: <AGENT_VERDICTS JSON>
 ---
 
 ## Build
@@ -667,7 +728,7 @@ head -1 .claude/verify-report.md | grep -q '^---$'
 
 **PRECONDITIONS:** STATE 7 complete.
 
-If `.claude/fix-log.md` has only the header line and no entries, this state is a no-op — write `.claude/patterns-saved.json` with `{"saved":0,"skipped":0,"total":0}` and return.
+If `.claude/fix-log.md` has only the header line and no entries, this state is a no-op — write `.claude/patterns-saved.json` with `{"saved":0,"skipped":0,"total":0,"saved_to_files":[],"saved_to_memory":0}` and return.
 
 **ACTIONS:**
 
@@ -692,9 +753,10 @@ Read `.claude/fix-log.md` from disk.
 4. **Write classification artifact:**
    ```bash
    cat > .claude/patterns-saved.json << 'PEOF'
-   {"saved":<N>,"skipped":<N>,"total":<N>}
+   {"saved":<N>,"skipped":<N>,"total":<N>,"saved_to_files":[{"path":"<relative>","type":"universal|project"}],"saved_to_memory":<M>}
    PEOF
    ```
+   **Invariant:** `len(saved_to_files) + saved_to_memory == saved`. The `patterns-saved-gate.sh` hook enforces this.
 
 **POSTCONDITIONS:** `patterns-saved.json` exists. Pattern count matches fix log entry count.
 

@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# patterns-saved-gate.sh — Claude Code PreToolUse hook for Write/Edit.
+# Validates patterns-saved.json invariants:
+#   saved + skipped == total
+#   len(saved_to_files) + saved_to_memory == saved
+#   Each saved_to_files[].path exists on disk
+
+set -euo pipefail
+
+# Read the hook payload from stdin
+PAYLOAD=$(cat)
+
+# Extract file_path from tool_input
+FILE_PATH=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null || echo "")
+
+# Only fire when file_path contains "patterns-saved"
+if [[ "$FILE_PATH" != *"patterns-saved"* ]]; then
+  exit 0
+fi
+
+# --- patterns-saved.json write detected — run invariant checks ---
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+ERRORS=()
+
+TOOL_NAME=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null || echo "")
+CONTENT=""
+if [[ "$TOOL_NAME" == "Write" ]]; then
+  CONTENT=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('content',''))" 2>/dev/null || echo "")
+elif [[ "$TOOL_NAME" == "Edit" ]]; then
+  CONTENT=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('new_string',''))" 2>/dev/null || echo "")
+fi
+
+# Skip if content is empty (can't validate)
+if [[ -z "$CONTENT" ]]; then
+  exit 0
+fi
+
+# Validate invariants using python3
+VALIDATION=$(echo "$CONTENT" | python3 -c "
+import json, sys, os
+
+content = sys.stdin.read().strip()
+errors = []
+
+try:
+    d = json.loads(content)
+except json.JSONDecodeError:
+    print('PARSE_ERROR')
+    sys.exit(0)
+
+saved = d.get('saved', 0)
+skipped = d.get('skipped', 0)
+total = d.get('total', 0)
+
+# Invariant 1: saved + skipped == total
+if saved + skipped != total:
+    errors.append(f'saved({saved}) + skipped({skipped}) != total({total})')
+
+# Invariant 2: len(saved_to_files) + saved_to_memory == saved
+saved_to_files = d.get('saved_to_files', [])
+saved_to_memory = d.get('saved_to_memory', 0)
+if len(saved_to_files) + saved_to_memory != saved:
+    errors.append(f'len(saved_to_files)({len(saved_to_files)}) + saved_to_memory({saved_to_memory}) != saved({saved})')
+
+# Invariant 3: Each saved_to_files[].path exists on disk
+project_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.')
+for entry in saved_to_files:
+    path = entry.get('path', '')
+    if path:
+        full_path = os.path.join(project_dir, path)
+        if not os.path.exists(full_path):
+            errors.append(f'saved_to_files path does not exist: {path}')
+
+if errors:
+    print('FAIL:' + '; '.join(errors))
+else:
+    print('OK')
+" 2>/dev/null || echo "OK")
+
+if [[ "$VALIDATION" == "PARSE_ERROR" ]]; then
+  # Can't parse JSON — fail open (might be partial content in Edit)
+  exit 0
+fi
+
+if [[ "$VALIDATION" == FAIL:* ]]; then
+  ERROR_DETAIL="${VALIDATION#FAIL:}"
+  cat <<EOF
+{"permissionDecision": "deny", "message": "Patterns-saved gate blocked: ${ERROR_DETAIL}. Fix invariants before writing patterns-saved.json."}
+EOF
+  exit 0
+fi
+
+# All checks passed — allow
+exit 0

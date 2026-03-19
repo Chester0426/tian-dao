@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 50
+maxTurns: 100
 ---
 
 # Performance Reporter

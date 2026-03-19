@@ -78,6 +78,28 @@ else:
   # WARN is logged but does not block (fail-open for transition period)
 }
 
+check_tier1_retry_complete() {
+  local AGENT_PATTERN="$1"
+  local TDIR="$2"
+  for TRACE in "$TDIR"/${AGENT_PATTERN}.json; do
+    [ -f "$TRACE" ] || continue
+    local STATE
+    STATE=$(python3 -c "
+import json
+d = json.load(open('$TRACE'))
+has_verdict = 'verdict' in d
+retry = d.get('retry_attempted', False)
+status = d.get('status', '')
+if has_verdict: print('COMPLETE')
+elif status in ('started','exhausted') and not has_verdict and not retry: print('NEEDS_RETRY')
+else: print('OK')
+" 2>/dev/null || echo "OK")
+    if [ "$STATE" = "NEEDS_RETRY" ]; then
+      ERRORS+=("$(basename "$TRACE") exhausted without retry — must retry before proceeding")
+    fi
+  done
+}
+
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
     # Phase 2 gate: Phase 1 traces must exist
@@ -98,6 +120,12 @@ case "$SUBAGENT_TYPE" in
         fi
       done
     fi
+    ;;
+
+  ux-journeyer-post-design)
+    # When spawning ux-journeyer after design-critic, check design-critic retry complete
+    check_tier1_retry_complete "design-critic-*" "$TRACES_DIR"
+    check_tier1_retry_complete "design-critic" "$TRACES_DIR"
     ;;
 
   security-fixer)
@@ -121,6 +149,8 @@ case "$SUBAGENT_TYPE" in
         fi
       done
     fi
+    # Check ux-journeyer retry complete before security-fixer
+    check_tier1_retry_complete "ux-journeyer" "$TRACES_DIR"
     if [[ "$SCOPE" == "security" ]]; then
       if [[ ! -f "$TRACES_DIR/behavior-verifier.json" ]]; then
         ERRORS+=("behavior-verifier.json trace missing — Phase 1 agent incomplete (scope=$SCOPE)")
