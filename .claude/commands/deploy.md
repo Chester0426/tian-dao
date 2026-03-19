@@ -76,7 +76,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
      github → github.com/settings/developers, apple → developer.apple.com/account/resources/authkeys,
      discord → discord.com/developers/applications, gitlab → gitlab.com/-/user_settings/applications
    - Store credentials in memory (never in files — secrets go to Management API only)
-6. **External service credentials**: Read `.env.example`, collect env vars not handled by stack categories. For each external service, use CLI status from Step 0.7:
+6. **External service credentials**: Read `.env.example`, collect env vars not handled by stack categories. For each external service, use CLI status from Step 0.10:
    - **Auto via CLI** — installed + authenticated → will auto-provision in Step 5b
    - **Manual (CLI available)** — CLI exists but not installed/authed → user can install to enable auto
    - **Manual (no CLI)** — no CLI for this service → web dashboard
@@ -202,7 +202,7 @@ Determine which agents to launch based on experiment.yaml stack (all use
 - **Agent A** (Supabase Auth): spawn if `stack.auth: supabase` AND `stack.database: supabase`
 - **Agent B** (Stripe Webhook): spawn if `stack.payment: stripe` AND Stripe CLI is available
 - **Agent C** (Analytics Dashboard): spawn if `stack.analytics: posthog`
-- **Agent D** (External Services): spawn if any external stack files exist (Step 0.8 found services)
+- **Agent D** (External Services): spawn if any external stack files exist (Step 0.10 found services)
 
 Launch all applicable agents **simultaneously** using parallel Agent tool calls. Each agent returns a result object: `{status, message, env_vars_added, ...}`.
 

@@ -37,6 +37,8 @@ checkpoint without re-deriving classification or stack.
 - **Partial state scenarios:**
   | Failed at | Resources exist | Recovery |
   |-----------|----------------|----------|
+  | Step 0.6 (hosting auth) | None | Run the `auth_fix` command from the hosting stack file. If interactive login fails (CI/CD): set the hosting provider's auth token as an env var (see hosting stack file's Deploy Interface > Prerequisites for token env var name). Then re-run `/deploy`. |
+  | Step 0.7 (database auth) | None | Run the `auth_fix` command from the database stack file. If interactive login fails (CI/CD): set the database provider's auth token as an env var (see database stack file's Deploy Interface > Prerequisites for token env var name). Then re-run `/deploy`. |
   | Step 3 (database) | Database project | Re-run `/deploy` — Step 3 checks for existing project |
   | Step 4 (hosting) | Database + hosting project | Re-run `/deploy` — Step 4 is idempotent (vercel link reuses existing) |
   | Step 4.4 (env vars) | DB + hosting (no env vars) | Re-run `/deploy` — env vars use upsert semantics |

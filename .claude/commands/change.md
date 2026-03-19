@@ -121,7 +121,7 @@ State: "Verification scope: **[scope]**"
 
 - If `.claude/current-plan.md` exists and the current branch starts with `change/`:
   1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
-     - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter
+     - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter. If parsing fails (invalid YAML or missing required fields): stop — "Plan file has corrupted frontmatter. Delete `.claude/current-plan.md` and re-run `/change` to start fresh."
      - Use these values directly — do NOT re-classify or re-resolve stack
      - Read archetype file and stack files using frontmatter values
      - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
@@ -133,6 +133,10 @@ State: "Verification scope: **[scope]**"
        - `phase2-step8` → Step 8 (verification done, commit/PR)
      - Tell user: "Resuming from [checkpoint]. Type: [type], Scope: [scope]."
   2. If no frontmatter (old format): fall back to current behavior — skip Phase 1, jump to Step 5.
+- Else if `.claude/current-plan.md` exists but the current branch does NOT start with `change/`:
+  - Read the plan's `branch` field from frontmatter (if present)
+  - Tell the user: "Found a prior `/change` plan (`.claude/current-plan.md`) but you're on `<current-branch>`, not a `change/` branch. Options:\n  1. Resume on the saved branch: `git checkout <saved-branch>` then re-run `/change`\n  2. Start fresh: delete the plan (`rm .claude/current-plan.md`) and re-run `/change`"
+  - Stop — do NOT proceed until the user chooses.
 > **If resuming from a failed /change:** see `.claude/patterns/recovery.md`. The plan in `.claude/current-plan.md` persists across sessions.
 - If the change will add any new category to experiment.yaml `stack`: read the archetype file's `excluded_stacks` list. If the new category appears in `excluded_stacks`, stop: "The `<archetype>` archetype excludes the `<category>` stack. You cannot add `<category>: <value>` to this project."
 - For analytics changes: verify the analytics library file exists (see analytics stack file for expected path). If it doesn't, stop and tell the user: "Analytics library not found. Run `/bootstrap` first."

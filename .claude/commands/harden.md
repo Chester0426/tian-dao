@@ -26,16 +26,16 @@ Transition this MVP to production quality mode: $ARGUMENTS
 - If `quality: production` already set in experiment.yaml AND no `$ARGUMENTS`: stop — "Already in production mode. Use `/harden <module>` to harden a specific module, or `/change` for new features."
 - If `.claude/current-plan.md` exists AND the current branch starts with `chore/harden`:
   1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
-     - Parse `archetype`, `stack`, `checkpoint`, and `modules` from frontmatter
+     - Parse `archetype`, `stack`, `checkpoint`, and `modules` from frontmatter. If parsing fails (invalid YAML or missing required fields): stop — "Plan file has corrupted frontmatter. Delete `.claude/current-plan.md` and re-run `/harden` to start fresh."
      - Use these values directly — do NOT re-scan or re-classify
      - Read all files listed in `context_files` to restore source-of-truth context. If a listed file no longer exists, skip it and warn the user.
      - Resume at the step indicated by `checkpoint`:
        - `step2-approval` → Step 2 (plan ready, waiting for approval)
        - `step3-setup` → Step 3.1 (branch + config setup)
        - `step3-module-N` → Step 3.4 at module N (skip completed modules)
-       - `step3-reconcile` → Step 3.5 (all modules done, reconciliation)
-       - `step3-verify` → Step 3.7 (run /verify)
-       - `step3-pr` → Step 3.8 (commit/push/PR)
+       - `step3-reconcile` → Step 3.6 (all modules done, reconciliation)
+       - `step3-verify` → Step 3.8 (run /verify)
+       - `step3-pr` → Step 3.9 (commit/push/PR)
      - Tell user: "Resuming /harden from [checkpoint]. [M of N] modules completed.\n  Done: [list completed module names]. Remaining: [list remaining module names].\n  Do NOT re-run completed modules."
   2. If no frontmatter (old format): fall back — scan for CRITICAL modules without test files and proceed from Step 3.4.
 - If on a `chore/harden-*` branch with existing specification tests but NO `.claude/current-plan.md`: a previous `/harden` may have partially completed. Tell the user: "Found existing hardening work on this branch. Scanning for modules that still need tests..." Then scan for CRITICAL modules without test files and proceed from Step 3.4.
@@ -98,6 +98,18 @@ Transition this MVP to production quality mode: $ARGUMENTS
 - experiment.yaml: add quality: production
 - experiment.yaml: add stack.testing if absent
 ```
+
+If K (untested-critical modules) is 0: replace the plan prompt with:
+
+> No critical untested modules found — all critical modules already have tests.
+> Options:
+> 1. **proceed** — set `quality: production` in experiment.yaml (enables TDD for future /change runs)
+> 2. **harden on-touch** — also add specification tests to the On-Touch modules listed above
+> 3. Or run `/change` to continue building features — they'll use TDD once production quality is set
+
+Wait for user choice. If "proceed": skip Step 3 module loop (no modules to harden), execute Steps 3.1–3.3 (branch, config, testing setup) then jump directly to Steps 3.7–3.9 (ON-TOUCH, verify, PR). When saving the plan frontmatter, set `checkpoint: step3-reconcile` (not `step3-module-1`, since there are no modules — reconciliation is a no-op for K=0, then execution proceeds to ON-TOUCH, verify, PR). If "harden on-touch": promote On-Touch modules to the Will Harden section, re-present the plan with those modules, and wait for approval.
+
+Otherwise (K > 0), present the standard prompt:
 
 > Plan ready. How would you like to proceed?
 > 1. **approve** — continue implementation now
