@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 20
+maxTurns: 50
 ---
 
 # Spec Reviewer
@@ -37,7 +37,8 @@ If code is ugly but spec-complete, that's a PASS. If code is beautiful but missi
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/spec-reviewer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/spec-reviewer.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -133,7 +134,8 @@ is a FAIL — report the missing entry and behavior ID.
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["S1_features","S2_pages","S3_analytics","S4_golden_path","S5_system","S6_plan","S7_tdd","S8_process"]}' > .claude/agent-traces/spec-reviewer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"spec-reviewer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["S1_features","S2_pages","S3_analytics","S4_golden_path","S5_system","S6_plan","S7_tdd","S8_process"],"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/spec-reviewer.json
 ```
 
 Replace `<verdict>` with your final verdict: `"PASS"` or `"FAIL"`.

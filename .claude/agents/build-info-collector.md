@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 10
+maxTurns: 15
 ---
 
 # Build Info Collector
@@ -24,7 +24,8 @@ You are a forensic data extractor. Your job is surgical precision — capture th
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/build-info-collector.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/build-info-collector.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -65,7 +66,8 @@ Return one of:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["diff_collected","summaries_written","template_files_listed"],"files_collected":<N>}' > .claude/agent-traces/build-info-collector.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"build-info-collector","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["diff_collected","summaries_written","template_files_listed"],"files_collected":<N>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/build-info-collector.json
 ```
 
 Replace `<verdict>` with `"collected"` if fixes existed, or `"no-fixes"` if none.

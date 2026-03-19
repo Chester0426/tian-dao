@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 30
+maxTurns: 60
 ---
 
 # Behavior Verifier
@@ -92,7 +92,8 @@ Read and follow `.claude/procedures/behavior-verifier.md` for the archetype-spec
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/behavior-verifier.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/behavior-verifier.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -199,7 +200,8 @@ If any FAIL:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["state_model","happy_path","error_path","system_smoke","state_continuity"],"tests_run":<N>,"tests_passed":<M>}' > .claude/agent-traces/behavior-verifier.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"behavior-verifier","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["state_model","happy_path","error_path","system_smoke","state_continuity"],"tests_run":<N>,"tests_passed":<M>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/behavior-verifier.json
 ```
 
 Replace `<verdict>` with your overall verdict: `"pass"`, `"pass with warnings"`, or `"FAIL"`.

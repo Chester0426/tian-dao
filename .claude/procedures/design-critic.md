@@ -11,20 +11,23 @@ Run `npx playwright --version`. If it fails, return:
 
 Follow the rebuild procedure from `.claude/patterns/visual-review.md` (Section 1b).
 
-### 3. Start Production Server
+### 3. Start Production Server (or use provided base_url)
+
+If a `base_url` was provided in the spawn prompt, skip server start and use that URL directly.
+Otherwise, start your own server:
 
 ```bash
 DEMO_MODE=true NEXT_PUBLIC_DEMO_MODE=true npm run start -- -p 3099 &
 ```
 
-Poll `http://localhost:3099` until it responds (max 15 seconds, then abort).
+Poll the base URL (either provided or `http://localhost:3099`) until it responds (max 15 seconds, then abort).
 
 ### 4. Screenshot All Pages
 
 Read `experiment/experiment.yaml` to get the list of pages and their routes. Write a small
 inline Node.js script using Playwright API to:
 - Launch Chromium (headless)
-- Visit each route at `http://localhost:3099`
+- Visit each route at the base URL (provided `base_url` or `http://localhost:3099`)
 - Wait for network idle
 - Take a full-page screenshot at **1280x800** viewport (desktop)
 - Save to `/tmp/visual-review/<page-name>.png`
@@ -117,7 +120,7 @@ For any section rated below 8/10 in Layer 2, or any Layer 1/Layer 3 failure:
 4. Re-screenshot the fixed page
 5. Verify improvement with the Read tool
 
-After fixing sections on a page, re-screenshot the entire page once and re-rate all fixed sections from that screenshot. If any fixed section is still < 8, try one more fix (max 2 fix attempts per section, matching the security-fixer re-check pattern). Budget is 70 turns total; reserve ~15 turns for re-rate verification. If remaining turns < 10, stop fixing and write the trace immediately with verdict `"unresolved"`.
+After fixing sections on a page, re-screenshot the entire page once and re-rate all fixed sections from that screenshot. If any fixed section is still < 8, try one more fix (max 2 fix attempts per section, matching the security-fixer re-check pattern). Budget is 50 turns total; reserve ~10 turns for re-rate verification. If remaining turns < 10, stop fixing and write the trace immediately with verdict `"unresolved"`.
 
 After all fixes are complete, save current screenshots as the new baseline:
 
@@ -130,8 +133,15 @@ cp /tmp/visual-review/*.png .verify-baseline/
 
 ### 7. Cleanup
 
+If you started your own server (no `base_url` was provided), kill it:
+
 ```bash
 kill %1 2>/dev/null || true
+```
+
+Clean up screenshots:
+
+```bash
 rm -rf /tmp/visual-review
 ```
 

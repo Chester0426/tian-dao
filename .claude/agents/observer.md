@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 20
+maxTurns: 35
 ---
 
 # Observer
@@ -24,7 +24,8 @@ You are a fresh agent with **NO project context**. You received a diff, fix summ
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"observer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/observer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"observer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/observer.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -118,7 +119,8 @@ Return one of:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"observer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["prerequisites","fix_evaluation","redaction","dedup","issue_filing"],"fixes_evaluated":<N>}' > .claude/agent-traces/observer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"observer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["prerequisites","fix_evaluation","redaction","dedup","issue_filing"],"fixes_evaluated":<N>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/observer.json
 ```
 
 Replace `<verdict>` with `"filed"`, `"commented"`, `"no observations"`, or `"prerequisite-unavailable"`.

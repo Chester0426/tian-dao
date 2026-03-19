@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 25
+maxTurns: 50
 ---
 
 # Security Attacker
@@ -34,7 +34,8 @@ Read `experiment/experiment.yaml` to determine the archetype (`type` field, defa
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-attacker","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/security-attacker.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"security-attacker","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-attacker.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -103,7 +104,8 @@ If no issues found: `"Attacker: no adversarial issues found."`
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-attacker","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["A1_validation_bypass","A2_access_control","A3_injection","A4_info_leakage","A5_auth_weakness"],"findings_count":<N>}' > .claude/agent-traces/security-attacker.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"security-attacker","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["A1_validation_bypass","A2_access_control","A3_injection","A4_info_leakage","A5_auth_weakness"],"findings_count":<N>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-attacker.json
 ```
 
 Replace `<verdict>` with `"no issues"` or `"N findings"` with the count.

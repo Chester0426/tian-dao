@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 20
+maxTurns: 40
 ---
 
 # Accessibility Scanner
@@ -24,7 +24,8 @@ You are an accessibility enforcer. Every WCAG violation you find is a real perso
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/accessibility-scanner.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/accessibility-scanner.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -73,7 +74,8 @@ If no issues found:
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["axe_scan","tab_order"],"pages_scanned":<N>}' > .claude/agent-traces/accessibility-scanner.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["axe_scan","tab_order"],"pages_scanned":<N>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/accessibility-scanner.json
 ```
 
 Replace `<verdict>` with `"pass"` if no issues, or `"N issues"` with the count.

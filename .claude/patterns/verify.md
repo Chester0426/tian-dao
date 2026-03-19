@@ -42,31 +42,39 @@ Build & Lint Loop, E2E Tests, Auto-Observe, and Save Notable Patterns ALWAYS run
 
 **ACTIONS:**
 
-1. Read context files:
+1. Clean trace directory (removes stale traces from prior runs):
+   ```bash
+   rm -rf .claude/agent-traces && mkdir -p .claude/agent-traces
+   ```
+
+2. Read context files:
    - Read `experiment/experiment.yaml` — understand pages (from golden_path), behaviors, stack
    - Read `experiment/EVENTS.yaml` — understand tracked events
    - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
    - If in bootstrap-verify or change-verify mode: read all files listed in current-plan.md `context_files`
    - If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`
 
-2. Write `.claude/verify-context.json`:
+3. Write `.claude/verify-context.json` (includes `run_id` for trace freshness validation):
    ```bash
-   cat > .claude/verify-context.json << 'CTXEOF'
-   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","timestamp":"<ISO 8601>"}
+   cat > .claude/verify-context.json << CTXEOF
+   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
    CTXEOF
    ```
 
-3. Create `.claude/fix-log.md` on disk:
+4. Create `.claude/fix-log.md` on disk:
    ```bash
    echo '# Error Fix Log' > .claude/fix-log.md
    ```
 
-4. Create trace directory:
-   ```bash
-   mkdir -p .claude/agent-traces
-   ```
+5. Extract context digest (in-memory, passed to agents in STATE 2/3):
+   - Pages: list page names and routes from `golden_path`
+   - Behavior IDs: list all behavior IDs from `behaviors`
+   - Event names: list event names from `experiment/EVENTS.yaml`
+   - Source file list: `find src/ -type f \( -name '*.ts' -o -name '*.tsx' \) | head -100`
+   - PR changed files: `git diff --name-only $(git merge-base HEAD main)...HEAD`
+   - Golden path steps: ordered list of steps from `golden_path`
 
-**POSTCONDITIONS:** All 3 artifacts exist on disk.
+**POSTCONDITIONS:** All 4 artifacts exist on disk (agent-traces dir, verify-context.json, fix-log.md). Context digest is available in-memory.
 
 **VERIFY:**
 ```bash
@@ -182,6 +190,15 @@ Pass this list to each agent that has Edit/Write permissions (design-critic, ux-
 
 Read-only agents (observer, build-info-collector, behavior-verifier, security-attacker, security-defender, spec-reviewer, accessibility-scanner, performance-reporter) are unaffected.
 
+### Agent Efficiency Directives
+
+Include these directives in every agent spawn prompt (Phase 1 and Phase 2):
+
+1. **Batch searches**: Use Grep with glob patterns (e.g., `glob: "src/**/*.tsx"`) instead of reading files one by one.
+2. **PR-changed files first**: Check files from `git diff --name-only $(git merge-base HEAD main)...HEAD` before scanning the full source tree.
+3. **Context digest**: Include the context digest summary (pages, behavior IDs, event names, golden_path steps) extracted in STATE 0 so agents don't need to re-read experiment.yaml.
+4. **Pre-existing changes**: Edit-capable agents (design-critic, ux-journeyer, security-fixer) should ignore pre-existing uncommitted changes that are outside the PR file boundary.
+
 ### ACTIONS — Spawn Phase 1 agents
 
 > **EXPLICIT FOREGROUND INSTRUCTION**: Spawn all Phase 1 agents as parallel foreground Agent tool calls in a **SINGLE message**. Do NOT use `run_in_background: true`. The platform blocks you until ALL return. This is the enforcement mechanism — background agents can be forgotten; foreground agents cannot.
@@ -231,6 +248,7 @@ After each agent returns, check `.claude/agent-traces/<name>.json`:
 | State | Condition | Meaning |
 |-------|-----------|---------|
 | 1 | File does not exist | Agent never started |
+| 1 | File exists but `run_id` doesn't match verify-context.json | Stale trace from prior run |
 | 2 | File exists, `"status":"started"`, no `"verdict"` | Agent exhausted turns |
 | 3 | File exists, has `"verdict"` | Agent completed |
 
@@ -239,14 +257,27 @@ Detection command:
 verdict=$(python3 -c "
 import json, os
 f = '.claude/agent-traces/<name>.json'
+ctx_f = '.claude/verify-context.json'
 if not os.path.exists(f):
     print('NO_FILE')
 else:
     d = json.load(open(f))
-    print(d.get('verdict', 'MISSING'))
+    # Check run_id freshness
+    trace_run_id = d.get('run_id', '')
+    if trace_run_id and os.path.exists(ctx_f):
+        ctx = json.load(open(ctx_f))
+        ctx_run_id = ctx.get('run_id', '')
+        if ctx_run_id and trace_run_id != ctx_run_id:
+            print('STALE')  # Trace from a prior run
+        else:
+            print(d.get('verdict', 'MISSING'))
+    else:
+        # No run_id in trace — backward compat, treat as current
+        print(d.get('verdict', 'MISSING'))
 " 2>/dev/null || echo "NO_FILE")
 ```
 - `NO_FILE` → state 1 (agent never started)
+- `STALE` → state 1 (trace from prior run — treat as if agent never started)
 - `MISSING` → state 2 (agent exhausted turns — started trace only)
 - Any other value → state 3 (agent completed normally)
 
@@ -334,84 +365,47 @@ Spawn edit-capable agents ONE AT A TIME. Each must complete and pass `npm run bu
 
 After each edit-capable agent completes, read its completion report and append its fixes to `.claude/fix-log.md`.
 
-### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
+### design-critic (if scope is `full` or `visual`, AND archetype is `web-app`) — PARALLEL PER PAGE
 
-#### Determine batching
+#### Stage 1: Per-page review (parallel)
 
-Read `golden_path` pages from experiment.yaml and count them.
+Read `golden_path` pages from experiment.yaml and collect page names + routes.
 
-- **Pages ≤ 4**: Single design-critic (standard behavior) — spawn one `design-critic` agent with all pages.
-- **Pages > 4**: Batched parallel execution (see below).
+Spawn **one design-critic agent per page**, ALL as parallel foreground Agent calls in a **SINGLE message**. Each agent prompt includes:
+- Page name and route: "Review SINGLE page: `<page_name>` at route `<route>`."
+- `base_url`: `http://localhost:3000` (from Dev Server Preamble)
+- `run_id`: from verify-context.json
+- PR file boundary (filtered to that page's files)
+- Context digest summary
+- Instruction to write trace as `design-critic-<page_name>.json`
 
-#### Standard execution (pages ≤ 4)
+**Wait for all per-page agents to complete.**
 
-Spawn the `design-critic` agent (`subagent_type: design-critic`). Pass PR file boundary. **Wait for completion.**
-After completion: use Trace State Detection to check `.claude/agent-traces/design-critic.json`. If State 2 (exhausted), follow Exhaustion Protocol Tier 1. If State 1 (never started) and agent returned output, write a recovery trace with `"recovery":true`.
+After completion: use Trace State Detection to check each `design-critic-<page_name>.json`. If any agent is State 2 (exhausted), follow Exhaustion Protocol Tier 1 with reduced scope: "Focus on this page only." If State 1 (never started) and agent returned output, write a recovery trace.
+
+#### Stage 2: Consistency check + merge
+
+Spawn the `design-consistency-checker` agent (`subagent_type: design-consistency-checker`). Pass:
+- `base_url`: `http://localhost:3000`
+- `run_id`: from verify-context.json
+- PR file boundary
+- List of pages reviewed
+
+**Wait for completion.** The consistency checker reads all per-page traces, checks cross-page consistency, fixes inconsistencies, and writes the merged `design-critic.json`.
+
 Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 
-#### Batched parallel execution (pages > 4)
-
-1. **Split pages** into batches of ≤ 4 pages each.
-
-2. **Spawn one design-critic per batch IN PARALLEL** as foreground Agent calls in a single message. Each agent prompt includes:
-   - The batch's assigned pages: "You may ONLY edit files in `src/app/<assigned-pages>/`. Record shared component issues in trace `shared_issues` array but do NOT edit them."
-   - PR file boundary (filtered to batch pages)
-   - Instruction to write trace as `design-critic-N.json` (where N is batch index, 0-based)
-
-3. **Wait for all batch agents to complete.**
-
-4. **Shared issues pass**: After all batches complete, check each batch trace for `shared_issues` array. If any batch has non-empty `shared_issues`:
-   - Spawn one more design-critic for shared component files only
-   - Prompt: "Fix shared component issues only. Files: [list from shared_issues]. Write trace as `design-critic-shared.json`."
-
-5. **Merge batch traces** into `design-critic.json`:
-   ```bash
-   python3 -c "
-   import json, glob, os
-   batches = sorted(glob.glob('.claude/agent-traces/design-critic-*.json'))
-   if not batches:
-       exit(1)
-   merged = {'agent': 'design-critic', 'pages_reviewed': 0, 'min_score': 10, 'verdict': 'pass',
-             'checks_performed': [], 'batches': len(batches), 'shared_issues_fixed': 0}
-   worst_verdicts = {'unresolved': 3, 'fixed': 2, 'pass': 1}
-   for b in batches:
-       d = json.load(open(b))
-       merged['pages_reviewed'] += d.get('pages_reviewed', 0)
-       merged['min_score'] = min(merged['min_score'], d.get('min_score', 10))
-       merged['checks_performed'].extend(d.get('checks_performed', []))
-       bv = d.get('verdict', 'pass')
-       if worst_verdicts.get(bv, 0) > worst_verdicts.get(merged['verdict'], 0):
-           merged['verdict'] = bv
-       if 'design-critic-shared' in b:
-           merged['shared_issues_fixed'] = len(d.get('checks_performed', []))
-       # Copy optional fields from worst batch
-       if bv == merged['verdict']:
-           for key in ['unresolved_sections', 'pre_existing_debt', 'fixes_applied']:
-               if key in d:
-                   merged[key] = merged.get(key, 0) + d[key] if isinstance(d[key], int) else d[key]
-   merged['timestamp'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
-   json.dump(merged, open('.claude/agent-traces/design-critic.json', 'w'))
-   # Clean up batch traces
-   for b in batches:
-       os.remove(b)
-   "
-   ```
-
-6. **Build check** after merge: run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
-
 > **Downstream compatibility**: phase-transition-gate.sh and gate-keeper BG3 check the merged `design-critic.json` — no changes needed. `agents_completed` still lists `"design-critic"` (singular).
->
-> **Future**: Same batching pattern may apply to ux-journeyer (split by journey) if needed.
 
 #### Lead-side validation (design-critic)
 
-1. Read `.claude/agent-traces/design-critic.json` trace (merged if batched).
+1. Read `.claude/agent-traces/design-critic.json` trace (merged by consistency checker).
 2. Verify `pages_reviewed` >= number of pages in experiment.yaml `golden_path`.
 3. If `verdict` == `"unresolved"`, this is a **hard gate failure** — design quality threshold (8/10) was not met after 2 fix attempts. Skip STATEs 4-6 but still write verify-report.md (STATE 7) recording the failure. Report failure to user with the `unresolved_sections` count.
 4. If `min_score` < 8 and `verdict` == `"fixed"`, note in verify report that threshold was met after fixes.
 5. If `pre_existing_debt` is non-empty, note pre-existing quality debt in verify report (informational, does not block).
-6. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
-7. If batched: note `batches` count and `shared_issues_fixed` count in verify report.
+6. Extract Fix Summaries from per-page agent return messages. Append each fix to `.claude/fix-log.md` with the prefix `Fix (design-critic):`.
+7. Note `pages` count and `consistency_fixes` count in verify report.
 
 ### ux-journeyer (if scope is `full` or `visual`, AND archetype is `web-app`) — SERIAL
 

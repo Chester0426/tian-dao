@@ -52,7 +52,7 @@ checkpoint without re-deriving classification or stack.
 ### /verify failure
 - **State saved:** Fix attempts on current branch, `.claude/agent-traces/` (partial trace artifacts)
 - **Recovery:** Re-run `/verify` — starts fresh test run. If resuming after bootstrap (`current-plan.md` has `checkpoint: awaiting-verify`), `/verify` detects bootstrap-verify mode and runs full verification + PR creation.
-- **Manual cleanup:** Delete `.claude/agent-traces/` to clear stale traces before re-running. Verify itself does not modify infrastructure.
+- **Manual cleanup:** Trace cleanup is now automatic in STATE 0 (`rm -rf .claude/agent-traces && mkdir -p .claude/agent-traces`). No manual cleanup needed. Verify itself does not modify infrastructure.
 
 ### /distribute failure
 - **State saved:** `experiment/ads.yaml` (campaign config)

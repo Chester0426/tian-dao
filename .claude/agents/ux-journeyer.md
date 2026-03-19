@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 45
+maxTurns: 90
 memory: project
 ---
 
@@ -53,7 +53,8 @@ Read and follow `.claude/procedures/ux-journeyer.md` for the full step-by-step p
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/ux-journeyer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/ux-journeyer.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -94,7 +95,8 @@ Clicks-to-value: N (target: ≤ 3)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>,"clicks_to_value":<C>,"dead_ends":<D>,"golden_path_steps":<G>,"coverage_pct":<P>,"fixes_applied":<F>,"unresolved_dead_ends":<UDE>}' > .claude/agent-traces/ux-journeyer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>,"clicks_to_value":<C>,"dead_ends":<D>,"golden_path_steps":<G>,"coverage_pct":<P>,"fixes_applied":<F>,"unresolved_dead_ends":<UDE>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/ux-journeyer.json
 ```
 
 Replace placeholders with actual values:

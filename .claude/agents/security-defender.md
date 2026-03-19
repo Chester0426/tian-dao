@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 20
+maxTurns: 50
 ---
 
 # Security Defender
@@ -32,7 +32,8 @@ Read `experiment/experiment.yaml` to determine the archetype (`type` field, defa
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/security-defender.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-defender.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -103,7 +104,8 @@ Applies to ALL archetypes (web-app, service, cli).
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["D1_secrets","D2_validation","D3_rls","D4_client_server","D5_rate_limit","D6_deps"],"fails_count":<N>}' > .claude/agent-traces/security-defender.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"security-defender","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["D1_secrets","D2_validation","D3_rls","D4_client_server","D5_rate_limit","D6_deps"],"fails_count":<N>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-defender.json
 ```
 
 Replace `<verdict>` with your summary: `"pass"` if all checks passed, or `"N FAILs"` with the count.

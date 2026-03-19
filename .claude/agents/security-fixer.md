@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 40
+maxTurns: 70
 memory: project
 ---
 
@@ -41,7 +41,8 @@ If any Critical/High finding or Defender FAIL remains unfixed after 2 fix cycles
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/security-fixer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-fixer.json
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -126,7 +127,8 @@ Status values: **fixed** (resolved), **unfixed** (could not resolve in 2 cycles)
 After completing all work, write a trace file:
 
 ```bash
-mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["fix_code","rebuild","recheck","collect_changes","generate_tables"],"issues_fixed":<N>,"unresolved_critical":<UC>}' > .claude/agent-traces/security-fixer.json
+RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
+mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["fix_code","rebuild","recheck","collect_changes","generate_tables"],"issues_fixed":<N>,"unresolved_critical":<UC>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-fixer.json
 ```
 
 Replace placeholders with actual values:
