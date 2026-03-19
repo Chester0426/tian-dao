@@ -2763,6 +2763,20 @@ def main() -> int:
                     f"contain variant validation logic (expected mention of variants "
                     f"with present/list/slug/at least 2)"
                 )
+            # Sub-check: variants must be restricted to web-app archetype
+            has_archetype_guard = bool(
+                re.search(
+                    r"variants?.*archetype.*(?:NOT|not|!=).*web-app|web-app.*only.*variants?",
+                    validate_text,
+                    re.IGNORECASE,
+                )
+            )
+            if not has_archetype_guard:
+                error(
+                    f"[44] {bootstrap_path_44}: Step 3 (Validate experiment.yaml) does not "
+                    f"restrict variants to web-app archetype (expected archetype guard "
+                    f"near variants validation)"
+                )
         else:
             error(
                 f"[44] {bootstrap_path_44}: could not find 'Validate experiment.yaml' "
