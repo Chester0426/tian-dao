@@ -27,6 +27,7 @@ You wire the backend: API routes with input validation, database schema with acc
 - Do NOT run Step 8 (verify.md) or Step 9 (PR) — the bootstrap lead handles those
 - Do NOT recreate packages, library files, or pages — they already exist
 - Every API route: zod input validation, proper HTTP status codes, rate limiting on auth/payment routes
+- If a file you need to create already exists: stop and report the conflict. Do not overwrite.
 - Database: RLS policies on all tables, never trust the client
 - Webhook handlers: resolve all TODO comments (especially payment status updates)
 - Tests are created but NOT run during bootstrap

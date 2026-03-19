@@ -654,6 +654,22 @@ Check off in `.claude/current-plan.md`: `- [x] scaffold-init completed`
 
 Phase A runs AFTER scaffold-init completes (STATE 10) to ensure design tokens exist.
 
+After creating all Phase A files, write the Phase A sentinel:
+```bash
+mkdir -p .claude/gate-verdicts
+cat > .claude/gate-verdicts/phase-a-sentinel.json << 'PAEOF'
+{"phase_a_complete": true, "timestamp": "<ISO 8601>", "files": ["src/app/layout.tsx", "src/app/not-found.tsx", "src/app/error.tsx"]}
+PAEOF
+```
+
+VERIFY Phase A before proceeding to Phase B:
+- `test -f src/app/layout.tsx`
+- `test -f src/app/not-found.tsx`
+- `test -f src/app/error.tsx`
+- `test -f .claude/gate-verdicts/phase-a-sentinel.json`
+
+**DO NOT proceed to Phase B until all VERIFY checks pass.**
+
 **Phase B (parallel fan-out):** Spawn one `scaffold-pages` agent per golden_path page (excluding landing — handled by scaffold-landing). All in a SINGLE parallel message alongside scaffold-libs, scaffold-externals, scaffold-landing.
 
 Each per-page agent prompt:
@@ -695,6 +711,8 @@ Spawn the following subagents simultaneously using parallel Agent tool calls:
      `.claude/current-plan.md`, all stack files
   3. Follow CLAUDE.md Rules 3, 4, 6, 7
 
+**Scope guard**: Enumerate the golden_path pages from experiment.yaml (excluding landing). Spawn agents for ONLY these pages -- no additional pages from any other source. If a page is not in golden_path, it is NOT built during bootstrap.
+
 **Per-page subagents (one per golden_path page, excluding landing):**
 - subagent_type: scaffold-pages
 - prompt per page: See scaffold-pages two-phase instructions above.
@@ -723,6 +741,14 @@ Spawn the following subagents simultaneously using parallel Agent tool calls:
   3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
 Wait for all subagents to return.
+
+**Post-fan-out trace verification** (before proceeding to trace merge):
+Verify each subagent produced its expected output:
+- `test -f .claude/agent-traces/scaffold-libs.json` (or agent reported completion with files list)
+- `test -f .claude/agent-traces/scaffold-pages-<page>.json` for each golden_path page
+- Landing subagent reported completion
+
+If any trace is missing or output was truncated: note the gap for STATE 13 to address.
 
 Check off in `.claude/current-plan.md` for each completed subagent:
 - `- [x] scaffold-libs completed`
@@ -785,6 +811,11 @@ feature would naturally appear (e.g., `src/app/dashboard/sms-fake-door.tsx`):
 - Shows a Dialog: "[Feature Name] is coming soon — we're building this now."
 - Import and render the Fake Door component in the parent page where the feature would naturally live
 - The component should look like a real feature entry point — not a placeholder or disabled button
+
+**Fake Door VERIFY**: For each Fake Door component created:
+- Confirm the file is in `src/app/<page>/` (NOT in `src/components/`)
+- Confirm the parent page imports and renders the component
+- If either check fails, move/fix the component immediately
 
 Check off in `.claude/current-plan.md`:
 - `- [x] Externals user decisions collected`
@@ -850,8 +881,7 @@ Run combined verification after all parallel subagents complete — these checks
 
 If any check fails: the bootstrap lead fixes directly (it has full file access
 as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.
-If still failing after 2 attempts: defer to lead's verify phase after wire
-completes.
+If still failing after 2 attempts: list all remaining errors and their file locations. Ask the user whether to (a) continue to wire phase and fix later, or (b) stop and investigate now.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-wire`.
 
