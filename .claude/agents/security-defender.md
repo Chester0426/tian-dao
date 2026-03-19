@@ -12,7 +12,7 @@ disallowedTools:
   - Write
   - NotebookEdit
   - Agent
-maxTurns: 50
+maxTurns: 200
 ---
 
 # Security Defender

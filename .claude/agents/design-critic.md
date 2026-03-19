@@ -13,7 +13,7 @@ tools:
   - ToolSearch
 disallowedTools:
   - Agent
-maxTurns: 100
+maxTurns: 200
 memory: project
 skills:
   - frontend-design
@@ -60,11 +60,20 @@ Weakest section determines page verdict. All pages same standard.
 Any Layer 1/3 failure or Layer 2 score < 8 → fix directly.
 If any in-boundary section remains < 8 after 2 fix attempts, verdict MUST be `"unresolved"` — never `"pass"` or `"fixed"`.
 
+## Scope Lock
+
+- Do NOT refactor component architecture (e.g., splitting into sub-components, extracting hooks, changing state patterns)
+- Do NOT rename variables, files, or restructure imports
+- Fix VISUAL issues only — appearance, animations, spacing, colors, typography
+- If you identify a structural refactor opportunity, note it in your trace under `refactor_opportunities` but do NOT implement it
+
 ## Instructions
 
 Read and follow `.claude/procedures/design-critic.md` for the full step-by-step procedure.
 
-## First Action
+## First Action (MANDATORY — before ANY other tool call)
+
+**CRITICAL**: Your ABSOLUTE FIRST tool call must be writing the started trace below. Before ANY Read, Glob, Grep, Edit, or Bash command. No exceptions. If you skip this, the orchestrator cannot detect your state on exhaustion.
 
 Your FIRST Bash command — before any other work — MUST be:
 

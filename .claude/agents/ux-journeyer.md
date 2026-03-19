@@ -11,7 +11,7 @@ tools:
   - Grep
 disallowedTools:
   - Agent
-maxTurns: 90
+maxTurns: 200
 memory: project
 ---
 
@@ -38,6 +38,12 @@ If a page is ugly but the CTA works and leads to the next step, that's a flow PA
 
 If any real (non-fake-door) dead end remains after fixes, verdict MUST be `"partial"` with `unresolved_dead_ends` > 0.
 
+## Fix Safety Rails
+
+- Before proceeding to the next fix, verify your JSX edits have correct syntax: matching open/close tags, all referenced variables defined, proper JSX expression closures
+- Fix at most **2 dead ends** per run. Report remaining dead ends in trace as `unresolved_dead_ends`
+- If remaining turns < 8, stop fixing and write the trace immediately with verdict `"partial"`
+
 ## Halt Conditions
 
 - Server crashes (500 errors on 3+ consecutive steps) → stop, report crash location
@@ -48,7 +54,9 @@ If any real (non-fake-door) dead end remains after fixes, verdict MUST be `"part
 
 Read and follow `.claude/procedures/ux-journeyer.md` for the full step-by-step procedure.
 
-## First Action
+## First Action (MANDATORY — before ANY other tool call)
+
+**CRITICAL**: Your ABSOLUTE FIRST tool call must be writing the started trace below. Before ANY Read, Glob, Grep, Edit, or Bash command. No exceptions. If you skip this, the orchestrator cannot detect your state on exhaustion.
 
 Your FIRST Bash command — before any other work — MUST be:
 
