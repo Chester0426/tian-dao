@@ -163,6 +163,7 @@ Read these two context files:
   - Verify `stack.auth` is also present. If not: stop — "OAuth providers require an auth system. Add `auth: supabase` to your experiment.yaml `stack` section."
   - Verify it is a non-empty list of strings. If empty: stop — "auth_providers is empty. Either add providers (e.g., `[google, github]`) or remove the field."
   - Warn (don't stop) for unrecognized slugs — Supabase may add new providers.
+- If `variants` is present in experiment.yaml and the archetype is NOT `web-app`: stop — "Variants (A/B landing page testing) are only supported for the web-app archetype. Remove the `variants` field from experiment.yaml, or switch to `type: web-app`."
 - If `variants` is present in experiment.yaml, validate the variants list:
   - Must be a list with at least 2 entries (testing 1 variant = no variants — tell the user to remove the field)
   - Each variant must have: `slug`, `headline`, `subheadline`, `cta`, `pain_points` (all non-empty)
@@ -195,7 +196,7 @@ Read these two context files:
 
 **ACTIONS**
 
-Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG1 Validation Gate. Read experiment/experiment.yaml and verify: all required fields present and non-empty, name is lowercase-hyphen, no TODO values, archetype-specific field present, stack dependency rules (payment→auth+db, email→auth+db), quality:production→testing, variants structure if present."
+Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG1 Validation Gate. Read experiment/experiment.yaml and verify: all required fields present and non-empty, name is lowercase-hyphen, no TODO values, archetype-specific field present, stack dependency rules (payment→auth+db, email→auth+db), quality:production→testing, variants restricted to web-app archetype, variants structure if present."
 
 If gate-keeper returns BLOCK, stop and report — do NOT proceed until validation passes.
 
@@ -646,7 +647,9 @@ Check off in `.claude/current-plan.md`: `- [x] scaffold-init completed`
 
 #### scaffold-pages (two-phase)
 
-**Phase A (serial, before fan-out):** The lead (not a subagent) creates:
+**Phase A (serial, before fan-out, web-app only):** If the archetype is NOT `web-app`, skip Phase A entirely — service and CLI archetypes do not have an app shell. Proceed directly to Phase B.
+
+The lead (not a subagent) creates:
 - Root layout (`src/app/layout.tsx`) with font imports and globals.css
 - 404 page (`src/app/not-found.tsx`)
 - Error boundary (`src/app/error.tsx`)

@@ -1,10 +1,10 @@
 # Check Inventory
 
 Scannable reference listing all automated checks by name, grouped by validator.
-74 active checks consolidated into 70 inventory rows.
+75 active checks consolidated into 71 inventory rows.
 Checks 3 and 7 are archetype-aware — they read `required_experiment_fields` and `excluded_stacks` from archetype frontmatter.
 
-Last updated: 2026-03-03
+Last updated: 2026-03-20
 
 ## Validation philosophy
 
@@ -85,6 +85,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify production sections reference TDD | Production sections in procedure files must reference `tdd.md` or `patterns/tdd` |
 | Verify production sections reference implementer | Feature and Upgrade production sections must reference `implementer.md`, `agents/implementer`, or `implementer agent` |
 | Verify change production precondition checks testing | change.md `quality:production` block must validate `stack.testing` within nearby context |
+| Verify bootstrap validates variants structure and archetype | bootstrap.md Step 3 (Validate experiment.yaml) must contain variant validation logic (structure) and restrict variants to web-app archetype |
 | Verify agent tool consistency | implementer.md must have Edit/Write/Bash tools; spec-reviewer.md must not have Edit/Write and must disallow them |
 
 ## consistency-check.sh
