@@ -120,12 +120,11 @@ case "$SUBAGENT_TYPE" in
         fi
       done
     fi
-    ;;
-
-  ux-journeyer-post-design)
-    # When spawning ux-journeyer after design-critic, check design-critic retry complete
-    check_tier1_retry_complete "design-critic-*" "$TRACES_DIR"
-    check_tier1_retry_complete "design-critic" "$TRACES_DIR"
+    # When spawning ux-journeyer (not design-critic), check design-critic retry complete
+    if [[ "$SUBAGENT_TYPE" == "ux-journeyer" ]]; then
+      check_tier1_retry_complete "design-critic-*" "$TRACES_DIR"
+      check_tier1_retry_complete "design-critic" "$TRACES_DIR"
+    fi
     ;;
 
   security-fixer)

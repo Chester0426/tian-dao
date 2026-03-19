@@ -378,6 +378,7 @@ Only reached when:
 > 1. **Enable the campaign** — it was created in PAUSED status. After verifying conversion tracking, enable it in the ad platform dashboard.
 > 2. **Verify conversion tracking** by clicking your own ad and completing the activation flow — confirm the event appears in your analytics dashboard.
 > 3. **Monitor performance** — after the campaign runs for a few days, run `/iterate` to analyze your metrics and decide what to change next.
+> 4. **After `/iterate` feedback** — if `/iterate` recommends changes (e.g., improve landing page, reduce activation friction), run `/change` with the specific improvement. The campaign can keep running during changes — new visitors will see the updated page after you merge and deploy. If `/iterate` recommends revising targeting or budget, pause the campaign in the ad platform dashboard, update `experiment/ads.yaml`, re-run `/distribute`, then enable the new campaign.
 
 ## Do NOT
 
