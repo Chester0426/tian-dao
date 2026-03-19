@@ -103,6 +103,8 @@ for b in batches:
     if worst_verdicts.get(bv, 0) > worst_verdicts.get(merged['verdict'], 0):
         merged['verdict'] = bv
         merged['weakest_page'] = d.get('weakest_page', d.get('page', ''))
+    if d.get('retry_attempted'):
+        merged['retry_attempted'] = True
 merged['timestamp'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
 json.dump(merged, open('.claude/agent-traces/design-critic.json', 'w'))
 # Clean up per-page traces
