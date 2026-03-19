@@ -13,7 +13,7 @@ tools:
   - ToolSearch
 disallowedTools:
   - Agent
-maxTurns: 50
+maxTurns: 100
 memory: project
 skills:
   - frontend-design

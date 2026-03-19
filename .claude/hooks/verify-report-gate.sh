@@ -169,6 +169,45 @@ if [[ -f "$SF_TRACE" ]]; then
   fi
 fi
 
+# Check 12: agent_verdicts in report must match actual trace verdicts
+if [[ -d "$TRACE_DIR" && -n "$CONTENT" ]]; then
+  VERDICTS_MISMATCH=$(python3 -c "
+import json, glob, re, sys, os
+
+content = '''$CONTENT'''
+traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
+errors = []
+
+# Extract agent_verdicts from frontmatter
+match = re.search(r'agent_verdicts:\s*(.+)', content)
+if match:
+    try:
+        report_verdicts = json.loads(match.group(1).strip())
+        # Compare against actual traces
+        for name, report_verdict in report_verdicts.items():
+            trace_path = os.path.join(traces_dir, name + '.json')
+            if os.path.exists(trace_path):
+                try:
+                    trace = json.load(open(trace_path))
+                    trace_verdict = trace.get('verdict', 'missing')
+                    if str(report_verdict) != str(trace_verdict):
+                        errors.append(f'{name}: report={report_verdict}, trace={trace_verdict}')
+                except (json.JSONDecodeError, IOError):
+                    pass
+    except json.JSONDecodeError:
+        pass  # Can't parse agent_verdicts — fail open
+
+if errors:
+    print('FAIL:' + '; '.join(errors))
+else:
+    print('OK')
+" 2>/dev/null || echo "OK")
+  if [[ "$VERDICTS_MISMATCH" == FAIL:* ]]; then
+    MISMATCH_DETAIL="${VERDICTS_MISMATCH#FAIL:}"
+    ERRORS+=("agent_verdicts mismatch with traces: $MISMATCH_DETAIL")
+  fi
+fi
+
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")
