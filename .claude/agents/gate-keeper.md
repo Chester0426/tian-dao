@@ -201,6 +201,7 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 1. `src/lib/` contains ≥1 `.ts` file (scaffold-libs ran)
 2. `.claude/current-visual-brief.md` exists (scaffold-init ran)
 3. Archetype-specific: web-app → `src/app/layout.tsx` + each golden_path page; service → `src/app/api/` with route files; cli → `src/index.ts` + `src/commands/`
+3b. Page count scope guard (web-app only): count directories matching `src/app/*/page.tsx` — run `find src/app -mindepth 2 -name page.tsx | wc -l`. Read `experiment/experiment.yaml` `golden_path` and count unique pages (excluding landing). Add 1 if surface ≠ `none` (landing page adjustment). BLOCK if actual count > expected count — list the extra page directories: `find src/app -mindepth 2 -name page.tsx` and diff against golden_path list. Skip for service/cli archetypes.
 4. If `stack.analytics`: (a) grep `src/lib/analytics` for `PROJECT_NAME` and `PROJECT_OWNER` — neither must equal `"TODO"`; (b) read `experiment/EVENTS.yaml`, for each event filtered by `requires` (match stack) and `archetypes` (match type), grep event name in `src/` — BLOCK if any missing; (c) grep `src/app/*/page.tsx` for raw `track(` calls not from typed wrappers — BLOCK if found (pages must use typed wrappers from `@/lib/events`, not raw `track()`)
 5. If surface ≠ `none`: landing page file exists
 6. `.claude/current-plan.md` frontmatter `checkpoint` is `phase2-scaffold` or later
@@ -221,6 +222,7 @@ Verify external dependency decisions were collected with user buy-in:
 5. `externals-decisions.json` `"timestamp"` is non-empty
 6. `.claude/current-plan.md` contains `[x] Externals user decisions collected`
 7. Fake Door integration: read `externals-decisions.json`. For each entry in `"fake_doors"` array (if non-empty): (a) `test -f src/app/<target_page>/<component_name>` — BLOCK if missing; (b) `grep "import.*<component_export_name>" src/app/<target_page>/page.tsx` — BLOCK if not imported; (c) `grep "<component_export_name>" src/app/<target_page>/page.tsx | grep -v "import"` — BLOCK if not rendered in JSX. Skip if `"fake_doors"` empty or absent.
+8. External stack file completeness: read `externals-decisions.json`. For each entry in `"decisions"` array where `"user_choice"` is one of `"Provide now"`, `"Provision at deploy"`, or `"Full Integration"`: run `test -f .claude/stacks/external/<service-slug>.md` where `<service-slug>` is the kebab-case `"service"` field. BLOCK if any expected stack file is missing — list missing files. Skip if `"has_externals"` is `false` or `"decisions"` is empty.
 
 ### BG3 Verification Gate
 

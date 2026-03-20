@@ -709,7 +709,17 @@ Check off in `.claude/current-plan.md`:
 - `- [x] scaffold-libs completed`
 - `- [x] scaffold-externals completed`
 
-**Phase B2 (pages + landing):** Only after B1 manifest verification passes. Spawn one `scaffold-pages` agent per golden_path page (excluding landing — handled by scaffold-landing). The bootstrap-agent-gate hook enforces this ordering: scaffold-pages and scaffold-landing are blocked until `.claude/agent-traces/scaffold-libs.json` exists with status "complete".
+**B1 type-check checkpoint** (mandatory — run regardless of `tsp_status`):
+Between B1 completion and B2 spawning, verify the lib files compile cleanly:
+1. Run `npx tsc --noEmit --project tsconfig.json`
+2. If type errors are found: fix them directly as the bootstrap lead (budget: 2 attempts).
+   After each fix, re-run `npx tsc --noEmit --project tsconfig.json` to verify.
+3. If errors persist after 2 fix attempts: **STOP**. Do not spawn B2 agents.
+   Report to user: "Type errors in scaffold-libs output. Cannot proceed to page scaffold
+   — page agents would inherit broken types. Errors: [list errors]"
+   This prevents compounding type failures across the B2 fan-out.
+
+**Phase B2 (pages + landing):** Only after B1 manifest verification AND type-check checkpoint pass. Spawn one `scaffold-pages` agent per golden_path page (excluding landing — handled by scaffold-landing). The bootstrap-agent-gate hook enforces this ordering: scaffold-pages and scaffold-landing are blocked until `.claude/agent-traces/scaffold-libs.json` exists with status "complete".
 
 Each per-page agent prompt:
 - "Create SINGLE page: `<page_name>` at route `<route>`."
@@ -768,6 +778,15 @@ Verify each subagent produced its expected output:
 
 If any trace is missing or output was truncated: note the gap for STATE 13 to address.
 
+**Post-fan-out disk audit** (verify files actually exist on disk — traces alone are not proof):
+- For each golden_path page (excluding landing): run `test -f src/app/<page_name>/page.tsx`.
+  If the file is missing but the trace file exists (agent claimed success):
+  - Re-create the page file directly as the bootstrap lead (budget: 1 attempt per page)
+  - Use the trace's metadata and experiment.yaml context to generate the page
+- If surface ≠ none: run `test -f src/app/page.tsx` (or variant: `test -f src/components/landing-content.tsx`).
+  If missing: re-create directly (budget: 1 attempt).
+- Log any re-created files in the process checklist for visibility.
+
 Check off in `.claude/current-plan.md` for each completed B2 subagent:
 - `- [x] scaffold-pages completed`
 - `- [x] scaffold-landing completed` (or mark N/A if surface=none)
@@ -808,9 +827,25 @@ After the externals subagent returns its classification table:
    Provision at deploy) for each dependency.
 2. **Collect credentials**: for "Provide now" choices, ask the user for
    credential values.
-3. **Execute remaining work**: generate external stack files (per
-   scaffold-externals.md Steps 6-8), write env vars to `.env.local` and
-   `.env.example`, create Fake Door entries.
+3. **Execute remaining work** — explicit externals checklist:
+
+   For each decision where `user_choice` is one of {Provide now, Provision at deploy, Full Integration}:
+   - [ ] Generate `.claude/stacks/external/<service-slug>.md` using the external stack file
+         template (service name, classification, required env vars, integration notes)
+   - [ ] Run `python3 .claude/scripts/validate-frontmatter.py .claude/stacks/external/<service-slug>.md`
+         to verify frontmatter is well-formed
+   - [ ] Add env var guard: create or update the relevant API route to return 503 with
+         `{ error: "<service> not configured" }` when the required env var is missing
+   - [ ] Update `.env.example` with the new env var(s) and descriptive comments
+
+   Additional steps by decision type:
+   - **Provide now**: write user-provided credential values to `.env.local`
+   - **Provision at deploy**: add placeholder values to `.env.example` with
+     `# Set during deployment` comment; add to `.env.local` as empty strings
+   - **Full Integration**: write credentials to `.env.local`, verify integration
+     with a smoke check (e.g., import succeeds, env var is non-empty at runtime)
+
+   After all externals are processed: create Fake Door entries (see below).
 
 If the externals subagent reported "No external dependencies", confirm
 to the user and proceed.
@@ -886,12 +921,21 @@ Run combined verification after all parallel subagents complete — these checks
      verify the handler file exists at the path defined by the framework stack file
    - If archetype is `cli`: for each command in experiment.yaml `commands`, verify
      `src/commands/<command-name>.ts` exists
-3. **Analytics wiring** (if `stack.analytics` is present): for each
-   event in experiment/EVENTS.yaml events map (filtered by `requires`
-   and `archetypes` for current stack and archetype), grep for the event
-   name in `src/` to confirm a tracking call exists. Also verify
-   `PROJECT_NAME` and `PROJECT_OWNER` in `src/lib/analytics*.ts` are
-   not `"TODO"`. Report missing events. Fix directly (budget: 2 attempts).
+3. **Analytics wiring** (if `stack.analytics` is present) — systematic batch verification:
+   - (a) Read `experiment/EVENTS.yaml` `events` map. Filter entries by `requires` (match
+     current stack keys) and `archetypes` (match current archetype). This produces the
+     canonical set of events that MUST be wired.
+   - (b) Batch-grep all filtered event names in `src/` in a single pass:
+     `grep -rn "event_name_1\|event_name_2\|..." src/` — collect which events have
+     tracking calls and which are missing.
+   - (c) Group missing events by their target page (the page where the event should fire
+     based on golden_path context). This groups fixes for efficient per-page editing.
+   - (d) Fix missing events per-page. Budget: 2 fix attempts per page, max 5 pages.
+     If a page exceeds 2 attempts, log the remaining missing events and move on.
+   - (e) Verify `PROJECT_NAME` and `PROJECT_OWNER` in `src/lib/analytics*.ts` are not
+     `"TODO"` — run `grep -n 'TODO' src/lib/analytics*.ts`. Fix if found.
+   - (f) After fix budget exhausted: any remaining missing events are listed in the PR
+     description under a "Known gaps" section. Do not block the pipeline for these.
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
 5. **Fake door integration** (if `externals-decisions.json` has non-empty `fake_doors`):
