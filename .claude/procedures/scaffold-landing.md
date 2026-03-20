@@ -47,17 +47,17 @@ varies by archetype:
 **web-app + co-located** (React component):
 - Include: theme tokens (globals.css custom properties, tailwind config from
   Step 1), available shadcn/ui components, framework page conventions from
-  framework stack file. Derive analytics function signatures from experiment/EVENTS.yaml —
-  the `src/lib/events.ts` file will exist at build time (created by the libs
-  subagent running in parallel)
+  framework stack file. Import analytics functions from `src/lib/events.ts`
+  (created by scaffold-libs in Phase B1, which completes before this agent
+  launches in Phase B2)
 - If no `variants`: write `src/app/page.tsx` — a complete React landing
   page component. Must fire `visit_landing` on mount with experiment/EVENTS.yaml properties.
 - If `variants`: write `src/components/landing-content.tsx` — a shared
   `LandingContent` component that accepts variant props (headline, subheadline,
   cta, pain_points). Features section is shared across variants (from experiment.yaml
   `features`). The structural routing files (variants.ts, root page, dynamic
-  route) are created by the pages subagent running in parallel — they will
-  exist at build time.
+  route) are created by the pages subagent in Phase B2 — they exist
+  when both agents run.
 
 **service + co-located** (self-contained HTML):
 - Include: surface stack file content (route path, analytics wiring, CSS approach)
@@ -79,6 +79,6 @@ If `stack.analytics` is present and not already included:
 > are responsible for code-level quality via the Persuasion Self-Check above.
 
 > **Note:** Build verification occurs at the merged checkpoint (STATE 13), after all
-> parallel subagents complete. Do not run `npm run build` here — `src/lib/events.ts`
-> may not exist yet (created by libs subagent in parallel).
+> subagents complete. Do not run `npm run build` here — other subagents may still
+> be writing files that affect the build.
 

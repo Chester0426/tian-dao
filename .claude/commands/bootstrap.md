@@ -673,7 +673,43 @@ VERIFY Phase A before proceeding to Phase B:
 
 **DO NOT proceed to Phase B until all VERIFY checks pass.**
 
-**Phase B (parallel fan-out):** Spawn one `scaffold-pages` agent per golden_path page (excluding landing — handled by scaffold-landing). All in a SINGLE parallel message alongside scaffold-libs, scaffold-externals, scaffold-landing.
+**Phase B1 (libs + externals):** Spawn scaffold-libs and scaffold-externals in parallel. These two have no cross-dependency. scaffold-pages and scaffold-landing are NOT spawned yet — they depend on libs output.
+
+**Libs subagent:**
+- subagent_type: scaffold-libs
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
+  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
+     `.claude/current-plan.md`, all stack files
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7
+
+**Externals subagent (analysis only):**
+- subagent_type: scaffold-externals
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/scaffold-externals.md` and execute the
+     analysis steps (evaluate dependencies, classify core/non-core)
+  2. Read context files: `experiment/experiment.yaml`, `.claude/current-plan.md`,
+     `.claude/stacks/TEMPLATE.md`, existing stack files
+  3. Follow CLAUDE.md Rules 3, 4, 6
+  4. Return the classification table and Fake Door list — do NOT collect
+     credentials or write env vars (the lead handles those)
+
+Wait for both B1 subagents to return.
+
+**B1 manifest verification + recovery protocol:**
+1. `test -f .claude/agent-traces/scaffold-libs.json` — verify manifest exists
+2. Read manifest and check `"status": "complete"`
+3. `ls src/lib/*.ts` — verify lib files were created
+4. If manifest is missing or status ≠ complete:
+   - Re-spawn scaffold-libs ONE time with the same prompt
+   - Wait for completion and re-check manifest
+   - If retry also fails → **STOP** and report to user: "scaffold-libs failed after retry. Cannot proceed to Phase B2."
+
+Check off in `.claude/current-plan.md`:
+- `- [x] scaffold-libs completed`
+- `- [x] scaffold-externals completed`
+
+**Phase B2 (pages + landing):** Only after B1 manifest verification passes. Spawn one `scaffold-pages` agent per golden_path page (excluding landing — handled by scaffold-landing). The bootstrap-agent-gate hook enforces this ordering: scaffold-pages and scaffold-landing are blocked until `.claude/agent-traces/scaffold-libs.json` exists with status "complete".
 
 Each per-page agent prompt:
 - "Create SINGLE page: `<page_name>` at route `<route>`."
@@ -684,6 +720,26 @@ Each per-page agent prompt:
   framework/UI stack files, `.claude/patterns/design.md`,
   `.claude/current-visual-brief.md`
 - Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+
+**Scope guard**: Enumerate the golden_path pages from experiment.yaml (excluding landing). Spawn agents for ONLY these pages -- no additional pages from any other source. If a page is not in golden_path, it is NOT built during bootstrap.
+
+**Per-page subagents (one per golden_path page, excluding landing):**
+- subagent_type: scaffold-pages
+- prompt per page: See scaffold-pages two-phase instructions above.
+
+**Landing subagent (if surface ≠ none):**
+- subagent_type: scaffold-landing
+- prompt: Tell the subagent to:
+  1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
+  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
+     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
+     framework/UI/surface stack files,
+     `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
+     `.claude/current-visual-brief.md`,
+     `src/app/globals.css` (theme tokens from init phase)
+  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
+
+Wait for all B2 subagents to return.
 
 After all return, merge per-page traces into `scaffold-pages.json`:
 
@@ -704,59 +760,16 @@ print(f'Merged {len(batches)} per-page traces into scaffold-pages.json')
 "
 ```
 
-Spawn the following subagents simultaneously using parallel Agent tool calls:
-
-**Libs subagent:**
-- subagent_type: scaffold-libs
-- prompt: Tell the subagent to:
-  1. Read `.claude/procedures/scaffold-libs.md` and execute all steps
-  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
-     `.claude/current-plan.md`, all stack files
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7
-
-**Scope guard**: Enumerate the golden_path pages from experiment.yaml (excluding landing). Spawn agents for ONLY these pages -- no additional pages from any other source. If a page is not in golden_path, it is NOT built during bootstrap.
-
-**Per-page subagents (one per golden_path page, excluding landing):**
-- subagent_type: scaffold-pages
-- prompt per page: See scaffold-pages two-phase instructions above.
-
-**Externals subagent (analysis only):**
-- subagent_type: scaffold-externals
-- prompt: Tell the subagent to:
-  1. Read `.claude/procedures/scaffold-externals.md` and execute the
-     analysis steps (evaluate dependencies, classify core/non-core)
-  2. Read context files: `experiment/experiment.yaml`, `.claude/current-plan.md`,
-     `.claude/stacks/TEMPLATE.md`, existing stack files
-  3. Follow CLAUDE.md Rules 3, 4, 6
-  4. Return the classification table and Fake Door list — do NOT collect
-     credentials or write env vars (the lead handles those)
-
-**Landing subagent (if surface ≠ none):**
-- subagent_type: scaffold-landing
-- prompt: Tell the subagent to:
-  1. Read `.claude/procedures/scaffold-landing.md` and execute all steps
-  2. Read context files: `experiment/experiment.yaml`, `experiment/EVENTS.yaml`,
-     `.claude/current-plan.md`, `.claude/archetypes/<type>.md`,
-     framework/UI/surface stack files,
-     `.claude/patterns/design.md`, `.claude/patterns/messaging.md`,
-     `.claude/current-visual-brief.md`,
-     `src/app/globals.css` (theme tokens from init phase)
-  3. Follow CLAUDE.md Rules 3, 4, 6, 7, 9
-
-Wait for all subagents to return.
-
-**Post-fan-out trace verification** (before proceeding to trace merge):
+**Post-fan-out trace verification** (before proceeding):
 Verify each subagent produced its expected output:
-- `test -f .claude/agent-traces/scaffold-libs.json` (or agent reported completion with files list)
+- `test -f .claude/agent-traces/scaffold-libs.json` (already verified in B1)
 - `test -f .claude/agent-traces/scaffold-pages-<page>.json` for each golden_path page
 - Landing subagent reported completion
 
 If any trace is missing or output was truncated: note the gap for STATE 13 to address.
 
-Check off in `.claude/current-plan.md` for each completed subagent:
-- `- [x] scaffold-libs completed`
+Check off in `.claude/current-plan.md` for each completed B2 subagent:
 - `- [x] scaffold-pages completed`
-- `- [x] scaffold-externals completed`
 - `- [x] scaffold-landing completed` (or mark N/A if surface=none)
 
 **POSTCONDITIONS**

@@ -29,3 +29,13 @@ Create the library files specified in each stack file's "Files to Create" sectio
    - `email_welcome_sent` (trigger: Welcome email sent after signup, properties: `recipient` string required)
    - `email_nudge_sent` (trigger: Activation nudge email sent by cron, properties: `recipient` string required, `days_since_signup` integer required)
 
+9. **Write completion manifest**
+   ```bash
+   mkdir -p .claude/agent-traces
+   ```
+   Write `.claude/agent-traces/scaffold-libs.json`:
+   ```json
+   {"agent": "scaffold-libs", "files_created": ["<list all files created>"], "status": "complete", "timestamp": "<ISO 8601>"}
+   ```
+   This manifest gates Phase B2 agents via the bootstrap-agent-gate hook.
+
