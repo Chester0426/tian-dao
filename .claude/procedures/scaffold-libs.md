@@ -23,13 +23,15 @@ Create the library files specified in each stack file's "Files to Create" sectio
 
 6. **Analytics constant replacement** (if `stack.analytics` is present): replace placeholder constants in the analytics library files — replace `PROJECT_NAME = "TODO"` with the `name` from experiment.yaml and `PROJECT_OWNER = "TODO"` with the `owner` from experiment.yaml. For web-app: replace in both client (`src/lib/analytics.ts`) and server (`src/lib/analytics-server.ts`) files. For service/cli: replace in the server analytics file only (no client-side analytics). These constants auto-attach to every event — if left as TODO, experiment filtering will fail.
 
-7. **Typed event wrappers** (if `stack.analytics` is present): generate `src/lib/events.ts` with typed track wrapper functions from experiment/EVENTS.yaml. For each event, create a function like `trackVisitLanding(props: { referrer?: string; utm_source?: string })` that calls `track("visit_landing", props)`. Generate wrappers for events in the experiment/EVENTS.yaml `events` map, filtered by `requires` (match experiment stack) and `archetypes` (match experiment type). Pages should import from `events.ts` instead of calling `track()` directly with string event names.
+7. **CLI analytics consent wrapper** (if `stack.analytics` is present AND archetype is `cli`): read the analytics stack file's CLI Opt-In Consent section. Add the `isAnalyticsEnabled()` guard function to `src/lib/analytics-server.ts` and wrap `trackServerEvent()` so it returns early when consent is not given. Replace `<CLI_NAME>` with the uppercase experiment name from experiment.yaml.
 
-8. **Email events** (if `stack.email` is present): add to experiment/EVENTS.yaml `events` map:
+8. **Typed event wrappers** (if `stack.analytics` is present): generate `src/lib/events.ts` with typed track wrapper functions from experiment/EVENTS.yaml. For each event, create a function like `trackVisitLanding(props: { referrer?: string; utm_source?: string })` that calls `track("visit_landing", props)`. Generate wrappers for events in the experiment/EVENTS.yaml `events` map, filtered by `requires` (match experiment stack) and `archetypes` (match experiment type). Pages should import from `events.ts` instead of calling `track()` directly with string event names.
+
+9. **Email events** (if `stack.email` is present): add to experiment/EVENTS.yaml `events` map:
    - `email_welcome_sent` (trigger: Welcome email sent after signup, properties: `recipient` string required)
    - `email_nudge_sent` (trigger: Activation nudge email sent by cron, properties: `recipient` string required, `days_since_signup` integer required)
 
-9. **Write completion manifest**
+10. **Write completion manifest**
    ```bash
    mkdir -p .claude/agent-traces
    ```

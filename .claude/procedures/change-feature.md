@@ -28,8 +28,14 @@
 > **Worktree isolation is mandatory.** Every `Agent(...)` call for implementer/visual-implementer
 > MUST include `isolation: "worktree"`. Omitting this parameter is a process violation — Gate Keeper
 > G4 will BLOCK verification if worktree merge evidence is absent from git history.
-  5. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
-  6. Continue to Step 7
+  5. **Check agent results.** After each agent completes, check its Status output:
+     - `Status: complete` → proceed to merge
+     - `Status: blocked: <reason>` → attempt recovery:
+       a. If the block is a fixable environment issue (missing package, missing env var): fix on the current branch, then re-spawn the agent with the same task. Budget: 1 retry.
+       b. If the block is a scope or spec issue (ambiguous task, conflicting requirements): revise the task description to clarify, then re-spawn. Budget: 1 retry.
+       c. If still blocked after retry: skip the task, log it in the PR body under "Blocked tasks," and continue with remaining tasks. Do not attempt dependent tasks whose prerequisites were blocked.
+  7. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
+  8. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - **MVP Task Breakdown** (Multi-layer features only — skip for Simple):
   Break the implementation into checkpointed steps. Each step ends with a `npm run build` gate.
