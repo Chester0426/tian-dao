@@ -56,7 +56,8 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   if (process.env.DEMO_MODE === "true") return NextResponse.redirect(`${origin}/`);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const rawNext = searchParams.get("next") ?? "/";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
   if (code) {
     const supabase = await createServerSupabaseClient();

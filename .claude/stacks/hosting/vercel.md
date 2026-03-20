@@ -47,13 +47,13 @@ export async function GET() {
 }
 ```
 
-**When `stack.database` is present:** bootstrap adds a database connectivity check inside the function body — import the server client, run a lightweight query (e.g., `supabase.from('...').select('id').limit(1)`), and set `checks.database = "ok"` or the error message.
+**When `stack.database` is present:** bootstrap adds a database connectivity check inside the function body — import the server client, run a lightweight query (e.g., `supabase.from('...').select('id').limit(1)`), and set `checks.database = "ok"` or `"error"`. Log the actual error server-side with `console.error("Health check database error:", error.message)` — never expose raw error messages in the response.
 
-**When `stack.auth` is present:** bootstrap adds an auth service check — call `supabase.auth.getUser()` with no session (expects an auth error, not a network error), and set `checks.auth = "ok"` or the error message.
+**When `stack.auth` is present:** bootstrap adds an auth service check — call `supabase.auth.getUser()` with no session (expects an auth error, not a network error), and set `checks.auth = "ok"` or `"error"`. Log the actual error server-side with `console.error("Health check auth error:", e.message)` — never expose raw error messages in the response.
 
-**When `stack.analytics` is present:** bootstrap adds an analytics reachability check — fetch the analytics provider's lightweight API endpoint from the server to verify the service is reachable and the integration code loads without errors. For PostHog: `fetch(POSTHOG_HOST + "/decide?v=3", { method: "POST", body: JSON.stringify({ api_key: POSTHOG_KEY, distinct_id: "healthcheck" }) })`. Import constants from the analytics server library. Set `checks.analytics = "ok"` or the error message. The `/decide` endpoint is lightweight and does not create events.
+**When `stack.analytics` is present:** bootstrap adds an analytics reachability check — fetch the analytics provider's lightweight API endpoint from the server to verify the service is reachable and the integration code loads without errors. For PostHog: `fetch(POSTHOG_HOST + "/decide?v=3", { method: "POST", body: JSON.stringify({ api_key: POSTHOG_KEY, distinct_id: "healthcheck" }) })`. Import constants from the analytics server library. Set `checks.analytics = "ok"` or `"error"`. Log the actual error server-side — never expose raw error messages in the response. The `/decide` endpoint is lightweight and does not create events.
 
-**When `stack.payment` is present:** bootstrap adds a payment configuration check — verify the payment provider's secret key env var exists and has the correct format. For Stripe: check `process.env.STRIPE_SECRET_KEY` starts with `sk_`. Set `checks.payment = "ok"` or the error message.
+**When `stack.payment` is present:** bootstrap adds a payment configuration check — verify the payment provider's secret key env var exists and has the correct format. For Stripe: check `process.env.STRIPE_SECRET_KEY` starts with `sk_`. Set `checks.payment = "ok"` or `"error"`. Log the actual error server-side — never expose raw error messages in the response.
 
 **Response:** Returns 200 with JSON `{ status: "ok", ... }` if all checks pass. Returns 503 if any check fails, with individual check results so failures are diagnosable.
 
