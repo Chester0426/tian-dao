@@ -66,6 +66,22 @@ EOF
         exit 0
       fi
     done
+
+    # Phase B2 agents require scaffold-libs completion (B1→B2 ordering)
+    LIBS_MANIFEST="$PROJECT_DIR/.claude/agent-traces/scaffold-libs.json"
+    if [[ ! -f "$LIBS_MANIFEST" ]]; then
+      cat <<EOF
+{"permissionDecision": "deny", "message": "Agent '$SUBAGENT_TYPE' blocked: scaffold-libs manifest missing at .claude/agent-traces/scaffold-libs.json. scaffold-libs must complete before page/landing agents can run."}
+EOF
+      exit 0
+    fi
+    LIBS_STATUS=$(python3 -c "import json; print(json.load(open('$LIBS_MANIFEST')).get('status',''))" 2>/dev/null || echo "")
+    if [[ "$LIBS_STATUS" != "complete" ]]; then
+      cat <<EOF
+{"permissionDecision": "deny", "message": "Agent '$SUBAGENT_TYPE' blocked: scaffold-libs manifest status is '$LIBS_STATUS', not 'complete'. Wait for scaffold-libs to finish."}
+EOF
+      exit 0
+    fi
   fi
 
   # For scaffold-wire: additionally require BG2 verdict PASS

@@ -200,7 +200,7 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 1. `src/lib/` contains ≥1 `.ts` file (scaffold-libs ran)
 2. `.claude/current-visual-brief.md` exists (scaffold-init ran)
 3. Archetype-specific: web-app → `src/app/layout.tsx` + each golden_path page; service → `src/app/api/` with route files; cli → `src/index.ts` + `src/commands/`
-4. If `stack.analytics`: grep `src/lib/analytics` for `PROJECT_NAME` and `PROJECT_OWNER` — neither must equal `"TODO"`
+4. If `stack.analytics`: (a) grep `src/lib/analytics` for `PROJECT_NAME` and `PROJECT_OWNER` — neither must equal `"TODO"`; (b) read `experiment/EVENTS.yaml`, for each event filtered by `requires` (match stack) and `archetypes` (match type), grep event name in `src/` — BLOCK if any missing; (c) grep `src/app/*/page.tsx` for raw `track(` calls not from typed wrappers — BLOCK if found (pages must use typed wrappers from `@/lib/events`, not raw `track()`)
 5. If surface ≠ `none`: landing page file exists
 6. `.claude/current-plan.md` frontmatter `checkpoint` is `phase2-scaffold` or later
 7. scaffold-setup contract: `package.json` has `dependencies` key, `node_modules/` non-empty — run `test -d node_modules && ls node_modules | head -1`
@@ -219,6 +219,7 @@ Verify external dependency decisions were collected with user buy-in:
 4. If `externals-decisions.json` has `"has_externals": true`: verify `"decisions"` array is non-empty and each entry has `"service"`, `"classification"`, and `"user_choice"` fields
 5. `externals-decisions.json` `"timestamp"` is non-empty
 6. `.claude/current-plan.md` contains `[x] Externals user decisions collected`
+7. Fake Door integration: read `externals-decisions.json`. For each entry in `"fake_doors"` array (if non-empty): (a) `test -f src/app/<target_page>/<component_name>` — BLOCK if missing; (b) `grep -l "<component_name_without_ext>" src/app/<target_page>/page.tsx` — BLOCK if not imported. Skip if `"fake_doors"` empty or absent.
 
 ### BG3 Verification Gate
 

@@ -7,11 +7,11 @@
 - `design.md` choices recorded in globals.css and tailwind config
 - `.claude/current-visual-brief.md` exists (visual language brief from init)
 
-## Concurrent dependency note
+## Dependency note
 
-Pages import from `src/lib/events.ts` (created by the libs subagent running in parallel).
-Write import statements using function signatures derived from experiment/EVENTS.yaml — the
-file will exist at build time when the merged checkpoint runs `npm run build`.
+Pages import from `src/lib/events.ts` (created by scaffold-libs in Phase B1).
+scaffold-libs completes and writes its manifest before scaffold-pages launches in Phase B2.
+The `src/lib/events.ts` file exists when this agent runs — import typed wrappers directly.
 
 ## Instructions by archetype
 
