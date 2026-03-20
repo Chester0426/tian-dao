@@ -8,6 +8,8 @@ Two non-negotiable rules that prevent real usability issues:
 
 2. **Use shadcn/ui components**: Use library components (`<Button>`, `<Input>`, `<Card>`, etc.) instead of raw HTML elements. This ensures accessibility baselines (ARIA attributes, keyboard handling, focus management) without manual effort.
 
+3. **Scroll-triggered animation safety**: Never use `opacity: 0` or `visibility: hidden` as an initial state for content sections awaiting scroll reveal. If using IntersectionObserver, handle the initial callback where `isIntersecting` is already `true` for above-the-fold elements. Entrance animations use CSS transforms (translateY, scale) while keeping content visible.
+
 ## Design Decisions
 
 Before generating pages, derive design constraints from experiment.yaml and establish
@@ -51,7 +53,7 @@ proof behind a great hero.
 The benchmark is world-champion persuasion — the absolute limit of your ability:
 - Custom color palette (not default shadcn/tailwind colors)
 - Considered typography (display + body font, clear hierarchy)
-- Meaningful animations (scroll-triggered reveals, staggered transitions)
+- Meaningful animations (scroll-triggered transforms, staggered transitions — content visible before animation starts)
 - Textured depth (subtle gradients, noise overlays, backdrop effects)
 - Responsive layout, dark/light mode
 - The goal: "I want to share this URL"

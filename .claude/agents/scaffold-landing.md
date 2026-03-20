@@ -43,7 +43,7 @@ Any section below 8 on ANY dimension → rework before shipping.
 3. **Visual depth** — each section has ≥1 depth technique (gradient, shadow, animation, texture, glassmorphism) — not the same technique repeated across all sections
 4. **Layout variation** — no 2 consecutive sections share identical layout structure (e.g., both centered single-column)
 5. **Conversion pull** — every section has a clear persuasion job (hook, proof, objection-handle, or CTA); no decorative-only sections
-6. **Scroll dynamism** — page has ≥2 scroll-triggered visual events (reveals, parallax, counters, sticky transforms)
+6. **Scroll dynamism** — page has ≥2 scroll-triggered visual events (transforms, parallax, counters, sticky elements). Content is visible by default — animations are additive (transform, scale, filter), never subtractive (no opacity:0 or visibility:hidden as initial state)
 
 ## Instructions
 

@@ -843,7 +843,7 @@ cat > externals-decisions.json << 'EXTEOF'
   "has_externals": <true|false>,
   "user_confirmed": true,
   "decisions": [<array of {"service","feature","classification","user_choice"}>],
-  "fake_doors": [<array of {"feature","service","target_page","component_name","action_label"}>],
+  "fake_doors": [<array of {"feature","service","target_page","component_name","component_export_name","action_label"}>],
   "timestamp": "<ISO 8601>"
 }
 EXTEOF
@@ -894,6 +894,15 @@ Run combined verification after all parallel subagents complete — these checks
    not `"TODO"`. Report missing events. Fix directly (budget: 2 attempts).
 4. **Design tokens** (if archetype is `web-app`): verify `src/app/globals.css`
    contains a non-empty `--primary` custom property
+5. **Fake door integration** (if `externals-decisions.json` has non-empty `fake_doors`):
+   for each fake door entry, verify the parent page.tsx contains both an import
+   statement with `component_export_name` and a JSX render tag `<ComponentExportName`.
+   Fix directly if missing.
+6. **Content quality floor** (web-app only): for each golden_path page, read page.tsx and check:
+   - File has ≥30 lines of JSX content (not just imports and boilerplate)
+   - No `>TODO` or `"TODO:` patterns in rendered JSX strings
+   - No sections consisting of only placeholder text or empty containers
+   If any check fails: fix directly (budget: 1 attempt). WARN if unfixed.
 
 If any check fails: the bootstrap lead fixes directly (it has full file access
 as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.

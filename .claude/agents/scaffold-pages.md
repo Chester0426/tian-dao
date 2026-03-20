@@ -49,6 +49,8 @@ Any section below 8 on ANY dimension → rework before shipping.
 5. **Component quality** — 0 raw HTML elements where a shadcn/ui component exists; all components use project theme tokens
 6. **Functional animation** — skeleton loaders for data, state transitions for toggles/modals; no static jumps between states
 
+> **Content floor**: No section may consist of only placeholder text ("Coming soon", "Content here") or an empty container. Each section must serve a visible user task with real mock data or meaningful content.
+
 ## Failure Handling
 
 - If a lib import is missing at write time: write the import anyway (libs agent runs concurrently — the file will exist at build time). Only report if the function signature in experiment/EVENTS.yaml is ambiguous.

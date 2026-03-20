@@ -219,7 +219,7 @@ Verify external dependency decisions were collected with user buy-in:
 4. If `externals-decisions.json` has `"has_externals": true`: verify `"decisions"` array is non-empty and each entry has `"service"`, `"classification"`, and `"user_choice"` fields
 5. `externals-decisions.json` `"timestamp"` is non-empty
 6. `.claude/current-plan.md` contains `[x] Externals user decisions collected`
-7. Fake Door integration: read `externals-decisions.json`. For each entry in `"fake_doors"` array (if non-empty): (a) `test -f src/app/<target_page>/<component_name>` — BLOCK if missing; (b) `grep -l "<component_name_without_ext>" src/app/<target_page>/page.tsx` — BLOCK if not imported. Skip if `"fake_doors"` empty or absent.
+7. Fake Door integration: read `externals-decisions.json`. For each entry in `"fake_doors"` array (if non-empty): (a) `test -f src/app/<target_page>/<component_name>` — BLOCK if missing; (b) `grep "import.*<component_export_name>" src/app/<target_page>/page.tsx` — BLOCK if not imported; (c) `grep "<component_export_name>" src/app/<target_page>/page.tsx | grep -v "import"` — BLOCK if not rendered in JSX. Skip if `"fake_doors"` empty or absent.
 
 ### BG3 Verification Gate
 
