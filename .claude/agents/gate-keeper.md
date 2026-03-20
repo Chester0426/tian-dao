@@ -165,6 +165,7 @@ Verify after Step 7 verification:
 3. `agents_expected` matches `agents_completed` (all agents finished)
 4. If 2+ implementer agents (check git log): `consistency_scan` is NOT `skipped`
 5. If fix cycles ran (security-fixer or design-critic "fixed" in report): `auto_observe` is NOT `skipped-no-fixes`
+6. If `quality: production` in experiment.yaml AND spec-reviewer in `agents_completed`: read spec-reviewer verdict from `.claude/verify-report.md` or `.claude/agent-traces/spec-reviewer.json` — BLOCK if verdict is `FAIL`
 
 ### G6 PR Gate
 
