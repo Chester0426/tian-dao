@@ -122,6 +122,7 @@ State: "Verification scope: **[scope]**"
 - If `.claude/current-plan.md` exists and the current branch starts with `change/`:
   1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
      - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter. If parsing fails (invalid YAML or missing required fields): stop — "Plan file has corrupted frontmatter. Delete `.claude/current-plan.md` and re-run `/change` to start fresh."
+     - Compare frontmatter `archetype` to current experiment.yaml `type`. If they differ: stop — "Saved plan was for archetype `<saved>`, but experiment.yaml now specifies `<current>`. Plans are archetype-specific. Options: (1) Revert experiment.yaml type to `<saved>`, or (2) Delete `.claude/current-plan.md` and re-run `/change` for a new plan."
      - Use these values directly — do NOT re-classify or re-resolve stack
      - Read archetype file and stack files using frontmatter values
      - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
@@ -132,7 +133,7 @@ State: "Verification scope: **[scope]**"
        - `phase2-step7` → Step 7 (implementation done, verify)
        - `phase2-step8` → Step 8 (verification done, commit/PR)
      - Tell user: "Resuming from [checkpoint]. Type: [type], Scope: [scope]."
-  2. If no frontmatter (old format): fall back to current behavior — skip Phase 1, jump to Step 5.
+  2. If no frontmatter (old format): read experiment.yaml `type` to resolve the current archetype. Warn the user: "Resuming from old-format plan. If the experiment archetype changed since this plan was created, delete `.claude/current-plan.md` and re-run `/change`." Then skip Phase 1, jump to Step 5.
 - Else if `.claude/current-plan.md` exists but the current branch does NOT start with `change/`:
   - Read the plan's `branch` field from frontmatter (if present)
   - Tell the user: "Found a prior `/change` plan (`.claude/current-plan.md`) but you're on `<current-branch>`, not a `change/` branch. Options:\n  1. Resume on the saved branch: `git checkout <saved-branch>` then re-run `/change`\n  2. Start fresh: delete the plan (`rm .claude/current-plan.md`) and re-run `/change`"
@@ -345,7 +346,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
   1. Build & lint loop (max 3 attempts)
   2. Save notable patterns (if you fixed errors)
   3. Template observation review (ALWAYS — even if no errors were fixed)
-- **Note**: If `quality: production` is set in experiment.yaml, `/verify` automatically spawns spec-reviewer as an additional parallel agent (regardless of scope). spec-reviewer validates all behaviors are implemented and specification tests are present. No extra action needed — just be aware it runs.
+- **Note**: If `quality: production` is set in experiment.yaml and scope is `full` or `security`, `/verify` automatically spawns spec-reviewer as an additional parallel agent. spec-reviewer validates all behaviors are implemented and specification tests are present. No extra action needed — just be aware it runs.
 - **Write conflict prevention**: verify.md now requires edit-capable agents (design-critic, ux-journeyer) to run serially — not in parallel. The verification procedure handles this automatically. No extra action needed.
 - Re-read `.claude/current-plan.md` to verify implementation matches the approved plan. Check that every item in the plan has been addressed.
 - Type-specific checks:
@@ -365,7 +366,7 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step8`.
 
 ### Step 8: Commit, push, open PR
 
-- **G5 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G5 Verification Gate. Verify: .claude/verify-report.md exists. Read it and check: agents_expected equals agents_completed; if 2+ implementer agents spawned, consistency_scan is not 'skipped'; if fix cycles ran, auto_observe is not 'skipped-no-fixes'; build result is pass." If gate-keeper returns BLOCK, go back and complete Step 7.
+- **G5 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G5 Verification Gate. Verify: .claude/verify-report.md exists. Read it and check: agents_expected equals agents_completed; if 2+ implementer agents spawned, consistency_scan is not 'skipped'; if fix cycles ran, auto_observe is not 'skipped-no-fixes'; build result is pass; if quality: production and spec-reviewer in agents_completed, spec-reviewer verdict is not FAIL." If gate-keeper returns BLOCK, go back and complete Step 7.
 
 - You are already on a feature branch (created in Step 0). Do not create another branch.
 - Commit message: imperative mood describing the change (e.g., "Add invoice email reminders", "Fix email validation on signup form", "Polish landing copy and error states")

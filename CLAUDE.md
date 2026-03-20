@@ -62,7 +62,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 - When `quality: production` is set in experiment.yaml:
   - Business logic (calculations, state machines, data mutations, auth, payment) MUST have specification tests (see `patterns/tdd.md`)
   - Every /change Feature, Fix, or Upgrade spawns implementer agents (see `agents/implementer.md`) with task dependency ordering
-  - /verify adds spec-reviewer as 6th parallel agent (see `agents/spec-reviewer.md`)
+  - /verify adds spec-reviewer as an additional parallel agent (see `agents/spec-reviewer.md`)
   - `quality: production` requires `stack.testing` — /change and /bootstrap will stop if testing stack is absent
 - No abstraction layers unless there's concrete duplication (3+ copies)
 - Ship the simplest thing that works
