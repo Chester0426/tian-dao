@@ -947,6 +947,19 @@ Run combined verification after all parallel subagents complete — these checks
    - No `>TODO` or `"TODO:` patterns in rendered JSX strings
    - No sections consisting of only placeholder text or empty containers
    If any check fails: fix directly (budget: 1 attempt). WARN if unfixed.
+7. **CTA presence** (web-app, landing only): verify landing page source (`src/app/page.tsx`
+   or `src/components/landing-content.tsx`) contains at least one `<Button` or `<Link`
+   element with non-empty text content. If missing: add a primary CTA to the hero section.
+   Budget: 1 fix attempt.
+8. **Internal href audit** (web-app only): extract all `href="/..."` values from golden_path
+   page files (`grep -roh 'href="/[^"]*"' src/app/*/page.tsx`). For each internal path,
+   verify the target route has a corresponding page directory under `src/app/` or is a
+   defined API route under `src/app/api/`. Exclude external URLs (`href="http`).
+   If broken links found: fix the href to point to the correct route. Budget: 1 fix attempt.
+9. **Cross-page token consistency** (web-app only): grep all golden_path page.tsx files for
+   Tailwind arbitrary color values (`text-\[#`, `bg-\[#`, `border-\[#`). If any page uses
+   arbitrary hex color values not traceable to the visual brief, replace with theme token
+   classes (`text-primary`, `bg-secondary`, etc.). Budget: 1 fix attempt.
 
 If any check fails: the bootstrap lead fixes directly (it has full file access
 as coordinator). Re-run `npm run build` after fixes. Budget: 2 fix attempts.
