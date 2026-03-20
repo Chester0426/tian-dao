@@ -210,6 +210,10 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 9. scaffold-wire contract: if mutation behaviors exist in experiment.yaml (behaviors with `actor: user` that imply writes), `src/app/api/` has route files — run `ls src/app/api/`
 10. Process Checklist: `.claude/current-plan.md` contains `## Process Checklist` with ≥ 10 checklist items — run `grep -c '^\- \[' .claude/current-plan.md`
 11. `npm run build` passes
+12. (web-app only) Component usage: each golden_path `page.tsx` has at least one import from `@/components/ui/` — run `grep -l '@/components/ui/' src/app/*/page.tsx` and compare count against golden_path page count. BLOCK if any page has zero shadcn/ui component imports.
+13. (web-app only) Theme token usage: each golden_path `page.tsx` contains at least one Tailwind theme class (`primary`, `secondary`, `background`, `foreground`, `muted`, `accent`, `destructive`, `card`, `border`) in className — run `grep -lE '(primary|secondary|background|foreground|muted|accent|destructive|card|border)' src/app/*/page.tsx` and compare count against golden_path page count. BLOCK if any page has zero theme token references.
+14. (web-app only) Internal href validity: grep all page files for `href="/` patterns — run `grep -roh 'href="/[^"]*"' src/app/*/page.tsx | sort -u`. For each extracted path, verify corresponding directory exists under `src/app/`. Exclude `href="http` and `href="mailto:`. BLOCK if any internal link targets a non-existent route.
+15. (web-app only, if variants defined) Variant integration: if experiment.yaml defines `variants`, grep landing page source for at least one variant slug — run `grep -l '<slug>' src/app/page.tsx src/components/landing-content.tsx 2>/dev/null`. BLOCK if no variant slug found. Skip if no variants defined or surface = `none`.
 
 ### BG2.5 Externals Gate
 
