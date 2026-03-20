@@ -41,7 +41,7 @@ fi
 if [[ -f "$PLAN" ]]; then
   # Primary: verdict files
   VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
-  for GATE in bg1 bg2 bg4; do
+  for GATE in bg1 bg2 bg2.5 bg4; do
     if [[ ! -f "$VERDICTS_DIR/$GATE.json" ]]; then
       ERRORS+=("$GATE verdict file missing")
     else
@@ -71,6 +71,11 @@ if [[ -f "$PLAN" ]]; then
   # Check 3: BG2 Orchestration Gate must be checked off
   if ! grep -q '\- \[x\].*BG2 Orchestration' "$PLAN"; then
     ERRORS+=("BG2 Orchestration Gate not checked off in Process Checklist")
+  fi
+
+  # Check 4: BG2.5 Externals Gate must be checked off
+  if ! grep -q '\- \[x\].*BG2\.5' "$PLAN"; then
+    ERRORS+=("BG2.5 Externals Gate not checked off in Process Checklist")
   fi
 fi
 
