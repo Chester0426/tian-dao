@@ -112,8 +112,10 @@
 
 ### How
 
-**Integration Architecture:**
-- Client → [API route] → [service SDK/REST call] → [response handling]
+**Integration Architecture** (adapt to archetype):
+- web-app: Client → [API route] → [service SDK/REST call] → [response handling]
+- service: [endpoint] → [service SDK/REST call] → [response]
+- cli: [command] → [service SDK/REST call] → [output]
 - Auth: [how the service authenticates — API key / OAuth / webhook signature]
 - Done when: [one-line, e.g., "API route calls service, returns transformed response, handles auth"]
 

@@ -53,8 +53,25 @@ effective_type = experiment_type if experiment_type is not None else "web-app"
 # --- Required fields ---
 base_required = [
     "name", "owner", "description", "thesis", "target_user",
-    "distribution", "behaviors", "stack", "golden_path",
+    "distribution", "behaviors", "stack",
 ]
+
+# Add archetype-specific required fields
+archetype_path = f".claude/archetypes/{effective_type}.md"
+if os.path.isfile(archetype_path):
+    with open(archetype_path) as af:
+        arch_content = af.read()
+    arch_fm_match = re.match(r"^---\n(.*?\n)---", arch_content, re.DOTALL)
+    if arch_fm_match:
+        arch_fm = yaml.safe_load(arch_fm_match.group(1)) or {}
+        for field in arch_fm.get("required_experiment_fields", []):
+            if field not in base_required:
+                base_required.append(field)
+else:
+    # Fallback: web-app default requires golden_path
+    if "golden_path" not in base_required:
+        base_required.append("golden_path")
+
 missing = [f for f in base_required if not data.get(f)]
 if missing:
     print("Error: these required fields are missing or empty: " + ", ".join(missing))
