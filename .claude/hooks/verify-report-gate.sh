@@ -269,12 +269,70 @@ if scope in ('full', 'security'):
         errors.append('security-merge.json missing (STATE 4)')
 if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
     errors.append('e2e-result.json missing (STATE 5)')
+if not os.path.exists(os.path.join(project, '.claude/build-result.json')):
+    errors.append('build-result.json missing (STATE 1)')
 if errors: print('FAIL:' + '; '.join(errors))
 else: print('OK')
 " 2>/dev/null || echo "OK")
   if [[ "$POSTCOND_CHECK" == FAIL:* ]]; then
     POSTCOND_DETAIL="${POSTCOND_CHECK#FAIL:}"
     ERRORS+=("Check 15: Missing postcondition artifacts: $POSTCOND_DETAIL")
+  fi
+fi
+
+# Check 16: hard_gate_failure field must be present (true or false)
+if [[ -n "$CONTENT" ]]; then
+  if ! echo "$CONTENT" | grep -q 'hard_gate_failure:'; then
+    ERRORS+=("Check 16: hard_gate_failure field missing from report frontmatter — must be 'true' or 'false'")
+  fi
+fi
+
+# Check 17: process_violation field must be present (true or false)
+if [[ -n "$CONTENT" ]]; then
+  if ! echo "$CONTENT" | grep -q 'process_violation:'; then
+    ERRORS+=("Check 17: process_violation field missing from report frontmatter — must be 'true' or 'false'")
+  fi
+fi
+
+# Check 18: Lead-side trace field validation (pages_reviewed, unresolved counts)
+if [[ -d "$TRACE_DIR" && -n "$CONTENT" ]]; then
+  LEAD_VALIDATION=$(python3 -c "
+import json, os
+traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
+errors = []
+
+# design-critic: pages_reviewed must be numeric and > 0
+dc = os.path.join(traces_dir, 'design-critic.json')
+if os.path.exists(dc):
+    d = json.load(open(dc))
+    pr = d.get('pages_reviewed', 0)
+    if not isinstance(pr, int) or pr < 1:
+        errors.append('design-critic pages_reviewed=%s (expected int >= 1)' % pr)
+
+# ux-journeyer: unresolved_dead_ends must be numeric if present
+ux = os.path.join(traces_dir, 'ux-journeyer.json')
+if os.path.exists(ux):
+    d = json.load(open(ux))
+    ude = d.get('unresolved_dead_ends', None)
+    if ude is not None and not isinstance(ude, int):
+        errors.append('ux-journeyer unresolved_dead_ends=%s (expected int)' % ude)
+
+# security-fixer: unresolved_critical must be numeric if present
+sf = os.path.join(traces_dir, 'security-fixer.json')
+if os.path.exists(sf):
+    d = json.load(open(sf))
+    uc = d.get('unresolved_critical', None)
+    if uc is not None and not isinstance(uc, int):
+        errors.append('security-fixer unresolved_critical=%s (expected int)' % uc)
+
+if errors:
+    print('FAIL:' + '; '.join(errors))
+else:
+    print('OK')
+" 2>/dev/null || echo "OK")
+  if [[ "$LEAD_VALIDATION" == FAIL:* ]]; then
+    LEAD_DETAIL="${LEAD_VALIDATION#FAIL:}"
+    ERRORS+=("Check 18: Lead-side trace field validation failed: $LEAD_DETAIL")
   fi
 fi
 

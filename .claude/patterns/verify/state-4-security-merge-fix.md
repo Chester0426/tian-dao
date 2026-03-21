@@ -1,0 +1,98 @@
+# STATE 4: SECURITY_MERGE_FIX
+
+**PRECONDITIONS:** STATE 3 complete.
+
+**Always write** `.claude/security-merge.json` — this is a metadata artifact, not an operational step:
+
+- If security agents ran: merge Defender FAILs + Attacker findings (see below)
+- If security agents did NOT run (scope `visual` or `build`): write `{"findings":[],"source":"no-security-agents","run_id":"<run_id>"}`
+- If hard gate fired in STATE 3: write full merge + `"fixer_skipped":true,"reason":"hard_gate_failure"`
+
+If security agents were not spawned OR hard gate failure occurred, skip security-fixer spawn and proceed to STATE 5.
+
+**ACTIONS:**
+
+### Merge Security Results (if scope is `full` or `security`)
+
+Run the automated security merge script:
+
+```bash
+python3 -c "
+import json, os
+traces = '.claude/agent-traces'
+ctx = json.load(open('.claude/verify-context.json'))
+run_id = ctx.get('run_id', '')
+
+defender = json.load(open(os.path.join(traces, 'security-defender.json')))
+attacker = json.load(open(os.path.join(traces, 'security-attacker.json')))
+
+d_fails = defender.get('fails', [])
+a_findings = attacker.get('findings', [])
+
+# Backward compat: block if structured arrays missing but counts > 0
+if not d_fails and defender.get('fails_count', 0) > 0:
+    raise ValueError('security-defender trace missing fails array — update agent definition')
+if not a_findings and attacker.get('findings_count', 0) > 0:
+    raise ValueError('security-attacker trace missing findings array — update agent definition')
+
+# Deduplicate: same file + same desc -> keep attacker finding
+seen = set()
+merged = []
+for f in a_findings:
+    key = (f.get('file',''), f.get('desc',''))
+    seen.add(key)
+    merged.append({**f, 'source': 'attacker'})
+for f in d_fails:
+    key = (f.get('file',''), f.get('desc',''))
+    if key not in seen:
+        merged.append({**f, 'source': 'defender'})
+
+result = {
+    'timestamp': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'defender_fails': defender.get('fails_count', 0),
+    'attacker_findings': attacker.get('findings_count', 0),
+    'merged_issues': len(merged),
+    'issues': merged,
+    'run_id': run_id
+}
+json.dump(result, open('.claude/security-merge.json', 'w'))
+print(f'Security merge: {result[\"defender_fails\"]} defender FAILs + {result[\"attacker_findings\"]} attacker findings -> {result[\"merged_issues\"]} merged issues')
+"
+```
+
+### security-fixer (if merged security has issues)
+
+Before spawning, execute the [Atomic Execution Protocol](../verify.md#atomic-execution-protocol) snapshot:
+
+```bash
+git diff --name-only > /tmp/pre-agent-snapshot.txt
+```
+
+Spawn the `security-fixer` agent (`subagent_type: security-fixer`).
+Pass: merged Defender table + Attacker findings.
+
+**Wait for the fixer to complete before continuing.**
+
+If agent returns with Trace State 2 (exhausted), execute the [Atomic Execution Protocol](../verify.md#atomic-execution-protocol) revert before retrying (see [Exhaustion Protocol](../verify.md#exhaustion-protocol) Tier 1).
+
+After security-fixer completes: verify `.claude/agent-traces/security-fixer.json` exists; if agent returned output but trace is missing, write a recovery trace with `"recovery":true`.
+
+After each fix, append to `.claude/fix-log.md`.
+
+#### Lead-side validation (security-fixer)
+
+1. Read `.claude/agent-traces/security-fixer.json` trace.
+2. If `verdict` == `"partial"` AND `unresolved_critical` > 0, this is a **hard gate failure** — Critical/High security issues or Defender FAILs remain unfixed after 2 fix cycles. Skip STATEs 5-6 but still write verify-report.md (STATE 7) and execute STATE 8 (Save Patterns). Report failure to user with the unresolved items.
+3. If trace has `"recovery": true` AND `verdict` == `"partial"`, treat as hard gate failure (recovery traces cannot confirm fixes succeeded).
+4. Extract Fix Summaries from the agent's return message. Append each fix to `.claude/fix-log.md` with the prefix `Fix (security-fixer):`.
+
+**POSTCONDITIONS:** `security-merge.json` exists. Security-fixer trace exists (if spawned). If security-fixer verdict is `"partial"` with `unresolved_critical` > 0, pipeline is halted.
+
+**VERIFY:**
+```bash
+test -f .claude/security-merge.json
+```
+
+> **Hook-enforced:** `phase-transition-gate.sh` validates STATE 4 postconditions before allowing observer to spawn.
+
+**NEXT:** Read [state-5-e2e-tests.md](state-5-e2e-tests.md) to continue.
