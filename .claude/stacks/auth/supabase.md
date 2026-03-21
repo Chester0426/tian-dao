@@ -422,7 +422,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 
 export function NavBar() {
@@ -475,9 +475,9 @@ export function NavBar() {
             </Button>
           </>
         ) : (
-          <Button variant="outline" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
+          <Link href="/login" className={buttonVariants({ variant: "outline" })}>
+            Log in
+          </Link>
         )}
       </div>
     </nav>

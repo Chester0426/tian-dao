@@ -731,7 +731,7 @@ Each per-page agent prompt:
   `.claude/current-visual-brief.md`
 - Follow CLAUDE.md Rules 3, 4, 6, 7, 9
 
-**Scope guard**: Enumerate the golden_path pages from experiment.yaml (excluding landing). Spawn agents for ONLY these pages -- no additional pages from any other source. If a page is not in golden_path, it is NOT built during bootstrap.
+**Scope guard — MANDATORY DERIVATION**: Read `golden_path` from experiment.yaml NOW. Extract the unique page names (excluding landing). Write them as a numbered list below before spawning any agents. Spawn scaffold-pages agents for EXACTLY these pages — no more, no fewer. Do NOT use the `pages:` field or any other source. BG2 check 3b will independently count pages on disk and BLOCK if actual count exceeds golden_path count.
 
 **Per-page subagents (one per golden_path page, excluding landing):**
 - subagent_type: scaffold-pages
