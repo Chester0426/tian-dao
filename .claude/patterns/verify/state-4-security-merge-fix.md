@@ -36,16 +36,23 @@ if not a_findings and attacker.get('findings_count', 0) > 0:
     raise ValueError('security-attacker trace missing findings array — update agent definition')
 
 # Deduplicate: same file + same desc -> keep attacker finding
+# Skip findings with empty file AND empty desc to avoid false collisions
 seen = set()
 merged = []
 for f in a_findings:
-    key = (f.get('file',''), f.get('desc',''))
-    seen.add(key)
+    file_val, desc_val = f.get('file',''), f.get('desc','')
+    if file_val or desc_val:
+        key = (file_val, desc_val)
+        seen.add(key)
     merged.append({**f, 'source': 'attacker'})
 for f in d_fails:
-    key = (f.get('file',''), f.get('desc',''))
-    if key not in seen:
+    file_val, desc_val = f.get('file',''), f.get('desc','')
+    if not file_val and not desc_val:
         merged.append({**f, 'source': 'defender'})
+    else:
+        key = (file_val, desc_val)
+        if key not in seen:
+            merged.append({**f, 'source': 'defender'})
 
 result = {
     'timestamp': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -55,7 +62,8 @@ result = {
     'issues': merged,
     'run_id': run_id
 }
-json.dump(result, open('.claude/security-merge.json', 'w'))
+with open('.claude/security-merge.json', 'w') as f:
+    json.dump(result, f)
 print(f'Security merge: {result[\"defender_fails\"]} defender FAILs + {result[\"attacker_findings\"]} attacker findings -> {result[\"merged_issues\"]} merged issues')
 "
 ```
