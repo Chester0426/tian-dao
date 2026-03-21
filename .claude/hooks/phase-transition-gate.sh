@@ -141,10 +141,60 @@ print(d.get('tool_input',{}).get('prompt',''))
   fi
 }
 
+# V6 fix: check build-result.json exists and shows passing build (STATE 1 postcondition)
+check_build_result() {
+  local BR_FILE="$PROJECT_DIR/.claude/build-result.json"
+  if [[ ! -f "$BR_FILE" ]]; then
+    ERRORS+=("build-result.json missing — STATE 1 (Build & Lint Loop) did not record its result")
+    return
+  fi
+  local EXIT_CODE
+  EXIT_CODE=$(python3 -c "import json; print(json.load(open('$BR_FILE')).get('exit_code', -1))" 2>/dev/null || echo "-1")
+  if [[ "$EXIT_CODE" != "0" ]]; then
+    ERRORS+=("build-result.json exit_code=$EXIT_CODE — build did not pass (STATE 1 incomplete)")
+  fi
+}
+
+# V6 fix: validate FILE_BOUNDARY marker excludes shared paths for per-page design-critic
+check_file_boundary() {
+  local AGENT_NAME="$1"
+  local PROMPT
+  PROMPT=$(python3 -c "
+import json,sys
+d=json.loads(sys.stdin.read())
+print(d.get('tool_input',{}).get('prompt',''))
+" <<< "$PAYLOAD" 2>/dev/null || echo "")
+
+  local BOUNDARY_RESULT
+  BOUNDARY_RESULT=$(python3 -c "
+import re, sys
+prompt = sys.stdin.read()
+m = re.search(r'FILE_BOUNDARY_START\n(.*?)FILE_BOUNDARY_END', prompt, re.DOTALL)
+if not m:
+    print('NO_MARKER')
+else:
+    files = m.group(1).strip()
+    shared = [f for f in files.split('\n') if f.strip().startswith('src/components/') or f.strip().startswith('src/lib/')]
+    if shared:
+        print('SHARED:' + ';'.join(shared[:3]))
+    else:
+        print('OK')
+" <<< "$PROMPT" 2>/dev/null || echo "OK")
+
+  if [[ "$BOUNDARY_RESULT" == "NO_MARKER" ]]; then
+    ERRORS+=("$AGENT_NAME prompt missing FILE_BOUNDARY marker — per-page agents must declare their file boundary")
+  elif [[ "$BOUNDARY_RESULT" == SHARED:* ]]; then
+    local SHARED_FILES="${BOUNDARY_RESULT#SHARED:}"
+    ERRORS+=("$AGENT_NAME FILE_BOUNDARY contains shared paths ($SHARED_FILES) — per-page agents must NOT include src/components/ or src/lib/")
+  fi
+}
+
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
     # Postcondition check: STATE 0 artifacts must exist
     check_postcondition_artifacts 0
+    # V6 fix: validate build passed (STATE 1 postcondition)
+    check_build_result
     # Phase 2 gate: Phase 1 traces must exist
     if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
       ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
@@ -162,6 +212,21 @@ case "$SUBAGENT_TYPE" in
           check_trace_run_id "$TRACES_DIR/$AGENT.json"
         fi
       done
+    fi
+    # V6 fix: per-page design-critic file boundary enforcement
+    if [[ "$SUBAGENT_TYPE" == "design-critic" ]]; then
+      IS_PER_PAGE=$(python3 -c "
+import json, sys, re
+d = json.loads(sys.stdin.read())
+prompt = d.get('tool_input',{}).get('prompt','')
+if re.search(r'design-critic-\w+\.json', prompt):
+    print('yes')
+else:
+    print('no')
+" <<< "$PAYLOAD" 2>/dev/null || echo "no")
+      if [[ "$IS_PER_PAGE" == "yes" ]]; then
+        check_file_boundary "design-critic (per-page)"
+      fi
     fi
     # When spawning ux-journeyer (not design-critic), check design-critic retry complete
     if [[ "$SUBAGENT_TYPE" == "ux-journeyer" ]]; then
@@ -231,8 +296,33 @@ case "$SUBAGENT_TYPE" in
     check_efficiency_directives
     ;;
 
+  # V6 fix: Phase 1 agents — validate STATE 0 + build result before spawning
+  build-info-collector|security-defender|security-attacker|behavior-verifier|performance-reporter|accessibility-scanner|spec-reviewer)
+    check_postcondition_artifacts 0
+    check_build_result
+    check_efficiency_directives
+    ;;
+
+  design-consistency-checker)
+    check_postcondition_artifacts 0
+    check_build_result
+    check_efficiency_directives
+    ;;
+
+  pattern-classifier)
+    # STATE 8 agent: only needs verify-context.json
+    if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+      if [[ ! -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
+        ERRORS+=("fix-log.md missing — cannot run pattern-classifier outside verify context")
+      fi
+    fi
+    ;;
+
   *)
-    # All other agents: no gate
+    # Unknown agents in non-verify context (bootstrap, etc): fail-open
+    if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+      echo "WARN: unrecognized subagent_type '$SUBAGENT_TYPE' during active verify run" >&2
+    fi
     exit 0
     ;;
 esac
