@@ -214,6 +214,9 @@ Verify scaffold subagents produced expected outputs. File checks first, build la
 13. (web-app only) Theme token usage: each golden_path `page.tsx` contains at least one Tailwind theme class (`primary`, `secondary`, `background`, `foreground`, `muted`, `accent`, `destructive`, `card`, `border`) in className — run `grep -lE '(primary|secondary|background|foreground|muted|accent|destructive|card|border)' src/app/*/page.tsx` and compare count against golden_path page count. BLOCK if any page has zero theme token references.
 14. (web-app only) Internal href validity: grep all page files for `href="/` patterns — run `grep -roh 'href="/[^"]*"' src/app/*/page.tsx | sort -u`. For each extracted path, verify corresponding directory exists under `src/app/`. Exclude `href="http` and `href="mailto:`. BLOCK if any internal link targets a non-existent route.
 15. (web-app only, if variants defined) Variant integration: if experiment.yaml defines `variants`, grep landing page source for at least one variant slug — run `grep -l '<slug>' src/app/page.tsx src/components/landing-content.tsx 2>/dev/null`. BLOCK if no variant slug found. Skip if no variants defined or surface = `none`.
+16. (web-app only) **Content quality floor** — for each golden_path page (excluding `auth/*` routes), `src/app/<page>/page.tsx` has ≥15 lines (`wc -l`) and does not contain `TODO` or `PLACEHOLDER` case-insensitive markers (`grep -i`). BLOCK if violated, listing the offending pages.
+17. (web-app only) **CTA presence** — `src/app/page.tsx` OR `src/components/landing-content.tsx` contains at least one `<Button` or `<Link` component (`grep`). BLOCK if neither file contains a CTA.
+18. (web-app only) **No asChild** — grep entire `src/` directory for `asChild`. BLOCK if any match found, listing file:line for each.
 
 ### BG2.5 Externals Gate
 

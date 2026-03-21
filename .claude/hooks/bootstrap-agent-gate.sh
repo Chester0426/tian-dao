@@ -22,6 +22,20 @@ if [[ "$BRANCH" != "feat/bootstrap" ]] && [[ ! "$BRANCH" =~ ^feat/bootstrap-[0-9
   exit 0
 fi
 
+# --- Worktree prohibition: bootstrap agents must share the main filesystem ---
+ISOLATION=$(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+print(d.get('tool_input',{}).get('isolation',''))
+" "$PAYLOAD" 2>/dev/null || echo "")
+
+if [ "$ISOLATION" = "worktree" ]; then
+  cat <<EOF
+{"permissionDecision": "deny", "message": "BLOCK: Bootstrap agents must share the main filesystem. Worktree isolation breaks B1->B2 dependency. Remove isolation: worktree from this Agent call."}
+EOF
+  exit 0
+fi
+
 # Always allow gate-keeper and scaffold-externals unconditionally
 if [[ "$SUBAGENT_TYPE" == "gate-keeper" ]] || [[ "$SUBAGENT_TYPE" == "scaffold-externals" ]]; then
   exit 0
