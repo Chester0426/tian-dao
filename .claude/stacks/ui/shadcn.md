@@ -80,11 +80,14 @@ Override CSS custom properties to match the product domain. There are no hardcod
 **`asChild` removed**: The Radix `asChild` composition pattern is not supported in shadcn v4. For link-styled buttons, use `buttonVariants()` directly on the element:
 
 ```tsx
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+
 // WRONG (v4 does not support asChild):
 <Button asChild><Link href="/foo">Go</Link></Button>
 
 // CORRECT:
-import { buttonVariants } from "@/components/ui/button";
 <Link href="/foo" className={buttonVariants({ variant: "outline" })}>Go</Link>
 ```
 

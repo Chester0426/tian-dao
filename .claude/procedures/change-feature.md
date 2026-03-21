@@ -73,7 +73,7 @@
 - If `golden_path` was updated in Step 5 and `e2e/funnel.spec.ts` exists: update the funnel test to match the new golden_path. Read the new/modified page source for selectors. Do not rewrite unaffected test steps.
 - If behaviors with `actor: system/cron` were updated in Step 5 and `tests/flows.test.ts` exists: add a new test case for the new system/cron behavior. Read the API route source for the endpoint path and expected behavior. If `tests/flows.test.ts` does not exist and vitest is not installed, install vitest and create the file with the new test case. Do not modify existing test cases.
 - If the change touches auth or payment code (per CLAUDE.md Rule 4): verify `tests/flows.test.ts` has tests that go beyond auth guards for payment flows — assert handler logic (session creation, database state changes, webhook payload processing), not just 401/400 status codes. Add missing payment flow tests if absent.
-- Wire analytics: every user action in the new feature must fire a tracked event
+- Wire analytics: every user action in the new feature must fire a tracked event. If archetype is `cli`: wrap all `trackServerEvent()` calls in the `isAnalyticsEnabled()` consent guard per the analytics stack file's CLI Opt-In Consent section — CLI telemetry must be opt-in.
 - Create new pages following the framework stack file's file structure
 - Every new page: follow page conventions from the framework stack file, import tracking functions per the analytics stack file, fire appropriate experiment/EVENTS.yaml events
 
