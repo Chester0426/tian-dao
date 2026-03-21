@@ -794,6 +794,28 @@ class TestCheck58AgentToolConsistency:
         assert errors == []
 
 
+class TestCheck59FrameworkArchetypeCompatibility:
+    def test_passes_when_both_files_have_validation(self):
+        bootstrap = "web-app archetype requires nextjs. cli archetype requires commander."
+        change = "web-app archetype requires nextjs. cli archetype requires commander."
+        errors = vs.check_59_framework_archetype_compatibility(bootstrap, change)
+        assert errors == []
+
+    def test_fails_when_bootstrap_missing_validation(self):
+        bootstrap = "some other content"
+        change = "web-app archetype requires nextjs. cli archetype requires commander."
+        errors = vs.check_59_framework_archetype_compatibility(bootstrap, change)
+        assert len(errors) >= 1
+        assert any("bootstrap.md" in e for e in errors)
+
+    def test_fails_when_change_missing_validation(self):
+        bootstrap = "web-app archetype requires nextjs. cli archetype requires commander."
+        change = "some other content"
+        errors = vs.check_59_framework_archetype_compatibility(bootstrap, change)
+        assert len(errors) >= 1
+        assert any("change.md" in e for e in errors)
+
+
 # ---------------------------------------------------------------------------
 # Subprocess integration test — runs the full validator
 # ---------------------------------------------------------------------------

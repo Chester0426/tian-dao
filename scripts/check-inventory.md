@@ -1,7 +1,7 @@
 # Check Inventory
 
 Scannable reference listing all automated checks by name, grouped by validator.
-75 active checks consolidated into 71 inventory rows.
+76 active checks consolidated into 72 inventory rows.
 Checks 3 and 7 are archetype-aware — they read `required_experiment_fields` and `excluded_stacks` from archetype frontmatter.
 
 Last updated: 2026-03-20
@@ -87,6 +87,7 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify change production precondition checks testing | change.md `quality:production` block must validate `stack.testing` within nearby context |
 | Verify bootstrap validates variants structure and archetype | bootstrap.md Step 3 (Validate experiment.yaml) must contain variant validation logic (structure) and restrict variants to web-app archetype |
 | Verify agent tool consistency | implementer.md must have Edit/Write/Bash tools; spec-reviewer.md must not have Edit/Write and must disallow them |
+| Verify framework-archetype compatibility in bootstrap and change | Both bootstrap.md and change.md must validate that web-app requires nextjs and cli requires commander |
 
 ## consistency-check.sh
 

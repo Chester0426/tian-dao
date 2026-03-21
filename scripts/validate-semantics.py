@@ -55,6 +55,7 @@ Checks:
   51. trackServerEvent Signature — trackServerEvent calls pass string as distinctId, not object
   52. trackServerEvent Awaited — trackServerEvent calls are awaited in stack file code blocks
   53. Supabase Delete Flag Syntax — supabase projects delete uses --project-ref flag
+  59. Framework-Archetype Compatibility — bootstrap and change validate framework matches archetype
 """
 
 import glob
@@ -1038,6 +1039,30 @@ def check_58_agent_tool_consistency(agent_files: dict[str, str]) -> list[str]:
                     errors.append(
                         f"[58] {path}: spec-reviewer agent should disallow '{forbidden}'"
                     )
+    return errors
+
+
+def check_59_framework_archetype_compatibility(
+    bootstrap_content: str, change_content: str
+) -> list[str]:
+    """Check 59: bootstrap.md and change.md validate framework-archetype compatibility."""
+    errors: list[str] = []
+    for label, content, path in [
+        ("bootstrap.md", bootstrap_content, ".claude/commands/bootstrap.md"),
+        ("change.md", change_content, ".claude/commands/change.md"),
+    ]:
+        # Must mention web-app requiring nextjs
+        if not re.search(r"web-app.*requires.*nextjs|web-app.*nextjs", content, re.IGNORECASE):
+            errors.append(
+                f"[59] {path}: missing framework-archetype validation "
+                f"(web-app requires nextjs)"
+            )
+        # Must mention cli requiring commander
+        if not re.search(r"cli.*requires.*commander|cli.*commander", content, re.IGNORECASE):
+            errors.append(
+                f"[59] {path}: missing framework-archetype validation "
+                f"(cli requires commander)"
+            )
     return errors
 
 
@@ -2999,6 +3024,20 @@ def main() -> int:
 
     if agent_contents:
         for e in check_58_agent_tool_consistency(agent_contents):
+            error(e)
+
+    # ---------------------------------------------------------------------------
+    # Check 59: Framework-Archetype Compatibility Validation
+    # ---------------------------------------------------------------------------
+
+    bootstrap_path_59 = ".claude/commands/bootstrap.md"
+    change_path_59 = ".claude/commands/change.md"
+    if os.path.isfile(bootstrap_path_59) and os.path.isfile(change_path_59):
+        with open(bootstrap_path_59) as f:
+            bs_content_59 = f.read()
+        with open(change_path_59) as f:
+            ch_content_59 = f.read()
+        for e in check_59_framework_archetype_compatibility(bs_content_59, ch_content_59):
             error(e)
 
     # ---------------------------------------------------------------------------
