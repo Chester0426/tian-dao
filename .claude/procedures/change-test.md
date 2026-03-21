@@ -11,6 +11,10 @@
 - Plan approved (Phase 1)
 - Specs updated (Step 5)
 
+## Production Quality
+
+When `quality: production` is set, Test type changes do NOT spawn implementer agents — tests observe the app, they don't change application code. Implementer agents are reserved for Feature, Fix, and Upgrade types that modify application logic.
+
 ## Implementation
 
 - If the testing stack file's configuration file already exists (e.g., `playwright.config.ts` for Playwright, `vitest.config.ts` for Vitest — from bootstrap): do NOT recreate configuration, helper, or setup/teardown files. Only add or modify test case files. If the configuration file does NOT exist, follow the full setup procedure below.
