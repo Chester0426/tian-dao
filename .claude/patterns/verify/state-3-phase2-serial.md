@@ -97,7 +97,8 @@ for b in batches:
         merged['retry_attempted'] = True
 import datetime
 merged['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-json.dump(merged, open('.claude/agent-traces/design-critic.json', 'w'))
+with open('.claude/agent-traces/design-critic.json', 'w') as f:
+    json.dump(merged, f)
 "
 ```
 

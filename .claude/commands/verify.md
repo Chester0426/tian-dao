@@ -101,7 +101,7 @@ Follow STATE 5 (E2E_TESTS) in `.claude/patterns/verify.md`.
   - Populate the PR Verification checklist from `.claude/verify-report.md` contents
 - Delete `.claude/current-plan.md`, `.claude/current-visual-brief.md`, `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, `.claude/security-merge.json`, `.claude/design-ux-merge.json`, `.claude/e2e-result.json`, `.claude/build-result.json`, `.claude/observer-diffs.txt`, and `.claude/patterns-saved.json`
 - Report the PR URL to the user
-- Tell the user: "Bootstrap complete. Next: review and merge the PR to `main`. Then run `/deploy` to deploy to production, or `/change` to make changes before deploying."
+- Tell the user: "Bootstrap complete. Next: review and merge the PR to `main`." Then add archetype-specific guidance: if archetype is `cli`, add: "After merging, run `/deploy` for the marketing surface, then `npm publish` for the CLI binary." If archetype is `cli` and surface is `none`, replace with: "After merging, run `npm publish` for the CLI binary (no surface to deploy)." If archetype is `service` and surface is `none`, add: "After merging, deploy your API manually to your hosting provider." Otherwise, add: "Then run `/deploy` to deploy to production, or `/change` to make changes before deploying."
 - If `quality: production` is set in experiment.yaml, also add:
   > "Production quality mode is active. After merging, run `/harden` to add TDD coverage to critical paths (auth, payment, data persistence)."
 
@@ -118,7 +118,8 @@ Follow STATE 5 (E2E_TESTS) in `.claude/patterns/verify.md`.
   - Report success with test count and summary. Tell the user next steps:
     - **On a feature branch**: "All tests pass. Merge this PR to `main`, then run `/deploy` to deploy to production."
     - **On `main`**: "All tests pass. Run `/deploy` to deploy to production, or run `/change` to make more improvements before deploying."
-    - **If archetype is `cli`**: replace `/deploy` guidance with: "CLIs are distributed via package registries — see `.claude/archetypes/cli.md` for details."
+    - **If archetype is `cli`**: replace `/deploy` guidance with: "For the CLI binary, run `npm publish` or create a GitHub Release. For the marketing surface, run `/deploy`." If surface is `none`, replace with: "Run `npm publish` or create a GitHub Release to distribute the CLI binary (no surface to deploy)."
+    - **If archetype is `service` and surface is `none`**: replace `/deploy` guidance with: "Deploy your API manually to your hosting provider, or add `surface: co-located` to experiment.yaml to use `/deploy`."
   - **Done.** No branch, no PR, no further steps.
 - If ALL tests pass BUT `git status` shows modified/untracked files outside `.claude/`:
   1. Create branch `fix/verify-$(date +%Y-%m-%d)` from current HEAD
@@ -141,7 +142,7 @@ Follow STATE 5 (E2E_TESTS) in `.claude/patterns/verify.md`.
     - **Why**: tests were failing; fixes ensure the experiment is ready to deploy
     - **Checklist**: standard checks
   - Delete `.claude/verify-report.md`, `.claude/agent-traces/`, `.claude/verify-context.json`, `.claude/fix-log.md`, `.claude/security-merge.json`, `.claude/design-ux-merge.json`, `.claude/e2e-result.json`, `.claude/build-result.json`, `.claude/observer-diffs.txt`, and `.claude/patterns-saved.json` after PR is created
-  - Tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If archetype is `cli`, add CLI-specific guidance. Otherwise, add: "Then run `/deploy` to deploy to production."
+  - Tell the user: "Next: merge this PR to `main`, pull (`git checkout main && git pull`)." If archetype is `cli`, add: "Then run `/deploy` to deploy the marketing surface. For the CLI binary, run `npm publish` or create a GitHub Release." Otherwise, add: "Then run `/deploy` to deploy to production."
 
 ## Cleanup
 

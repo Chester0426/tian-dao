@@ -64,6 +64,10 @@ CLIs are also distributed via package registries:
 The `/deploy` skill deploys the surface (Vercel) but not the CLI binary —
 use `npm publish` or GitHub Releases directly for the product.
 
+After publishing, run `/iterate` to analyze usage. Gather metrics manually:
+npm download counts (`npm info <pkg> --json`), GitHub release download counts,
+and user feedback. Enter these into `/iterate` for funnel analysis.
+
 ## Health Check
 
 CLIs use `<cli-name> --version` as a smoke test (not an HTTP endpoint).
