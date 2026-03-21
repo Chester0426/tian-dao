@@ -78,6 +78,32 @@ else:
   # WARN is logged but does not block (fail-open for transition period)
 }
 
+check_postcondition_artifacts() {
+  local PREV_STATE="$1"
+  case "$PREV_STATE" in
+    0)
+      [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]] || ERRORS+=("verify-context.json missing — STATE 0 incomplete")
+      [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]] || ERRORS+=("fix-log.md missing — STATE 0 incomplete")
+      [[ -d "$TRACES_DIR" ]] || ERRORS+=("agent-traces/ directory missing — STATE 0 incomplete")
+      ;;
+    3)
+      local S3_SCOPE S3_ARCH
+      S3_SCOPE=$(read_scope)
+      S3_ARCH=$(read_archetype)
+      if [[ ("$S3_SCOPE" == "full" || "$S3_SCOPE" == "visual") && "$S3_ARCH" == "web-app" ]]; then
+        [[ -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]] || ERRORS+=("design-ux-merge.json missing — STATE 3 incomplete")
+      fi
+      ;;
+    4)
+      local S4_SCOPE
+      S4_SCOPE=$(read_scope)
+      if [[ "$S4_SCOPE" == "full" || "$S4_SCOPE" == "security" ]]; then
+        [[ -f "$PROJECT_DIR/.claude/security-merge.json" ]] || ERRORS+=("security-merge.json missing — STATE 4 incomplete")
+      fi
+      ;;
+  esac
+}
+
 check_tier1_retry_complete() {
   local AGENT_PATTERN="$1"
   local TDIR="$2"
@@ -117,6 +143,8 @@ print(d.get('tool_input',{}).get('prompt',''))
 
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
+    # Postcondition check: STATE 0 artifacts must exist
+    check_postcondition_artifacts 0
     # Phase 2 gate: Phase 1 traces must exist
     if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
       ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
@@ -154,6 +182,8 @@ case "$SUBAGENT_TYPE" in
     ;;
 
   security-fixer)
+    # Postcondition check: STATE 3 artifacts must exist
+    check_postcondition_artifacts 3
     # Security-fixer gate: Phase 2 traces must exist
     if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
       ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
@@ -187,6 +217,8 @@ case "$SUBAGENT_TYPE" in
     ;;
 
   observer)
+    # Postcondition check: STATE 4 artifacts must exist
+    check_postcondition_artifacts 4
     # Observer gate: e2e-result.json must exist (STATE 5 completed)
     if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
       ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) must complete before observer")

@@ -78,8 +78,25 @@ Read and follow `.claude/procedures/design-critic.md` for the full step-by-step 
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'","page":"<page_name>"}' > .claude/agent-traces/design-critic-<page_name>.json
+python3 << 'TRACE_EOF'
+import json, os
+from datetime import datetime, timezone
+run_id = ""
+try:
+    with open(".claude/verify-context.json") as f:
+        run_id = json.load(f).get("run_id", "")
+except: pass
+os.makedirs(".claude/agent-traces", exist_ok=True)
+trace = {
+    "agent": "design-critic",
+    "status": "started",
+    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "run_id": run_id,
+    "page": "<page_name>"
+}
+with open(".claude/agent-traces/design-critic-<page_name>.json", "w") as f:
+    json.dump(trace, f, indent=2)
+TRACE_EOF
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -131,8 +148,38 @@ Weakest section: <name> (<score>/10)
 After completing all work, write a trace file:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"design-critic","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["layer1_functional","layer2_taste","layer3_antipattern","visual_regression"],"pages_reviewed":1,"min_score":<S>,"weakest_page":"<page-name>","sections_below_8":<B>,"fixes_applied":<F>,"unresolved_sections":<U>,"min_score_all":<SA>,"pre_existing_debt":<DEBT>,"page":"<page_name>","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/design-critic-<page_name>.json
+python3 << 'TRACE_EOF'
+import json, os
+from datetime import datetime, timezone
+run_id = ""
+try:
+    with open(".claude/verify-context.json") as f:
+        run_id = json.load(f).get("run_id", "")
+except: pass
+os.makedirs(".claude/agent-traces", exist_ok=True)
+trace = {
+    "agent": "design-critic",
+    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "verdict": "<verdict>",
+    "checks_performed": ["layer1_functional", "layer2_taste", "layer3_antipattern", "visual_regression"],
+    "pages_reviewed": 1,
+    "min_score": <S>,
+    "weakest_page": "<page-name>",
+    "sections_below_8": <B>,
+    "fixes_applied": <F>,
+    "unresolved_sections": <U>,
+    "min_score_all": <SA>,
+    "pre_existing_debt": <DEBT>,
+    "page": "<page_name>",
+    "run_id": run_id,
+    "fixes": [
+        # One entry per fix applied. Example:
+        # {"file": "src/app/landing/page.tsx", "symptom": "low contrast ratio", "fix": "changed bg-gray-100 to bg-slate-900"}
+    ]
+}
+with open(".claude/agent-traces/design-critic-<page_name>.json", "w") as f:
+    json.dump(trace, f, indent=2)
+TRACE_EOF
 ```
 
 Replace placeholders with actual values:

@@ -217,6 +217,67 @@ if [[ "$SCOPE_13" =~ ^(full|visual)$ ]] && [[ "$ARCH_13" == "web-app" ]]; then
   fi
 fi
 
+# Check 14: Fix count cross-reference — trace fixes[] vs fix-log.md entries (WARN, not BLOCK)
+if [[ -d "$TRACE_DIR" && -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
+  FIX_CROSS_CHECK=$(python3 -c "
+import json, glob, os
+traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
+fix_log = open(os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/fix-log.md').read()
+warnings = []
+agent_prefix_map = {
+    'design-critic': 'Fix (design-critic):',
+    'ux-journeyer': 'Fix (ux-journeyer):',
+    'security-fixer': 'Fix (security-fixer):'
+}
+for trace_file in glob.glob(os.path.join(traces_dir, '*.json')):
+    name = os.path.basename(trace_file).replace('.json', '')
+    if name.startswith('design-critic-'):
+        continue
+    try:
+        d = json.load(open(trace_file))
+        trace_fixes = d.get('fixes', None)
+        if trace_fixes is None:
+            continue
+        prefix = agent_prefix_map.get(name, f'Fix ({name}):')
+        if len(trace_fixes) != fix_log.count(prefix):
+            warnings.append(f'{name}: trace={len(trace_fixes)}, log={fix_log.count(prefix)}')
+    except: pass
+if warnings: print('WARN:' + '; '.join(warnings))
+else: print('OK')
+" 2>/dev/null || echo "OK")
+  if [[ "$FIX_CROSS_CHECK" == WARN:* ]]; then
+    echo "WARN: Fix count mismatch: ${FIX_CROSS_CHECK#WARN:}" >&2
+  fi
+fi
+
+# Check 15: All STATE postcondition artifacts exist (backstop for phase-transition-gate.sh)
+if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+  POSTCOND_CHECK=$(python3 -c "
+import json, os
+project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
+ctx = json.load(open(os.path.join(project, '.claude/verify-context.json')))
+scope, arch = ctx.get('scope', ''), ctx.get('archetype', '')
+errors = []
+for f in ['verify-context.json', 'fix-log.md']:
+    if not os.path.exists(os.path.join(project, '.claude', f)):
+        errors.append(f'{f} missing (STATE 0)')
+if scope in ('full', 'visual') and arch == 'web-app':
+    if not os.path.exists(os.path.join(project, '.claude/design-ux-merge.json')):
+        errors.append('design-ux-merge.json missing (STATE 3)')
+if scope in ('full', 'security'):
+    if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
+        errors.append('security-merge.json missing (STATE 4)')
+if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
+    errors.append('e2e-result.json missing (STATE 5)')
+if errors: print('FAIL:' + '; '.join(errors))
+else: print('OK')
+" 2>/dev/null || echo "OK")
+  if [[ "$POSTCOND_CHECK" == FAIL:* ]]; then
+    POSTCOND_DETAIL="${POSTCOND_CHECK#FAIL:}"
+    ERRORS+=("Check 15: Missing postcondition artifacts: $POSTCOND_DETAIL")
+  fi
+fi
+
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")

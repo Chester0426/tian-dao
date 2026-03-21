@@ -61,8 +61,24 @@ Read and follow `.claude/procedures/ux-journeyer.md` for the full step-by-step p
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/ux-journeyer.json
+python3 << 'TRACE_EOF'
+import json, os
+from datetime import datetime, timezone
+run_id = ""
+try:
+    with open(".claude/verify-context.json") as f:
+        run_id = json.load(f).get("run_id", "")
+except: pass
+os.makedirs(".claude/agent-traces", exist_ok=True)
+trace = {
+    "agent": "ux-journeyer",
+    "status": "started",
+    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "run_id": run_id
+}
+with open(".claude/agent-traces/ux-journeyer.json", "w") as f:
+    json.dump(trace, f, indent=2)
+TRACE_EOF
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -103,8 +119,36 @@ Clicks-to-value: N (target: ≤ 3)
 After completing all work, write a trace file:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"ux-journeyer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["golden_path_trace","flow_issues","clicks_to_value"],"journeys_tested":<N>,"clicks_to_value":<C>,"dead_ends":<D>,"golden_path_steps":<G>,"coverage_pct":<P>,"fixes_applied":<F>,"unresolved_dead_ends":<UDE>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/ux-journeyer.json
+python3 << 'TRACE_EOF'
+import json, os
+from datetime import datetime, timezone
+run_id = ""
+try:
+    with open(".claude/verify-context.json") as f:
+        run_id = json.load(f).get("run_id", "")
+except: pass
+os.makedirs(".claude/agent-traces", exist_ok=True)
+trace = {
+    "agent": "ux-journeyer",
+    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "verdict": "<verdict>",
+    "checks_performed": ["golden_path_trace", "flow_issues", "clicks_to_value"],
+    "journeys_tested": <N>,
+    "clicks_to_value": <C>,
+    "dead_ends": <D>,
+    "golden_path_steps": <G>,
+    "coverage_pct": <P>,
+    "fixes_applied": <F>,
+    "unresolved_dead_ends": <UDE>,
+    "run_id": run_id,
+    "fixes": [
+        # One entry per fix applied. Example:
+        # {"file": "src/app/landing/page.tsx", "symptom": "dead-end navigation", "fix": "added back button"}
+    ]
+}
+with open(".claude/agent-traces/ux-journeyer.json", "w") as f:
+    json.dump(trace, f, indent=2)
+TRACE_EOF
 ```
 
 Replace placeholders with actual values:

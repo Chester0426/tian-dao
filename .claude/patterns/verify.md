@@ -81,6 +81,8 @@ Build & Lint Loop, E2E Tests, Auto-Observe, and Save Notable Patterns ALWAYS run
 test -f .claude/verify-context.json && test -f .claude/fix-log.md && test -d .claude/agent-traces
 ```
 
+> **Hook-enforced:** `phase-transition-gate.sh` validates these postconditions before allowing the next state's agents to spawn.
+
 **NEXT:** STATE 1
 
 ---
@@ -433,13 +435,22 @@ Spawn **one design-critic agent per page**, ALL as parallel foreground Agent cal
 - Page name and route: "Review SINGLE page: `<page_name>` at route `<route>`."
 - `base_url`: `http://localhost:3000` (from Dev Server Preamble)
 - `run_id`: from verify-context.json
-- PR file boundary (filtered to that page's files)
+- Per-page file boundary: `PR_file_boundary ∩ src/app/<page>/**` — shared paths (`src/components/**`, `src/lib/**`) are explicitly EXCLUDED from per-page agents. Pass ONLY page-local files.
 - Context digest summary
 - Instruction to write trace as `design-critic-<page_name>.json`
 
 **Wait for all per-page agents to complete.**
 
 After completion: use Trace State Detection to check each `design-critic-<page_name>.json`. If any agent is State 2 (exhausted), follow Exhaustion Protocol Tier 1 with reduced scope: "Focus on this page only." If State 1 (never started) and agent returned output, write a recovery trace.
+
+#### Stage 1b: Orchestrator shared-component fixes (serial)
+
+After all per-page agents complete AND before Stage 2 (consistency check):
+
+1. Read each per-page trace. If any trace output mentions shared-component issues without fixing them (shared paths were excluded from boundary), the orchestrator applies those fixes serially, one file at a time.
+2. Run `npm run build` after shared-component fixes. If build fails, fix (max 2 attempts).
+3. Append each fix to `.claude/fix-log.md`: `Fix (design-critic-shared): <file> — <desc>`
+4. If no shared-component issues reported: this step is a no-op.
 
 #### Stage 2: Consistency check + merge
 
@@ -461,7 +472,7 @@ except:
 merged = {'agent': 'design-critic', 'pages_reviewed': 0, 'min_score': 10, 'verdict': 'pass',
           'checks_performed': [], 'pages': len(batches), 'consistency_fixes': 0,
           'sections_below_8': 0, 'fixes_applied': 0, 'unresolved_sections': 0,
-          'min_score_all': 10, 'pre_existing_debt': [], 'run_id': run_id}
+          'min_score_all': 10, 'pre_existing_debt': [], 'fixes': [], 'run_id': run_id}
 worst_verdicts = {'unresolved': 3, 'fixed': 2, 'pass': 1}
 for b in batches:
     d = json.load(open(b))
@@ -475,6 +486,9 @@ for b in batches:
     debt = d.get('pre_existing_debt', [])
     if isinstance(debt, list):
         merged['pre_existing_debt'].extend(debt)
+    page_fixes = d.get('fixes', [])
+    if isinstance(page_fixes, list):
+        merged['fixes'].extend(page_fixes)
     bv = d.get('verdict', 'pass')
     if worst_verdicts.get(bv, 0) > worst_verdicts.get(merged['verdict'], 0):
         merged['verdict'] = bv
@@ -500,7 +514,16 @@ Pass:
 
 **Wait for completion.** Handle exhaustion per Tier 2.
 
-Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
+#### Post-design-critic lint gate
+
+After ALL per-page agents + Stage 1b + Stage 2 (consistency check) complete:
+
+1. Run: `npm run build && npm run lint`
+2. If lint errors (not warnings):
+   - Fix unused imports (max 2 attempts) — this is the most common issue after multi-agent edits
+   - Append each fix to `.claude/fix-log.md`: `Fix (lint-gate): <file> — removed unused import`
+3. If build errors: fix (max 2 attempts), append to fix-log
+4. Re-run `npm run build && npm run lint` to confirm clean.
 
 > **Downstream compatibility**: phase-transition-gate.sh and gate-keeper BG3 check the merged `design-critic.json` — no changes needed. `agents_completed` still lists `"design-critic"` (singular).
 
@@ -555,6 +578,8 @@ After both design-critic and ux-journeyer have completed and their builds pass:
 test -f .claude/design-ux-merge.json
 ```
 Build command exited 0 after last Phase 2 agent.
+
+> **Hook-enforced:** `phase-transition-gate.sh` validates STATE 3 postconditions before allowing security-fixer to spawn.
 
 **NEXT:** STATE 4
 
@@ -655,6 +680,8 @@ After each fix, append to `.claude/fix-log.md`.
 test -f .claude/security-merge.json
 ```
 
+> **Hook-enforced:** `phase-transition-gate.sh` validates STATE 4 postconditions before allowing observer to spawn.
+
 **NEXT:** STATE 5 (E2E_TESTS)
 
 ---
@@ -677,16 +704,36 @@ test -f .claude/security-merge.json
   ```
   Skip to STATE 6.
 
-- Otherwise: run E2E tests (3-attempt budget). For each failed attempt:
+- Otherwise: run E2E tests with precondition separation.
+
+  **Phase A: Config validation (max 2 attempts, NOT counted against test budget)**
+
+  1. Run: `timeout 30 npx playwright test --list 2>&1`
+  2. If `--list` succeeds (exit 0, lists test names): proceed to Phase B.
+  3. If config error (output contains `browserType`, `chromium`, `Cannot find module`, `config`, or `Error: playwright`):
+     - These are infrastructure issues, not test failures.
+     - Fix the config error (e.g., install missing browser, fix config path).
+     - Append fix to `.claude/fix-log.md`: `Fix (e2e-config): <file> — <description>`
+     - Re-run `--list` (max 2 config-fix attempts total).
+  4. If test file error (syntax errors in test files, missing imports in tests): proceed to Phase B — these count against the test budget.
+  5. If config errors persist after 2 attempts, write `.claude/e2e-result.json`:
+     ```bash
+     echo '{"passed":false,"attempts":0,"config_error":true,"reason":"playwright config broken after 2 fix attempts"}' > .claude/e2e-result.json
+     ```
+     Skip to STATE 6.
+
+  **Phase B: Test execution (3-attempt budget, starts ONLY after --list succeeds)**
+
+  For each failed attempt:
   1. Read test output, identify failures
   2. Fix issues (test code or app code)
-  3. Append each fix to `.claude/fix-log.md`
+  3. Append each fix to `.claude/fix-log.md`: `Fix (e2e): <file> — <description>`
   4. Re-run tests
 
-  After tests pass (or budget exhausted), write `.claude/e2e-result.json`:
+  After tests pass (or 3-attempt budget exhausted), write `.claude/e2e-result.json`:
   ```bash
   cat > .claude/e2e-result.json << 'E2EEOF'
-  {"passed":<true|false>,"attempts":<N>,"fixes":<N>}
+  {"passed":<true|false>,"attempts":<N>,"fixes":<N>,"config_attempts":<CA>}
   E2EEOF
   ```
 

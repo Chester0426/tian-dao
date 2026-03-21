@@ -41,8 +41,24 @@ If any Critical/High finding or Defender FAIL remains unfixed after 2 fix cycles
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-fixer.json
+python3 << 'TRACE_EOF'
+import json, os
+from datetime import datetime, timezone
+run_id = ""
+try:
+    with open(".claude/verify-context.json") as f:
+        run_id = json.load(f).get("run_id", "")
+except: pass
+os.makedirs(".claude/agent-traces", exist_ok=True)
+trace = {
+    "agent": "security-fixer",
+    "status": "started",
+    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "run_id": run_id
+}
+with open(".claude/agent-traces/security-fixer.json", "w") as f:
+    json.dump(trace, f, indent=2)
+TRACE_EOF
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.
@@ -79,6 +95,8 @@ Re-verify each fixed issue using the method that matches its source:
 
 - Run `git diff` to capture all changes made
 - Write a one-line summary for each issue fixed (e.g., "Added RLS policy to profiles table")
+
+**Fix Tracking**: As you apply each fix, record it as `{"file": "<path>", "symptom": "<what was wrong>", "fix": "<what you changed>"}`. These entries populate the `fixes` array in the final trace JSON. The count of entries in `fixes` must equal the `issues_fixed` numeric field.
 
 ### 6. Generate Report Tables
 
@@ -127,8 +145,31 @@ Status values: **fixed** (resolved), **unfixed** (could not resolve in 2 cycles)
 After completing all work, write a trace file:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"security-fixer","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","verdict":"<verdict>","checks_performed":["fix_code","rebuild","recheck","collect_changes","generate_tables"],"issues_fixed":<N>,"unresolved_critical":<UC>,"run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/security-fixer.json
+python3 << 'TRACE_EOF'
+import json, os
+from datetime import datetime, timezone
+run_id = ""
+try:
+    with open(".claude/verify-context.json") as f:
+        run_id = json.load(f).get("run_id", "")
+except: pass
+os.makedirs(".claude/agent-traces", exist_ok=True)
+trace = {
+    "agent": "security-fixer",
+    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "verdict": "<verdict>",
+    "checks_performed": ["fix_code", "rebuild", "recheck", "collect_changes", "generate_tables"],
+    "issues_fixed": <N>,
+    "unresolved_critical": <UC>,
+    "run_id": run_id,
+    "fixes": [
+        # One entry per fix applied. Example:
+        # {"file": "src/app/api/auth/route.ts", "symptom": "missing rate limiting", "fix": "added rate limiter middleware"}
+    ]
+}
+with open(".claude/agent-traces/security-fixer.json", "w") as f:
+    json.dump(trace, f, indent=2)
+TRACE_EOF
 ```
 
 Replace placeholders with actual values:

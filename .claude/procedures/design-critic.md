@@ -124,6 +124,8 @@ For any section rated below 8/10 in Layer 2, or any Layer 1/Layer 3 failure:
 
 After fixing sections on a page, re-screenshot the entire page once and re-rate all fixed sections from that screenshot. If any fixed section is still < 8, try one more fix (max 2 fix attempts per section, matching the security-fixer re-check pattern). Budget is 50 turns total; reserve ~10 turns for re-rate verification. If remaining turns < 10, stop fixing and write the trace immediately with verdict `"unresolved"`.
 
+**Fix Tracking**: As you apply each fix, record it as `{"file": "<path>", "symptom": "<what was wrong>", "fix": "<what you changed>"}`. These entries populate the `fixes` array in the final trace JSON. The count of entries in `fixes` must equal the `fixes_applied` numeric field.
+
 After all fixes are complete, save current screenshots as the new baseline:
 
 ```bash
