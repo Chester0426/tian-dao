@@ -67,7 +67,7 @@ Build & Lint Loop, E2E Tests, Auto-Observe, and Save Notable Patterns ALWAYS run
    ```
 
 5. Extract context digest (in-memory, passed to agents in STATE 2/3):
-   - Pages: list page names and routes from `golden_path`
+   - Pages: list all page names and routes (union of `golden_path` and filesystem scan of `src/app/**/page.tsx`, excluding `/api/`)
    - Behavior IDs: list all behavior IDs from `behaviors`
    - Event names: list event names from `experiment/EVENTS.yaml`
    - Source file list: `find src/ -type f \( -name '*.ts' -o -name '*.tsx' \) | head -100`
@@ -419,7 +419,15 @@ If the agent completes normally (Trace State 3 with verdict), do NOT revert — 
 
 #### Stage 1: Per-page review (parallel)
 
-Read `golden_path` pages from experiment.yaml and collect page names + routes.
+Discover **all** pages — not just golden_path pages:
+
+1. Scan the filesystem for all page files:
+   ```bash
+   find src/app -name 'page.tsx' -o -name 'page.jsx' -o -name 'page.ts' -o -name 'page.js' 2>/dev/null | grep -v '/api/' | sort
+   ```
+2. Read `golden_path` pages from experiment.yaml for route metadata.
+3. Merge: for each discovered page file, derive the route from its path (e.g., `src/app/settings/page.tsx` → `/settings`). Golden_path entries provide the canonical page name; filesystem-only pages use the directory name as the page name.
+4. Deduplicate by route. The final list is the **union** of golden_path pages and filesystem pages.
 
 Spawn **one design-critic agent per page**, ALL as parallel foreground Agent calls in a **SINGLE message**. Each agent prompt includes:
 - Page name and route: "Review SINGLE page: `<page_name>` at route `<route>`."
@@ -499,7 +507,7 @@ Run `npm run build`. If build fails, fix (max 2 attempts) before next agent.
 #### Lead-side validation (design-critic)
 
 1. Read `.claude/agent-traces/design-critic.json` trace (merged by consistency checker).
-2. Verify `pages_reviewed` >= number of pages in experiment.yaml `golden_path`.
+2. Verify `pages_reviewed` >= number of discovered pages (filesystem + golden_path union).
 3. If `verdict` == `"unresolved"`, this is a **hard gate failure** — design quality threshold (8/10) was not met after 2 fix attempts. Skip STATEs 4-6 but still write verify-report.md (STATE 7) and execute STATE 8 (Save Patterns). Report failure to user with the `unresolved_sections` count.
 4. If `min_score` < 8 and `verdict` == `"fixed"`, note in verify report that threshold was met after fixes.
 5. If `pre_existing_debt` is non-empty, note pre-existing quality debt in verify report (informational, does not block).
