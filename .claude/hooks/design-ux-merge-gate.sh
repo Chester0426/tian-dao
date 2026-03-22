@@ -67,6 +67,18 @@ if os.path.exists(dc_trace_path):
                 errors.append(f'design_critic.min_score mismatch: trace={dc.get(\"min_score\")}, merge={dc_merge.get(\"min_score\")}')
     except (json.JSONDecodeError, IOError):
         pass
+
+    # Validate shared_fixes_applied if design-critic-shared.json exists
+    shared_path = os.path.join(traces_dir, 'design-critic-shared.json')
+    if os.path.exists(shared_path):
+        try:
+            shared = json.load(open(shared_path))
+            merge_shared = dc_merge.get('shared_fixes_applied', None)
+            trace_shared = shared.get('fixes_applied', 0)
+            if merge_shared is not None and merge_shared != trace_shared:
+                errors.append(f'design_critic.shared_fixes_applied mismatch: trace={trace_shared}, merge={merge_shared}')
+        except (json.JSONDecodeError, IOError):
+            pass
 else:
     errors.append('design-critic.json trace not found — cannot validate merge')
 

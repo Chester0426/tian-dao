@@ -72,8 +72,15 @@ except:
   done
 fi
 
-# Check 5: If scope is full/security, security-merge.json must exist
-if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+# Detect hard_gate_failure in report content — when true, STATEs 4-6 artifacts
+# are correctly absent (hard gate skips them). Checks 5, 7, 15 become conditional.
+HAS_HARD_GATE=0
+if [[ -n "$CONTENT" ]]; then
+  HAS_HARD_GATE=$(echo "$CONTENT" | grep -c 'hard_gate_failure: *true' || echo "0")
+fi
+
+# Check 5: If scope is full/security, security-merge.json must exist (skip on hard gate)
+if [[ "$HAS_HARD_GATE" -eq 0 ]] && [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
   SCOPE=$(python3 -c "
 import json, sys
 try:
@@ -90,7 +97,8 @@ except:
 fi
 
 # Check 6: If fix-log.md has content beyond header, auto_observe must not be skipped-no-fixes
-if [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
+# (Skip on hard gate — observer was correctly not spawned when STATEs 4-6 skipped)
+if [[ "$HAS_HARD_GATE" -eq 0 ]] && [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
   # Count non-empty lines after the header (first line)
   FIX_ENTRIES=$(tail -n +2 "$PROJECT_DIR/.claude/fix-log.md" | grep -c '[^[:space:]]' 2>/dev/null || echo "0")
   if [[ "$FIX_ENTRIES" -gt 0 ]]; then
@@ -101,9 +109,11 @@ if [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
   fi
 fi
 
-# Check 7: e2e-result.json must exist (STATE 5 ran or explicitly skipped)
-if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
-  ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) did not run")
+# Check 7: e2e-result.json must exist (skip on hard gate — STATEs 4-6 skipped)
+if [[ "$HAS_HARD_GATE" -eq 0 ]]; then
+  if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
+    ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) did not run")
+  fi
 fi
 
 # Check 8: If scope is full/visual AND archetype is web-app, design-ux-merge.json must exist
@@ -217,6 +227,27 @@ if [[ "$SCOPE_13" =~ ^(full|visual)$ ]] && [[ "$ARCH_13" == "web-app" ]]; then
   fi
 fi
 
+# Check 13b: design-critic-shared trace required when per-page agents report shared-component issues
+if [[ "$SCOPE_13" =~ ^(full|visual)$ ]] && [[ "$ARCH_13" == "web-app" ]]; then
+  HAS_SHARED_ISSUES=$(python3 -c "
+import json, glob, os
+traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
+for f in glob.glob(os.path.join(traces_dir, 'design-critic-*.json')):
+    if 'design-critic-shared' in f: continue
+    try:
+        d = json.load(open(f))
+        if d.get('unresolved_shared', 0) > 0:
+            print('yes'); break
+    except: pass
+else: print('no')
+" 2>/dev/null || echo "no")
+  if [[ "$HAS_SHARED_ISSUES" == "yes" ]]; then
+    if [ ! -f "$PROJECT_DIR/.claude/agent-traces/design-critic-shared.json" ]; then
+      ERRORS+=("Check 13b: design-critic-shared.json missing but per-page agents reported shared-component issues")
+    fi
+  fi
+fi
+
 # Check 14: Fix count cross-reference — trace fixes[] vs fix-log.md entries (WARN, not BLOCK)
 if [[ -d "$TRACE_DIR" && -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then
   FIX_CROSS_CHECK=$(python3 -c "
@@ -251,12 +282,14 @@ else: print('OK')
 fi
 
 # Check 15: All STATE postcondition artifacts exist (backstop for phase-transition-gate.sh)
+# When hard_gate_failure: true, STATEs 4-6 are correctly skipped — their artifacts are optional.
 if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-  POSTCOND_CHECK=$(python3 -c "
+  POSTCOND_CHECK=$(HAS_HARD_GATE="$HAS_HARD_GATE" python3 -c "
 import json, os
 project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
 ctx = json.load(open(os.path.join(project, '.claude/verify-context.json')))
 scope, arch = ctx.get('scope', ''), ctx.get('archetype', '')
+hard_gate = int(os.environ.get('HAS_HARD_GATE', '0')) > 0
 errors = []
 for f in ['verify-context.json', 'fix-log.md']:
     if not os.path.exists(os.path.join(project, '.claude', f)):
@@ -264,11 +297,12 @@ for f in ['verify-context.json', 'fix-log.md']:
 if scope in ('full', 'visual') and arch == 'web-app':
     if not os.path.exists(os.path.join(project, '.claude/design-ux-merge.json')):
         errors.append('design-ux-merge.json missing (STATE 3)')
-if scope in ('full', 'security'):
-    if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
-        errors.append('security-merge.json missing (STATE 4)')
-if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
-    errors.append('e2e-result.json missing (STATE 5)')
+if not hard_gate:
+    if scope in ('full', 'security'):
+        if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
+            errors.append('security-merge.json missing (STATE 4)')
+    if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
+        errors.append('e2e-result.json missing (STATE 5)')
 if not os.path.exists(os.path.join(project, '.claude/build-result.json')):
     errors.append('build-result.json missing (STATE 1)')
 if errors: print('FAIL:' + '; '.join(errors))
