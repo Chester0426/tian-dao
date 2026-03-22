@@ -37,12 +37,24 @@ auto_observe: ran | skipped-no-fixes | observations-filed
 agent_verdicts: <AGENT_VERDICTS JSON>
 hard_gate_failure: false
 process_violation: false
+overall_verdict: pass | fail
 ---
 
 ## Build
 - Attempts: [N]/3
 - Result: pass
 - Last output: [last 3-5 lines of build output]
+
+## Quality Delta
+> Populated when `.claude/verify-history.jsonl` has a previous entry. Otherwise omit this section.
+>
+> Read the last line of `.claude/verify-history.jsonl` and compare to current run values.
+
+| Metric | Previous | Current | Delta |
+|--------|----------|---------|-------|
+| Build attempts | [prev] | [curr] | [+/-N or —] |
+| Fix log entries | [prev] | [curr] | [+/-N or —] |
+| Overall verdict | [prev] | [curr] | [improved/regressed/—] |
 
 ## Review Agents
 | Agent | Verdict | Notes |
@@ -89,11 +101,47 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
 > reads this file and includes its contents in the PR body. If the file
 > does not exist, the PR step must run verify.md first.
 
-**POSTCONDITIONS:** `verify-report.md` exists with valid frontmatter.
+6. Compute `overall_verdict`: if `hard_gate_failure` is `true` OR `process_violation` is `true` → `fail`, otherwise → `pass`. Write this into the frontmatter.
+
+7. Append to `.claude/verify-history.jsonl` (persistent across runs — never deleted):
+   ```bash
+   python3 -c "
+   import json, datetime
+   ctx = json.load(open('.claude/verify-context.json'))
+   report = open('.claude/verify-report.md').read()
+   lines = report.split('\n')
+   fm = {}
+   in_fm = False
+   for line in lines:
+       s = line.strip()
+       if s == '---':
+           if in_fm: break
+           in_fm = True; continue
+       if in_fm and ':' in s:
+           k, v = s.split(':', 1)
+           fm[k.strip()] = v.strip()
+   entry = {
+       'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+       'run_id': ctx.get('run_id', ''),
+       'scope': ctx.get('scope', ''),
+       'archetype': ctx.get('archetype', ''),
+       'build_attempts': int(fm.get('build_attempts', '1')),
+       'fix_log_entries': int(fm.get('fix_log_entries', '0')),
+       'hard_gate_failure': fm.get('hard_gate_failure', 'false') == 'true',
+       'process_violation': fm.get('process_violation', 'false') == 'true',
+       'overall_verdict': fm.get('overall_verdict', 'pass').strip()
+   }
+   with open('.claude/verify-history.jsonl', 'a') as f:
+       f.write(json.dumps(entry) + '\n')
+   print('Appended to verify-history.jsonl')
+   "
+   ```
+
+**POSTCONDITIONS:** `verify-report.md` exists with valid frontmatter. `verify-history.jsonl` has a new entry appended.
 
 **VERIFY:**
 ```bash
-head -1 .claude/verify-report.md | grep -q '^---$'
+head -1 .claude/verify-report.md | grep -q '^---$' && tail -1 .claude/verify-history.jsonl | python3 -c "import json,sys;json.loads(sys.stdin.read());print('ok')"
 ```
 
 **NEXT:** Read [state-8-save-patterns.md](state-8-save-patterns.md) to continue.

@@ -16,19 +16,30 @@
    - If in bootstrap-verify or change-verify mode: read all files listed in current-plan.md `context_files`
    - If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`
 
-3. Write `.claude/verify-context.json` (includes `run_id` for trace freshness validation):
+3. Read previous verify baseline (if available):
+   ```bash
+   BASELINE_AVAILABLE=false
+   if [[ -f .claude/verify-history.jsonl ]]; then
+     PREV_RUN=$(tail -1 .claude/verify-history.jsonl 2>/dev/null || echo "")
+     if [[ -n "$PREV_RUN" ]]; then
+       BASELINE_AVAILABLE=true
+     fi
+   fi
+   ```
+
+4. Write `.claude/verify-context.json` (includes `run_id` for trace freshness validation and `baseline_available` for delta reporting):
    ```bash
    cat > .claude/verify-context.json << CTXEOF
-   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","baseline_available":$BASELINE_AVAILABLE}
    CTXEOF
    ```
 
-4. Create `.claude/fix-log.md` on disk:
+5. Create `.claude/fix-log.md` on disk:
    ```bash
    echo '# Error Fix Log' > .claude/fix-log.md
    ```
 
-5. Extract context digest (in-memory, passed to agents in STATE 2/3):
+6. Extract context digest (in-memory, passed to agents in STATE 2/3):
    - Pages: list all page names and routes (union of `golden_path` and filesystem scan of `src/app/**/page.tsx`, excluding `/api/`)
    - Behavior IDs: list all behavior IDs from `behaviors`
    - Event names: list event names from `experiment/EVENTS.yaml`
@@ -36,7 +47,7 @@
    - PR changed files: `git diff --name-only $(git merge-base HEAD main)...HEAD`
    - Golden path steps: ordered list of steps from `golden_path`
 
-**POSTCONDITIONS:** All 4 artifacts exist on disk (agent-traces dir, verify-context.json, fix-log.md). Context digest is available in-memory.
+**POSTCONDITIONS:** All 4 artifacts exist on disk (agent-traces dir, verify-context.json, fix-log.md). Context digest is available in-memory. If `verify-history.jsonl` exists, baseline data is available for STATE 7 delta reporting.
 
 **VERIFY:**
 ```bash
