@@ -138,6 +138,8 @@ The rest of the component code remains identical — only the import changes.
 
 ### `src/app/signup/page.tsx` — Signup page (if `signup` is in experiment.yaml pages)
 
+When `stack.analytics` is absent: remove the `@/lib/events` import and all `trackSignupStart()`/`trackSignupComplete()` calls from the template below. The signup flow works without analytics.
+
 #### When `stack.database` is also `supabase` (shared client):
 ```tsx
 "use client";

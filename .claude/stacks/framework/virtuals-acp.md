@@ -197,9 +197,9 @@ Payment is native to the ACP protocol — no separate `payment/` stack file need
 - Pricing is set in the offering registration (see above)
 - No Stripe, no checkout flow, no webhook — payment settlement is on-chain
 
-For analytics, track payment events using `trackServerEvent()` with custom events
+When `stack.analytics` is present: track payment events using `trackServerEvent()` with custom events
 (e.g., `task_completed` with `amount_usdc` property) rather than the standard
-`pay_start`/`pay_success` funnel events, which assume a web checkout flow.
+`pay_start`/`pay_success` funnel events, which assume a web checkout flow. Skip analytics tracking if `stack.analytics` is absent.
 
 ## Data Fetching
 - All logic is server-side (persistent Node.js process)

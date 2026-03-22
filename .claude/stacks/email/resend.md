@@ -88,6 +88,8 @@ export async function sendActivationNudge(to: string, name: string, activationAc
 
 ### `src/app/api/email/welcome/route.ts`
 
+When `stack.analytics` is absent: remove the `@/lib/analytics-server` import and the `await trackServerEvent()` call from both email route templates below. The email routes work without analytics.
+
 Called from the auth success callback after `signup_complete`. Sends a welcome email with the value prop and a CTA to complete the activation action.
 
 ```ts

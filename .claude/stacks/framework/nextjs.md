@@ -139,6 +139,9 @@ export async function OPTIONS() {
 - No `@apply` with custom class names in CSS -- Tailwind v4 only supports `@apply` with utility classes. Use inline utility classes or `@theme` for custom values.
 
 ## retain_return Tracking
+
+When `stack.analytics` is absent: skip this entire section — the RetainTracker component exists solely to fire analytics events.
+
 Create a client component for retain_return tracking and render it in the root layout. This keeps the root layout as a server component (required for `metadata` export) while running client-side localStorage logic in a separate component.
 
 ### `src/components/RetainTracker.tsx` — Client component

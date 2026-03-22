@@ -137,10 +137,12 @@ Notes:
 - Creates a Stripe Checkout Session in `payment` mode (change to `subscription` for recurring)
 - Sets `success_url` and `cancel_url` back to your app
 - Returns the session URL to the client
-- Fire `pay_start` analytics event before redirecting — use the typed `trackPayStart()` wrapper from `events.ts` (client-side, before calling this route)
+- If `stack.analytics` is present: fire `pay_start` analytics event before redirecting — use the typed `trackPayStart()` wrapper from `events.ts` (client-side, before calling this route). Skip if analytics is absent.
 - The `user.id` reference is intentionally undefined in the template — it causes a build error until auth is integrated. See the auth stack file's "Server-Side Auth Check" section for the correct import and guard pattern. The `metadata` object is critical — the webhook handler reads `session.metadata.user_id` to update the database.
 
 ### `src/app/api/webhooks/stripe/route.ts` — Stripe Webhook Handler
+
+When `stack.analytics` is absent: remove the `@/lib/analytics-server` import and the `await trackServerEvent()` call from the template below. The webhook will still process payments correctly without analytics.
 ```ts
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
