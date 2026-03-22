@@ -55,7 +55,7 @@ varies by archetype:
 - If `variants`: write `src/components/landing-content.tsx` — a shared
   `LandingContent` component that accepts variant props (headline, subheadline,
   cta, pain_points). Features section is shared across variants (from experiment.yaml
-  `features`). The structural routing files (variants.ts, root page, dynamic
+  `behaviors`). The structural routing files (variants.ts, root page, dynamic
   route) are created by the pages subagent in Phase B2 — they exist
   when both agents run.
 

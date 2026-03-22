@@ -390,7 +390,9 @@ behaviors:
 ```
 
 ### Section 4 — Journey
-Derive golden_path from behaviors:
+Derive golden_path from behaviors. The format depends on the archetype:
+
+**If type is `web-app`:**
 ```yaml
 golden_path:
   - step: "<description>"         # e.g., "Visit landing page"
@@ -402,14 +404,50 @@ golden_path:
     page: <value page>
 target_clicks: <N>
 ```
+
+**If type is `service`:**
+```yaml
+endpoints:
+  - path: "/<endpoint>"
+    method: POST
+    description: "<what this endpoint does>"
+  # List all API endpoints from behaviors
+golden_path:
+  - step: "<description>"
+    event: api_call
+    endpoint: "/<endpoint>"
+  - step: "<value-delivering action>"
+    event: activate
+    endpoint: "/<value endpoint>"
+```
+
+**If type is `cli`:**
+```yaml
+commands:
+  - name: "<command>"
+    description: "<what this command does>"
+  # List all commands from behaviors
+golden_path:
+  - step: "<description>"
+    event: command_run
+    command: "<command>"
+  - step: "<value-delivering action>"
+    event: activate
+    command: "<value command>"
+```
+
 - `step:` replaces the old `action:` field
 - Pages are derived from golden_path — no separate `pages` section
 
 ### Section 5 — Variants
+
+**If type is `web-app`:**
 ```yaml
 variants:
   <all from Step 5>
 ```
+
+**If type is `service` or `cli`:** Omit the `variants` section entirely — variants (A/B landing page testing) are only supported for the web-app archetype.
 
 ### Section 6 — Funnel
 Dimension thresholds are derived from the highest-priority hypothesis in each category (no per-dimension metric/threshold fields in the funnel itself).
@@ -429,9 +467,11 @@ funnel:
 ```
 
 ### Section 7 — Stack + Deploy
-Stack is deterministic from level:
+Stack is deterministic from level and archetype:
 
-**Level 1:**
+**If type is `web-app`:**
+
+Level 1:
 ```yaml
 stack:
   services:
@@ -441,26 +481,53 @@ stack:
       ui: shadcn
       testing: playwright
   analytics: posthog
-
 deploy:
   url: null
   repo: null
 ```
 
-**Level 2:** Level 1 +
+Level 2: Level 1 + `database: supabase`
+
+Level 3: Level 2 + `auth: supabase` (and `payment: stripe` if monetize hypotheses exist)
+
+**If type is `service`:**
+
+Level 1:
 ```yaml
-  database: supabase
+stack:
+  services:
+    - name: app
+      runtime: hono
+      hosting: railway
+      testing: vitest
+  analytics: posthog
+deploy:
+  url: null
+  repo: null
 ```
 
-**Level 3:** Level 2 +
+Level 2: Level 1 + `database: supabase`
+
+Level 3: Level 2 + `auth: supabase` (and `payment: stripe` if monetize hypotheses exist)
+
+**If type is `cli`:**
+
+Level 1:
 ```yaml
-  auth: supabase
+stack:
+  services:
+    - name: app
+      runtime: commander
+      testing: vitest
+  analytics: posthog
+deploy:
+  url: null
+  repo: null
 ```
 
-If monetize hypotheses exist at Level 3, also add:
-```yaml
-  payment: stripe
-```
+Level 2: Level 1 + `database: sqlite`
+
+Level 3: Level 2 (cli excludes auth and payment per archetype definition)
 
 ### CHECKPOINT
 

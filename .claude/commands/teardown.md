@@ -82,6 +82,16 @@ Type **delete** to confirm permanent data deletion, or **cancel** to abort.
 
 If the user types "cancel", stop.
 
+## Step 2b: npm package cleanup (if archetype is cli)
+
+If archetype is `cli`, check if the experiment was published to npm:
+```bash
+npm view <name> 2>/dev/null
+```
+If published, warn: "The npm package `<name>` is still published. After teardown, run `npm deprecate <name>@\"*\" \"Experiment concluded\"` to deprecate it. If published within the last 72 hours, you can also run `npm unpublish <name>` to remove it entirely."
+
+This is a reminder only — npm cleanup is done after infrastructure teardown.
+
 ## Step 3: Delete resources (reverse order of /deploy creation)
 
 Delete in reverse order of creation. Each step is independent — continue on failure.

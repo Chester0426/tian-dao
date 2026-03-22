@@ -332,7 +332,7 @@ If all API calls succeed, return `{status: "ok", message: "Dashboard and funnel 
 
 #### Agent D — External Services
 
-**Spawn condition:** any external stack files exist (Step 0.8 found services)
+**Spawn condition:** any external stack files exist (Step 0.10 found services)
 **Receives:** `canonical_url`, hosting env var method (from hosting stack file), hosting project `name`/team, hosting stack file path, external CLI statuses from Step 0.10, external stack file paths
 **Returns:** `{status: "ok"|"partial"|"failed"|"skipped", message: "<details>", env_vars_added: ["KEY1", ...], per_service: [{name, status, message}]}`
 

@@ -157,7 +157,7 @@ deploy: ## Deploy to Vercel (first run will prompt to link project)
 		exit 1; \
 	fi
 	@if [ -f experiment/experiment.yaml ]; then \
-		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('experiment/experiment.yaml')); print(d.get('stack',{}).get('hosting',''))" 2>/dev/null); \
+		HOSTING=$$(python3 -c "import yaml; d=yaml.safe_load(open('experiment/experiment.yaml')); print(next((s.get('hosting','') for s in d.get('stack',{}).get('services',[]) if isinstance(s,dict)),d.get('stack',{}).get('hosting','')))" 2>/dev/null); \
 		if [ -n "$$HOSTING" ] && [ "$$HOSTING" != "vercel" ]; then \
 			echo "Warning: stack.hosting is '$$HOSTING', but this Makefile only supports Vercel."; \
 			echo "Use the /deploy skill in Claude Code — it reads your hosting stack file and handles any provider."; \

@@ -9,16 +9,16 @@ Derive all conversion copy from experiment.yaml fields. Never use raw field valu
 
 ### Headline
 
-Formula: **"[Verb] [desired outcome] [qualifier]"** — derived from `solution` + `target_user`, NOT from `title`.
+Formula: **"[Verb] [desired outcome] [qualifier]"** — derived from `description` (the solution aspect) + `target_user`, NOT from `name`.
 
-- `title` is the product name/brand (e.g., "QuickBill — Fast Invoicing for Freelancers")
+- `name` is the product name/brand (e.g., "QuickBill — Fast Invoicing for Freelancers")
 - The headline is the value proposition (e.g., "Invoice Clients in 60 Seconds")
 
-Anti-pattern: using `title` as the headline. That's branding, not conversion.
+Anti-pattern: using `name` as the headline. That's branding, not conversion.
 
 ### Subheadline
 
-One sentence explaining HOW — derived from `solution`. Can use the first sentence of `solution` more directly, but rewrite for clarity if needed.
+One sentence explaining HOW — derived from `description` (the solution aspect). Can use the first sentence more directly, but rewrite for clarity if needed.
 
 ### CTA
 
@@ -31,7 +31,7 @@ Examples:
 
 ### Pain points
 
-3 short statements derived from the `problem` field. Each addresses one aspect of the pain.
+3 short statements derived from the problem described in `description`. Each addresses one aspect of the pain.
 
 Format: icon/emoji + short statement (e.g., "Manual invoicing wastes hours every week").
 
@@ -42,8 +42,8 @@ creative decision by `frontend-design`, not a fixed checklist):
 
 - **Value proposition** — headline + subheadline (derived from Section A rules)
 - **CTA** — the call-to-action (derived from Section A rules)
-- **Pain points** — derived from experiment.yaml `problem` — aspects of the pain to activate
-- **Features** — derived from experiment.yaml `features` — capabilities to showcase
+- **Pain points** — derived from the problem described in experiment.yaml `description` — aspects of the pain to activate
+- **Features** — derived from experiment.yaml `behaviors` — capabilities to showcase
 - **Social proof** — testimonials, logos, metrics (if available in experiment.yaml or inferable)
 
 `frontend-design` decides which elements to include, how to arrange them, how
@@ -71,12 +71,12 @@ When experiment.yaml has a `variants` field, these rules extend Sections A–C:
 
 ### Variant Copy Source
 - Each variant defines its own `headline`, `subheadline`, `cta`, and `pain_points`.
-- These fields **replace** the copy that Section A would derive from `solution` + `target_user` + `problem`.
+- These fields **replace** the copy that Section A would derive from `description` + `target_user`.
 - The variant copy IS the messaging — do not re-derive from solution/target_user.
 
 ### Landing Page Structure
 - Each variant uses the **same** page structure (chosen by AI at bootstrap). Variant fields slot into the shared layout.
-- Variant fields slot into Hero and Pain Points. Features section is shared across all variants (from experiment.yaml `features`).
+- Variant fields slot into Hero and Pain Points. Features section is shared across all variants (from experiment.yaml `behaviors`).
 
 ### Default Variant
 - The variant with `default: true` (or the first in the list) renders at root `/`.
@@ -85,4 +85,4 @@ When experiment.yaml has a `variants` field, these rules extend Sections A–C:
 
 ### Message Match for Variants
 - Section C rules apply **per variant**: each variant's ad group must match its landing page headline.
-- Ad headlines for a variant are shortened from that variant's `headline` field, not from the shared `solution`.
+- Ad headlines for a variant are shortened from that variant's `headline` field, not from the shared `description`.

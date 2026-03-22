@@ -45,10 +45,9 @@ founder proud to share the URL.
 **Content inventory from experiment.yaml** (raw material — page architecture is a
 creative decision by `frontend-design`, not a fixed mapping):
 - `name` — product identity
-- `title` — core value proposition
-- `solution` — what the product does
-- `features` — capabilities to showcase
-- `problem` (if present) — pain points to activate
+- `description` — value proposition and what the product does
+- `behaviors` — capabilities to showcase
+- `target_user` — who the product is for
 - CTA — `npm install -g <name>` command with copy button (pure CSS/minimal JS)
 
 Can include CSS-based terminal animation showing CLI usage.
