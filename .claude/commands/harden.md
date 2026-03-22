@@ -44,9 +44,10 @@ Transition this MVP to production quality mode: $ARGUMENTS
 
 - Read `experiment/experiment.yaml` (behaviors, golden_path, stack, type)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`)
-- Scan for modules based on archetype:
-  - **web-app**: `src/app/` (pages and API routes), `src/components/`, `src/lib/`
-  - **service**: `src/app/api/` (endpoints), `src/lib/`
+- Read the framework stack file at `.claude/stacks/framework/<runtime>.md` to identify the project's file structure conventions
+- Scan for modules based on archetype (use paths from the framework stack file's File Structure section):
+  - **web-app**: page and API route directories (e.g., `src/app/` for Next.js), `src/components/`, `src/lib/`
+  - **service**: route handler directory (e.g., `src/app/api/` for Next.js, `src/routes/` for Hono), `src/lib/`
   - **cli**: `src/commands/`, `src/lib/`
 - Glob for existing tests (`**/*.test.*`, `**/*.spec.*`, `e2e/**`)
 - Classify each module into 4 categories:

@@ -36,10 +36,9 @@ page. The route path depends on the framework stack file (e.g.,
 **Content inventory from experiment.yaml** (raw material — page architecture is a
 creative decision by `frontend-design`, not a fixed mapping):
 - `name` — product identity
-- `title` — core value proposition
-- `solution` — what the product does
-- `features` — capabilities to showcase
-- `problem` (if present) — pain points to activate
+- `description` — value proposition and what the product does
+- `behaviors` — capabilities to showcase
+- `target_user` — who the product is for
 - Payment/pricing info from `stack.payment` (if present)
 - CTA — API docs link, first endpoint, or waitlist
 
