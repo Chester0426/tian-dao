@@ -38,6 +38,12 @@ Spawn **one design-critic agent per page**, ALL as parallel foreground Agent cal
   > **Hook-enforced:** `phase-transition-gate.sh` validates that no shared paths appear between these markers. The hook will BLOCK the agent spawn if shared paths are detected.
 - Context digest summary
 - Instruction to write trace as `design-critic-<page_name>.json`
+- Shared-component reporting instruction:
+  > When you find issues in files outside your FILE_BOUNDARY (shared components in
+  > `src/components/` or `src/lib/`), record them in your trace:
+  > - `"unresolved_shared": <count>` — number of unresolved issues in shared files
+  > - `"shared_issues": [{"file": "...", "section": "...", "description": "..."}]`
+  > Do NOT attempt to fix these files. They will be handled by a separate agent.
 
 **Wait for all per-page agents to complete.**
 
@@ -51,6 +57,45 @@ After all per-page agents complete AND before Stage 2 (consistency check):
 2. Run `npm run build` after shared-component fixes. If build fails, fix (max 2 attempts).
 3. Append each fix to `.claude/fix-log.md`: `Fix (design-critic-shared): <file> — <desc>`
 4. If no shared-component issues reported: this step is a no-op.
+
+#### Stage 1c: Shared-component design-critic agent (serial, conditional)
+
+**Guard**: scope is `full` or `visual` AND archetype is `web-app` AND any per-page
+trace has `unresolved_shared > 0` (shared-component issues reported but not fixed
+because they were outside the per-page file boundary).
+
+1. Collect reported-but-unfixed shared-component issues from all per-page traces:
+   ```bash
+   python3 -c "
+   import json, glob
+   issues = []
+   for f in sorted(glob.glob('.claude/agent-traces/design-critic-*.json')):
+       if 'design-critic-shared' in f: continue
+       d = json.load(open(f))
+       for si in d.get('shared_issues', []):
+           issues.append(si)
+   if issues: print(json.dumps(issues, indent=2))
+   else: print('NONE')
+   "
+   ```
+   If `NONE`: this step is a no-op. Skip to Stage 2.
+2. Spawn a SINGLE `design-critic` agent (`subagent_type: design-critic`) with:
+   - Trace name: `design-critic-shared.json`
+   - File boundary: INVERTED — ONLY `src/components/**` and `src/lib/**` files from the PR boundary
+     ```
+     FILE_BOUNDARY_START
+     src/components/...
+     src/lib/...
+     FILE_BOUNDARY_END
+     ```
+   - Input: the collected shared-component issues from step 1
+   - Task: "Fix ONLY the shared-component visual issues reported by per-page agents. Do NOT perform a full design review — focus on the specific issues listed."
+   - Include `run_id`, context digest, and agent-prompt-footer content
+3. After completion: use [Trace State Detection](../verify.md#trace-state-detection) on `design-critic-shared.json`. If State 2 (exhausted), follow [Exhaustion Protocol](../verify.md#exhaustion-protocol) Tier 1 with reduced scope: "Fix only the highest-impact shared issue."
+4. Run `npm run build`. If build fails, fix (max 2 attempts).
+5. Append fixes to `.claude/fix-log.md`: `Fix (design-critic-shared): <file> — <desc>`
+
+> **Hook-enforced:** `phase-transition-gate.sh` blocks `design-consistency-checker` spawn if per-page traces report shared-component issues but `design-critic-shared.json` does not exist.
 
 #### Stage 2: Consistency check + merge
 
@@ -95,6 +140,18 @@ for b in batches:
         merged['weakest_page'] = d.get('weakest_page', d.get('page', ''))
     if d.get('retry_attempted'):
         merged['retry_attempted'] = True
+# Stage 1c shared-component verdict upgrade
+shared_path = '.claude/agent-traces/design-critic-shared.json'
+if os.path.exists(shared_path):
+    shared = json.load(open(shared_path))
+    shared_v = shared.get('verdict', '')
+    shared_fixes = shared.get('fixes_applied', 0)
+    merged['shared_fixes_applied'] = shared_fixes
+    # If only unresolved issues were shared-component, and shared agent fixed them:
+    if merged['verdict'] == 'unresolved' and shared_v in ('pass', 'fixed'):
+        if merged['unresolved_sections'] <= shared_fixes:
+            merged['verdict'] = 'fixed'
+            merged['unresolved_sections'] = 0
 import datetime
 merged['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 with open('.claude/agent-traces/design-critic.json', 'w') as f:

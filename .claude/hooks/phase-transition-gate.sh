@@ -271,6 +271,15 @@ else:
     fi
     # Check ux-journeyer retry complete before security-fixer
     check_tier1_retry_complete "ux-journeyer" "$TRACES_DIR"
+    # Hard gate: design-ux-merge.json verdict must not be "fail"
+    if [[ "$ARCH" == "web-app" && ( "$SCOPE" == "full" || "$SCOPE" == "visual" ) ]]; then
+      if [[ -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]]; then
+        MERGE_VERDICT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.claude/design-ux-merge.json')).get('verdict',''))" 2>/dev/null || echo "")
+        if [[ "$MERGE_VERDICT" == "fail" ]]; then
+          ERRORS+=("design-ux-merge.json verdict=fail — hard gate failure, skip to STATE 7")
+        fi
+      fi
+    fi
     if [[ "$SCOPE" == "security" ]]; then
       if [[ ! -f "$TRACES_DIR/behavior-verifier.json" ]]; then
         ERRORS+=("behavior-verifier.json trace missing — Phase 1 agent incomplete (scope=$SCOPE)")
@@ -306,6 +315,25 @@ else:
   design-consistency-checker)
     check_postcondition_artifacts 0
     check_build_result
+    # Require design-critic-shared.json when per-page traces report shared-component issues
+    HAS_SHARED=$(python3 -c "
+import json, glob
+for f in glob.glob('$TRACES_DIR/design-critic-*.json'):
+    if 'design-critic-shared' in f: continue
+    try:
+        d = json.load(open(f))
+        if d.get('unresolved_shared', 0) > 0:
+            print('yes'); break
+    except: pass
+else: print('no')
+" 2>/dev/null || echo "no")
+    if [[ "$HAS_SHARED" == "yes" ]]; then
+      if [[ ! -f "$TRACES_DIR/design-critic-shared.json" ]]; then
+        ERRORS+=("design-critic-shared.json missing — per-page agents reported shared-component issues")
+      else
+        check_trace_verdict "$TRACES_DIR/design-critic-shared.json" "shared-component agent may still be running"
+      fi
+    fi
     check_efficiency_directives
     ;;
 

@@ -48,6 +48,7 @@ process_violation: false
 | Agent | Verdict | Notes |
 |-------|---------|-------|
 | design-critic | [pass/fixed/skipped] | [1-line summary] |
+| design-critic-shared | [fixed/skipped/N/A] | [shared component fixes, or "no shared issues"] |
 | ux-journeyer | [pass/fixed/skipped] | [1-line summary] |
 | security-defender | [pass/N issues] | [1-line summary] |
 | security-attacker | [pass/N findings] | [1-line summary] |
