@@ -202,7 +202,7 @@ json.dump(d, open(f, 'w'))
 **If trace does NOT exist (State 1 — NO_FILE or STALE):**
 ```bash
 RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-echo '{"agent":"<name>","status":"exhausted","retry_attempted":true,"original_state":"NO_FILE","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/<name>.json
+echo '{"agent":"<name>","status":"exhausted","retry_attempted":true,"original_state":"NO_FILE","checks_performed":["exhaustion-recovery"],"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/<name>.json
 ```
 
 Re-spawn the agent with a reduced scope prompt:
@@ -211,7 +211,7 @@ Re-spawn the agent with a reduced scope prompt:
 - security-fixer: "Fix only Critical severity issues. Skip High/Medium."
 
 **On double exhaustion** (retry also produces State 2):
-1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"exhausted","recovery":true,"retry_attempted":true,"checks_performed":[],"timestamp":"..."}`
+1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"exhausted","recovery":true,"retry_attempted":true,"checks_performed":["exhaustion-recovery"],"timestamp":"..."}`
 2. Set `hard_gate_failure: true` in the verify report frontmatter
 3. Skip operational STATEs 4-6 (jump to STATE 7, then continue to STATE 8)
 4. Report to user: "Agent <name> exhausted turns twice. Hard gate failure — manual review required."
@@ -223,7 +223,7 @@ Re-spawn the agent with a reduced scope prompt:
 **Action**: Re-spawn the agent once with the same prompt.
 
 **On double exhaustion**:
-1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"incomplete","recovery":true,"checks_performed":[],"timestamp":"..."}`
+1. Write a recovery trace: `{"agent":"<name>","status":"exhausted","verdict":"incomplete","recovery":true,"checks_performed":["exhaustion-recovery"],"timestamp":"..."}`
 2. Continue to next STATE — this is a WARN, not a BLOCK
 3. Note in verify report: "Agent <name> exhausted turns — results incomplete."
 
@@ -233,7 +233,7 @@ Re-spawn the agent with a reduced scope prompt:
 
 **Action**: No retry. Write a recovery trace immediately:
 ```bash
-echo '{"agent":"<name>","status":"exhausted","verdict":"incomplete","recovery":true,"checks_performed":[],"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/<name>.json
+echo '{"agent":"<name>","status":"exhausted","verdict":"incomplete","recovery":true,"checks_performed":["exhaustion-recovery"],"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > .claude/agent-traces/<name>.json
 ```
 
 Continue to next STATE. Note in verify report: "Agent <name> exhausted turns — skipped."

@@ -31,6 +31,21 @@ fi
 # Check 1: verify-context.json exists (STATE 0 ran)
 if [[ ! -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
   ERRORS+=("verify-context.json not found — STATE 0 (Read Context) did not run")
+else
+  # Check 1b: verify-context.json has required fields
+  CTX_VALID=$(python3 -c "
+import json
+try:
+    d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
+    required = ['scope', 'archetype', 'run_id', 'timestamp']
+    missing = [k for k in required if k not in d or not d[k]]
+    print('yes' if not missing else 'no:' + ','.join(missing))
+except:
+    print('no:parse-error')
+" 2>/dev/null || echo "no:python-error")
+  if [[ "$CTX_VALID" != "yes" ]]; then
+    ERRORS+=("verify-context.json missing required fields: ${CTX_VALID#no:}")
+  fi
 fi
 
 # Check 2: fix-log.md exists (STATE 0 ran)
@@ -58,7 +73,10 @@ import json, sys
 try:
     d = json.load(open('$TRACE'))
     cp = d.get('checks_performed', None)
-    if isinstance(cp, list) and len(cp) > 0:
+    is_recovery = d.get('recovery', False)
+    if is_recovery and isinstance(cp, list):
+        print('yes')
+    elif isinstance(cp, list) and len(cp) > 0:
         print('yes')
     else:
         print('no')
@@ -109,10 +127,22 @@ if [[ "$HAS_HARD_GATE" -eq 0 ]] && [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]]; t
   fi
 fi
 
-# Check 7: e2e-result.json must exist (skip on hard gate — STATEs 4-6 skipped)
+# Check 7: e2e-result.json must exist and passed field validated (skip on hard gate)
 if [[ "$HAS_HARD_GATE" -eq 0 ]]; then
   if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
     ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) did not run")
+  else
+    E2E_PASSED=$(python3 -c "
+import json
+try:
+    d = json.load(open('$PROJECT_DIR/.claude/e2e-result.json'))
+    print('yes' if d.get('passed', False) else 'no')
+except:
+    print('no')
+" 2>/dev/null || echo "no")
+    if [[ "$E2E_PASSED" != "yes" ]]; then
+      WARNINGS+=("e2e-result.json: passed=false — E2E tests failed")
+    fi
   fi
 fi
 

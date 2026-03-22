@@ -159,6 +159,22 @@ with open('.claude/agent-traces/design-critic.json', 'w') as f:
 "
 ```
 
+After writing the merged trace, validate merge correctness:
+```bash
+python3 -c "
+import json, glob
+merged = json.load(open('.claude/agent-traces/design-critic.json'))
+pages = sorted(glob.glob('.claude/agent-traces/design-critic-*.json'))
+pages = [p for p in pages if 'shared' not in p and p != '.claude/agent-traces/design-critic.json']
+total_checks = sum(len(json.load(open(p)).get('checks_performed', [])) for p in pages)
+merged_checks = len(merged.get('checks_performed', []))
+if merged_checks != total_checks:
+    print(f'WARN: Merge mismatch — per-page total {total_checks}, merged {merged_checks}')
+else:
+    print(f'Merge validation: PASS ({merged_checks} checks)')
+"
+```
+
 > **Do NOT delete per-page traces** — the consistency checker needs them for cross-page comparison.
 
 ##### Step B: Spawn consistency checker (cross-page visual review only)
