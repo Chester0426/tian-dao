@@ -74,6 +74,9 @@ Present a triage table:
 
 Severity levels: HIGH (breaks execution), MEDIUM (wrong output), LOW (cosmetic).
 
+If all issues are non-actionable (all closed in Step 2): report "All issues
+resolved as non-actionable — no Phase 2 diagnosis needed." Stop here.
+
 **STOP. Present the triage table to the user and wait for approval before
 proceeding to Phase 2.** The user may reclassify issues or remove them from scope.
 

@@ -24,8 +24,13 @@ src/app/api/<endpoint>/route.ts
 There are no page folders, no landing page, no UI components, and no
 `src/components/` directory. The `ui` stack category is excluded.
 
-When surface is `co-located` (default), the root URL (`/`) serves an HTML
-marketing page — see `.claude/stacks/surface/co-located.md`. API endpoints
+Surface type is inferred by bootstrap when `stack.surface` is not set: if the
+experiment has no `golden_path` and no endpoints serving HTML, surface is `none`;
+otherwise if `stack.services[0].hosting` is present, surface is `co-located`;
+if absent, `detached`. Set `stack.surface` explicitly to override.
+
+When surface is `co-located` (the most common default), the root URL (`/`) serves
+an HTML marketing page — see `.claude/stacks/surface/co-located.md`. API endpoints
 live under `/api/*`.
 
 ## Funnel

@@ -37,8 +37,8 @@ Transition this MVP to production quality mode: $ARGUMENTS
        - `step3-verify` → Step 3.8 (run /verify)
        - `step3-pr` → Step 3.9 (commit/push/PR)
      - Tell user: "Resuming /harden from [checkpoint]. [M of N] modules completed.\n  Done: [list completed module names]. Remaining: [list remaining module names].\n  Do NOT re-run completed modules."
-  2. If no frontmatter (old format): fall back — scan for CRITICAL modules without test files and proceed from Step 3.4.
-- If on a `chore/harden-*` branch with existing specification tests but NO `.claude/current-plan.md`: a previous `/harden` may have partially completed. Tell the user: "Found existing hardening work on this branch. Scanning for modules that still need tests..." Then scan for CRITICAL modules without test files and proceed from Step 3.4.
+  2. If no frontmatter (old format): fall back — scan for CRITICAL modules without test files and proceed from Step 3.5 (module implementation loop), after running Steps 3.1–3.3 (branch, config, testing setup) if not already done.
+- If on a `chore/harden-*` branch with existing specification tests but NO `.claude/current-plan.md`: a previous `/harden` may have partially completed. Tell the user: "Found existing hardening work on this branch. Scanning for modules that still need tests..." Then scan for CRITICAL modules without test files and proceed from Step 3.5 (module implementation loop), skipping Steps 3.1–3.3 if branch and config are already set up.
 
 ## Step 1: Scan & classify
 
@@ -107,7 +107,7 @@ If K (untested-critical modules) is 0: replace the plan prompt with:
 > 2. **harden on-touch** — also add specification tests to the On-Touch modules listed above
 > 3. Or run `/change` to continue building features — they'll use TDD once production quality is set
 
-Wait for user choice. If "proceed": skip Step 3 module loop (no modules to harden), execute Steps 3.1–3.3 (branch, config, testing setup) then jump directly to Steps 3.7–3.9 (ON-TOUCH, verify, PR). When saving the plan frontmatter, set `checkpoint: step3-reconcile` (not `step3-module-1`, since there are no modules — reconciliation is a no-op for K=0, then execution proceeds to ON-TOUCH, verify, PR). If "harden on-touch": promote On-Touch modules to the Will Harden section, re-present the plan with those modules, and wait for approval.
+Wait for user choice. If "proceed": skip Step 3 module loop (no modules to harden), execute Steps 3.1–3.3 (branch, config, testing setup) then jump directly to Steps 3.7–3.9 (ON-TOUCH, verify, PR). When saving the plan frontmatter, set `checkpoint: step3-reconcile` (not `step3-module-1`, since there are no modules — reconciliation is a no-op for K=0, then execution proceeds to ON-TOUCH, verify, PR). If "harden on-touch": promote On-Touch modules to the Will Harden section, re-present the plan with those modules, and wait for approval. After approval, proceed to Step 3 with the expanded module list (K now equals the promoted count).
 
 Otherwise (K > 0), present the standard prompt:
 

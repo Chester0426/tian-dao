@@ -33,6 +33,7 @@ Collect these data points and present a summary before asking questions:
      - web-app: count page directories in `src/app/` (excluding `api/`)
      - service: count API route directories (e.g., `src/app/api/` or `src/routes/`)
      - cli: count command modules in `src/commands/`
+   - If the archetype has a detached surface (`stack.surface: detached` or inferred), also count surface pages (e.g., `site/` directory or deployed surface assets)
    - Count production dependencies from `package.json` (if it exists)
 
 3. **Spec files**
