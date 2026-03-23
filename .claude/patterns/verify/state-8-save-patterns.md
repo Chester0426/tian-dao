@@ -33,7 +33,7 @@ test -f .claude/patterns-saved.json
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 8
+bash .claude/scripts/advance-state.sh verify 8
 ```
 
 **NEXT:** Done — return to calling skill.

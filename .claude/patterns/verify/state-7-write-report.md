@@ -249,7 +249,7 @@ head -1 .claude/verify-report.md | grep -q '^---$' && tail -1 .claude/verify-his
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 7
+bash .claude/scripts/advance-state.sh verify 7
 ```
 
 **NEXT:** Read [state-8-save-patterns.md](state-8-save-patterns.md) to continue.

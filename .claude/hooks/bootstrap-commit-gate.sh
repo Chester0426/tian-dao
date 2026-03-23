@@ -79,6 +79,24 @@ if [[ -f "$PLAN" ]]; then
   fi
 fi
 
+# Check 5: completed_states in bootstrap-context.json (defense-in-depth)
+BOOTSTRAP_CTX="$PROJECT_DIR/.claude/bootstrap-context.json"
+if [[ -f "$BOOTSTRAP_CTX" ]]; then
+  MISSING_STATES=$(python3 -c "
+import json
+d = json.load(open('$BOOTSTRAP_CTX'))
+cs = d.get('completed_states', [])
+# Normalize all to strings for comparison
+cs_str = [str(s) for s in cs]
+required = ['0','1','2','3','3a','3b','4','5','6','7','8','9','10','11','12','13','14','15']
+missing = [s for s in required if s not in cs_str]
+print(','.join(missing) if missing else 'NONE')
+" 2>/dev/null || echo "NONE")
+  if [[ "$MISSING_STATES" != "NONE" ]]; then
+    ERRORS+=("bootstrap-context.json missing completed_states: [$MISSING_STATES]")
+  fi
+fi
+
 # If any check failed, deny the commit
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")

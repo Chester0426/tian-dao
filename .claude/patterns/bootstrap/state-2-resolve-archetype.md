@@ -1,0 +1,44 @@
+# STATE 2: RESOLVE_ARCHETYPE_STACK
+
+**PRECONDITIONS:**
+- Context files read (STATE 1 POSTCONDITIONS met)
+- `experiment/experiment.yaml` content is in context
+
+**ACTIONS:**
+
+- Validate the archetype type: read `type` from experiment.yaml (default `web-app`). If the archetype file `.claude/archetypes/<type>.md` does not exist, stop and tell the user: "Unrecognized archetype: `<type>`. Valid archetypes are the `.md` files in `.claude/archetypes/` (currently: web-app, service, cli). Check experiment.yaml `type` field or create a new archetype file at `.claude/archetypes/<type>.md` using web-app.md as a template."
+- Read the archetype file at `.claude/archetypes/<type>.md`. The archetype defines required experiment.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per experiment.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
+- Read experiment.yaml `stack`. Skip structural keys (`services`, `auth_providers`) and configuration keys (`surface`) during category validation — these are not stack file categories. For each remaining category present in experiment.yaml `stack`, verify it appears in the archetype's `required_stacks`, `optional_stacks`, or known shared categories (`database`, `auth`, `analytics`, `payment`, `email`). If a category is in the archetype's `excluded_stacks`, stop and tell the user: "Stack category `<category>` is excluded by the `<archetype>` archetype. Remove it from experiment.yaml `stack` or choose a different archetype." If a category is not in any of these lists, stop and tell the user: "Unrecognized stack category: `<category>`. The `<archetype>` archetype allows: [list required + optional + shared]. Check experiment.yaml or the archetype file for valid categories." Then, for each valid category, read `.claude/stacks/<category>/<value>.md`.
+- If a stack file doesn't exist for a given value:
+  1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
+  2. Read existing stack files in the same category (`.claude/stacks/<category>/*.md`) as reference for conventions and structure. If no files exist in that category, read a well-populated stack file from another category (e.g., `database/supabase.md` or `analytics/posthog.md`) as a structural reference.
+  3. Generate `.claude/stacks/<category>/<value>.md` with:
+     - Complete frontmatter (assumes, packages, files, env, ci_placeholders, clean, gitignore) — populate each field based on knowledge of the technology. Use empty lists/dicts for fields that genuinely don't apply.
+     - Code templates for library files and route handlers using `### \`path\`` heading format.
+     - Environment Variables, Packages, and Patterns sections following the TEMPLATE.md structure.
+  4. Run `python3 scripts/validate-frontmatter.py` to verify the generated file passes structural checks. If it fails, fix the frontmatter and re-run (max 2 attempts). If still failing, stop and tell the user: "Could not generate a valid stack file for `<category>/<value>`. Create `.claude/stacks/<category>/<value>.md` manually using TEMPLATE.md as a guide, then re-run `/bootstrap`."
+  5. Tell the user: "Generated `.claude/stacks/<category>/<value>.md` — this is auto-generated from Claude's knowledge and has not been team-reviewed. Review it after bootstrap completes."
+  6. File an observation per `.claude/patterns/observe.md` noting the missing stack file, so the template repo can add a reviewed version.
+  7. Continue bootstrap using the generated stack file.
+- These files define packages, library files, env vars, and patterns for each technology.
+- For each stack file read, validate its `assumes` entries: every `category/value` in the file's `assumes` list must match a `category: value` pair in experiment.yaml `stack`. If any assumption is unmet, stop and list the incompatibilities (e.g., "analytics/posthog assumes framework/nextjs, but your stack has framework: remix"). The user must either change the mismatched stack value or create a compatible stack file.
+
+**POSTCONDITIONS:**
+- Archetype file read and type recorded
+- All stack files for categories in experiment.yaml `stack` exist and have been read
+- All `assumes` entries validated — no incompatibilities
+
+**VERIFY:**
+```bash
+# Glob .claude/stacks/**/*.md returns a file for each category in experiment.yaml stack
+ls .claude/stacks/**/*.md
+# Archetype file exists
+test -f .claude/archetypes/*.md && echo "OK" || echo "FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh bootstrap 2
+```
+
+**NEXT:** Read [state-3-validate-experiment.md](state-3-validate-experiment.md) to continue.

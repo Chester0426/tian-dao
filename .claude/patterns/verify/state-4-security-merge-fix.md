@@ -105,7 +105,7 @@ test -f .claude/security-merge.json
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 4
+bash .claude/scripts/advance-state.sh verify 4
 ```
 
 **NEXT:** Read [state-5-e2e-tests.md](state-5-e2e-tests.md) to continue.

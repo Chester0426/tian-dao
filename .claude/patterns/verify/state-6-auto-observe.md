@@ -45,7 +45,7 @@ print(f'Collected diffs for {len(diffs)} files -> .claude/observer-diffs.txt')
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 6
+bash .claude/scripts/advance-state.sh verify 6
 ```
 
 **NEXT:** Read [state-7-write-report.md](state-7-write-report.md) to continue.

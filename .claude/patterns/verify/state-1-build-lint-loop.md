@@ -61,7 +61,7 @@ test -f .claude/build-result.json && python3 -c "import json; assert json.load(o
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 1
+bash .claude/scripts/advance-state.sh verify 1
 ```
 
 **NEXT:** Read [state-2-phase1-parallel.md](state-2-phase1-parallel.md) to continue.

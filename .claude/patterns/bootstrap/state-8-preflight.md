@@ -1,0 +1,62 @@
+# STATE 8: PREFLIGHT
+
+**PRECONDITIONS:**
+- Plan saved with Process Checklist (STATE 7 POSTCONDITIONS met)
+
+**ACTIONS:**
+
+**Do NOT assemble file contents into the prompt.** Subagents are independent
+Claude Code sessions with full file access — they read files themselves. The
+prompt tells them WHICH files to read and WHAT to do.
+
+> **WHY:** Embedded content becomes stale if files change between prompt
+> construction and subagent execution. The subagent cannot verify embedded
+> content matches disk, violating "observe, not trust." Embedded content
+> also inflates prompt size, reducing the subagent's effective working
+> memory (each 200 lines ~ 2 lost reasoning turns). Let subagents read.
+
+1. **Production quality check**: If `quality: production` is set in experiment.yaml, pass this flag to each scaffold-* agent prompt: "quality: production is set. Generate tests alongside each file you create." Agent test ownership:
+   - scaffold-setup: create testing config (playwright.config.ts or vitest.config.ts)
+   - scaffold-libs: generate unit tests for utility functions alongside library code
+   - scaffold-pages: generate page-load smoke tests (same as MVP, but more thorough)
+   - scaffold-wire: run test discovery checkpoint (`npx playwright test --list` or vitest equivalent)
+
+   **Vitest co-installation**: When `quality: production` is set AND `stack.testing` is NOT `vitest` (e.g., `testing: playwright`):
+   - Also install `vitest` and `@vitest/coverage-v8` as dev dependencies
+   - Create `vitest.config.ts` using the template from `.claude/stacks/testing/vitest.md`
+   - This ensures specification tests (TDD per `patterns/tdd.md`) can run alongside E2E tests
+   - scaffold-setup handles this: check if vitest.config.ts exists before creating
+   - Two test runners coexist: `npx playwright test` for E2E, `npx vitest run` for spec tests
+
+2. **TSP-LSP check**: Run `which typescript-language-server`. If found, record
+   `tsp_status: "available"`. If not found, tell the user:
+   > `typescript-language-server` is not installed globally. It gives subagents
+   > real-time type checking during code generation. Install with:
+   > `npm install -g typescript-language-server typescript`
+   > Say "skip" to proceed without it.
+   Wait for the user to confirm installation or say "skip". If confirmed,
+   re-check with `which typescript-language-server`. Record `tsp_status`
+   as `"available"` or `"skipped"`.
+
+This value is passed to subagents in their prompts (subagents cannot
+interact with users).
+
+Check off in `.claude/current-plan.md`: `- [x] TSP-LSP check completed`
+
+**POSTCONDITIONS:**
+- `tsp_status` is set to `"available"` or `"skipped"`
+- Quality flag recorded (production or MVP)
+
+**VERIFY:**
+```bash
+# tsp_status variable is non-empty
+# Quality flag is set
+echo "Preflight checks complete"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh bootstrap 8
+```
+
+**NEXT:** Read [state-9-setup-phase.md](state-9-setup-phase.md) to continue.

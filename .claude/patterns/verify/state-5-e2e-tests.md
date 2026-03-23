@@ -58,7 +58,7 @@ test -f .claude/e2e-result.json
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 5
+bash .claude/scripts/advance-state.sh verify 5
 ```
 
 **NEXT:** Read [state-6-auto-observe.md](state-6-auto-observe.md) to continue.
