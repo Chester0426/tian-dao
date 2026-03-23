@@ -39,6 +39,9 @@ Thumbs.db
 # Deploy manifest (infrastructure state — not app code)
 .claude/deploy-manifest.json
 
+# Q-score history (local measurement artifact — not product code)
+.claude/verify-history.jsonl
+
 # Ephemeral skill artifacts (consumed and deleted during PR creation)
 .claude/current-plan.md
 .claude/current-visual-brief.md
