@@ -174,9 +174,14 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `step3-module-1`.
       - Write tests for correct behavior
       - If test fails AND failure shows incorrect behavior → fix the code (bug discovery protocol)
       - If test passes → specification captured
-   d. Run `npm run build` — if broken, fix before next module
-   e. Log: "Module [name]: N tests added, all passing"
-   f. Update checkpoint in `.claude/current-plan.md` frontmatter to `step3-module-[next]` (where [next] is the 1-indexed number of the next module to process)
+   d. **Merge worktree changes with verification:**
+      - Verify implementer committed: `git log --oneline main..<worktree-branch>`
+      - If no commit: re-spawn agent for commit-only (do NOT commit on behalf of the agent). Budget: 1 retry.
+      - Merge: `git merge <worktree-branch> --no-ff -m "Merge implementer: <module-name>"`
+      - Verify merge: `git log --oneline -1` must show merge commit
+   e. Run `npm run build` — if broken, fix before next module
+   f. Log: "Module [name]: N tests added, all passing"
+   g. Update checkpoint in `.claude/current-plan.md` frontmatter to `step3-module-[next]` (where [next] is the 1-indexed number of the next module to process)
 
 6. **Consistency reconciliation**: After all implementer worktrees are merged, scan the combined result for:
    - **Naming**: grep for similar functions across hardened modules (e.g., multiple `validate*Email` variants). Pick the most descriptive name and rename others.

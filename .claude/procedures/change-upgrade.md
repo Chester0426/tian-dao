@@ -21,7 +21,13 @@
      - Error recovery (timeout, rate limit, invalid response)
      - Happy path end-to-end
   3. Spawn implementer agents (same procedure as Feature production path, including step 6 trace writing)
-  4. Continue to Step 7
+  4. **Merge worktree changes with verification** (same procedure as `change-feature.md` step 7, substeps a-e). For each implementer worktree:
+     - Verify implementer committed (`git log --oneline main..<worktree-branch>`)
+     - If no commit: re-spawn agent for commit-only (do NOT commit on behalf of the agent). Budget: 1 retry.
+     - Merge: `git merge <worktree-branch> --no-ff -m "Merge implementer: <task-slug>"`
+     - Verify merge commit, update trace `worktree_merged: true`
+     If 2+ agents: run consistency scan (3 min budget).
+  5. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as described in `.claude/procedures/scaffold-externals.md` (Step 6)
 - Replace the Fake Door component with real UI that calls the actual API route

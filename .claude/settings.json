@@ -21,6 +21,11 @@
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bootstrap-commit-gate.sh",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/change-commit-gate.sh",
+            "timeout": 30
           }
         ]
       },

@@ -18,7 +18,12 @@
   2. Generate TDD task: regression test demonstrating the bug + minimal fix, per `patterns/tdd.md` § Regression Tests
   3. Spawn implementer agent (`agents/implementer.md`, isolation: "worktree") → regression test (RED, fails on current code) → fix root cause (GREEN, minimal change) → commit
   4. Write implementer trace based on Output Contract (same procedure as `change-feature.md` step 6)
-  5. Merge worktree changes. Update trace: set `worktree_merged: true`.
+  5. **Merge worktree changes with verification** (same procedure as `change-feature.md` step 7, substeps a-e). Key steps:
+     - Verify implementer committed (`git log --oneline main..<worktree-branch>`)
+     - If no commit: re-spawn agent for commit-only (do NOT commit on behalf of the agent). Budget: 1 retry.
+     - Merge: `git merge <worktree-branch> --no-ff -m "Merge implementer: <task-slug>"`
+     - Verify merge: `git log --oneline -1` must show merge commit
+     - Update trace: set `worktree_merged: true`
   6. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - Make the minimal change needed — smaller diffs are easier to review
