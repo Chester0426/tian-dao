@@ -1,0 +1,51 @@
+# STATE 1: VALIDATE_PRECONDITIONS
+
+**PRECONDITIONS:**
+- On `chore/distribute*` branch (STATE 0 POSTCONDITIONS met)
+
+**ACTIONS:**
+
+> **Branch cleanup on failure:** Any "stop" in this step leaves you on a feature branch (created in Step 0). Include in the stop message: "To abort: `git checkout main && git branch -D chore/distribute`. To fix and retry: address the prerequisite, then re-run `/distribute`."
+
+1. Verify `experiment/experiment.yaml` exists and is complete. If not, stop: "No experiment found. Create `experiment/experiment.yaml` from the template first, then run `/bootstrap`."
+2. Verify `experiment/EVENTS.yaml` exists. If not, stop: "experiment/EVENTS.yaml not found. This file defines all analytics events and is required."
+3. Verify `experiment/EVENTS.yaml` contains an `events` key that is a dict (flat map). If not, stop: "experiment/EVENTS.yaml is malformed — the `events` key is missing or not a dict. Run `make validate` to diagnose, or restore the file from the template."
+4. Verify `package.json` exists. If not, stop: "No app found. Run `/bootstrap` first to create the app, deploy it, then run `/distribute`."
+5. Verify the app is deployed: check `landing_url` in existing `experiment/ads.yaml`, or check `surface_url` (then `canonical_url`) in `.claude/deploy-manifest.json`, or ask the user for the deployed URL. For CLI archetype, the surface URL IS the target URL. If the user does not have a deployed URL, stop: "The app must be deployed before running `/distribute` — ad campaigns need a live surface page. Run `/deploy` first, then re-run `/distribute`."
+6. **Channel selection:**
+   1. List available channels by scanning `.claude/stacks/distribution/*.md` (strip the `.md` extension to get channel names)
+   2. Ask: "Which distribution channel? Available: [channels]. Enter channel name:"
+   3. Read the selected channel's stack file at `.claude/stacks/distribution/<channel>.md`
+
+7. **Policy check:**
+   1. Read experiment.yaml `description`
+   2. Match against restricted-industry keywords: `crypto`, `DeFi`, `token`, `ICO`, `blockchain`, `NFT`, `yield`, `staking`, `liquidity`, `protocol`, `wallet`, `exchange`, `mining`, `DAO`
+   3. If match found, read the selected channel's "Policy Restrictions" section
+   4. If the channel restricts or bans the category, warn the user: "⚠ Your experiment mentions [keyword]. [Channel] [restricts/bans] this category: [details]. Consider switching to [alternative channels that allow it]."
+   5. Non-blocking — the user can confirm to proceed or switch channel
+8. Verify `stack.analytics` is present in experiment.yaml. If not, stop: "Analytics is required for distribution tracking. Add `analytics: posthog` (or another provider) to experiment.yaml `stack` and run `/bootstrap` first."
+9. Verify the analytics stack is configured: read the analytics stack file's `env` frontmatter. If `env.client` lists a client env var, check that it appears in `.env.example`. If the env var is not found in `.env.example`, stop: "Analytics is not configured. Verify `.env.example` contains the analytics client key, or run `/bootstrap` first to scaffold the app with analytics." If `env.client` is empty, the stack uses hardcoded keys (e.g., PostHog's shared publishable key) — skip this check.
+10. **Live analytics verification:** Read `name` from experiment.yaml and `deployed_at` from `.claude/deploy-manifest.json`. Read PostHog API key from `~/.posthog/personal-api-key` (if missing, stop with setup instructions: "PostHog → Settings → Personal API Keys → Create key (scope: Query Read) → save to `~/.posthog/personal-api-key`"). Discover project ID dynamically (see analytics stack file Auto Query section). Query PostHog HogQL API: `SELECT count(DISTINCT distinct_id) FROM events WHERE event = 'visit_landing' AND properties.project_name = '<name>' AND timestamp >= '<deployed_at>'`. If count > 0, log "✓ Analytics verified: visit_landing events found in PostHog" and continue. If count = 0, run a secondary diagnostic query: `SELECT event, count(DISTINCT distinct_id) FROM events WHERE properties.project_name = '<name>' AND timestamp >= '<deployed_at>' GROUP BY event`. If the secondary query returns other events but no `visit_landing`, stop: "PostHog is receiving events from your app, but no `visit_landing` from the surface page. The surface page analytics may be broken. Check the landing page code for missing `trackVisitLanding()` import." If the secondary query also returns 0 events, stop: "No analytics events found in PostHog for project '<name>' since deployment. Open <deployed_url> in your browser, wait 60 seconds, then re-run `/distribute`."
+11. If `experiment/ads.yaml` already exists, ask: "An ads config already exists. Generate a new version (v2)?"
+
+**POSTCONDITIONS:**
+- experiment/experiment.yaml exists and is valid
+- experiment/EVENTS.yaml exists with valid `events` dict
+- package.json exists
+- Deployed URL is known
+- Distribution channel is selected and its stack file has been read
+- Policy check completed (warning issued if applicable)
+- Analytics stack is configured and verified
+- Live analytics verification passed (visit_landing events found)
+
+**VERIFY:**
+```bash
+test -f experiment/experiment.yaml && test -f experiment/EVENTS.yaml && test -f package.json && echo "OK" || echo "FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh distribute 1
+```
+
+**NEXT:** Read [state-1_5-load-hypothesis.md](state-1_5-load-hypothesis.md) to continue.

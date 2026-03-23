@@ -1,0 +1,59 @@
+# STATE 1: BASELINE_VALIDATORS
+
+**PRECONDITIONS:**
+- Context loaded (STATE 0 POSTCONDITIONS met)
+
+**ACTIONS:**
+
+- Run all 4 validators, capture total error count as `baseline_errors`:
+  - `python3 scripts/validate-frontmatter.py`
+  - `python3 scripts/validate-semantics.py`
+  - `bash scripts/consistency-check.sh`
+  - `shellcheck --exclude=SC2154,SC2086,SC2059,SC1091 .claude/hooks/*.sh`
+- If a script fails to run (missing python3/pyyaml/shellcheck): stop and tell the user
+
+- **Compute `health_clean`** (boolean):
+  - `baseline_errors == 0` (all validators pass)
+  - AND no rows under `## Pending` in `scripts/check-inventory.md` (grep for non-empty rows after that heading)
+  - AND no `TODO` strings in `.claude/commands/*.md` or `.claude/stacks/**/*.md`
+
+  If `health_clean == true`:
+  - Set `max_iterations = 3`, `max_findings_per_dimension = 3`
+  - Log: "Template health: clean — using light review parameters (3 iterations, 3 findings/dimension)"
+
+  If `health_clean == false`:
+  - Set `max_iterations = 5`, `max_findings_per_dimension = 5`
+  - Log: "Template health: needs attention — using full review parameters"
+
+**POSTCONDITIONS:**
+- `baseline_errors` captured
+- `health_clean` computed
+- `max_iterations` and `max_findings_per_dimension` set
+- All 4 validators ran successfully (or user notified of missing tools)
+
+**VERIFY:**
+```bash
+python3 scripts/validate-frontmatter.py > /dev/null 2>&1 && echo "frontmatter OK" || echo "frontmatter FAIL"
+python3 scripts/validate-semantics.py > /dev/null 2>&1 && echo "semantics OK" || echo "semantics FAIL"
+bash scripts/consistency-check.sh > /dev/null 2>&1 && echo "consistency OK" || echo "consistency FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh review 1
+```
+
+**NEXT:** Read [state-2a-review-scan.md](state-2a-review-scan.md) to begin the Review-Fix Loop.
+
+Initialize before the first iteration:
+- `seen_findings` = empty set
+- `iteration` = 1
+- `yield_history` = empty list
+
+The Review-Fix Loop runs **2 to `max_iterations`** iterations, terminating based on
+convergence (see Loop Gate in state-2f). Within-iteration early exits:
+- State 2b produces 0 remaining findings -> exit loop
+- State 2e: no fixes succeeded this iteration -> exit loop
+
+Completing fixes does NOT justify exiting early — fixes may introduce
+new issues that only a fresh scan can detect.
