@@ -14,7 +14,12 @@ For every task:
 2. **GREEN** — Write the minimal code to make the test pass. No more, no less.
 3. **REFACTOR** — Improve the code under green tests. Rename, extract, simplify.
    Run the test after each change to confirm it still passes.
-4. **COMMIT** — Commit with a descriptive message referencing the feature or fix.
+4. **COMMIT** — Stage and commit your changes. This is mandatory for worktree merge.
+   ```bash
+   git add <specific-files>
+   git commit -m "Add <feature-or-fix-description>"
+   ```
+   Verify: `git log --oneline -1` must show your commit. If nothing was staged, re-check file paths.
 
 Never skip the RED phase. If the test passes immediately, the code already
 satisfies the specification — skip to REFACTOR and move on.

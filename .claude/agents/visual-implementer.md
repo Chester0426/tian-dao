@@ -49,7 +49,19 @@ Improve the code: rename, extract, simplify. Run tests after each change to conf
 
 ## Step 6: Self-review and commit
 
-Read your own diff. Check for unintended changes, leftover debug code, or files outside task scope. Run `npm run build` to confirm zero errors. Commit with a descriptive message.
+Read your own diff. Check for unintended changes, leftover debug code, or files outside task scope. Run `npm run build` to confirm zero errors.
+
+Commit your changes — this step is **mandatory** for worktree isolation to work. The lead agent merges your worktree branch via `git merge`; if you do not commit, there is nothing to merge.
+
+```bash
+# Stage only the files you created or modified (never use git add -A)
+git add <specific-file-1> <specific-file-2> ...
+
+# Commit with imperative mood referencing the task
+git commit -m "Add <short task description>"
+```
+
+Verify the commit exists: run `git log --oneline -1` and confirm your commit message appears. If `git commit` fails (e.g., nothing staged), re-check your file paths and retry.
 
 ## Input
 
@@ -95,8 +107,15 @@ DESIGN: <theme tokens used | custom palette applied | animation added | layout p
 ## Status
 <"complete" | "blocked: <reason>">
 
+## TDD Cycle
+<"red-green-refactor" | "skipped">
+
 Blocked reasons:
 - Build fails after 2 fix attempts
 - Task scope unclear or conflicts with existing code
 - Dependency not installed (missing package)
 ```
+
+## Trace Output
+
+After returning the Output Contract to the lead, the **lead** (not the implementer) writes a trace to `.claude/agent-traces/` based on the Output Contract fields above. The implementer runs in a worktree and cannot write to the main working tree's trace directory. See `change-feature.md` for the lead-side trace writing procedure.
