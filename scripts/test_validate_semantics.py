@@ -1,5 +1,6 @@
 """Tests for validate-semantics.py check functions."""
 
+import json
 import os
 import subprocess
 import sys
@@ -814,6 +815,137 @@ class TestCheck59FrameworkArchetypeCompatibility:
         errors = vs.check_59_framework_archetype_compatibility(bootstrap, change)
         assert len(errors) >= 1
         assert any("change.md" in e for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# Check 60: Settings.json hook paths
+# ---------------------------------------------------------------------------
+
+
+class TestCheck60SettingsHookPaths:
+    def test_passes_with_valid_hook_paths(self, tmp_path):
+        """All hook paths resolve to existing files."""
+        hooks_dir = tmp_path / ".claude" / "hooks"
+        hooks_dir.mkdir(parents=True)
+        (hooks_dir / "test-gate.sh").write_text("#!/bin/bash\nexit 0\n")
+        settings = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Bash",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": f'"{tmp_path}/.claude/hooks/test-gate.sh"',
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        settings_path = tmp_path / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps(settings))
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            errors = vs.check_60_settings_hook_paths()
+        finally:
+            os.chdir(old_cwd)
+        assert errors == []
+
+    def test_fails_with_missing_hook_file(self, tmp_path):
+        """Hook path points to nonexistent file."""
+        (tmp_path / ".claude").mkdir(parents=True)
+        settings = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Bash",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": '".claude/hooks/nonexistent.sh"',
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        (tmp_path / ".claude" / "settings.json").write_text(json.dumps(settings))
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            errors = vs.check_60_settings_hook_paths()
+        finally:
+            os.chdir(old_cwd)
+        assert len(errors) == 1
+        assert "does not resolve" in errors[0]
+
+    def test_skips_when_settings_missing(self, tmp_path):
+        """No settings.json → no errors."""
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            errors = vs.check_60_settings_hook_paths()
+        finally:
+            os.chdir(old_cwd)
+        assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Check 61: Footer directive sync
+# ---------------------------------------------------------------------------
+
+
+class TestCheck61FooterDirectiveSync:
+    def test_passes_when_directive_matches(self, tmp_path):
+        """Footer marker matches hook grep pattern."""
+        claude_dir = tmp_path / ".claude"
+        hooks_dir = claude_dir / "hooks"
+        hooks_dir.mkdir(parents=True)
+        (claude_dir / "agent-prompt-footer.md").write_text(
+            "<!-- DIRECTIVES:a,b,c -->\n\n## Efficiency\n"
+        )
+        (hooks_dir / "phase-transition-gate.sh").write_text(
+            '#!/bin/bash\nif ! echo "$PROMPT" | grep -q "DIRECTIVES:a,b,c"; then\nexit 1\nfi\n'
+        )
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            errors = vs.check_61_footer_directive_sync()
+        finally:
+            os.chdir(old_cwd)
+        assert errors == []
+
+    def test_fails_when_directive_mismatches(self, tmp_path):
+        """Footer has different directive list than hook grep."""
+        claude_dir = tmp_path / ".claude"
+        hooks_dir = claude_dir / "hooks"
+        hooks_dir.mkdir(parents=True)
+        (claude_dir / "agent-prompt-footer.md").write_text(
+            "<!-- DIRECTIVES:x,y,z -->\n"
+        )
+        (hooks_dir / "phase-transition-gate.sh").write_text(
+            '#!/bin/bash\ngrep -q "DIRECTIVES:a,b,c"\n'
+        )
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            errors = vs.check_61_footer_directive_sync()
+        finally:
+            os.chdir(old_cwd)
+        assert len(errors) == 1
+        assert "does not match" in errors[0]
+
+    def test_skips_when_footer_missing(self, tmp_path):
+        """No footer file → no errors."""
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            errors = vs.check_61_footer_directive_sync()
+        finally:
+            os.chdir(old_cwd)
+        assert errors == []
 
 
 # ---------------------------------------------------------------------------

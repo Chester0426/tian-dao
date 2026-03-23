@@ -59,6 +59,7 @@ Checks:
 """
 
 import glob
+import json
 import os
 import re
 import sys
@@ -1063,6 +1064,73 @@ def check_59_framework_archetype_compatibility(
                 f"[59] {path}: missing framework-archetype validation "
                 f"(cli requires commander)"
             )
+    return errors
+
+
+def check_60_settings_hook_paths() -> list[str]:
+    """Check 60: Every hook command path in settings.json must resolve to an existing file."""
+    errors: list[str] = []
+    settings_path = ".claude/settings.json"
+    if not os.path.isfile(settings_path):
+        return errors
+    try:
+        with open(settings_path) as f:
+            settings = json.loads(f.read())
+    except (json.JSONDecodeError, OSError):
+        return errors
+    hooks = settings.get("hooks", {})
+    for _matcher, hook_list in hooks.items():
+        if not isinstance(hook_list, list):
+            continue
+        for entry in hook_list:
+            if not isinstance(entry, dict):
+                continue
+            hook_entries = entry.get("hooks", [entry])
+            if not isinstance(hook_entries, list):
+                hook_entries = [hook_entries]
+            for hook in hook_entries:
+                if not isinstance(hook, dict):
+                    continue
+                cmd = hook.get("command", "")
+                # Normalize: strip quotes and replace $CLAUDE_PROJECT_DIR with .
+                normalized = cmd.replace('"', "").replace("'", "")
+                normalized = normalized.replace("$CLAUDE_PROJECT_DIR/", "")
+                # Extract just the script path (first token)
+                script_path = normalized.split()[0] if normalized.split() else ""
+                if script_path and script_path.endswith(".sh"):
+                    if not os.path.isfile(script_path):
+                        errors.append(
+                            f"[60] {settings_path}: hook path '{script_path}' "
+                            f"does not resolve to an existing file"
+                        )
+    return errors
+
+
+def check_61_footer_directive_sync() -> list[str]:
+    """Check 61: Directive marker in agent-prompt-footer.md must match phase-transition-gate.sh grep."""
+    errors: list[str] = []
+    footer_path = ".claude/agent-prompt-footer.md"
+    hook_path = ".claude/hooks/phase-transition-gate.sh"
+    if not os.path.isfile(footer_path) or not os.path.isfile(hook_path):
+        return errors
+    with open(footer_path) as f:
+        first_line = f.readline().strip()
+    # Extract directive marker from HTML comment: <!-- DIRECTIVES:... -->
+    marker = first_line
+    if marker.startswith("<!--"):
+        marker = marker[4:]
+    if marker.endswith("-->"):
+        marker = marker[:-3]
+    marker = marker.strip()
+    if not marker.startswith("DIRECTIVES:"):
+        return errors
+    with open(hook_path) as f:
+        hook_content = f.read()
+    if marker not in hook_content:
+        errors.append(
+            f"[61] {hook_path}: directive grep pattern does not match "
+            f"agent-prompt-footer.md marker '{marker}'"
+        )
     return errors
 
 
@@ -3039,6 +3107,20 @@ def main() -> int:
             ch_content_59 = f.read()
         for e in check_59_framework_archetype_compatibility(bs_content_59, ch_content_59):
             error(e)
+
+    # ---------------------------------------------------------------------------
+    # Check 60: Settings.json Hook Paths
+    # ---------------------------------------------------------------------------
+
+    for e in check_60_settings_hook_paths():
+        error(e)
+
+    # ---------------------------------------------------------------------------
+    # Check 61: Footer Directive Sync
+    # ---------------------------------------------------------------------------
+
+    for e in check_61_footer_directive_sync():
+        error(e)
 
     # ---------------------------------------------------------------------------
     # Summary

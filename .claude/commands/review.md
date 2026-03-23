@@ -58,11 +58,12 @@ until clean. Replaces the manual workflow of running `scripts/scoped-review-prom
 
 ## Step 1: Run baseline validators
 
-- Run all 3 validators, capture total error count as `baseline_errors`:
+- Run all 4 validators, capture total error count as `baseline_errors`:
   - `python3 scripts/validate-frontmatter.py`
   - `python3 scripts/validate-semantics.py`
   - `bash scripts/consistency-check.sh`
-- If a script fails to run (missing python3/pyyaml): stop and tell the user
+  - `shellcheck --exclude=SC2154,SC2086,SC2059,SC1091 .claude/hooks/*.sh`
+- If a script fails to run (missing python3/pyyaml/shellcheck): stop and tell the user
 
 - **Compute `health_clean`** (boolean):
   - `baseline_errors == 0` (all validators pass)
@@ -109,6 +110,7 @@ agent's prompt from:
 >
 > Before reviewing, read these files:
 > Glob `.claude/archetypes/*.md`, `scripts/check-inventory.md`, `CLAUDE.md`, `experiment/experiment.example.yaml`, `experiment/EVENTS.yaml`.
+> Read `.claude/settings.json`, `.claude/agent-prompt-footer.md`.
 > Do not report anything already covered by check-inventory.md (including Pending).
 
 **Dimension A: Cross-File Consistency**
@@ -118,13 +120,17 @@ Focus: Find contradictions or inconsistencies **between** files that no regex or
 - A rule in CLAUDE.md conflicts with how a skill actually operates
 - A stack file assumes a convention that another stack file violates
 - A prose instruction references a function/file/path that doesn't match reality
+- A hook script grep/match pattern doesn't match the actual string in the file it references
+- A hook registers in settings.json but the .sh file doesn't exist (or vice versa)
+- A hook checks for an artifact name that differs from what the verify state file creates
 
 Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
-- Glob `.claude/patterns/*.md` — read each pattern file
+- Glob `.claude/patterns/**/*.md` — read each pattern file (including verify sub-states)
 - Glob `.claude/procedures/*.md` — read each procedure file
 - Glob `.claude/agents/*.md` — read each agent definition
+- Glob `.claude/hooks/*.sh` — read each hook script
 
 After reading: for each potential finding, identify which archetype and stack
 configuration triggers the contradiction. Record the config alongside the finding.
@@ -137,6 +143,8 @@ Focus: Find configurations where skills or stack files would produce broken outp
 - A conditional branch in a skill handles 2 of 3 possible states
 - A skill's conditional branching handles 2 of 3 archetypes (e.g., web-app and service but not cli)
 - An edge case not covered by the test fixtures
+- A hook's case statement handles some agent types but has a silent fallback for new agents
+- A hook uses an undeclared bash variable or has a fail-open exit code on parse errors
 
 Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
@@ -144,6 +152,8 @@ Files to read:
 - Glob `tests/fixtures/*.yaml` — read each test fixture
 - Glob `.claude/procedures/*.md` — read each procedure file
 - Glob `.claude/agents/*.md` — read each agent definition
+- Glob `.claude/patterns/verify/*.md` — read verify sub-state files
+- Glob `.claude/hooks/*.sh` — read each hook script
 
 After reading: for each potential finding, identify the test fixture(s) whose
 `experiment.stack` configuration matches the edge case (e.g., a finding about missing
@@ -174,13 +184,15 @@ Focus: Find dead-end states where a user gets stuck with no clear next step. Exa
 - A workflow step assumes a previous step succeeded but doesn't verify
 - A Makefile target fails silently or with an unhelpful error
 - The user follows instructions but ends up in an undocumented state
+- A hook blocks an operation but the error message doesn't tell the user what prerequisite is missing or how to fix it
 
 Files to read:
 - Glob `.claude/commands/*.md` — read each skill file
 - Glob `.claude/stacks/**/*.md` — read each stack file
-- Glob `.claude/patterns/*.md` — read each pattern file
+- Glob `.claude/patterns/**/*.md` — read each pattern file (including verify sub-states)
 - Glob `.claude/procedures/*.md` — read each procedure file
 - Glob `.claude/agents/*.md` — read each agent definition
+- Glob `.claude/hooks/*.sh` — read each hook script
 - Read `Makefile`
 
 After reading: trace the user journey for each archetype:
@@ -312,7 +324,7 @@ For each finding in priority order: HIGH-severity confirmed, then MEDIUM confirm
 
 1. Implement the fix
 2. If finding has a Proposed Check → implement it in the target validator
-3. Run all 3 validators
+3. Run all 4 validators (3 scripts + shellcheck on hooks)
 4. If error count increased vs pre-fix count → revert with
    `git checkout -- <modified files>`, log as "reverted", move to next
 5. If error count same or decreased → keep the fix
@@ -320,8 +332,8 @@ For each finding in priority order: HIGH-severity confirmed, then MEDIUM confirm
 6. Record the finding's fate: `fixed`, `reverted`, or `skipped` (if not attempted).
    Carry fates forward in the compact state.
 
-The validator scripts serve as this skill's quality gate, analogous to the
-build verification in `.claude/patterns/verify.md`.
+The 4 validators (3 scripts + shellcheck) serve as this skill's quality gate,
+analogous to the build verification in `.claude/patterns/verify.md`.
 
 If no fixes succeeded this iteration → **exit loop**, proceed to Step 3.
 

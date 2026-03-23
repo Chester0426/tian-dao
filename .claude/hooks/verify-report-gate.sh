@@ -211,10 +211,10 @@ fi
 
 # Check 12: agent_verdicts in report must match actual trace verdicts
 if [[ -d "$TRACE_DIR" && -n "$CONTENT" ]]; then
-  VERDICTS_MISMATCH=$(python3 -c "
+  VERDICTS_MISMATCH=$(REPORT_CONTENT="$CONTENT" python3 -c "
 import json, glob, re, sys, os
 
-content = '''$CONTENT'''
+content = os.environ['REPORT_CONTENT']
 traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
 errors = []
 
