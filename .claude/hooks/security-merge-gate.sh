@@ -18,10 +18,6 @@ fi
 
 # --- security-merge.json write detected — run trace validation ---
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-TRACES_DIR="$PROJECT_DIR/.claude/agent-traces"
-ERRORS=()
-
 TOOL_NAME=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null || echo "")
 CONTENT=""
 if [[ "$TOOL_NAME" == "Write" ]]; then

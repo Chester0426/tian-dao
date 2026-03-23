@@ -20,9 +20,6 @@ fi
 
 # --- patterns-saved.json write detected — run invariant checks ---
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-ERRORS=()
-
 TOOL_NAME=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null || echo "")
 CONTENT=""
 if [[ "$TOOL_NAME" == "Write" ]]; then
