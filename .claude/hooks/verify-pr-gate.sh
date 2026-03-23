@@ -68,6 +68,39 @@ if [[ -f "$REPORT" ]]; then
   fi
 fi
 
+# Check 6: Gate verdict files (G4, G5, G6) exist with PASS for current branch
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
+VERDICT_CHECK=$(python3 -c "
+import json, os, sys
+verdicts_dir = '$VERDICTS_DIR'
+branch = '$BRANCH'
+errors = []
+for gate in ['g4', 'g5', 'g6']:
+    path = os.path.join(verdicts_dir, gate + '.json')
+    if not os.path.exists(path):
+        errors.append(gate.upper() + ' verdict missing')
+        continue
+    try:
+        d = json.load(open(path))
+    except Exception:
+        errors.append(gate.upper() + ' verdict file is not valid JSON')
+        continue
+    if d.get('verdict') != 'PASS':
+        errors.append(gate.upper() + ' verdict is ' + str(d.get('verdict','?')) + ', not PASS')
+    v_branch = d.get('branch', '')
+    if branch and v_branch and v_branch != branch:
+        errors.append(gate.upper() + ' verdict is for branch ' + v_branch + ', not ' + branch)
+if errors:
+    print('FAIL:' + '; '.join(errors))
+else:
+    print('OK')
+" 2>/dev/null || echo "OK")
+if [[ "$VERDICT_CHECK" == FAIL:* ]]; then
+  DETAIL="${VERDICT_CHECK#FAIL:}"
+  ERRORS+=("Check 6 (gate verdicts): $DETAIL")
+fi
+
 # If any check failed, deny the PR creation
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")

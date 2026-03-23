@@ -27,8 +27,8 @@ if [[ "$BRANCH" =~ ^feat/bootstrap ]]; then
   exit 0
 fi
 
-# Only fire on final commit — allow worktree merge commits and WIP commits through
-if [[ "$COMMAND" == *"Merge implementer"* ]] || [[ "$COMMAND" == *"WIP"* ]] || [[ "$COMMAND" == *"recover:"* ]]; then
+# Only allow worktree merge commits through unconditionally
+if [[ "$COMMAND" == *"Merge implementer"* ]]; then
   exit 0
 fi
 
@@ -48,6 +48,17 @@ print(m.group(1) if m else '')
   if [[ -n "$CHECKPOINT" && "$CHECKPOINT" != "phase2-step8" ]]; then
     exit 0
   fi
+fi
+
+# recover: commits allowed only when a plan exists (proves recovery from valid state)
+if [[ "$COMMAND" == *"recover:"* ]]; then
+  if [[ ! -f "$PLAN" ]]; then
+    cat <<EOF
+{"permissionDecision": "deny", "message": "recover: commit blocked — no current-plan.md found. Cannot recover without an existing plan."}
+EOF
+    exit 0
+  fi
+  exit 0
 fi
 
 # --- Final change commit detected — run gate checks ---
