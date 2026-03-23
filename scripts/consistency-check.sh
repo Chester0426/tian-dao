@@ -47,8 +47,8 @@ for f in .claude/commands/*.md; do
     "enumerated event names (should reference experiment/EVENTS.yaml)"
 done
 
-# 3. Hardcoded analytics import path in skills
-for f in .claude/commands/*.md; do
+# 3. Hardcoded analytics import path in skills, agents, and procedures
+for f in .claude/commands/*.md .claude/agents/*.md .claude/procedures/*.md; do
   [ -f "$f" ] || continue
   check_absent "$f" '@/lib/analytics' \
     "hardcoded import path (should reference analytics stack file)"
@@ -99,8 +99,8 @@ done
 
 # 12. (removed)
 
-# 13. Hardcoded analytics provider names in skill section headings
-for f in .claude/commands/*.md; do
+# 13. Hardcoded analytics provider names in skill, agent, and procedure section headings
+for f in .claude/commands/*.md .claude/agents/*.md .claude/procedures/*.md; do
   [ -f "$f" ] || continue
   if grep -qiE '^###.*PostHog' "$f"; then
     echo "FAIL: $f — hardcoded analytics provider name in section heading (should be provider-agnostic)"

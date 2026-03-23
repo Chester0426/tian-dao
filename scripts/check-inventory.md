@@ -1,10 +1,10 @@
 # Check Inventory
 
 Scannable reference listing all automated checks by name, grouped by validator.
-76 active checks consolidated into 72 inventory rows.
+78 active checks consolidated into 74 inventory rows.
 Checks 3 and 7 are archetype-aware — they read `required_experiment_fields` and `excluded_stacks` from archetype frontmatter.
 
-Last updated: 2026-03-20
+Last updated: 2026-03-23
 
 ## Validation philosophy
 
@@ -88,19 +88,21 @@ better enforced by the scoped LLM review (`scripts/scoped-review-prompt.md`).
 | Verify bootstrap validates variants structure and archetype | bootstrap.md Step 3 (Validate experiment.yaml) must contain variant validation logic (structure) and restrict variants to web-app archetype |
 | Verify agent tool consistency | implementer.md must have Edit/Write/Bash tools; spec-reviewer.md must not have Edit/Write and must disallow them |
 | Verify framework-archetype compatibility in bootstrap and change | Both bootstrap.md and change.md must validate that web-app requires nextjs and cli requires commander |
+| Verify settings.json hook paths resolve to existing files | Every hook `command` path in `.claude/settings.json` must point to an existing `.sh` file |
+| Verify agent-prompt-footer directive matches hook grep | Directive marker in `agent-prompt-footer.md` must appear as grep pattern in `phase-transition-gate.sh` |
 
 ## consistency-check.sh
 
-10 active checks consolidated into 6 rows. Three checks removed (scripts #8, #11, #12).
+14 active checks consolidated into 6 rows. Three checks removed (scripts #8, #11, #12). Checks #3 and #13 scan commands, agents, and procedures.
 
 | Name | Description | Scripts |
 |------|-------------|---------|
 | Forbid event name enumerations in rules and skills | CLAUDE.md and skill files must not enumerate event names inline | #1, #2 |
-| Forbid hardcoded analytics paths and constants in reference files | Skills, CLAUDE.md, and PR template must not hardcode analytics import paths or constant names | #3, #6, #9 |
-| Forbid framework-specific terms in rules and skills | CLAUDE.md and skill files must not use framework-specific directives or terms | #4, #5 |
+| Forbid hardcoded analytics paths and constants in reference files | Skills, agents, procedures, CLAUDE.md, and PR template must not hardcode analytics import paths or constant names | #3, #6, #9 |
+| Forbid framework-specific terms in rules and skills | CLAUDE.md and skill files must not use framework-specific directives or terms (agents excluded — they may reference these in inspection rules) | #4, #5 |
 | Forbid hardcoded framework paths in change skill | change.md must not hardcode API or types paths | #7 |
 | Require verify.md references in code-writing skill content | Code-writing skill content (not just frontmatter) must reference verify.md | #10 |
-| Forbid hardcoded analytics provider names in skill section headings | Skill files (`.claude/commands/*.md`) must not contain `PostHog` (case-insensitive) in `###` section headings — provider names belong in the analytics stack file | #13 |
+| Forbid hardcoded analytics provider names in skill section headings | Skill, agent, and procedure files must not contain `PostHog` (case-insensitive) in `###` section headings — provider names belong in the analytics stack file | #13 |
 
 ## Cross-validator overlaps
 
