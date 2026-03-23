@@ -46,15 +46,16 @@ overall_verdict: pass | fail
 - Last output: [last 3-5 lines of build output]
 
 ## Quality Delta
-> Populated when `.claude/verify-history.jsonl` has a previous entry. Otherwise omit this section.
+> Populated when `.claude/verify-history.jsonl` has a previous entry **matching the current skill**. Otherwise omit this section.
 >
-> Read the last line of `.claude/verify-history.jsonl` and compare to current run values.
+> Read `.claude/verify-history.jsonl` and find the last entry where `skill` matches the current skill (from verify-context.json). If no matching entry exists, omit this section.
 
 | Metric | Previous | Current | Delta |
 |--------|----------|---------|-------|
 | Build attempts | [prev] | [curr] | [+/-N or —] |
 | Fix log entries | [prev] | [curr] | [+/-N or —] |
 | Overall verdict | [prev] | [curr] | [improved/regressed/—] |
+| Q-score | [prev] | [curr] | [+/-N or —] |
 
 ## Review Agents
 | Agent | Verdict | Notes |
@@ -103,10 +104,12 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
 
 6. Compute `overall_verdict`: if `hard_gate_failure` is `true` OR `process_violation` is `true` → `fail`, otherwise → `pass`. Write this into the frontmatter.
 
-7. Append to `.claude/verify-history.jsonl` (persistent across runs — never deleted):
+7. Extract dimension scores from agent traces (before traces are deleted in the calling skill's cleanup step). These scores feed Q-score computation:
+
    ```bash
    python3 -c "
-   import json, datetime
+   import json, glob, os, datetime
+
    ctx = json.load(open('.claude/verify-context.json'))
    report = open('.claude/verify-report.md').read()
    lines = report.split('\n')
@@ -120,20 +123,109 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
        if in_fm and ':' in s:
            k, v = s.split(':', 1)
            fm[k.strip()] = v.strip()
+
+   scope = ctx.get('scope', 'full')
+   skill = ctx.get('skill', 'verify')
+   dims = {}
+
+   # Q_build (deterministic — from build attempts)
+   dims['build'] = round(1 - (int(fm.get('build_attempts', '1')) - 1) / 2, 3)
+
+   # Extract per-agent dimension scores from traces
+   for f in glob.glob('.claude/agent-traces/*.json'):
+       name = os.path.basename(f).replace('.json', '')
+       try:
+           d = json.load(open(f))
+       except:
+           continue
+
+       if name == 'security-fixer' and scope in ('full', 'security'):
+           merged = {}
+           try: merged = json.load(open('.claude/security-merge.json'))
+           except: pass
+           findings = merged.get('issues', [])
+           if findings:
+               weighted = sum(1.0 if i.get('severity','')=='Critical' else 0.5 if i.get('severity','')=='High' else 0.1 for i in findings)
+           else:
+               weighted = merged.get('merged_issues', 0)
+           dims['security'] = round(1 - min(weighted / 5, 1), 3)
+
+       elif name == 'design-critic' and scope in ('full', 'visual'):
+           dims['design'] = round(d.get('min_score', 10) / 10, 3)
+
+       elif name == 'ux-journeyer' and scope in ('full', 'visual'):
+           dims['ux'] = round(1 - min(d.get('unresolved_dead_ends', 0) / 3, 1), 3)
+
+       elif name == 'behavior-verifier' and scope in ('full', 'security'):
+           tp = d.get('tests_passed', 0)
+           tf = d.get('tests_failed', 0)
+           dims['behavior'] = round(tp / max(tp + tf, 1), 3)
+
+       elif name == 'spec-reviewer' and scope in ('full', 'security'):
+           dims['spec'] = 1.0 if d.get('verdict', '') == 'PASS' else 0.0
+
+   # Gate: binary — build passes AND no hard gate failure
+   gate = 0.0 if fm.get('hard_gate_failure', 'false') == 'true' else 1.0
+
+   # R_system: 1 - mean(dimension scores) — measures auto-remediation
+   active_dims = list(dims.values())
+   r_system = round(1 - (sum(active_dims) / max(len(active_dims), 1)), 3)
+
+   # R_human: (hard gate failures + exhaustions) / agents_expected — measures user intervention
+   exhaustions = 0
+   for f in glob.glob('.claude/agent-traces/*.json'):
+       try:
+           if json.load(open(f)).get('recovery', False): exhaustions += 1
+       except: pass
+   agents_expected_str = fm.get('agents_expected', '')
+   agents_expected = len([a for a in agents_expected_str.split(',') if a.strip()]) if agents_expected_str else 1
+   r_human = round((int(fm.get('hard_gate_failure','false')=='true') + exhaustions) / max(agents_expected, 1), 3)
+
+   # R combined: 0.3 * R_system + 0.7 * R_human
+   r = round(0.3 * r_system + 0.7 * r_human, 3)
+
+   # Q_skill = Gate * (1 - R)
+   q_skill = round(gate * (1 - r), 3)
+
    entry = {
        'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
        'run_id': ctx.get('run_id', ''),
-       'scope': ctx.get('scope', ''),
+       'skill': skill,
+       'scope': scope,
        'archetype': ctx.get('archetype', ''),
        'build_attempts': int(fm.get('build_attempts', '1')),
        'fix_log_entries': int(fm.get('fix_log_entries', '0')),
        'hard_gate_failure': fm.get('hard_gate_failure', 'false') == 'true',
        'process_violation': fm.get('process_violation', 'false') == 'true',
-       'overall_verdict': fm.get('overall_verdict', 'pass').strip()
+       'overall_verdict': fm.get('overall_verdict', 'pass').strip(),
+       'dimension_scores': dims,
+       'gate': gate,
+       'r_system': r_system,
+       'r_human': r_human,
+       'q_skill': q_skill,
    }
-   with open('.claude/verify-history.jsonl', 'a') as f:
-       f.write(json.dumps(entry) + '\n')
-   print('Appended to verify-history.jsonl')
+
+   # Write using pluggable backend (see .claude/patterns/q-score.md Write Procedure)
+   backend = os.environ.get('SKILL_HISTORY_BACKEND', 'local')
+   if backend == 'local':
+       with open('.claude/verify-history.jsonl', 'a') as f:
+           f.write(json.dumps(entry) + '\n')
+       print(f'Q-score: {q_skill} (Gate={gate}, R={r}) — appended to verify-history.jsonl')
+   elif backend == 'api':
+       import urllib.request
+       endpoint = os.environ.get('SKILL_HISTORY_ENDPOINT', '')
+       if endpoint:
+           req = urllib.request.Request(endpoint, data=json.dumps(entry).encode(), headers={'Content-Type':'application/json'}, method='POST')
+           try:
+               urllib.request.urlopen(req, timeout=5)
+               print(f'Q-score: {q_skill} — sent to {endpoint}')
+           except Exception as e:
+               # Fallback to local on API failure
+               with open('.claude/verify-history.jsonl', 'a') as f:
+                   f.write(json.dumps(entry) + '\n')
+               print(f'Q-score: {q_skill} — API failed ({e}), fell back to local')
+   else:
+       print(f'Q-score: {q_skill} (tracking disabled)')
    "
    ```
 

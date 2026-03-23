@@ -37,7 +37,8 @@ Unified verification: build, agent review, E2E tests, and (in bootstrap-verify m
    - If `stack.testing` is present in experiment.yaml, read `.claude/stacks/testing/<value>.md`. Determine the test command and verify prerequisites (configuration file exists, dev packages installed).
 
 4. **Create durable artifacts** (STATE 0 from verify.md):
-   - Write `.claude/verify-context.json` with scope, archetype, quality, timestamp, and run_id
+   - Determine skill name: read `skill` from current-plan.md frontmatter if it exists, otherwise use `"verify"`
+   - Write `.claude/verify-context.json` with scope, archetype, quality, skill, timestamp, and run_id
    - Create `.claude/fix-log.md` with header `# Error Fix Log`
    - `rm -rf .claude/agent-traces && mkdir -p .claude/agent-traces`
 

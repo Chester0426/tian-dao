@@ -14,6 +14,13 @@ If the Fix Log has entries:
 
 1. Spawn the `pattern-classifier` agent (`subagent_type: pattern-classifier`).
    Pass: fix-log.md content, list of stack files (`find .claude/stacks -type f`), project memory directory path.
+
+   **Anti-overfit constraint for pattern saving:**
+   - Do NOT save patterns that are reactions to a single Q-score dip (correlation != causation)
+   - Do NOT encode project-specific workarounds as universal rules
+   - Do NOT save patterns that contradict existing stack file guidance
+   - Only save patterns that would apply to multiple projects using the same stack combination
+   - When in doubt, save to project auto-memory (not stack files)
 2. Wait for completion.
 3. Verify `.claude/patterns-saved.json` exists (the hook validates invariants automatically).
 
