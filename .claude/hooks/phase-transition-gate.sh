@@ -8,8 +8,13 @@ set -euo pipefail
 # Read the hook payload from stdin
 PAYLOAD=$(cat)
 
-# Extract subagent_type from tool_input (fail open on parse errors)
-SUBAGENT_TYPE=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('subagent_type',''))" 2>/dev/null || echo "")
+# Extract subagent_type from tool_input (fail open on parse errors, log in verify context)
+SUBAGENT_TYPE=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('subagent_type',''))" 2>/dev/null || {
+  if [ -f "${CLAUDE_PROJECT_DIR:-.}/.claude/verify-context.json" ]; then
+    echo "WARNING: phase-transition-gate: JSON parse error extracting subagent_type" >&2
+  fi
+  echo ""
+})
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 TRACES_DIR="$PROJECT_DIR/.claude/agent-traces"
