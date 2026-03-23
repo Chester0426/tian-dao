@@ -404,6 +404,21 @@ If new validator checks were implemented in Step 2e:
 - Run all 3 validators
 - Record `final_errors`
 - If `final_errors` > `baseline_errors` → stop and report regression
+- Write `.claude/review-complete.json` (required by verify-pr-gate.sh for PR creation):
+  ```bash
+  cat > .claude/review-complete.json << RCEOF
+  {
+    "branch": "$(git branch --show-current)",
+    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+    "iterations": <iteration count>,
+    "yield": <overall yield rate>,
+    "baseline_errors": <baseline_errors>,
+    "final_errors": <final_errors>,
+    "findings_fixed": <total fixed across all iterations>,
+    "findings_disputed": <total disputed across all iterations>
+  }
+  RCEOF
+  ```
 
 ## Step 5: Commit, push, open PR
 

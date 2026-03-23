@@ -21,58 +21,72 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 REPORT="$PROJECT_DIR/.claude/verify-report.md"
 TRACES_DIR="$PROJECT_DIR/.claude/agent-traces"
 ERRORS=()
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
-# Check 1: verify-report.md exists with YAML frontmatter
-if [[ ! -f "$REPORT" ]]; then
-  ERRORS+=("verify-report.md not found — run /verify first")
-elif ! head -1 "$REPORT" | grep -q '^---$'; then
-  ERRORS+=("verify-report.md missing YAML frontmatter")
-fi
+# Branch-aware checks: skills that don't produce verify-report.md use their own artifacts
+if [[ "$BRANCH" =~ ^chore/review- ]]; then
+  # /review uses review-complete.json (produced in Step 4)
+  if [[ ! -f "$PROJECT_DIR/.claude/review-complete.json" ]]; then
+    ERRORS+=("review-complete.json not found — /review must write this after final validation")
+  fi
+elif [[ "$BRANCH" =~ ^fix/resolve- ]]; then
+  # /resolve uses observe-result.json (produced by skill-epilogue.md)
+  if [[ ! -f "$PROJECT_DIR/.claude/observe-result.json" ]]; then
+    ERRORS+=("observe-result.json not found — /resolve must complete observation before PR")
+  fi
+else
+  # Standard path: Checks 1-5 (verify-report.md required)
 
-if [[ -f "$REPORT" ]]; then
-  # Extract frontmatter (between first and second ---)
-  FRONTMATTER=$(sed -n '2,/^---$/p' "$REPORT" | sed '$d')
-
-  # Check 2: process_violation is absent or false
-  VIOLATION=$(echo "$FRONTMATTER" | grep 'process_violation: *true' || true)
-  if [[ -n "$VIOLATION" ]]; then
-    ERRORS+=("process_violation is true in verify-report.md — verification agents were skipped")
+  # Check 1: verify-report.md exists with YAML frontmatter
+  if [[ ! -f "$REPORT" ]]; then
+    ERRORS+=("verify-report.md not found — run /verify first")
+  elif ! head -1 "$REPORT" | grep -q '^---$'; then
+    ERRORS+=("verify-report.md missing YAML frontmatter")
   fi
 
-  # Check 3: agents_expected matches agents_completed
-  EXPECTED=$(echo "$FRONTMATTER" | grep 'agents_expected:' | sed 's/agents_expected: *//' | tr -d '[]' | tr ',' '\n' | sed 's/^ *//;/^$/d' | sort)
-  COMPLETED=$(echo "$FRONTMATTER" | grep 'agents_completed:' | sed 's/agents_completed: *//' | tr -d '[]' | tr ',' '\n' | sed 's/^ *//;/^$/d' | sort)
-  if [[ "$EXPECTED" != "$COMPLETED" ]]; then
-    ERRORS+=("agents_expected does not match agents_completed in verify-report.md")
-  fi
+  if [[ -f "$REPORT" ]]; then
+    # Extract frontmatter (between first and second ---)
+    FRONTMATTER=$(sed -n '2,/^---$/p' "$REPORT" | sed '$d')
 
-  # Check 4: agent-traces directory has matching file count
-  if [[ -d "$TRACES_DIR" ]]; then
-    TRACE_COUNT=$(find "$TRACES_DIR" -name '*.json' -type f | wc -l | tr -d ' ')
-    COMPLETED_COUNT=$(echo "$FRONTMATTER" | grep 'agents_completed:' | sed 's/agents_completed: *//' | tr -d '[]' | tr ',' '\n' | sed '/^$/d' | wc -l | tr -d ' ')
-    if [[ "$TRACE_COUNT" -ne "$COMPLETED_COUNT" ]]; then
-      ERRORS+=("Agent trace count ($TRACE_COUNT) does not match agents_completed count ($COMPLETED_COUNT)")
+    # Check 2: process_violation is absent or false
+    VIOLATION=$(echo "$FRONTMATTER" | grep 'process_violation: *true' || true)
+    if [[ -n "$VIOLATION" ]]; then
+      ERRORS+=("process_violation is true in verify-report.md — verification agents were skipped")
     fi
-  else
-    ERRORS+=("Agent traces directory not found at $TRACES_DIR")
-  fi
 
-  # Check 5: hard_gate_failure blocks PR (except standalone mode)
-  HARD_GATE=$(echo "$FRONTMATTER" | grep 'hard_gate_failure: *true' || true)
-  MODE=""
-  if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-    MODE=$(python3 -c "import json; d=json.load(open('$PROJECT_DIR/.claude/verify-context.json')); print(d.get('mode',''))" 2>/dev/null || echo "")
+    # Check 3: agents_expected matches agents_completed
+    EXPECTED=$(echo "$FRONTMATTER" | grep 'agents_expected:' | sed 's/agents_expected: *//' | tr -d '[]' | tr ',' '\n' | sed 's/^ *//;/^$/d' | sort)
+    COMPLETED=$(echo "$FRONTMATTER" | grep 'agents_completed:' | sed 's/agents_completed: *//' | tr -d '[]' | tr ',' '\n' | sed 's/^ *//;/^$/d' | sort)
+    if [[ "$EXPECTED" != "$COMPLETED" ]]; then
+      ERRORS+=("agents_expected does not match agents_completed in verify-report.md")
+    fi
+
+    # Check 4: agent-traces directory has matching file count
+    if [[ -d "$TRACES_DIR" ]]; then
+      TRACE_COUNT=$(find "$TRACES_DIR" -name '*.json' -type f | wc -l | tr -d ' ')
+      COMPLETED_COUNT=$(echo "$FRONTMATTER" | grep 'agents_completed:' | sed 's/agents_completed: *//' | tr -d '[]' | tr ',' '\n' | sed '/^$/d' | wc -l | tr -d ' ')
+      if [[ "$TRACE_COUNT" -ne "$COMPLETED_COUNT" ]]; then
+        ERRORS+=("Agent trace count ($TRACE_COUNT) does not match agents_completed count ($COMPLETED_COUNT)")
+      fi
+    else
+      ERRORS+=("Agent traces directory not found at $TRACES_DIR")
+    fi
+
+    # Check 5: hard_gate_failure blocks PR (except standalone mode)
+    HARD_GATE=$(echo "$FRONTMATTER" | grep 'hard_gate_failure: *true' || true)
+    MODE=""
+    if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+      MODE=$(python3 -c "import json; d=json.load(open('$PROJECT_DIR/.claude/verify-context.json')); print(d.get('mode',''))" 2>/dev/null || echo "")
+    fi
+    if [[ -n "$HARD_GATE" && "$MODE" != "standalone" ]]; then
+      ERRORS+=("hard_gate_failure is true — verification hard gate(s) failed; PR blocked in non-standalone mode")
+    fi
   fi
-  if [[ -n "$HARD_GATE" && "$MODE" != "standalone" ]]; then
-    ERRORS+=("hard_gate_failure is true — verification hard gate(s) failed; PR blocked in non-standalone mode")
-  fi
-fi
+fi  # end branch-aware checks
 
 # Check 6: Gate verdict files (G4, G5, G6) exist with PASS for current branch
-# Only required for /change skill branches — other skills (harden, distribute,
-# review, bootstrap) use their own verification and do not produce G4/G5/G6.
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-if [[ "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^feat/bootstrap ]]; then
+# Only required for /change skill branches — other skills use their own verification.
+if [[ "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^feat/bootstrap ]] && [[ ! "$BRANCH" =~ ^fix/resolve- ]]; then
 VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
 VERDICT_CHECK=$(python3 -c "
 import json, os, sys
