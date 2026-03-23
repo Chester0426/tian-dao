@@ -34,6 +34,16 @@
        a. If the block is a fixable environment issue (missing package, missing env var): fix on the current branch, then re-spawn the agent with the same task. Budget: 1 retry.
        b. If the block is a scope or spec issue (ambiguous task, conflicting requirements): revise the task description to clarify, then re-spawn. Budget: 1 retry.
        c. If still blocked after retry: skip the task, log it in the PR body under "Blocked tasks," and continue with remaining tasks. Do not attempt dependent tasks whose prerequisites were blocked.
+  6. **Write implementer trace.** After each agent returns (before merge), write a trace based on the Output Contract:
+     ```bash
+     python3 -c "
+     import json, datetime, os
+     os.makedirs('.claude/agent-traces', exist_ok=True)
+     trace = {'agent': 'implementer-<task-slug>', 'status': '<complete|blocked>', 'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), 'task': '<task description from Output Contract>', 'files_changed': [<Files Changed list from Output Contract>], 'tdd_cycle': '<red-green-refactor|skipped from Output Contract>', 'worktree_merged': False}
+     json.dump(trace, open('.claude/agent-traces/implementer-<task-slug>.json', 'w'))
+     "
+     ```
+     After merge, update the trace: set `worktree_merged: true`.
   7. Merge worktree changes. If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
   8. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
