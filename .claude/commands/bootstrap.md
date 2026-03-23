@@ -108,7 +108,8 @@ Read these two context files:
 
 **ACTIONS**
 
-- Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). The archetype defines required experiment.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per experiment.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
+- Validate the archetype type: read `type` from experiment.yaml (default `web-app`). If the archetype file `.claude/archetypes/<type>.md` does not exist, stop and tell the user: "Unrecognized archetype: `<type>`. Valid archetypes are the `.md` files in `.claude/archetypes/` (currently: web-app, service, cli). Check experiment.yaml `type` field or create a new archetype file at `.claude/archetypes/<type>.md` using web-app.md as a template."
+- Read the archetype file at `.claude/archetypes/<type>.md`. The archetype defines required experiment.yaml fields, file structure, and funnel template. **If the archetype is `service`:** Steps 3-4 (app shell + pages) do not apply — skip them. Step 5 (API routes) becomes the primary implementation step. Step 7b uses the testing stack file's test runner (not necessarily Playwright). See the archetype file for full guidance. **If the archetype is `cli`:** Steps 3 (app shell/root layout), 4 (pages), and 5 (API routes) do not apply — skip them. The primary implementation is `src/index.ts` (CLI entry point with bin config) and `src/commands/` (one module per experiment.yaml command). There is no HTTP server, no landing page, no UI components. Analytics uses `trackServerEvent()` from the server analytics library. Step 7b uses the testing stack file's test runner (not Playwright — no browser). See the archetype file for full guidance.
 - Read experiment.yaml `stack`. Skip structural keys (`services`, `auth_providers`) and configuration keys (`surface`) during category validation — these are not stack file categories. For each remaining category present in experiment.yaml `stack`, verify it appears in the archetype's `required_stacks`, `optional_stacks`, or known shared categories (`database`, `auth`, `analytics`, `payment`, `email`). If a category is in the archetype's `excluded_stacks`, stop and tell the user: "Stack category `<category>` is excluded by the `<archetype>` archetype. Remove it from experiment.yaml `stack` or choose a different archetype." If a category is not in any of these lists, stop and tell the user: "Unrecognized stack category: `<category>`. The `<archetype>` archetype allows: [list required + optional + shared]. Check experiment.yaml or the archetype file for valid categories." Then, for each valid category, read `.claude/stacks/<category>/<value>.md`.
 - If a stack file doesn't exist for a given value:
   1. Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema.
@@ -318,9 +319,17 @@ Present the plan in plain language the user can verify:
 ```
 ## What I'll Build
 
-**Pages:**
+**[If web-app] Pages:**
 - Landing Page (/) — [purpose from experiment.yaml]
 - [Page Name] (/route) — [purpose from experiment.yaml]
+- ...
+
+**[If service] Endpoints:**
+- [Endpoint Name] (/api/route) — [purpose from experiment.yaml]
+- ...
+
+**[If cli] Commands:**
+- [Command Name] — [purpose from experiment.yaml]
 - ...
 
 **Behaviors:**
@@ -328,7 +337,7 @@ Present the plan in plain language the user can verify:
 - [b-NN: behavior description] → built in [file(s)]
 - ...
 
-**Variants (if experiment.yaml has `variants`):**
+**Variants (if experiment.yaml has `variants` AND archetype is web-app):**
 - [slug] — "[headline]" → /v/[slug]
 - [slug] — "[headline]" → /v/[slug]
 - Root `/` renders: [first variant slug]
@@ -348,7 +357,7 @@ Core = removing it prevents users from validating the thesis.
 **Analytics Events:**
 - [For each event in experiment/EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
 
-**Golden Path (from experiment.yaml):**
+**[If web-app] Golden Path (from experiment.yaml):**
 | Step | Page | Event |
 |------|------|-------|
 | 1. [step] | [page] | [event] |
@@ -356,6 +365,16 @@ Target: [target_clicks] clicks
 
 If experiment.yaml has no `golden_path` field: derive one from behaviors + experiment/EVENTS.yaml events map,
 present it in the plan, and write it back to experiment.yaml after approval (STATE 7).
+
+**[If service] API Flow (from experiment.yaml `endpoints`):**
+| Step | Endpoint | Method | Event |
+|------|----------|--------|-------|
+| 1. [step] | [endpoint] | [method] | [event] |
+
+**[If cli] Command Flow (from experiment.yaml `commands`):**
+| Step | Command | Event |
+|------|---------|-------|
+| 1. [step] | [command] | [event] |
 
 **System/Cron Behaviors (from experiment.yaml):**
 | Behavior | Actor | Trigger | Then |
@@ -391,7 +410,7 @@ If no behaviors have `actor: system` or `actor: cron`: "None defined — all beh
 - Plan displayed to user with all required sections
 
 **VERIFY**
-- Plan output contains all required sections: Pages, Behaviors, Analytics Events, Golden Path, Technical Decisions
+- Plan output contains all required sections: Pages/Endpoints/Commands (per archetype), Behaviors, Analytics Events, Golden Path/API Flow/Command Flow (per archetype), Technical Decisions
 
 **NEXT** -> STATE 6
 
