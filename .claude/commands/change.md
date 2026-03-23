@@ -115,7 +115,9 @@ Map the classification to a verification scope for Step 7:
 
 State: "Verification scope: **[scope]**"
 
-## Step 4: Check type-specific preconditions
+## Step 4: Check preconditions
+
+> **Precondition types:** This step contains two kinds of checks: (1) *condition-specific* checks that trigger based on what the change involves (e.g., adding payment, setting production mode), applying to all change types when the condition is met; and (2) *type-specific* checks that apply only to certain classifications (e.g., Test, Upgrade). Both must be evaluated.
 
 > **Branch cleanup on failure:** Any "stop" in this step leaves you on a feature branch (created in Step 1). Include in the stop message: "To abort: `git checkout main && git branch -D <branch-name>`. To fix and retry: make the required changes to experiment.yaml, then re-run `/change`."
 

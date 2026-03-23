@@ -466,7 +466,10 @@ Based on the measurement window and current progress, provide a concrete schedul
 ```
 
 - Calculate dates from the experiment timeline and the elapsed days reported in Step 3
-- If verdict is TOO EARLY, set next check-in to 3 days or when 30+ visits are expected
+- If verdict is TOO EARLY: check deployment and traffic state to provide actionable next steps:
+  - If `.claude/deploy-manifest.json` does not exist: "Your app isn't deployed yet. Run `/deploy` to go live, then return to `/iterate` after a few days of traffic."
+  - If deployed but analytics shows 0 events: "Your app is deployed but receiving no traffic. Run `/distribute` to drive traffic, or manually visit the app to verify it's accessible."
+  - If deployed and some events exist: "Traffic is building — check back in 3 days or when 30+ visits are logged, whichever comes first."
 - If verdict is KILL, the next check-in is NOW — recommend immediate decision
 - Tell the user: "Set a calendar reminder for [next check-in date] to run `/iterate` again."
 

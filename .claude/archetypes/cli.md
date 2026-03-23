@@ -39,7 +39,7 @@ Product events (suggestions, not requirements):
 2. `activate` (activate) — user completes the core action for the first time
 3. `retain_return` (retain) — user runs the CLI again after 24+ hours since last use
 
-Surface events use an inline PostHog snippet. Product events use opt-in `trackServerEvent()` from the server analytics library. Analytics must be opt-in — check for a consent flag or environment variable before sending any telemetry.
+Surface events use an inline PostHog snippet. Product events use opt-in `trackServerEvent()` from the server analytics library. Analytics must be opt-in — check for a consent flag or environment variable before sending any telemetry. See the analytics stack file's CLI Opt-In Consent section (`.claude/stacks/analytics/<value>.md`) for the implementation pattern, environment variable names, and guard function.
 
 ## Testing
 

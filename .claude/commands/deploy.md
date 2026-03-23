@@ -45,15 +45,15 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
    The deploy workflow comes from the hosting stack file. For services, browser-based health checks don't apply — use the API health endpoint instead.
 > **Surface-only gate:** If the archetype's `excluded_stacks` includes `hosting` and surface is `detached` (resolved in step 5 above), skip Steps 0.6–0.10, Step 1, and Steps 3–4 — proceed to Step 2 (simplified plan), then directly to Step 5a.1. Surface-only deployments for archetypes without hosting have no hosting/database infrastructure.
 
-6. **Hosting prerequisites:** Read the hosting stack file at `.claude/stacks/hosting/<stack.services[0].hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
+6. **Hosting prerequisites** (skip for surface-only deployments — see gate in step 5)**:** Read the hosting stack file at `.claude/stacks/hosting/<stack.services[0].hosting>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
    - Run `install_check` — if not found, stop with `install_fix` instructions
    - Run `auth_check` — if fails, stop with `auth_fix` instructions
-7. **Database prerequisites** (if `stack.database` is present): Read the database stack file at `.claude/stacks/database/<stack.database>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
+7. **Database prerequisites** (skip for surface-only deployments; also skip if `stack.database` is absent)**:** Read the database stack file at `.claude/stacks/database/<stack.database>.md` → `## Deploy Interface > Prerequisites`. Execute each check:
    - Run `install_check` — if not found, stop with `install_fix` instructions
    - Run `auth_check` — if fails, stop with `auth_fix` instructions
    - If the database has no Prerequisites section (e.g., sqlite), skip
 8. **Payment prerequisites:** If `stack.payment: stripe`: `which stripe` — if not found, warn: "Stripe CLI not installed. Webhook will need manual setup. Install: `brew install stripe/stripe-cli/stripe` (macOS) or see https://stripe.com/docs/stripe-cli." If found: `stripe whoami` — if fails, stop: "Run `stripe login` first (one-time per machine)."
-9. **Compatibility check:** Read the database stack file's `## Deploy Interface > Hosting Requirements > incompatible_hosting`. If the current `stack.services[0].hosting` value appears in the list, stop with the reason from the stack file (e.g., "SQLite is incompatible with Vercel: serverless has no persistent filesystem").
+9. **Compatibility check** (skip for surface-only deployments)**:** Read the database stack file's `## Deploy Interface > Hosting Requirements > incompatible_hosting`. If the current `stack.services[0].hosting` value appears in the list, stop with the reason from the stack file (e.g., "SQLite is incompatible with Vercel: serverless has no persistent filesystem").
 10. Check external service CLIs: For each `.claude/stacks/external/*.md`, read `## CLI Provisioning`. If a CLI is specified:
    - `which <cli>` — record `cli_status: not_installed` (with install command) if not found
    - If found, run auth check — record `cli_status: not_authed` if fails
@@ -63,7 +63,7 @@ The skill is hosting-agnostic: it reads provider-specific commands from stack fi
 
 ## Step 1: Gather configuration
 
-1. **Hosting config**: Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the experiment.yaml field listed in the stack file — if set, skip the prompt.
+1. **Hosting config** (skip for surface-only deployments)**:** Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the experiment.yaml field listed in the stack file — if set, skip the prompt.
 2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the experiment.yaml fields listed — if set, skip the prompts.
 3. **DB password** (if applicable): Generate with `openssl rand -base64 24`.
 5. **Stripe keys** (if `stack.payment` is present): Ask the user for `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. If Stripe CLI is available, the webhook secret will be auto-generated in Step 5. If not, also ask for `STRIPE_WEBHOOK_SECRET`.
@@ -193,6 +193,8 @@ If archetype is `cli` and surface is `detached`: **skip this step** — proceed 
 Configure services using `canonical_url` (custom domain if added in Step 4.2, otherwise Vercel deployment URL). Up to 4 independent agents run **simultaneously** — each calls a different external API with no shared mutable state.
 
 #### 5b preamble: determine which agents to spawn
+
+> **Surface-only gate:** If the archetype's `excluded_stacks` includes `hosting` and surface is `detached` (surface-only deployment): skip Step 5b entirely — no hosting infrastructure was provisioned. Proceed to Step 5c (health check verifies the surface URL).
 
 Assemble the shared context block (read-only inputs for all agents):
 - `canonical_url`, experiment.yaml contents (name, description, variants, stack, type), `experiment/EVENTS.yaml` contents, archetype type
