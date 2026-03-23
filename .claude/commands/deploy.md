@@ -552,6 +552,69 @@ Omit sections for inactive stack categories (e.g., no `database` key if `stack.d
 
 If the write fails, warn but continue — the manifest is for convenience, not correctness.
 
+### Q-score
+
+After writing the deploy manifest, compute deploy Q and append to `.claude/verify-history.jsonl` (see `.claude/patterns/q-score.md` for the Write Procedure).
+
+Parse the health check results from Step 5c:
+- `services_ok`: count of services that returned `"ok"` in the health check JSON
+- `services_total`: total services checked
+- For CLI archetype with HTTP-only check: `services_ok = 1 if HTTP 200, else 0; services_total = 1`
+
+Parse the provision scanner results from Step 5d.5:
+- Extract the JSON summary line from the scanner output: `{"total": N, "pass": N, "fail": N, "skip": N}`
+
+Count `HEALTH_RETRIES` (health check re-runs in Step 5c/5d) and `AUTOFIX_ROUNDS` (auto-fix iterations in Step 5d).
+
+```bash
+HEALTH_OK=<count> HEALTH_TOTAL=<count> SCAN_PASS=<count> SCAN_TOTAL=<count> HEALTH_RETRIES=<count> AUTOFIX_ROUNDS=<count> ARCHETYPE=<archetype> python3 -c "
+import json, os, datetime
+
+services_ok = int(os.environ.get('HEALTH_OK', '0'))
+services_total = int(os.environ.get('HEALTH_TOTAL', '1'))
+q_health = round(services_ok / max(services_total, 1), 3)
+
+scan_pass = int(os.environ.get('SCAN_PASS', '0'))
+scan_total = int(os.environ.get('SCAN_TOTAL', '7'))
+q_provision = round(scan_pass / max(scan_total, 1), 3)
+
+dims = {'health': q_health, 'provision': q_provision}
+gate = 1.0 if q_health == 1.0 and q_provision >= 0.8 else (1.0 if q_health > 0 else 0.0)
+active = list(dims.values())
+r = round(1 - sum(active) / max(len(active), 1), 3)
+
+retries = int(os.environ.get('HEALTH_RETRIES', '0'))
+autofix = int(os.environ.get('AUTOFIX_ROUNDS', '0'))
+r_human = round((retries + autofix) / 4, 3)
+r_combined = round(0.3 * r + 0.7 * r_human, 3)
+q_skill = round(gate * (1 - r_combined), 3)
+
+entry = {
+    'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'skill': 'deploy', 'scope': 'deploy',
+    'archetype': os.environ.get('ARCHETYPE', 'web-app'),
+    'dimension_scores': dims, 'gate': gate, 'r_system': r, 'r_human': r_human,
+    'q_skill': q_skill, 'overall_verdict': 'pass' if gate == 1.0 else 'fail',
+}
+
+backend = os.environ.get('SKILL_HISTORY_BACKEND', 'local')
+if backend == 'local':
+    os.makedirs('.claude', exist_ok=True)
+    with open('.claude/verify-history.jsonl', 'a') as f:
+        f.write(json.dumps(entry) + '\n')
+    print(f'Q-score: {q_skill} (Gate={gate}, R={r_combined})')
+elif backend == 'api':
+    import urllib.request
+    endpoint = os.environ.get('SKILL_HISTORY_ENDPOINT', '')
+    if endpoint:
+        req = urllib.request.Request(endpoint, data=json.dumps(entry).encode(), headers={'Content-Type':'application/json'}, method='POST')
+        try: urllib.request.urlopen(req, timeout=5)
+        except:
+            with open('.claude/verify-history.jsonl', 'a') as f:
+                f.write(json.dumps(entry) + '\n')
+"
+```
+
 ## Idempotency
 
 This skill handles re-runs gracefully:

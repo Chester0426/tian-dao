@@ -99,6 +99,45 @@ hit this same problem?" If yes → file it.
 
 If no fixes qualify → stop here.
 
+## Path 3 — Q-score trigger (used by verify.md STATE 7)
+
+You are triggered because a skill's Q-score fell below 0.5. You received:
+- The skill name and Q-score breakdown (Gate, R_system, R_human, dimension_scores)
+- The timestamp and run_id
+
+### Evaluation
+
+For Q-score-triggered observations, the evaluation is simpler than Path 1/2:
+
+**A. Is this a template issue?** Does the low Q indicate a systematic problem that would affect other users with different experiment.yaml files?
+- Gate = 0 (hard failure) with `hard_gate_failure: true` → likely template issue if the gate agent (design-critic, ux-journeyer, security-fixer) consistently fails
+- R_system > 0.5 (high auto-remediation) → template prompt may need tightening (agents doing too much cleanup)
+- R_human > 0 (exhaustions/interventions) → template agent budgets or instructions may be insufficient
+
+**B. Is this reproducible?** A single low-Q run could be LLM stochasticity. Only file if:
+- This is the second consecutive low-Q run for the same skill (check verify-history.jsonl), OR
+- Gate = 0 (hard failures are always worth reporting)
+
+If neither condition is met → stop here. The Q-score is logged for trend analysis but no observation is filed.
+
+### Issue Format
+
+Title: `[observe] Low Q-score: <skill> Q=<q_skill>`
+
+Body:
+```
+**Skill:** <skill>
+**Q-score:** <q_skill> (Gate=<gate>, R_system=<r_system>, R_human=<r_human>)
+**Weakest dimension:** <dimension with lowest Q_d> (<value>)
+**Scope:** <scope>
+**Archetype:** <archetype>
+
+This is an automated quality observation. The skill's Q-score fell below 0.5,
+indicating significant remediation was needed after the skill ran.
+```
+
+Then follow the standard **Redaction**, **Dedup**, and **Issue Creation** procedures below.
+
 ## Redaction
 
 Before composing the issue, strip all project-specific information:

@@ -229,6 +229,17 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
    "
    ```
 
+8. **Q-score observation trigger** (low-Q auto-observe):
+
+   If `q_skill < 0.5` and `skill` is not `"verify"` (standalone verify has no skill attribution for template issues):
+
+   File an observation to the template repo using `.claude/patterns/observe.md` **Path 3** (direct Q-score evaluation):
+   - Title: `[observe] Low Q-score: <skill> Q=<q_skill>`
+   - Body: skill name, Q-score breakdown (Gate, R_system, R_human, dimension_scores), timestamp
+   - Follow observe.md's Redaction, Dedup, and Issue Creation procedures
+
+   This is a direct evaluation (like Path 2), not a callback to STATE 6. Do NOT spawn the observer agent.
+
 **POSTCONDITIONS:** `verify-report.md` exists with valid frontmatter. `verify-history.jsonl` has a new entry appended.
 
 **VERIFY:**

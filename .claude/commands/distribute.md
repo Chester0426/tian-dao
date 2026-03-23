@@ -293,6 +293,8 @@ Before running verify.md, validate that distribute artifacts were created:
 
 If any check returns "stop", halt before verify.md. Warnings are non-blocking — proceed and include in PR body.
 
+Before running verify.md, set skill attribution for Q-score tracking: when executing STATE 0 of verify.md, use `"distribute"` as the skill value (instead of the default `"verify"`). Since distribute does not use `current-plan.md`, pass the skill directly when creating verify-context.json.
+
 Run the verification procedure per `.claude/patterns/verify.md`.
 
 > **Gate check:** Read `.claude/verify-report.md`. If it does not exist,

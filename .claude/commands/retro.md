@@ -22,6 +22,27 @@ If `package.json` does not exist, warn: "No app found — this retro will be bas
 
 If `.claude/iterate-manifest.json` exists, read it and extract the `verdict`, `bottleneck`, and `recommendations` fields. Include in the summary: "Last `/iterate` analysis: verdict **[verdict]**, bottleneck: [bottleneck.diagnosis]." This context will inform Q1 follow-up.
 
+If `.claude/verify-history.jsonl` exists, read it and compute per-skill Q summary:
+```bash
+python3 -c "
+import json
+entries = [json.loads(l) for l in open('.claude/verify-history.jsonl') if l.strip()]
+if not entries:
+    print('No Q-score data available.')
+else:
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for e in entries:
+        groups[e.get('skill','unknown')].append(e.get('q_skill', None))
+    print('Skill Quality Summary:')
+    for skill, qs in sorted(groups.items()):
+        qs = [q for q in qs if q is not None]
+        if qs:
+            print(f'  {skill}: {len(qs)} runs, avg Q={sum(qs)/len(qs):.2f}, min Q={min(qs):.2f}')
+" 2>/dev/null || echo "No Q-score history found."
+```
+Include the output in the summary presented to the user.
+
 Collect these data points and present a summary before asking questions:
 
 1. **Git activity**
@@ -75,6 +96,12 @@ Compile all data into a structured document with these sections:
 3. **Stack Used** — from experiment.yaml `stack`
 4. **Team Assessment** — answers to Q2-Q4
 5. **Template Improvement Suggestions** — specific, actionable changes mapped to template components (e.g., "Add X to the bootstrap skill", "Change Y in CLAUDE.md Rule Z")
+6. **Skill Quality Summary** — per-skill Q-score table from `.claude/verify-history.jsonl` (if available):
+
+   | Skill | Runs | Avg Q | Min Q | Top Rework Source |
+   |-------|------|-------|-------|-------------------|
+
+   If no Q-score data exists, note: "No Q-score data available — Q tracking requires running /verify after /bootstrap or /change."
 
 Show the full retro to the user before filing.
 

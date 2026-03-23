@@ -602,6 +602,72 @@ Write `.claude/spec-manifest.json` with the full research and hypothesis details
 
 If validation fails, fix the file and re-validate (max 2 attempts).
 
+### 7c.1: Q-score
+
+Run `make validate` and capture the exit code to compute the spec's Q-score:
+
+```bash
+make validate 2>&1; VALIDATE_EXIT=$?
+```
+
+Compute spec Q dimensions and append to verify-history.jsonl (see `.claude/patterns/q-score.md` for the Write Procedure):
+
+```bash
+VALIDATE_EXIT=$VALIDATE_EXIT python3 -c "
+import json, os, datetime
+
+manifest = json.load(open('.claude/spec-manifest.json'))
+level = manifest.get('level', 2)
+level_mins = {1: 2, 2: 4, 3: 5}
+min_required = level_mins.get(level, 4)
+
+hypotheses = manifest.get('hypotheses', [])
+behaviors = manifest.get('behaviors', [])
+pending = [h for h in hypotheses if h.get('status') == 'pending']
+
+validate_exit = int(os.environ.get('VALIDATE_EXIT', '0'))
+q_yaml = 1.0 if validate_exit == 0 else (0.5 if validate_exit == 2 else 0.0)
+q_hypothesis = round(min(len(pending) / max(min_required, 1), 1), 3)
+
+hyp_ids_with_behavior = set(b.get('hypothesis_id') for b in behaviors)
+pending_ids = set(h['id'] for h in pending)
+q_behavior = round(len(pending_ids & hyp_ids_with_behavior) / max(len(pending_ids), 1), 3)
+
+q_metric = round(sum(1 for h in hypotheses if h.get('metric', {}).get('formula') and h.get('metric', {}).get('threshold') is not None) / max(len(hypotheses), 1), 3)
+
+q_variant = 1.0  # validated by Step 7c spot-check; default 1.0 if no variants
+
+dims = {'yaml': q_yaml, 'hypothesis': q_hypothesis, 'behavior': q_behavior, 'metric': q_metric, 'variant': q_variant}
+gate = 1.0 if validate_exit in (0, 2) else 0.0
+active = list(dims.values())
+r = round(1 - sum(active) / max(len(active), 1), 3)
+q_skill = round(gate * (1 - r), 3)
+
+entry = {
+    'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'skill': 'spec', 'scope': 'spec', 'archetype': 'N/A',
+    'dimension_scores': dims, 'gate': gate, 'r_system': r, 'r_human': 0.0,
+    'q_skill': q_skill, 'overall_verdict': 'pass' if gate == 1.0 else 'fail',
+}
+
+backend = os.environ.get('SKILL_HISTORY_BACKEND', 'local')
+if backend == 'local':
+    os.makedirs('.claude', exist_ok=True)
+    with open('.claude/verify-history.jsonl', 'a') as f:
+        f.write(json.dumps(entry) + '\n')
+    print(f'Q-score: {q_skill} (Gate={gate}, R={r})')
+elif backend == 'api':
+    import urllib.request
+    endpoint = os.environ.get('SKILL_HISTORY_ENDPOINT', '')
+    if endpoint:
+        req = urllib.request.Request(endpoint, data=json.dumps(entry).encode(), headers={'Content-Type':'application/json'}, method='POST')
+        try: urllib.request.urlopen(req, timeout=5)
+        except:
+            with open('.claude/verify-history.jsonl', 'a') as f:
+                f.write(json.dumps(entry) + '\n')
+"
+```
+
 ### 7d: Summary
 Print a summary:
 
@@ -623,7 +689,7 @@ Next: Run /bootstrap to scaffold the app, or edit experiment/experiment.yaml to 
 - Add stack components not required by the selected level
 - Generate fewer than 3 variants or fewer pending hypotheses than the level minimum (L1: 2, L2: 4, L3: 5)
 - Produce hypotheses without a `metric` object containing `formula`, numeric `threshold`, and `operator`
-- Modify any file other than `experiment/experiment.yaml` and `.claude/spec-manifest.json`
+- Modify any file other than `experiment/experiment.yaml`, `.claude/spec-manifest.json`, and `.claude/verify-history.jsonl`
 - Skip the user approval checkpoint in Step 6
 - Proceed past any STOP point without explicit user confirmation
 - Add `monetize` category hypotheses at Level 1

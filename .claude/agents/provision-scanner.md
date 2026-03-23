@@ -102,3 +102,11 @@ Return a markdown table in this exact format:
 | P5. Stripe webhook | pass / FAIL / skip:not-configured / skip:no-cli / skip:auth-missing | <detail> |
 | P6. PostHog dashboard | pass / FAIL / skip:not-configured / skip:auth-missing | <detail> |
 | P7. External services | pass / FAIL / skip:not-configured / skip:no-cli / skip:auth-missing | <detail per service> |
+
+After the markdown table, also return a JSON summary as the last line of your output:
+
+```json
+{"total": 7, "pass": <count>, "fail": <count>, "skip": <count>}
+```
+
+This enables the calling skill to programmatically extract scan results for Q-score computation.
