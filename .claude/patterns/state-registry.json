@@ -29,5 +29,32 @@
     "13": "test -f .claude/gate-verdicts/bg2.json",
     "14": "true",
     "15": "test -f .claude/gate-verdicts/bg4.json"
+  },
+  "change": {
+    "0": "test -f package.json && test -f experiment/EVENTS.yaml",
+    "1": "git branch --show-current | grep -q 'change/'",
+    "2": "true",
+    "3": "true",
+    "4": "true",
+    "5": "true",
+    "6": "true",
+    "7": "test -f .claude/current-plan.md && grep -q 'checkpoint:' .claude/current-plan.md",
+    "8": "grep -q 'Process Checklist' .claude/current-plan.md",
+    "9": "true",
+    "10": "true",
+    "11": "test -f .claude/verify-report.md",
+    "12": "true"
+  },
+  "harden": {
+    "0": "test -f package.json",
+    "1": "true",
+    "2": "true",
+    "3": "test -f .claude/current-plan.md && grep -q 'skill: harden' .claude/current-plan.md",
+    "4": "git branch --show-current | grep -q 'chore/harden' && grep -q 'quality: production' experiment/experiment.yaml",
+    "5": "true",
+    "6": "true",
+    "7": "test -f experiment/on-touch.yaml",
+    "8": "test -f .claude/verify-report.md",
+    "9": "true"
   }
 }
