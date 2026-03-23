@@ -103,4 +103,15 @@ test -f .claude/security-merge.json
 
 > **Hook-enforced:** `phase-transition-gate.sh` validates STATE 4 postconditions before allowing observer to spawn.
 
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+python3 -c "
+import json
+f='.claude/verify-context.json'; d=json.load(open(f))
+cs=d.get('completed_states',[]);
+if 4 not in cs: cs.append(4)
+d['completed_states']=cs; json.dump(d,open(f,'w'))
+"
+```
+
 **NEXT:** Read [state-5-e2e-tests.md](state-5-e2e-tests.md) to continue.

@@ -31,4 +31,15 @@ If the Fix Log has entries:
 test -f .claude/patterns-saved.json
 ```
 
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+python3 -c "
+import json
+f='.claude/verify-context.json'; d=json.load(open(f))
+cs=d.get('completed_states',[]);
+if 8 not in cs: cs.append(8)
+d['completed_states']=cs; json.dump(d,open(f,'w'))
+"
+```
+
 **NEXT:** Done — return to calling skill.

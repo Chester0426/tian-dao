@@ -38,6 +38,13 @@ Spawn **one design-critic agent per page**, ALL as parallel foreground Agent cal
   > **Hook-enforced:** `phase-transition-gate.sh` validates that no shared paths appear between these markers. The hook will BLOCK the agent spawn if shared paths are detected.
 - Context digest summary
 - Instruction to write trace as `design-critic-<page_name>.json`
+- **Empty-boundary fast path**: If ALL files between `FILE_BOUNDARY_START` and `FILE_BOUNDARY_END`
+  are empty (no page-local files in PR), execute a **fast-path review**: check whether any modified
+  library files (`src/lib/**`) or shared components (`src/components/**`) from the full PR boundary
+  are imported by this page. If no imports found, output `{"verdict":"pass","fast_path":true,
+  "pages_reviewed":1,"min_score":10,"checks_performed":["import-chain-check"],"fixes_applied":0,
+  "sections_below_8":0,"unresolved_sections":0}`. If imports found, fall back to standard
+  screenshot + 8-criteria review for this page only.
 - Shared-component reporting instruction:
   > When you find issues in files outside your FILE_BOUNDARY (shared components in
   > `src/components/` or `src/lib/`), record them in your trace:
@@ -254,5 +261,16 @@ test -f .claude/design-ux-merge.json
 Build command exited 0 after last Phase 2 agent.
 
 > **Hook-enforced:** `phase-transition-gate.sh` validates STATE 3 postconditions before allowing security-fixer to spawn.
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+python3 -c "
+import json
+f='.claude/verify-context.json'; d=json.load(open(f))
+cs=d.get('completed_states',[]);
+if 3 not in cs: cs.append(3)
+d['completed_states']=cs; json.dump(d,open(f,'w'))
+"
+```
 
 **NEXT:** Read [state-4-security-merge-fix.md](state-4-security-merge-fix.md) to continue.

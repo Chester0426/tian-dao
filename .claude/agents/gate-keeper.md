@@ -166,6 +166,9 @@ Verify after Step 7 verification:
 4. If 2+ implementer agents (check git log): `consistency_scan` is NOT `skipped`
 5. If fix cycles ran (security-fixer or design-critic "fixed" in report): `auto_observe` is NOT `skipped-no-fixes`
 6. If `quality: production` in experiment.yaml AND spec-reviewer in `agents_completed`: read spec-reviewer verdict from `.claude/verify-report.md` or `.claude/agent-traces/spec-reviewer.json` — BLOCK if verdict is `FAIL`
+7. `.claude/e2e-result.json` exists — BLOCK if missing: "E2E tests (STATE 5) were not executed"
+8. `.claude/patterns-saved.json` exists — BLOCK if missing: "Save Patterns (STATE 8) was not executed"
+9. If `.claude/verify-context.json` has `completed_states` field: verify it contains all states [0,1,2,3,4,5,6,7,8]. If any state is missing, BLOCK: "States [missing] were skipped during verification."
 
 ### G6 PR Gate
 

@@ -35,6 +35,27 @@ except:
 read_scope() { read_verify_field "scope"; }
 read_archetype() { read_verify_field "archetype"; }
 
+# Check that all prerequisite states are in completed_states (Item 3: state tracking)
+check_completed_states() {
+  local REQUIRED_STATE="$1"
+  if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+    local MISSING
+    MISSING=$(python3 -c "
+import json
+d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
+cs = d.get('completed_states', [])
+if not cs:
+    print('NONE')  # Fail-open if field absent (backward compat)
+else:
+    missing = [s for s in range(0, $REQUIRED_STATE) if s not in cs]
+    print(','.join(map(str, missing)) if missing else 'NONE')
+" 2>/dev/null || echo "NONE")
+    if [[ "$MISSING" != "NONE" ]]; then
+      ERRORS+=("States [$MISSING] not in completed_states — prerequisite states were skipped")
+    fi
+  fi
+}
+
 check_trace_verdict() {
   local TRACE_FILE="$1"
   local CONTEXT="$2"
@@ -191,6 +212,8 @@ else:
 
 case "$SUBAGENT_TYPE" in
   design-critic|ux-journeyer)
+    # State tracking: require states 0-1 completed
+    check_completed_states 2
     # Postcondition check: STATE 0 artifacts must exist
     check_postcondition_artifacts 0
     # V6 fix: validate build passed (STATE 1 postcondition)
@@ -247,6 +270,8 @@ else:
     ;;
 
   security-fixer)
+    # State tracking: require states 0-3 completed
+    check_completed_states 4
     # Postcondition check: STATE 3 artifacts must exist
     check_postcondition_artifacts 3
     # Security-fixer gate: Phase 2 traces must exist
@@ -291,11 +316,23 @@ else:
     ;;
 
   observer)
+    # State tracking: require states 0-4 completed
+    check_completed_states 5
     # Postcondition check: STATE 4 artifacts must exist
     check_postcondition_artifacts 4
     # Observer gate: e2e-result.json must exist (STATE 5 completed)
     if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
       ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) must complete before observer")
+    fi
+    # Cross-validate: if stack.testing exists, e2e-result.json can't claim "no testing stack"
+    if [[ -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
+      HAS_TESTING=$(grep -c "testing:" "$PROJECT_DIR/experiment/experiment.yaml" 2>/dev/null || echo "0")
+      if [[ "$HAS_TESTING" -gt 0 ]]; then
+        E2E_REASON=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.claude/e2e-result.json')).get('reason',''))" 2>/dev/null || echo "")
+        if [[ "$E2E_REASON" == "no testing stack" ]]; then
+          ERRORS+=("e2e-result.json says 'no testing stack' but experiment.yaml has stack.testing — STATE 5 was not executed correctly")
+        fi
+      fi
     fi
     # V3 fix: require observer-diffs.txt when fix-log has entries
     FIX_COUNT=$(grep -c '^\*\*Fix' "$PROJECT_DIR/.claude/fix-log.md" 2>/dev/null || echo "0")
@@ -338,6 +375,8 @@ else: print('no')
     ;;
 
   pattern-classifier)
+    # State tracking: require states 0-6 completed
+    check_completed_states 7
     # STATE 8 agent: only needs verify-context.json
     if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
       if [[ ! -f "$PROJECT_DIR/.claude/fix-log.md" ]]; then

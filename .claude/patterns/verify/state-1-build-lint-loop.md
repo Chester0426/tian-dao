@@ -59,4 +59,15 @@ test -f .claude/build-result.json && python3 -c "import json; assert json.load(o
 
 > **Hook-enforced:** `phase-transition-gate.sh` validates `build-result.json` before allowing Phase 1 agents to spawn.
 
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+python3 -c "
+import json
+f='.claude/verify-context.json'; d=json.load(open(f))
+cs=d.get('completed_states',[]);
+if 1 not in cs: cs.append(1)
+d['completed_states']=cs; json.dump(d,open(f,'w'))
+"
+```
+
 **NEXT:** Read [state-2-phase1-parallel.md](state-2-phase1-parallel.md) to continue.
