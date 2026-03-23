@@ -67,13 +67,7 @@ ls .claude/agent-traces/*.json
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-python3 -c "
-import json
-f='.claude/verify-context.json'; d=json.load(open(f))
-cs=d.get('completed_states',[]);
-if 2 not in cs: cs.append(2)
-d['completed_states']=cs; json.dump(d,open(f,'w'))
-"
+bash .claude/scripts/advance-state.sh 2
 ```
 
 **NEXT:** Read [state-3-phase2-serial.md](state-3-phase2-serial.md) to continue.

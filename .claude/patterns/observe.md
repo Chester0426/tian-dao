@@ -9,6 +9,7 @@ This procedure is called:
 1. By verify.md's "Auto-Observe" section — after all fixes (build, visual, security) are complete
 2. By deploy.md Step 5e — after deployment fixes
 3. Manually — for ad-hoc fixes outside of skills
+4. By skill-epilogue.md — after code-writing skills that don't run /verify (e.g., /resolve)
 
 When called, you should already know which fix(es) to evaluate. Proceed
 directly to Trigger Evaluation below.

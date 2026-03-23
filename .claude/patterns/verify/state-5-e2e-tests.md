@@ -58,13 +58,7 @@ test -f .claude/e2e-result.json
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-python3 -c "
-import json
-f='.claude/verify-context.json'; d=json.load(open(f))
-cs=d.get('completed_states',[]);
-if 5 not in cs: cs.append(5)
-d['completed_states']=cs; json.dump(d,open(f,'w'))
-"
+bash .claude/scripts/advance-state.sh 5
 ```
 
 **NEXT:** Read [state-6-auto-observe.md](state-6-auto-observe.md) to continue.

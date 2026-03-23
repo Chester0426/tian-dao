@@ -34,6 +34,14 @@ fi
 
 # Check current-plan.md checkpoint — only enforce on final commit (phase2-step8)
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+
+# /resolve epilogue bypass: fix/ branches with observe-result.json skip G4/verify checks.
+# /resolve does not produce G4 verdicts or verify-report.md — its observation is handled
+# by skill-epilogue.md which writes observe-result.json.
+if [[ "$BRANCH" =~ ^fix/ ]] && [[ -f "$PROJECT_DIR/.claude/observe-result.json" ]]; then
+  exit 0
+fi
+
 PLAN="$PROJECT_DIR/.claude/current-plan.md"
 
 if [[ -f "$PLAN" ]]; then

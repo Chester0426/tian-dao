@@ -249,13 +249,7 @@ head -1 .claude/verify-report.md | grep -q '^---$' && tail -1 .claude/verify-his
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-python3 -c "
-import json
-f='.claude/verify-context.json'; d=json.load(open(f))
-cs=d.get('completed_states',[]);
-if 7 not in cs: cs.append(7)
-d['completed_states']=cs; json.dump(d,open(f,'w'))
-"
+bash .claude/scripts/advance-state.sh 7
 ```
 
 **NEXT:** Read [state-8-save-patterns.md](state-8-save-patterns.md) to continue.

@@ -1,0 +1,11 @@
+{
+  "0": "test -f .claude/verify-context.json && test -f .claude/fix-log.md && test -d .claude/agent-traces",
+  "1": "test -f .claude/build-result.json && python3 -c \"import json; assert json.load(open('.claude/build-result.json'))['exit_code'] == 0\"",
+  "2": "ls .claude/agent-traces/*.json >/dev/null 2>&1",
+  "3": "true",
+  "4": "test -f .claude/security-merge.json",
+  "5": "test -f .claude/e2e-result.json",
+  "6": "true",
+  "7": "test -f .claude/verify-report.md && test -f .claude/verify-history.jsonl",
+  "8": "test -f .claude/patterns-saved.json"
+}

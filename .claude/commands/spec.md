@@ -668,6 +668,30 @@ elif backend == 'api':
 "
 ```
 
+### 7c.2: Observation check
+
+If `make validate` required fixes (did not pass on first attempt in Step 7c):
+
+1. Collect the list of validation errors that were fixed
+2. Evaluate each against `.claude/patterns/observe.md` Path 2 criteria:
+   - Is the root cause in a template file? (spec skill prompt, Makefile validator, etc.)
+   - Not an environment issue?
+   - Not a user-specific experiment.yaml issue?
+3. If any qualify → follow observe.md's Redaction, Dedup, and Issue Creation
+   procedures (best-effort, never block)
+4. Write `.claude/observe-result.json`:
+   ```json
+   {
+     "skill": "spec",
+     "timestamp": "<ISO 8601>",
+     "friction_detected": true,
+     "observations_filed": <N>,
+     "verdict": "filed" | "no-template-issues"
+   }
+   ```
+
+If `make validate` passed on first attempt → skip this step.
+
 ### 7d: Summary
 Print a summary:
 

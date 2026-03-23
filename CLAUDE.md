@@ -133,7 +133,9 @@ Follow the database patterns defined in your active database stack file (`.claud
 
 ## Rule 12: Template Observations
 Template-rooted issues are detected and filed automatically during the
-verification procedure (verify.md § Auto-Observe). No manual note-taking
-is required. When fixing bugs outside of a skill context (ad-hoc requests),
-evaluate whether the root cause is in a template file and follow
-`.claude/patterns/observe.md` if so.
+verification procedure (verify.md § Auto-Observe) and the skill epilogue
+(`.claude/patterns/skill-epilogue.md` — for code-writing skills that don't
+run /verify, such as /resolve). No manual note-taking is required. When
+fixing bugs outside of a skill context (ad-hoc requests), evaluate whether
+the root cause is in a template file and follow `.claude/patterns/observe.md`
+if so.

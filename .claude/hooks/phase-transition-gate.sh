@@ -321,30 +321,42 @@ else:
     ;;
 
   observer)
-    # State tracking: require states 0-4 completed
-    check_completed_states 5
-    # Postcondition check: STATE 4 artifacts must exist
-    check_postcondition_artifacts 4
-    # Observer gate: e2e-result.json must exist (STATE 5 completed)
-    if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
-      ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) must complete before observer")
-    fi
-    # Cross-validate: if stack.testing exists, e2e-result.json can't claim "no testing stack"
-    if [[ -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
-      HAS_TESTING=$(grep -c "testing:" "$PROJECT_DIR/experiment/experiment.yaml" 2>/dev/null || echo "0")
-      if [[ "$HAS_TESTING" -gt 0 ]]; then
-        E2E_REASON=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.claude/e2e-result.json')).get('reason',''))" 2>/dev/null || echo "")
-        if [[ "$E2E_REASON" == "no testing stack" ]]; then
-          ERRORS+=("e2e-result.json says 'no testing stack' but experiment.yaml has stack.testing — STATE 5 was not executed correctly")
+    # Epilogue path: relaxed requirements for skill-epilogue.md observers
+    if [[ -f "$PROJECT_DIR/.claude/epilogue-context.json" ]] && \
+       [[ ! -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+      # Only check observer-diffs.txt when fix-log has entries
+      FIX_COUNT=$(grep -c '^\*\*Fix' "$PROJECT_DIR/.claude/fix-log.md" 2>/dev/null || echo "0")
+      if [ "$FIX_COUNT" -gt 0 ] && [ ! -s "$PROJECT_DIR/.claude/observer-diffs.txt" ]; then
+        ERRORS+=("observer-diffs.txt missing or empty — collect diffs before spawning observer (epilogue path)")
+      fi
+      # No efficiency directives or state tracking required for epilogue path
+    else
+      # Verify path: full prerequisites required
+      # State tracking: require states 0-4 completed
+      check_completed_states 5
+      # Postcondition check: STATE 4 artifacts must exist
+      check_postcondition_artifacts 4
+      # Observer gate: e2e-result.json must exist (STATE 5 completed)
+      if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
+        ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) must complete before observer")
+      fi
+      # Cross-validate: if stack.testing exists, e2e-result.json can't claim "no testing stack"
+      if [[ -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
+        HAS_TESTING=$(grep -c "testing:" "$PROJECT_DIR/experiment/experiment.yaml" 2>/dev/null || echo "0")
+        if [[ "$HAS_TESTING" -gt 0 ]]; then
+          E2E_REASON=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.claude/e2e-result.json')).get('reason',''))" 2>/dev/null || echo "")
+          if [[ "$E2E_REASON" == "no testing stack" ]]; then
+            ERRORS+=("e2e-result.json says 'no testing stack' but experiment.yaml has stack.testing — STATE 5 was not executed correctly")
+          fi
         fi
       fi
+      # V3 fix: require observer-diffs.txt when fix-log has entries
+      FIX_COUNT=$(grep -c '^\*\*Fix' "$PROJECT_DIR/.claude/fix-log.md" 2>/dev/null || echo "0")
+      if [ "$FIX_COUNT" -gt 0 ] && [ ! -s "$PROJECT_DIR/.claude/observer-diffs.txt" ]; then
+        ERRORS+=("observer-diffs.txt missing or empty — run diff collection script before spawning observer")
+      fi
+      check_efficiency_directives
     fi
-    # V3 fix: require observer-diffs.txt when fix-log has entries
-    FIX_COUNT=$(grep -c '^\*\*Fix' "$PROJECT_DIR/.claude/fix-log.md" 2>/dev/null || echo "0")
-    if [ "$FIX_COUNT" -gt 0 ] && [ ! -s "$PROJECT_DIR/.claude/observer-diffs.txt" ]; then
-      ERRORS+=("observer-diffs.txt missing or empty — run diff collection script before spawning observer")
-    fi
-    check_efficiency_directives
     ;;
 
   # V6 fix: Phase 1 agents — validate STATE 0 + build result before spawning

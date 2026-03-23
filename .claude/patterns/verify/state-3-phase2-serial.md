@@ -264,13 +264,7 @@ Build command exited 0 after last Phase 2 agent.
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-python3 -c "
-import json
-f='.claude/verify-context.json'; d=json.load(open(f))
-cs=d.get('completed_states',[]);
-if 3 not in cs: cs.append(3)
-d['completed_states']=cs; json.dump(d,open(f,'w'))
-"
+bash .claude/scripts/advance-state.sh 3
 ```
 
 **NEXT:** Read [state-4-security-merge-fix.md](state-4-security-merge-fix.md) to continue.

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# observe-commit-gate.sh — Claude Code PreToolUse hook for Bash commands.
+# Blocks final /resolve commit unless observation epilogue has been performed.
+# Skills that run /verify (bootstrap, change, harden, distribute) are exempt —
+# verify-report.md proves STATE 6 auto-observe ran.
+
+set -euo pipefail
+
+# Read the hook payload from stdin
+PAYLOAD=$(cat)
+
+# Extract the command from tool_input.command
+COMMAND=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+
+# If the command doesn't contain `git commit`, allow it
+if [[ "$COMMAND" != *"git commit"* ]]; then
+  exit 0
+fi
+
+# Only enforce on fix/ branches (/resolve uses fix/ prefix)
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [[ ! "$BRANCH" =~ ^fix/ ]]; then
+  exit 0
+fi
+
+# Allow WIP commits (only enforce on final commits containing "Fix #")
+if [[ "$COMMAND" != *"Fix #"* ]] && [[ "$COMMAND" != *"Fix \#"* ]]; then
+  exit 0
+fi
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+
+# If verify-report.md exists, verify's STATE 6 handled observation — allow
+if [[ -f "$PROJECT_DIR/.claude/verify-report.md" ]]; then
+  exit 0
+fi
+
+# If observe-result.json exists, the skill epilogue ran — allow
+if [[ -f "$PROJECT_DIR/.claude/observe-result.json" ]]; then
+  exit 0
+fi
+
+# No observation evidence found — deny
+cat <<EOF
+{"permissionDecision": "deny", "message": "Observation not performed. Run the skill epilogue (.claude/patterns/skill-epilogue.md) before the final commit. This ensures template-level issues are detected and filed."}
+EOF
+exit 0

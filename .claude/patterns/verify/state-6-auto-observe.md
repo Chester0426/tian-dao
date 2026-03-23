@@ -45,13 +45,7 @@ print(f'Collected diffs for {len(diffs)} files -> .claude/observer-diffs.txt')
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-python3 -c "
-import json
-f='.claude/verify-context.json'; d=json.load(open(f))
-cs=d.get('completed_states',[]);
-if 6 not in cs: cs.append(6)
-d['completed_states']=cs; json.dump(d,open(f,'w'))
-"
+bash .claude/scripts/advance-state.sh 6
 ```
 
 **NEXT:** Read [state-7-write-report.md](state-7-write-report.md) to continue.

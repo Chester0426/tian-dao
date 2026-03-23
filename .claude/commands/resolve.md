@@ -10,6 +10,7 @@ references:
   - .claude/patterns/verify.md
   - .claude/patterns/branch.md
   - .claude/patterns/observe.md
+  - .claude/patterns/skill-epilogue.md
   - .claude/patterns/solve-reasoning.md
 branch_prefix: fix
 modifies_specs: false
@@ -322,6 +323,9 @@ If resolving multiple issues: use the lowest issue number and a general slug
 For each issue in severity order (HIGH first):
 
 1. Implement the fix per the approved fix plan from Step 5
+1b. After each fix, log it in `.claude/fix-log.md` (create with header `# Error Fix Log` if absent):
+    `**Fix N** — <file>: <one-line description of what was fixed and why>`
+    This enables the skill epilogue's observation detection in Step 11.
 2. If a validator check was proposed: implement it in the target script
 2b. If the bug involves a configuration not covered by existing test
     fixtures (identified in Step 5b or by checking `tests/fixtures/`):
@@ -422,6 +426,13 @@ For each resolved issue, evaluate:
    Do NOT edit stack/pattern files inline — that's scope creep.
 
 Skip if: trivial fix (typo) unlikely to recur.
+
+### Step 11: Skill epilogue
+
+Follow `.claude/patterns/skill-epilogue.md` to evaluate template observation.
+This runs the observer agent if fixes were logged in `.claude/fix-log.md`,
+or records "clean" if not. The epilogue must complete before the final commit
+(`observe-commit-gate.sh` enforces this).
 
 ## Do NOT
 
