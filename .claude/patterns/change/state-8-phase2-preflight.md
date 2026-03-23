@@ -1,0 +1,71 @@
+# STATE 8: PHASE2_PREFLIGHT
+
+**PRECONDITIONS:**
+- User approved the plan (STATE 7 POSTCONDITIONS met)
+- `.claude/current-plan.md` exists with YAML frontmatter
+
+**ACTIONS:**
+
+> This step creates a data dependency: writing the checklist requires reading
+> the procedure files. Runs once per plan — idempotent.
+
+Before proceeding to Step 5, execute the process gate:
+
+1. **Read the procedure file for the classified type:**
+   | Type | File to Read |
+   |------|-------------|
+   | Feature | `.claude/procedures/change-feature.md` |
+   | Upgrade | `.claude/procedures/change-upgrade.md` |
+   | Fix | `.claude/procedures/change-fix.md` |
+   | Test | `.claude/procedures/change-test.md` |
+   | Polish | (none — constraints are inline in Step 6) |
+   | Analytics | (none — constraints are inline in Step 6) |
+
+2. **If `quality: production`:** also read `.claude/patterns/tdd.md`.
+
+3. **Always read** `.claude/patterns/verify.md` — extract the scope table and agent list for the verification scope from Step 3.
+
+4. **Append a `## Process Checklist` section** to `.claude/current-plan.md`:
+
+   ```markdown
+   ## Process Checklist
+   - Implementation mode: [MVP direct | Production TDD]
+   - Procedure file: [filename | inline (Polish/Analytics)]
+   - Verification scope: [scope]
+   - [ ] Spawn agents: [enumerate each agent from verify.md scope table for this scope+archetype]
+   - [ ] Auto-Observe (after fix cycles — verify.md § Auto-Observe)
+   - [ ] Write .claude/verify-report.md (verify.md § Write Verification Report)
+   - [ ] Save planning patterns to auto memory (change.md Step 8)
+   - Type-specific constraints:
+     - [3-5 key rules extracted from the procedure file]
+   ```
+
+   If `quality: production`, add to the constraints list:
+   - Feature/Upgrade: `- Implementer agents required — do NOT implement directly`
+   - Feature/Upgrade: `- TDD cycle: RED (failing test) before GREEN (implementation)`
+   - Fix: `- Regression test must FAIL on current code before writing fix`
+
+5. **Update checkpoint** in `.claude/current-plan.md` frontmatter to `phase2-step5`.
+
+> **Skip condition:** If `.claude/current-plan.md` already contains `## Process Checklist`, skip to Step 5.
+
+- **G3 Spec Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G3 Spec Gate for type [classification]. Verify: current-plan.md has `## Process Checklist`, checkpoint is at phase2-step6 or later. For Feature: experiment.yaml behaviors updated. For Upgrade: .env.example updated if needed. For Production quality: stack.testing present." If gate-keeper returns BLOCK, fix blocking items.
+
+**POSTCONDITIONS:**
+- Procedure file read (if applicable for type)
+- `verify.md` read — scope table and agent list extracted
+- `## Process Checklist` appended to `.claude/current-plan.md`
+- Checkpoint updated to `phase2-step5`
+- G3 Spec Gate passed
+
+**VERIFY:**
+```bash
+grep -q '## Process Checklist' .claude/current-plan.md && echo "OK" || echo "FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh change 8
+```
+
+**NEXT:** Read [state-9-update-specs.md](state-9-update-specs.md) to continue.
