@@ -247,4 +247,15 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
 head -1 .claude/verify-report.md | grep -q '^---$' && tail -1 .claude/verify-history.jsonl | python3 -c "import json,sys;json.loads(sys.stdin.read());print('ok')"
 ```
 
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+python3 -c "
+import json
+f='.claude/verify-context.json'; d=json.load(open(f))
+cs=d.get('completed_states',[]);
+if 7 not in cs: cs.append(7)
+d['completed_states']=cs; json.dump(d,open(f,'w'))
+"
+```
+
 **NEXT:** Read [state-8-save-patterns.md](state-8-save-patterns.md) to continue.

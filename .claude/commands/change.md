@@ -60,9 +60,16 @@ Determine solve-reasoning depth using the preliminary classification from Step 2
 solve_depth = "light"  # default
 if preliminary_type in [Feature, Upgrade] AND affected_areas >= 3:
     solve_depth = "full"
+if $ARGUMENTS contains "--light":
+    solve_depth = "light"  # user override
+if $ARGUMENTS contains "--full":
+    solve_depth = "full"   # user override
 ```
 
-State the depth selection with rationale.
+State the depth selection with rationale. If the formula selects "full" but the affected
+areas appear independent (no shared state, no shared imports), suggest to the user:
+"3+ affected areas trigger full mode, but these areas look independent. Re-run with
+`--light` if you want to skip deep analysis."
 
 ### Light mode path
 
@@ -177,6 +184,13 @@ to the approval prompt:
 > **Questions from deep analysis:**
 > [Phase 3 User Injection questions — specific gaps from research]
 > [Phase 5 TYPE C concerns — assumptions only the user can validate]
+
+**Plan display requirement**: Display the plan body (all sections from the type-specific
+template — "What I'll Add" / "Bug Diagnosis" / "Planned Changes" / etc. through "Questions")
+in your response text ABOVE the STOP prompt below. The user must be able to read the full
+plan without requesting it separately. Do NOT include the YAML frontmatter (that is for
+machine consumption only). If the plan exceeds 100 lines, include a summary table of
+contents at the top.
 
 ### STOP. End your response here. Say:
 > Plan ready. How would you like to proceed?

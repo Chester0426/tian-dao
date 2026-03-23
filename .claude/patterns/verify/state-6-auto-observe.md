@@ -43,4 +43,15 @@ print(f'Collected diffs for {len(diffs)} files -> .claude/observer-diffs.txt')
 
 **VERIFY:** If fix-log.md has entries beyond header, `observer.json` trace exists.
 
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+python3 -c "
+import json
+f='.claude/verify-context.json'; d=json.load(open(f))
+cs=d.get('completed_states',[]);
+if 6 not in cs: cs.append(6)
+d['completed_states']=cs; json.dump(d,open(f,'w'))
+"
+```
+
 **NEXT:** Read [state-7-write-report.md](state-7-write-report.md) to continue.

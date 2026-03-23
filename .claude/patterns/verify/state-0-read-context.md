@@ -40,7 +40,7 @@
 5. Write `.claude/verify-context.json` (includes `skill` for Q-score attribution, `run_id` for trace freshness validation, and `baseline_available` for delta reporting):
    ```bash
    cat > .claude/verify-context.json << CTXEOF
-   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","skill":"<skill from step 3>","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","baseline_available":$BASELINE_AVAILABLE}
+   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","skill":"<skill from step 3>","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","baseline_available":$BASELINE_AVAILABLE,"completed_states":[0]}
    CTXEOF
    ```
 
