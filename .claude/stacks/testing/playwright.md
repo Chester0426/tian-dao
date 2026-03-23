@@ -72,6 +72,7 @@ function getSupabaseConfig() {
 }
 
 const supabase = getSupabaseConfig();
+const port = process.env.E2E_PORT || "3099";
 
 // Make keys available to global-setup/teardown (run in Playwright main process, not webServer)
 process.env.NEXT_PUBLIC_SUPABASE_URL = supabase.url;
@@ -88,7 +89,7 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
+    baseURL: process.env.E2E_BASE_URL || `http://localhost:${port}`,
     trace: "on-first-retry",
   },
   projects: [
@@ -96,8 +97,8 @@ export default defineConfig({
     { name: "Mobile Chrome", use: { ...devices["Pixel 5"] } },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: `PORT=${port} npm run dev`,
+    url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_SUPABASE_URL: supabase.url,
@@ -402,12 +403,13 @@ Notes:
 
 ## Environment Variables
 ```
-E2E_BASE_URL=http://localhost:3000  # Optional, defaults to localhost:3000
+E2E_PORT=3099         # Optional, defaults to 3099. Avoids conflicts with other services on port 3000.
+E2E_BASE_URL=http://localhost:3099  # Optional, defaults to localhost:${E2E_PORT}
 ```
 
 Full-Auth path reads local Supabase keys dynamically from `supabase status -o json` in `playwright.config.ts` — no manual env vars needed for database or auth.
 
-**When using the No-Auth Fallback:** same as above — only the optional base URL applies.
+**When using the No-Auth Fallback:** same as above — only the optional port and base URL apply.
 
 ## .gitignore Additions
 ```
@@ -480,6 +482,8 @@ loadEnvConfig(process.cwd());
 
 import { defineConfig, devices } from "@playwright/test";
 
+const port = process.env.E2E_PORT || "3099";
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -488,7 +492,7 @@ export default defineConfig({
   workers: 1,
   reporter: "html",
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
+    baseURL: process.env.E2E_BASE_URL || `http://localhost:${port}`,
     trace: "on-first-retry",
   },
   projects: [
@@ -496,8 +500,8 @@ export default defineConfig({
     { name: "Mobile Chrome", use: { ...devices["Pixel 5"] } },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: `PORT=${port} npm run dev`,
+    url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
   },
 });

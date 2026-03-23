@@ -35,6 +35,7 @@ npm install @supabase/supabase-js @supabase/ssr pg
 import { createBrowserClient } from "@supabase/ssr";
 
 function createDemoClient() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chainable = (terminal: unknown): any =>
     new Proxy(() => terminal, {
       get: (_, prop) => (prop === "then" ? undefined : chainable(terminal)),
@@ -97,6 +98,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 function createDemoClient() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chainable = (terminal: unknown): any =>
     new Proxy(() => terminal, {
       get: (_, prop) => (prop === "then" ? undefined : chainable(terminal)),
