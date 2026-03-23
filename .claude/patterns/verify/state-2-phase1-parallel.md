@@ -67,7 +67,7 @@ ls .claude/agent-traces/*.json
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 2
+bash .claude/scripts/advance-state.sh verify 2
 ```
 
 **NEXT:** Read [state-3-phase2-serial.md](state-3-phase2-serial.md) to continue.

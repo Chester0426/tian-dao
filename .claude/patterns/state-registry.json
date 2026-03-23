@@ -1,0 +1,33 @@
+{
+  "verify": {
+    "0": "test -f .claude/verify-context.json && test -f .claude/fix-log.md && test -d .claude/agent-traces",
+    "1": "test -f .claude/build-result.json && python3 -c \"import json; assert json.load(open('.claude/build-result.json'))['exit_code'] == 0\"",
+    "2": "ls .claude/agent-traces/*.json >/dev/null 2>&1",
+    "3": "true",
+    "4": "test -f .claude/security-merge.json",
+    "5": "test -f .claude/e2e-result.json",
+    "6": "true",
+    "7": "test -f .claude/verify-report.md && test -f .claude/verify-history.jsonl",
+    "8": "test -f .claude/patterns-saved.json"
+  },
+  "bootstrap": {
+    "0": "git branch --show-current | grep -q 'feat/bootstrap'",
+    "1": "test -f experiment/experiment.yaml && test -f experiment/EVENTS.yaml",
+    "2": "true",
+    "3": "true",
+    "3a": "test -f .claude/gate-verdicts/bg1.json",
+    "3b": "true",
+    "4": "true",
+    "5": "true",
+    "6": "true",
+    "7": "test -f .claude/current-plan.md && grep -q 'Process Checklist' .claude/current-plan.md",
+    "8": "true",
+    "9": "test -f package.json && test -d node_modules",
+    "10": "test -f .claude/current-visual-brief.md",
+    "11": "ls src/lib/*.ts >/dev/null 2>&1",
+    "12": "test -f .claude/gate-verdicts/bg2.5.json",
+    "13": "test -f .claude/gate-verdicts/bg2.json",
+    "14": "true",
+    "15": "test -f .claude/gate-verdicts/bg4.json"
+  }
+}

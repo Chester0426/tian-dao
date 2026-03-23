@@ -45,6 +45,36 @@ fi
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
 
+# Defense-in-depth: check completed_states in bootstrap-context.json
+# scaffold-setup requires states 0-7; scaffold-init requires 0-9; pages/landing require 0-10; wire requires 0-13
+BOOTSTRAP_CTX="$PROJECT_DIR/.claude/bootstrap-context.json"
+if [[ -f "$BOOTSTRAP_CTX" && "$SUBAGENT_TYPE" == scaffold-* ]]; then
+  REQUIRED_STATES=""
+  case "$SUBAGENT_TYPE" in
+    scaffold-setup) REQUIRED_STATES="0,1,2,3,3a,3b,4,5,6,7,8" ;;
+    scaffold-init) REQUIRED_STATES="0,1,2,3,3a,3b,4,5,6,7,8,9" ;;
+    scaffold-libs|scaffold-externals) REQUIRED_STATES="0,1,2,3,3a,3b,4,5,6,7,8,9,10" ;;
+    scaffold-pages|scaffold-landing) REQUIRED_STATES="0,1,2,3,3a,3b,4,5,6,7,8,9,10,11" ;;
+    scaffold-wire) REQUIRED_STATES="0,1,2,3,3a,3b,4,5,6,7,8,9,10,11,12,13" ;;
+  esac
+  if [[ -n "$REQUIRED_STATES" ]]; then
+    STATE_CHECK=$(python3 -c "
+import json
+d = json.load(open('$BOOTSTRAP_CTX'))
+cs = [str(s) for s in d.get('completed_states', [])]
+required = '$REQUIRED_STATES'.split(',')
+missing = [s for s in required if s not in cs]
+print(','.join(missing) if missing else 'NONE')
+" 2>/dev/null || echo "NONE")
+    if [[ "$STATE_CHECK" != "NONE" ]]; then
+      cat <<EOF
+{"permissionDecision": "deny", "message": "Agent '$SUBAGENT_TYPE' blocked: bootstrap states [$STATE_CHECK] not complete. Complete earlier states before spawning this agent."}
+EOF
+      exit 0
+    fi
+  fi
+fi
+
 if [[ "$SUBAGENT_TYPE" == scaffold-* ]]; then
   # Check BG1 verdict file
   if [[ ! -f "$VERDICTS_DIR/bg1.json" ]]; then

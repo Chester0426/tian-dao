@@ -264,7 +264,7 @@ Build command exited 0 after last Phase 2 agent.
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash
-bash .claude/scripts/advance-state.sh 3
+bash .claude/scripts/advance-state.sh verify 3
 ```
 
 **NEXT:** Read [state-4-security-merge-fix.md](state-4-security-merge-fix.md) to continue.

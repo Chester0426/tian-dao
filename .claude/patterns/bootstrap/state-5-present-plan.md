@@ -1,0 +1,115 @@
+# STATE 5: PRESENT_PLAN
+
+**PRECONDITIONS:**
+- Preconditions checked, fresh start path (STATE 4 POSTCONDITIONS met, not resuming)
+
+**ACTIONS:**
+
+Present the plan in plain language the user can verify:
+
+```
+## What I'll Build
+
+**[If web-app] Pages:**
+- Landing Page (/) — [purpose from experiment.yaml]
+- [Page Name] (/route) — [purpose from experiment.yaml]
+- ...
+
+**[If service] Endpoints:**
+- [Endpoint Name] (/api/route) — [purpose from experiment.yaml]
+- ...
+
+**[If cli] Commands:**
+- [Command Name] — [purpose from experiment.yaml]
+- ...
+
+**Behaviors:**
+- [b-NN: behavior description] -> built in [file(s)]
+- [b-NN: behavior description] -> built in [file(s)]
+- ...
+
+**Variants (if experiment.yaml has `variants` AND archetype is web-app):**
+- [slug] — "[headline]" -> /v/[slug]
+- [slug] — "[headline]" -> /v/[slug]
+- Root `/` renders: [first variant slug]
+
+**Database Tables (if any):**
+- [table name] — stores [what]
+- ...
+
+**External Dependencies (decided in STATE 12):**
+- [service] — [credentials needed] — **core** — must integrate (credentials at bootstrap or /deploy)
+- [service] — [credentials needed] — **non-core** — Fake Door (default) / Skip / Full Integration
+- ...
+- (Or: "None — all features use stack-managed services")
+
+Core = removing it prevents users from validating the thesis.
+
+**Analytics Events:**
+- [For each event in experiment/EVENTS.yaml events map (filtered by requires/archetypes), show: event_name on Page Name]
+
+**[If web-app] Golden Path (from experiment.yaml):**
+| Step | Page | Event |
+|------|------|-------|
+| 1. [step] | [page] | [event] |
+Target: [target_clicks] clicks
+
+If experiment.yaml has no `golden_path` field: derive one from behaviors + experiment/EVENTS.yaml events map,
+present it in the plan, and write it back to experiment.yaml after approval (STATE 7).
+
+**[If service] API Flow (from experiment.yaml `endpoints`):**
+| Step | Endpoint | Method | Event |
+|------|----------|--------|-------|
+| 1. [step] | [endpoint] | [method] | [event] |
+
+**[If cli] Command Flow (from experiment.yaml `commands`):**
+| Step | Command | Event |
+|------|---------|-------|
+| 1. [step] | [command] | [event] |
+
+**System/Cron Behaviors (from experiment.yaml):**
+| Behavior | Actor | Trigger | Then |
+|----------|-------|---------|------|
+| [b-NN] | [actor] | [trigger] | [then] |
+
+If no behaviors have `actor: system` or `actor: cron`: "None defined — all behaviors are user-initiated."
+
+**Activation mapping:**
+- experiment.yaml thesis: [thesis]
+- activate event action value: "[concrete_action]" (e.g., "created_invoice") — or "N/A — all behaviors are descriptive, activate will be omitted" if no behavior involves an interactive user action
+
+**Tests (if stack.testing present):**
+- Test runner: [testing stack value]
+- [If web-app] Template path: Full templates (all assumes met) | No-Auth Fallback (assumes unmet: [list])
+- [If web-app] Smoke tests for: [list each page name]
+- [If web-app] Funnel test: landing -> [activate action] -> login -> [core value pages]
+- [If service] Endpoint smoke tests for: /api/health, [list each endpoint]
+- [If cli] Command smoke tests for: --version, --help, [list each command] --help
+
+**Technical Decisions:**
+- Data model: [for each table — key columns, relationships, RLS approach]
+- API patterns: [REST conventions, error shape, pagination approach if applicable]
+- Auth flow: [if stack.auth present — signup -> verify -> session approach]
+- State management: [client-side approach — server components vs client state]
+- (Or: "Standard defaults — no notable architectural decisions for this MVP")
+
+**Questions:**
+- [any ambiguities — or "None"]
+```
+
+**POSTCONDITIONS:**
+- Plan displayed to user with all required sections
+
+**VERIFY:**
+```bash
+# Plan output contains all required sections: Pages/Endpoints/Commands (per archetype),
+# Behaviors, Analytics Events, Golden Path/API Flow/Command Flow (per archetype), Technical Decisions
+echo "Plan presented to user"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh bootstrap 5
+```
+
+**NEXT:** Read [state-6-user-approval.md](state-6-user-approval.md) to continue.

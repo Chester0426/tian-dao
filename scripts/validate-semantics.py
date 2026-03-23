@@ -69,6 +69,26 @@ import yaml
 ERRORS: list[str] = []
 
 
+def read_skill_with_states(skill_path: str) -> str:
+    """Read a skill file and append content from its state files if they exist.
+
+    When skills are decomposed into state files (e.g., .claude/patterns/bootstrap/state-*.md),
+    the semantic checks need to search both the orchestrator and the state files.
+    """
+    content = ""
+    if os.path.isfile(skill_path):
+        with open(skill_path) as f:
+            content = f.read()
+    # Derive skill name from path: .claude/commands/<skill>.md -> <skill>
+    skill_name = os.path.splitext(os.path.basename(skill_path))[0]
+    state_dir = f".claude/patterns/{skill_name}"
+    if os.path.isdir(state_dir):
+        for state_file in sorted(glob.glob(f"{state_dir}/state-*.md")):
+            with open(state_file) as f:
+                content += "\n" + f.read()
+    return content
+
+
 def error(msg: str) -> None:
     ERRORS.append(msg)
     print(f"FAIL: {msg}", file=sys.stderr)
@@ -2104,8 +2124,7 @@ def main() -> int:
 
     bootstrap_path_22 = ".claude/commands/bootstrap.md"
     if os.path.isfile(bootstrap_path_22):
-        with open(bootstrap_path_22) as f:
-            bootstrap_content_22 = f.read()
+        bootstrap_content_22 = read_skill_with_states(bootstrap_path_22)
 
         # Find the Phase 1 Step 3 validation section (narrative or state machine format)
         validate_section_match = re.search(
@@ -2115,7 +2134,7 @@ def main() -> int:
         )
         if not validate_section_match:
             validate_section_match = re.search(
-                r"(?i)##\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n##\s*STATE|\Z)",
+                r"(?i)#{1,2}\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n#{1,2}\s*STATE|\n#\s*STATE|\Z)",
                 bootstrap_content_22,
                 re.DOTALL,
             )
@@ -2826,8 +2845,7 @@ def main() -> int:
 
     bootstrap_path_44 = ".claude/commands/bootstrap.md"
     if os.path.isfile(bootstrap_path_44):
-        with open(bootstrap_path_44) as f:
-            bootstrap_content_44 = f.read()
+        bootstrap_content_44 = read_skill_with_states(bootstrap_path_44)
 
         # Find the "Validate experiment.yaml" section (Step 3 or STATE 3)
         validate_section_match = re.search(
@@ -2837,7 +2855,7 @@ def main() -> int:
         )
         if not validate_section_match:
             validate_section_match = re.search(
-                r"(?i)##\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n##\s*STATE|\Z)",
+                r"(?i)#{1,2}\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n#{1,2}\s*STATE|\n#\s*STATE|\Z)",
                 bootstrap_content_44,
                 re.DOTALL,
             )
@@ -2945,8 +2963,7 @@ def main() -> int:
 
     bootstrap_path_49 = ".claude/commands/bootstrap.md"
     if os.path.isfile(bootstrap_path_49):
-        with open(bootstrap_path_49) as f:
-            bs_content_49 = f.read()
+        bs_content_49 = read_skill_with_states(bootstrap_path_49)
         bs_prose_49 = extract_prose(bs_content_49)
         has_email_auth = bool(re.search(
             r"(?i)email.*auth.*present|email\s+requires.*auth", bs_prose_49
@@ -3101,10 +3118,8 @@ def main() -> int:
     bootstrap_path_59 = ".claude/commands/bootstrap.md"
     change_path_59 = ".claude/commands/change.md"
     if os.path.isfile(bootstrap_path_59) and os.path.isfile(change_path_59):
-        with open(bootstrap_path_59) as f:
-            bs_content_59 = f.read()
-        with open(change_path_59) as f:
-            ch_content_59 = f.read()
+        bs_content_59 = read_skill_with_states(bootstrap_path_59)
+        ch_content_59 = read_skill_with_states(change_path_59)
         for e in check_59_framework_archetype_compatibility(bs_content_59, ch_content_59):
             error(e)
 
