@@ -83,7 +83,19 @@ def read_skill_with_states(skill_path: str) -> str:
     skill_name = os.path.splitext(os.path.basename(skill_path))[0]
     state_dir = f".claude/patterns/{skill_name}"
     if os.path.isdir(state_dir):
-        for state_file in sorted(glob.glob(f"{state_dir}/state-*.md")):
+        # Sort numerically by state number (state-0, state-1, ..., state-10, state-11)
+        # not alphabetically (which would put state-10 before state-2)
+        state_files = glob.glob(f"{state_dir}/state-*.md")
+        def state_sort_key(path: str) -> tuple:
+            name = os.path.basename(path)
+            # Extract the state ID between "state-" and the next "-"
+            parts = name.replace("state-", "", 1).split("-", 1)
+            state_id = parts[0]
+            try:
+                return (0, int(state_id), name)
+            except ValueError:
+                return (1, 0, name)  # Non-numeric (3a, 3b) sort after numeric
+        for state_file in sorted(state_files, key=state_sort_key):
             with open(state_file) as f:
                 content += "\n" + f.read()
     return content
@@ -653,7 +665,7 @@ def check_18_change_payment_database(change_content: str, change_path: str) -> l
     )
     # Also search preconditions section (payment validation may be there)
     preconditions_match = re.search(
-        r"(?i)## Step \d+:.*?preconditions\s*\n(.*?)(?=\n## Step \d|\n## Phase|\Z)",
+        r"(?i)(?:## Step \d+:.*?preconditions|# STATE \d+:\s*CHECK_PRECONDITIONS)\s*\n(.*?)(?=\n## Step \d|\n## Phase|\n# STATE|\Z)",
         change_content,
         re.DOTALL,
     )
@@ -2000,8 +2012,7 @@ def main() -> int:
 
     change_path = ".claude/commands/change.md"
     if os.path.isfile(change_path):
-        with open(change_path) as f:
-            change_content = f.read()
+        change_content = read_skill_with_states(change_path)
         for e in check_16_change_payment_auth(change_content, change_path):
             error(e)
 
@@ -2018,8 +2029,7 @@ def main() -> int:
 
     change_path_db = ".claude/commands/change.md"
     if os.path.isfile(change_path_db):
-        with open(change_path_db) as f:
-            change_content_db = f.read()
+        change_content_db = read_skill_with_states(change_path_db)
         for e in check_18_change_payment_database(change_content_db, change_path_db):
             error(e)
 
@@ -2235,8 +2245,7 @@ def main() -> int:
 
     change_path_25 = ".claude/commands/change.md"
     if os.path.isfile(change_path_25):
-        with open(change_path_25) as f:
-            change_content_25 = f.read()
+        change_content_25 = read_skill_with_states(change_path_25)
 
         # Look for text indicating the Test type can add testing to experiment.yaml stack
         has_testing_addition = bool(
@@ -2343,8 +2352,7 @@ def main() -> int:
     change_path_28 = ".claude/commands/change.md"
     bootstrap_path_28 = ".claude/commands/bootstrap.md"
     if os.path.isfile(change_path_28) and os.path.isfile(bootstrap_path_28):
-        with open(change_path_28) as f:
-            change_content_28 = f.read()
+        change_content_28 = read_skill_with_states(change_path_28)
 
         # Find assumes validation text in change.md
         assumes_refs = list(
@@ -2381,8 +2389,7 @@ def main() -> int:
 
     change_path_29 = ".claude/commands/change.md"
     if os.path.isfile(change_path_29):
-        with open(change_path_29) as f:
-            change_content_29 = f.read()
+        change_content_29 = read_skill_with_states(change_path_29)
 
         # Find payment dependency validation text (the stop messages)
         payment_validation_pattern = re.compile(
@@ -2435,12 +2442,11 @@ def main() -> int:
 
     change_path_31 = ".claude/commands/change.md"
     if os.path.isfile(change_path_31):
-        with open(change_path_31) as f:
-            change_content_31 = f.read()
+        change_content_31 = read_skill_with_states(change_path_31)
 
         # Find preconditions section (by content, not step number)
         preconditions_match = re.search(
-            r"## Step \d+:.*?[Cc]heck.*?preconditions.*?\n(.*?)(?=\n## Step \d|\n## Phase|\Z)",
+            r"(?:## Step \d+:.*?[Cc]heck.*?preconditions|# STATE \d+:\s*CHECK_PRECONDITIONS).*?\n(.*?)(?=\n## Step \d|\n## Phase|\n# STATE|\Z)",
             change_content_31,
             re.DOTALL,
         )
@@ -2637,8 +2643,7 @@ def main() -> int:
 
     change_path_37 = ".claude/commands/change.md"
     if os.path.isfile(change_path_37):
-        with open(change_path_37) as f:
-            change_content_37 = f.read()
+        change_content_37 = read_skill_with_states(change_path_37)
 
         # Find the step heading containing "Classify"
         classify_match = re.search(
@@ -2982,8 +2987,7 @@ def main() -> int:
 
     change_path_50 = ".claude/commands/change.md"
     if os.path.isfile(change_path_50):
-        with open(change_path_50) as f:
-            change_content_50 = f.read()
+        change_content_50 = read_skill_with_states(change_path_50)
         change_prose_50 = extract_prose(change_content_50)
         has_email_ref = bool(re.search(r"(?i)adding\s+.*email|email.*stack", change_prose_50))
         if has_email_ref:
@@ -3092,8 +3096,7 @@ def main() -> int:
 
     change_path_57 = ".claude/commands/change.md"
     if os.path.isfile(change_path_57):
-        with open(change_path_57) as f:
-            change_content_57 = f.read()
+        change_content_57 = read_skill_with_states(change_path_57)
         for e in check_57_change_production_precondition(change_content_57):
             error(e)
 
