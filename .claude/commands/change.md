@@ -339,6 +339,28 @@ Follow the procedure in `.claude/procedures/change-test.md`.
 > - If `quality: production` — spec-reviewer MUST be spawned.
 > - `.claude/verify-report.md` MUST be written before Step 8.
 
+- **Implementer trace audit** (informational — does not block G4):
+  ```bash
+  python3 -c "
+  import json, glob
+  traces = glob.glob('.claude/agent-traces/implementer-*.json')
+  if not traces:
+      print('No implementer traces (MVP mode or no production tasks)')
+  else:
+      results = {'complete': 0, 'blocked': 0, 'other': 0}
+      for f in traces:
+          try:
+              d = json.load(open(f))
+              s = d.get('status', 'other')
+              if s == 'complete': results['complete'] += 1
+              elif s.startswith('blocked'): results['blocked'] += 1
+              else: results['other'] += 1
+          except: results['other'] += 1
+      merged = sum(1 for f in traces if json.load(open(f)).get('worktree_merged', False))
+      print(f'Implementer audit: {results[\"complete\"]} complete, {results[\"blocked\"]} blocked, {merged} merged, {len(traces)} total')
+  "
+  ```
+
 - **G4 Implementation Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G4 Implementation Gate for quality [quality]. Verify: `npm run build` passes. If quality: production — check git log for worktree merge commits (evidence implementer agents were spawned, not direct implementation). Check no `// TODO: implement` or `throw new Error('not implemented')` markers in new code." If gate-keeper returns BLOCK, fix blocking items before Step 7.
 
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.

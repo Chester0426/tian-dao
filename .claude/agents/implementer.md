@@ -92,8 +92,15 @@ REFACTOR: <what was improved, or "none">
 ## Status
 <"complete" | "blocked: <reason>">
 
+## TDD Cycle
+<"red-green-refactor" | "skipped">
+
 Blocked reasons:
 - Build fails after 2 fix attempts
 - Task scope unclear or conflicts with existing code
 - Dependency not installed (missing package)
 ```
+
+## Trace Output
+
+After returning the Output Contract to the lead, the **lead** (not the implementer) writes a trace to `.claude/agent-traces/` based on the Output Contract fields above. The implementer runs in a worktree and cannot write to the main working tree's trace directory. See `change-feature.md` for the lead-side trace writing procedure.

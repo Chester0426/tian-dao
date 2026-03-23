@@ -20,7 +20,7 @@
      - Webhook signature validation (if applicable)
      - Error recovery (timeout, rate limit, invalid response)
      - Happy path end-to-end
-  3. Spawn implementer agents (same procedure as Feature production path)
+  3. Spawn implementer agents (same procedure as Feature production path, including step 6 trace writing)
   4. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - Read or generate the external stack file for the service (`.claude/stacks/external/<service-slug>.md`) — use the same generation procedure as described in `.claude/procedures/scaffold-externals.md` (Step 6)
