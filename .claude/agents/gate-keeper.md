@@ -131,6 +131,7 @@ Verify after Phase 1 plan creation:
 4. Frontmatter `type` is one of: Feature, Upgrade, Fix, Polish, Analytics, Test
 5. Frontmatter `scope` matches type-scope mapping: Feature/Upgrade→full, Fix→security, Polish→visual, Analytics/Test→build
 6. No source code modified yet — `git diff --name-only main...HEAD` shows only `.claude/` and `experiment/` paths
+7. `.claude/current-plan.md` contains `## Exploration Summary` section — grep for the heading
 
 ### G3 Spec Gate
 

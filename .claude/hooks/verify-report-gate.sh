@@ -400,6 +400,32 @@ else:
   fi
 fi
 
+# Check 19: Q-score recorded — verify-history.jsonl has entry matching current run_id
+if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+  QCHECK=$(python3 -c "
+import json, os
+ctx = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
+run_id = ctx.get('run_id', '')
+history_path = '$PROJECT_DIR/.claude/verify-history.jsonl'
+if not os.path.exists(history_path):
+    print('FAIL:verify-history.jsonl missing — Q-score not calculated (STATE 7 step 7 incomplete)')
+else:
+    lines = [l.strip() for l in open(history_path) if l.strip()]
+    if not lines:
+        print('FAIL:verify-history.jsonl is empty — Q-score not recorded')
+    else:
+        last = json.loads(lines[-1])
+        if last.get('run_id') != run_id:
+            print('FAIL:verify-history.jsonl last run_id (' + str(last.get('run_id','?')) + ') != current (' + run_id + ') — Q-score not recorded for this run')
+        else:
+            print('OK')
+" 2>/dev/null || echo "OK")
+  if [[ "$QCHECK" == FAIL:* ]]; then
+    DETAIL="${QCHECK#FAIL:}"
+    ERRORS+=("Check 19: $DETAIL")
+  fi
+fi
+
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
   ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")

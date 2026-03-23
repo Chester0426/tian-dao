@@ -174,9 +174,10 @@ Present the plan using the template for the classified type from `.claude/proced
 - Feature plans classified as Multi-layer: verify `## Approaches` section exists
 - All plans: if `.claude/iterate-manifest.json` exists, verify the plan's Why section references the iterate bottleneck
 - Production plans: verify each task with business logic has a specification test in its description
+- All plans: verify `## Exploration Summary` section exists (shows files scanned, patterns found, conflicts detected)
 If validation fails, fix the plan before presenting.
 
-- **G2 Plan Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G2 Plan Gate. Verify: on a feature branch (not main), current-plan.md exists with YAML frontmatter, classification is one of [Feature/Upgrade/Fix/Polish/Analytics/Test], verification scope matches classification, no source code files modified yet (only .claude/ and experiment/ files)." If gate-keeper returns BLOCK, fix blocking items before presenting plan.
+- **G2 Plan Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G2 Plan Gate. Verify: on a feature branch (not main), current-plan.md exists with YAML frontmatter, classification is one of [Feature/Upgrade/Fix/Polish/Analytics/Test], verification scope matches classification, no source code files modified yet (only .claude/ and experiment/ files), plan contains '## Exploration Summary' section." If gate-keeper returns BLOCK, fix blocking items before presenting plan.
 
 **Full mode STOP augmentation**: If `solve_depth = "full"` in Step 2b, prepend
 to the approval prompt:

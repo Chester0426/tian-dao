@@ -390,6 +390,24 @@ else: print('no')
     fi
     ;;
 
+  implementer|visual-implementer)
+    # Require G3 Spec Gate before implementation agents
+    VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
+    if [[ ! -f "$VERDICTS_DIR/g3.json" ]]; then
+      ERRORS+=("G3 Spec Gate verdict missing — run G3 before spawning implementer agents")
+    else
+      G3_V=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/g3.json')).get('verdict',''))" 2>/dev/null || echo "")
+      if [[ "$G3_V" != "PASS" ]]; then
+        ERRORS+=("G3 verdict is $G3_V, not PASS — fix spec issues before implementation")
+      fi
+      G3_BRANCH=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/g3.json')).get('branch',''))" 2>/dev/null || echo "")
+      CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+      if [[ -n "$G3_BRANCH" && "$G3_BRANCH" != "$CURRENT_BRANCH" ]]; then
+        ERRORS+=("G3 verdict is for branch '$G3_BRANCH', not '$CURRENT_BRANCH'")
+      fi
+    fi
+    ;;
+
   *)
     # Unknown agents in non-verify context (bootstrap, etc): fail-open
     if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
