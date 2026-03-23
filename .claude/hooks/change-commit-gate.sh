@@ -16,15 +16,44 @@ if [[ "$COMMAND" != *"git commit"* ]]; then
   exit 0
 fi
 
-# If the current branch is not change/, feat/ (non-bootstrap), or fix/, allow it
+# If the current branch is not change/, feat/, fix/, or chore/harden, allow it
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-if [[ ! "$BRANCH" =~ ^(change|feat|fix)/ ]]; then
+if [[ ! "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^chore/harden ]]; then
   exit 0
 fi
 
 # Exclude bootstrap branches (handled by bootstrap-commit-gate.sh)
 if [[ "$BRANCH" =~ ^feat/bootstrap ]]; then
   exit 0
+fi
+
+# Handle chore/harden branches — only enforce at final step, require verify-report.md
+if [[ "$BRANCH" =~ ^chore/harden ]]; then
+  PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+  PLAN="$PROJECT_DIR/.claude/current-plan.md"
+  if [[ -f "$PLAN" ]]; then
+    HARDEN_CP=$(python3 -c "
+import re
+with open('$PLAN') as f:
+    content = f.read()
+m = re.search(r'checkpoint:\s*(\S+)', content)
+print(m.group(1) if m else '')
+" 2>/dev/null || echo "")
+    if [[ -n "$HARDEN_CP" && "$HARDEN_CP" != "step3-pr" ]]; then
+      exit 0  # Not at final step, allow
+    fi
+  else
+    exit 0  # No plan file = not at final step
+  fi
+  # Final harden commit — require verify-report.md
+  REPORT="$PROJECT_DIR/.claude/verify-report.md"
+  if [[ ! -f "$REPORT" ]]; then
+    cat <<EOF
+{"permissionDecision": "deny", "message": "Harden commit blocked: verify-report.md missing — run /verify before final commit."}
+EOF
+    exit 0
+  fi
+  exit 0  # verify-report exists, allow
 fi
 
 # Only allow worktree merge commits through unconditionally
