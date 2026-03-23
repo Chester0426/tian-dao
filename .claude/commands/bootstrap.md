@@ -587,6 +587,8 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-design`.
 
 Check off in `.claude/current-plan.md`: `- [x] scaffold-setup completed`
 
+Verify scaffold-setup trace: `test -f .claude/agent-traces/scaffold-setup.json && python3 -c "import json;d=json.load(open('.claude/agent-traces/scaffold-setup.json'));assert d.get('status')=='complete',f'unexpected status: {d.get(\"status\")}';print('scaffold-setup trace: OK')"`. If trace missing: log "WARN: scaffold-setup did not write trace — continuing with file-based verification".
+
 **POSTCONDITIONS**
 - `package.json` exists with `dependencies`
 - `node_modules/` exists and is non-empty
@@ -624,6 +626,8 @@ Wait for design to complete before proceeding.
 Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-scaffold`.
 
 Check off in `.claude/current-plan.md`: `- [x] scaffold-init completed`
+
+Verify scaffold-init trace: `test -f .claude/agent-traces/scaffold-init.json && python3 -c "import json;d=json.load(open('.claude/agent-traces/scaffold-init.json'));assert d.get('status')=='complete';print('scaffold-init trace: OK')"`. If trace missing: log "WARN: scaffold-init did not write trace — continuing with file-based verification".
 
 **POSTCONDITIONS**
 - `.claude/current-visual-brief.md` exists
@@ -775,7 +779,7 @@ print(f'Merged {len(batches)} per-page traces into scaffold-pages.json')
 Verify each subagent produced its expected output:
 - `test -f .claude/agent-traces/scaffold-libs.json` (already verified in B1)
 - `test -f .claude/agent-traces/scaffold-pages-<page>.json` for each golden_path page
-- Landing subagent reported completion
+- Landing subagent reported completion: `test -f .claude/agent-traces/scaffold-landing.json && python3 -c "import json;d=json.load(open('.claude/agent-traces/scaffold-landing.json'));assert d.get('status')=='complete';print('scaffold-landing trace: OK')"`. If trace missing: log "WARN: scaffold-landing did not write trace — continuing with file-based verification".
 
 If any trace is missing or output was truncated: note the gap for STATE 13 to address.
 
@@ -971,6 +975,30 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-wire`.
 
 Check off in `.claude/current-plan.md`: `- [x] Merged checkpoint validation passed`
 
+**Scaffold trace audit** (informational — does not block BG2):
+```bash
+python3 -c "
+import json, glob
+expected = ['scaffold-setup','scaffold-init','scaffold-libs','scaffold-landing','scaffold-wire']
+traces = {}
+for f in glob.glob('.claude/agent-traces/scaffold-*.json'):
+    name = f.split('/')[-1].replace('.json','')
+    if '-' in name and name.startswith('scaffold-pages'):
+        continue
+    try:
+        d = json.load(open(f))
+        traces[name] = d.get('status','unknown')
+    except:
+        traces[name] = 'error'
+missing = [a for a in expected if a not in traces]
+incomplete = [a for a,s in traces.items() if s != 'complete' and a in expected]
+print(f'Scaffold audit: {len(traces)}/{len(expected)} traces found')
+if missing: print(f'  Missing: {missing}')
+if incomplete: print(f'  Incomplete: {incomplete}')
+if not missing and not incomplete: print('  All scaffold agents completed with traces')
+"
+```
+
 **BG2 Orchestration Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG2 Orchestration Gate. Verify: (1) npm run build passes; (2) scaffold output files exist (src/lib/*.ts, .claude/current-visual-brief.md, archetype-specific pages/routes/commands from experiment.yaml); (3) landing page exists if surface≠none; (4) checkpoint is phase2-scaffold or later; (5) if stack.analytics present: for each event in experiment/EVENTS.yaml events map (filtered by requires and archetypes for current stack and archetype), grep for the event name in src/ — BLOCK if any event is missing; (6) if stack.analytics present: grep src/lib/analytics*.ts for PROJECT_NAME and PROJECT_OWNER — BLOCK if either is 'TODO'." If gate-keeper returns BLOCK, fix missing outputs before STATE 14.
 
 Check off in `.claude/current-plan.md`: `- [x] BG2 Orchestration Gate passed`
@@ -1016,6 +1044,8 @@ Spawn a subagent via Agent with:
 Update checkpoint in `.claude/current-plan.md` frontmatter to `awaiting-verify`.
 
 Check off in `.claude/current-plan.md`: `- [x] scaffold-wire completed`
+
+Verify scaffold-wire trace: `test -f .claude/agent-traces/scaffold-wire.json && python3 -c "import json;d=json.load(open('.claude/agent-traces/scaffold-wire.json'));assert d.get('status')=='complete';print('scaffold-wire trace: OK')"`. If trace missing: log "WARN: scaffold-wire did not write trace — continuing with file-based verification".
 
 **POSTCONDITIONS**
 - API routes created (if mutation behaviors exist)

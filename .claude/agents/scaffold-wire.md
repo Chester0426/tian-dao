@@ -42,6 +42,19 @@ Read `.claude/procedures/wire.md` for full step-by-step instructions. Execute St
 - If a stack file template is missing or ambiguous: stop and report. Do not invent API route patterns or database schemas.
 - If scaffold outputs you depend on are missing: report what's missing. Do not recreate packages, libs, or pages.
 
+## Trace Output
+
+After all wire tasks complete, write trace to `.claude/agent-traces/scaffold-wire.json`:
+
+```bash
+python3 -c "
+import json, datetime, os
+os.makedirs('.claude/agent-traces', exist_ok=True)
+trace = {'agent': 'scaffold-wire', 'status': 'complete', 'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), 'files_created': ['<list all files created or modified>']}
+json.dump(trace, open('.claude/agent-traces/scaffold-wire.json', 'w'))
+"
+```
+
 ## Output Contract
 
 ```
