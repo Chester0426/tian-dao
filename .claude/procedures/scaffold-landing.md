@@ -82,3 +82,16 @@ If `stack.analytics` is present and not already included:
 > subagents complete. Do not run `npm run build` here — other subagents may still
 > be writing files that affect the build.
 
+## Trace Output
+
+After all landing page tasks complete, write trace to `.claude/agent-traces/scaffold-landing.json`:
+
+```bash
+python3 -c "
+import json, datetime, os
+os.makedirs('.claude/agent-traces', exist_ok=True)
+trace = {'agent': 'scaffold-landing', 'status': 'complete', 'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), 'files_created': ['<list all files created or modified>']}
+json.dump(trace, open('.claude/agent-traces/scaffold-landing.json', 'w'))
+"
+```
+
