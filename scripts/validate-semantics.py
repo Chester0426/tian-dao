@@ -2723,8 +2723,7 @@ def main() -> int:
     # (so it can be added during Step 7c).
     distribute_path = ".claude/commands/distribute.md"
     if os.path.isfile(distribute_path):
-        with open(distribute_path) as f:
-            distribute_content = f.read()
+        distribute_content = read_skill_with_states(distribute_path)
 
         # distribute.md must contain a YAML code block that defines feedback_submitted
         yaml_blocks = extract_code_blocks(distribute_content, {"yaml"})
@@ -2767,12 +2766,11 @@ def main() -> int:
 
     distribute_path_42 = ".claude/commands/distribute.md"
     if os.path.isfile(distribute_path_42):
-        with open(distribute_path_42) as f:
-            distribute_content_42 = f.read()
+        distribute_content_42 = read_skill_with_states(distribute_path_42)
 
         # Find preconditions section (between "Step 1" and "Step 2" headings)
         preconditions_match_42 = re.search(
-            r"## Step 1:.*?\n(.*?)(?=\n## Step 2:|\Z)",
+            r"(?:## Step 1:|# STATE \d+:\s*VALIDATE_PRECONDITIONS).*?\n(.*?)(?=\n## Step 2:|\n# STATE|\Z)",
             distribute_content_42,
             re.DOTALL,
         )
@@ -2805,12 +2803,11 @@ def main() -> int:
 
     distribute_path_43 = ".claude/commands/distribute.md"
     if os.path.isfile(distribute_path_43):
-        with open(distribute_path_43) as f:
-            distribute_content_43 = f.read()
+        distribute_content_43 = read_skill_with_states(distribute_path_43)
 
         # Find preconditions section (between "Step 1" and "Step 2" headings)
         preconditions_match_43 = re.search(
-            r"## Step 1:.*?\n(.*?)(?=\n## Step 2:|\Z)",
+            r"(?:## Step 1:|# STATE \d+:\s*VALIDATE_PRECONDITIONS).*?\n(.*?)(?=\n## Step 2:|\n# STATE|\Z)",
             distribute_content_43,
             re.DOTALL,
         )

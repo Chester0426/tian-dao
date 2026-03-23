@@ -56,5 +56,48 @@
     "7": "test -f experiment/on-touch.yaml",
     "8": "test -f .claude/verify-report.md",
     "9": "true"
+  },
+  "review": {
+    "0": "true",
+    "1": "true",
+    "2a": "true",
+    "2b": "true",
+    "2c": "true",
+    "2d": "true",
+    "2e": "true",
+    "2f": "true",
+    "3": "true",
+    "4": "true",
+    "5": "test -f .claude/review-complete.json"
+  },
+  "resolve": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true",
+    "4": "true",
+    "4b": "true",
+    "5": "true",
+    "5d": "true",
+    "6": "true",
+    "7": "true",
+    "8": "true",
+    "8b": "true",
+    "9": "true",
+    "10": "true",
+    "11": "test -f .claude/observe-result.json"
+  },
+  "distribute": {
+    "0": "true",
+    "1": "true",
+    "1_5": "true",
+    "2": "true",
+    "3": "true",
+    "4": "true",
+    "5": "test -f experiment/ads.yaml",
+    "6": "true",
+    "7": "true",
+    "8": "test -f .claude/verify-report.md",
+    "9": "true"
   }
 }
