@@ -47,7 +47,7 @@ Product events (suggestions, not requirements):
 2. `activate` (activate) — user completes the core action via the API
 3. `retain_return` (retain) — user makes a request after 24+ hours since last call
 
-Surface events use an inline PostHog snippet. Product events use `trackServerEvent()` from the server analytics library.
+Surface events use an inline analytics snippet (see analytics stack file and surface stack file). Product events use `trackServerEvent()` from the server analytics library.
 
 ## Testing
 

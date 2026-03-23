@@ -23,7 +23,7 @@ separate from the product. Used when the product has no server hosting
 ## Output
 
 `site/index.html` — a self-contained HTML page. No external CSS/JS files
-needed beyond Google Fonts and PostHog CDN.
+needed beyond Google Fonts and the analytics provider CDN (see analytics stack file).
 
 ## Design
 
@@ -54,7 +54,7 @@ Can include CSS-based terminal animation showing CLI usage.
 
 ## Analytics
 
-Same PostHog snippet approach as co-located. Inline `<script>` fires
+Same inline analytics snippet approach as co-located (see analytics stack file for the provider-specific snippet). Inline `<script>` fires
 `visit_landing` on page load with: `referrer`, `utm_source`, `utm_medium`,
 `utm_campaign`, `utm_content`, `click_id`, plus global properties
 (`project_name`, `project_owner`).

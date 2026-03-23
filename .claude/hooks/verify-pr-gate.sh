@@ -69,7 +69,10 @@ if [[ -f "$REPORT" ]]; then
 fi
 
 # Check 6: Gate verdict files (G4, G5, G6) exist with PASS for current branch
+# Only required for /change skill branches — other skills (harden, distribute,
+# review, bootstrap) use their own verification and do not produce G4/G5/G6.
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [[ "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^feat/bootstrap ]]; then
 VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
 VERDICT_CHECK=$(python3 -c "
 import json, os, sys
@@ -100,6 +103,7 @@ if [[ "$VERDICT_CHECK" == FAIL:* ]]; then
   DETAIL="${VERDICT_CHECK#FAIL:}"
   ERRORS+=("Check 6 (gate verdicts): $DETAIL")
 fi
+fi  # end branch-prefix guard for Check 6
 
 # If any check failed, deny the PR creation
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
