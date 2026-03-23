@@ -16,7 +16,7 @@ Clean up stale artifacts from prior runs:
 Create `.claude/bootstrap-context.json` to initialize state tracking:
 ```bash
 cat > .claude/bootstrap-context.json << CTXEOF
-{"skill":"bootstrap","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":["0"]}
+{"skill":"bootstrap","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

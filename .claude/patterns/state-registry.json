@@ -7,7 +7,7 @@
     "4": "test -f .claude/security-merge.json",
     "5": "test -f .claude/e2e-result.json",
     "6": "true",
-    "7": "test -f .claude/verify-report.md && test -f .claude/verify-history.jsonl",
+    "7": "head -1 .claude/verify-report.md | grep -q '^---$' && tail -1 .claude/verify-history.jsonl | python3 -c 'import json,sys;json.loads(sys.stdin.read())'",
     "8": "test -f .claude/patterns-saved.json"
   },
   "bootstrap": {
