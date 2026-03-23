@@ -19,6 +19,7 @@ fi
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 ERRORS=()
+WARNINGS=()
 
 TOOL_NAME=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null || echo "")
 CONTENT=""
@@ -424,6 +425,13 @@ else:
     DETAIL="${QCHECK#FAIL:}"
     ERRORS+=("Check 19: $DETAIL")
   fi
+fi
+
+# Output warnings to stderr (non-blocking)
+if [[ ${#WARNINGS[@]} -gt 0 ]]; then
+  for w in "${WARNINGS[@]}"; do
+    echo "WARN: $w" >&2
+  done
 fi
 
 # If any check failed, deny the write
