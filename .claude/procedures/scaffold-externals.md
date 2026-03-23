@@ -41,7 +41,7 @@ Before API routes are generated, assess whether experiment.yaml features require
 **Steps 6-8 below are executed by the bootstrap lead** after reviewing your
 classification. Include them here for reference so the lead knows what to do.
 
-6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration" / "Provide now"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it:
+6. **Auto-generate external stack files.** For each fully-integrated service (core or non-core with "Full Integration", "Provide now", or "Provision at deploy"), check if `.claude/stacks/external/<service-slug>.md` exists. If not, generate it:
    - Read `.claude/stacks/TEMPLATE.md` for the required frontmatter schema
    - Read existing stack files as structural reference
    - Generate `.claude/stacks/external/<service-slug>.md` with: OAuth/API flow documentation, required env vars, code templates for client library and route handlers, rate limits and quotas, sandbox/test mode details, and a `## CLI Provisioning` section

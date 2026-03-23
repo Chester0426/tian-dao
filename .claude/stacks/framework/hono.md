@@ -156,10 +156,42 @@ app.route("/api/convert", convertRoute);
 
 ## Security
 - Validate all request input with zod before processing
-- Never expose internal error details — return generic error messages
+- Never expose internal error details — use the global error handler below
 - Use environment variables for all secrets
 - When `stack.database` is present, enforce access control in route handlers (no RLS available in non-Postgres databases)
 - Rate limiting: use in-memory counters for auth and payment routes (works on persistent-process hosts like Railway)
+
+### Global Error Handler
+
+Add to `src/index.ts` after route registrations:
+
+```ts
+app.onError((err, c) => {
+  console.error("Unhandled error:", err);
+  return c.json(
+    { error: "Internal server error", message: "An unexpected error occurred. Please try again." },
+    500
+  );
+});
+```
+
+This catches unhandled exceptions in route handlers and returns a generic error response. The full error is logged server-side for debugging but never exposed to the client.
+
+## CORS
+
+When the service is called from a browser (e.g., from a landing page or external client), add CORS middleware:
+
+```ts
+import { cors } from "hono/cors";
+
+app.use("*", cors({
+  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+}));
+```
+
+- Use an environment variable for the allowed origin — never use `"*"` in production
+- Place `app.use("*", cors(...))` before route registrations in `src/index.ts`
+- `hono/cors` is included with the `hono` package — no additional install needed
 
 ## Patterns
 - One route file per experiment.yaml endpoint in `src/routes/`

@@ -71,6 +71,16 @@ For each entry in experiment.yaml `pages`:
   Each page must have heading, description matching purpose, and a clear
   next-action CTA
 
+#### Feature→UI cross-reference (after page creation)
+
+For each experiment.yaml `behavior` that has a corresponding API route:
+1. Check if the behavior describes a **user-facing interaction** (chat, wizard, form, file upload, etc.) — not just a background process or data query
+2. If yes, check if a page in experiment.yaml already provides the UI for this interaction
+3. If no page exists: create a reusable component at `src/components/<feature>-widget.tsx` that calls the API route and provides the interactive UI
+4. Ensure any landing page CTA referencing this feature opens or navigates to the component — not an unrelated page
+
+This step only applies to the **web-app** archetype. Skip for service and cli.
+
 > **STOP** — if `stack.analytics` is present, verify analytics before finishing. Every page must fire its experiment/EVENTS.yaml event(s). Every user action listed in experiment/EVENTS.yaml must have a tracking call. "I'll add analytics later" is not acceptable. If `stack.analytics` is absent, skip this check.
 
 > **Note:** Visual rendering review (screenshots, layout breaks, mobile responsiveness)

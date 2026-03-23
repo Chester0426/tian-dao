@@ -9,6 +9,7 @@ files:
   - src/app/signup/page.tsx  # conditional: only if "signup" in experiment.yaml pages
   - src/app/login/page.tsx  # conditional: only if "login" in experiment.yaml pages
   - src/components/nav-bar.tsx
+  - src/middleware.ts
   - src/lib/supabase-auth.ts  # conditional: only when stack.database is NOT supabase
   - src/lib/supabase-auth-server.ts  # conditional: only when stack.database is NOT supabase
 env:
@@ -531,6 +532,83 @@ if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 // Use user.id for database queries and metadata
 ```
 
+## Middleware (Route Protection)
+
+Protect authenticated pages at the routing level so unauthenticated users are redirected before the page renders. Bootstrap creates this file when `stack.auth: supabase` is present.
+
+### `src/middleware.ts` — Route protection middleware (always created)
+
+#### When `stack.database` is also `supabase` (shared client):
+```ts
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+const publicPaths = ["/", "/login", "/signup", "/auth/callback", "/auth/reset-password", "/api/health"];
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip public paths, static files, and API routes
+  if (
+    publicPaths.some((p) => pathname === p) ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  const response = NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+};
+```
+
+Notes:
+- `publicPaths` should be updated by bootstrap to include all non-authenticated pages from experiment.yaml (landing page variants, marketing pages)
+- API routes are excluded — they use server-side auth checks in route handlers instead
+- The `matcher` config excludes static assets for performance
+- Redirects to `/login?next=<path>` so the login page can redirect back after auth
+- Uses `getUser()` (not `getSession()`) for security — `getUser()` validates the JWT with the Supabase Auth server
+
+#### When `stack.database` is NOT supabase (standalone client):
+Replace the Supabase client creation with:
+```ts
+import { createServerClient } from "@supabase/ssr";
+
+// Replace the createServerClient block with:
+const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-anon-key",
+  { cookies: { /* same cookie handlers as above */ } }
+);
+```
+
 ## Session Token Lifecycle
 
 - **Access token**: Expires after 1 hour (configurable in Supabase Dashboard → Auth → Settings)
@@ -591,6 +669,7 @@ If `stack.database` is NOT supabase, the shared client files don't exist. Create
 import { createBrowserClient } from "@supabase/ssr";
 
 function createDemoClient() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chainable = (terminal: unknown): any =>
     new Proxy(() => terminal, {
       get: (_, prop) => (prop === "then" ? undefined : chainable(terminal)),
@@ -644,6 +723,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 function createDemoClient() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chainable = (terminal: unknown): any =>
     new Proxy(() => terminal, {
       get: (_, prop) => (prop === "then" ? undefined : chainable(terminal)),
