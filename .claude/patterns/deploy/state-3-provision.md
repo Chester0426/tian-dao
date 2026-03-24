@@ -5,11 +5,22 @@
 
 **ACTIONS:**
 
+> **Update mode behavior:** When `deploy_mode == "update"` (from deploy-context.json), provisioning is diff-based. The following steps are modified:
+> - **Always execute** (both modes): Step 5a (code deploy), Step 4.4 (env var sync with upsert), and DB migrations (idempotent)
+> - **Added services only**: Full provisioning (Steps 3, 3.5, 4.1–4.3 as applicable for new services)
+> - **Unchanged services**: Skip provisioning entirely — health check in STATE 4 verifies they still work
+> - **Removed services**: Skip entirely — marked orphaned in STATE 5 manifest
+> - **Post-deploy agents (5b)**: Only spawn for added services
+>
+> For the steps below, "skip for update mode (unchanged)" means: skip this step if `deploy_mode == "update"` AND the relevant stack category is in `unchanged_services`.
+
 ### Step 3: Provision database
 
 Skip this step if `stack.database` is absent or if the database stack file's `## Deploy Interface > Provisioning` says "none" (e.g., SQLite — auto-created on startup).
 
-Read the database stack file's `## Deploy Interface > Provisioning` and follow each substep in order. The stack file specifies the exact CLI commands, polling logic, key extraction, and migration commands for the configured database provider.
+**Update mode:** If `deploy_mode == "update"` and database is in `unchanged_services`: skip provisioning but **always run migrations** — read the database stack file's migration command and execute it. Migrations are idempotent (already-applied migrations are no-ops). If database is in `added_services`: run full provisioning below.
+
+**Initial mode / added service:** Read the database stack file's `## Deploy Interface > Provisioning` and follow each substep in order. The stack file specifies the exact CLI commands, polling logic, key extraction, and migration commands for the configured database provider.
 
 ### Step 3.5: Collect OAuth credentials (first deploy only)
 
@@ -23,7 +34,9 @@ and Secret (or **skip**). Store as `oauth_credentials: { provider: { client_id, 
 
 #### 4.1: Project setup
 
-Read the hosting stack file's `## Deploy Interface > Project Setup`. Follow the instructions to create/link the project and connect GitHub for auto-deploy. If the GitHub connection fails, **pause and help the user fix it** — do not skip auto-deploy silently. If unresolvable, set `git_connect_failed=true` (reported in Step 6 summary).
+**Update mode:** If `deploy_mode == "update"` and hosting is in `unchanged_services`: skip project setup (project already exists and is linked). Proceed to Step 4.4 (env var sync).
+
+**Initial mode:** Read the hosting stack file's `## Deploy Interface > Project Setup`. Follow the instructions to create/link the project. For the GitHub integration step: connect GitHub for **PR preview deployments only** — then disable production auto-deploy per the hosting stack file's instructions. If the GitHub connection fails, set `git_connect_failed=true` (reported in Step 6 summary) — this is non-blocking since production deploys are manual.
 
 #### 4.2: Domain setup
 
@@ -41,6 +54,8 @@ Read the database stack file's `## Deploy Interface > Hosting Requirements > vol
 If the hosting stack file has no `Volume Setup` section, stop: "Hosting provider <provider> does not support persistent volumes, which are required by <database>."
 
 #### 4.4: Set environment variables
+
+> **Always executed in both initial and update mode.** Env vars are synced using upsert semantics — existing values are overwritten, new values are added. This ensures `.env.example` changes are reflected on the hosting provider.
 
 Read the hosting stack file's `## Deploy Interface > Environment Variables` for the method (API, CLI, auth token location, fallback).
 
@@ -103,6 +118,8 @@ Determine which agents to launch based on experiment.yaml stack (all use
 - **Agent B** (Stripe Webhook): spawn if `stack.payment: stripe` AND Stripe CLI is available
 - **Agent C** (Analytics Dashboard): spawn if `stack.analytics: posthog`
 - **Agent D** (External Services): spawn if any external stack files exist (Step 0.10 found services)
+
+**Update mode filtering:** When `deploy_mode == "update"`, only spawn agents for services in `added_services`. Skip agents for `unchanged_services` (already configured from previous deploy) and `removed_services` (orphaned). For example, if `stack.analytics: posthog` is in `unchanged_services`, do NOT spawn Agent C.
 
 Launch all applicable agents **simultaneously** using parallel Agent tool calls. Each agent returns a result object: `{status, message, env_vars_added, ...}`.
 

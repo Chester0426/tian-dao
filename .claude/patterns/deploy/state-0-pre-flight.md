@@ -10,11 +10,23 @@
 2. Verify on `main` branch with clean working tree (`git status --porcelain` is empty). If not, stop: "Switch to main with a clean working tree before deploying."
 3. Run `npm run build` to verify the app builds locally. If it fails, stop: "Fix build errors before deploying."
 3a. If `quality: production` is set in experiment.yaml and `stack.testing` is present: run the test command from the testing stack file (e.g., `npm test`). If tests fail, stop: "Specification tests are failing. Run `/verify` to fix test failures before deploying."
-3b. **Recovery check:** If `.claude/deploy-manifest.json` exists, read it and report:
-    "Previous deploy detected (deployed_at: <timestamp>). Resources may already exist.
-    `/deploy` is idempotent — re-running will reuse existing resources and update configuration.
-    Reply **continue** to proceed, or run `/teardown` first to start fresh."
-    Wait for user confirmation.
+3b. **Update mode detection:** If `.claude/deploy-manifest.json` exists, read it and enter **update mode**:
+    1. Set `deploy_mode = "update"` (stored in deploy-context.json).
+    2. Diff `experiment.yaml` stack against manifest to compute:
+       - `added_services`: stack categories present in experiment.yaml but absent from manifest (e.g., added `stack.payment: stripe` since last deploy)
+       - `removed_services`: stack categories present in manifest but absent from experiment.yaml (e.g., removed `stack.analytics`)
+       - `unchanged_services`: stack categories present in both
+    3. Report to user:
+       "Previous deploy detected (deployed_at: <timestamp>). Running in **update mode**:
+       - Redeploy latest code to hosting provider
+       - Run DB migrations (idempotent)
+       - Sync environment variables (upsert)
+       - Added services: [list, or 'none']
+       - Removed services: [list — will be marked orphaned, or 'none']
+       - Unchanged services: [list — health check only]
+       Reply **continue** to proceed, or run `/teardown` first to start fresh."
+    4. Wait for user confirmation.
+    If `.claude/deploy-manifest.json` does NOT exist: set `deploy_mode = "initial"`.
 3c. **Dependency audit:** Run `npm audit --audit-level=critical`. If critical vulnerabilities are found:
     "Critical npm vulnerabilities detected:
     <npm audit output>
@@ -49,9 +61,11 @@
 Create `.claude/deploy-context.json` to initialize state tracking:
 ```bash
 cat > .claude/deploy-context.json << CTXEOF
-{"skill":"deploy","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"deploy","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","deploy_mode":"<initial|update>","added_services":[<list>],"removed_services":[<list>],"unchanged_services":[<list>],"completed_states":[0]}
 CTXEOF
 ```
+- `deploy_mode`: `"initial"` for first deploy, `"update"` for re-deploy with existing manifest
+- `added_services`, `removed_services`, `unchanged_services`: diff results from step 3b (empty arrays for initial mode)
 
 **POSTCONDITIONS:**
 - `package.json` exists

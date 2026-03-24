@@ -5,7 +5,9 @@
 
 **ACTIONS:**
 
-Present a summary of what will be created:
+Present a summary based on `deploy_mode`:
+
+### Initial mode plan
 
 ```
 ## Deployment Plan
@@ -19,6 +21,30 @@ Present a summary of what will be created:
 - [service] — auto via CLI (`<cli>` installed + authed)
 - [service] — manual setup — CLI `<cli>` available but not installed (`<install-cmd>`)
 - [service] — manual setup (no CLI)
+- (Or: "None")
+
+Reply **approve** to proceed, or tell me what to change.
+```
+
+### Update mode plan
+
+```
+## Update Deploy Plan
+
+**Code redeploy:** YES — `<deploy command from hosting stack file>`
+**DB migrations:** YES — idempotent (already-applied migrations are no-ops)
+**Environment variables:** upsert sync from .env.example
+
+**Added services** (full provisioning):
+- [service] — <config gathered>
+- (Or: "None — no new stack entries since last deploy")
+
+**Removed services** (marked orphaned in manifest):
+- [service] — will not be torn down; run `/teardown` to clean up
+- (Or: "None")
+
+**Unchanged services** (health check only):
+- [service] — skip provisioning, verify health
 - (Or: "None")
 
 Reply **approve** to proceed, or tell me what to change.

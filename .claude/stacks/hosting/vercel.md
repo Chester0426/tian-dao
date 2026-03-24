@@ -23,11 +23,11 @@ gitignore: [.vercel/]
 npx vercel deploy --prod
 ```
 
-## Auto-Deploy on Merge
-- Vercel's GitHub integration auto-deploys to production on every push/merge to `main`
-- Preview deployments are created automatically on PRs (used by `preview-smoke` CI job)
-- `make deploy` remains available for manual CLI deploys and first-time project linking
-- Skills should not include `make deploy` as a required iteration step — merging to `main` is sufficient
+## Production Deploys Are Manual
+- Production deploys are triggered by re-running `/deploy` (which runs `vercel --prod --yes`)
+- Auto-deploy to production on merge is **disabled** — this avoids unnecessary Vercel builds and keeps costs predictable
+- Preview deployments are still created automatically on PRs (used by `preview-smoke` CI job) via the GitHub integration
+- `make deploy` remains available for manual CLI deploys
 
 ## Health Check
 
@@ -119,7 +119,7 @@ Used by the `/deploy` skill for automated first-time setup.
 
 ### Project Setup
 - `vercel link --yes --project <name> [--scope "<team>"]` — creates project if not exists, links locally
-- `vercel git connect --yes` — connects GitHub repo for push-to-main auto-deploy
+- `vercel git connect --yes` — connects GitHub repo for PR preview deployments (production auto-deploy is disabled separately)
   - Prerequisite: Vercel GitHub App installed on the GitHub org/account
 
 ### Environment Variables
@@ -179,8 +179,8 @@ Add a `vercel.json` with baseline security headers. These apply to all responses
 - Bootstrap should create `vercel.json` with these headers if it doesn't already exist. If `vercel.json` exists (e.g., for rewrites), merge the `headers` array.
 
 ## Patterns
-- Vercel auto-deploys to production when PRs are merged to `main` (requires GitHub integration)
-- Deploy with `npx vercel deploy --prod` for manual production deployments
+- Production deploys are manual — re-run `/deploy` or use `npx vercel deploy --prod`
+- Auto-deploy to production is disabled to control costs; PR preview deployments remain active
 - After manual `make deploy`, the health endpoint is automatically checked
 - Use Vercel's preview deployments (automatic on PRs) for testing before production
 - Preview deployments are smoke-tested in CI before merge
@@ -189,7 +189,7 @@ Add a `vercel.json` with baseline security headers. These apply to all responses
 
 ## PR Instructions
 - After merging: run `/deploy` in Claude Code to set up Vercel + Supabase automatically. Or manually: import your repo at [vercel.com/new](https://vercel.com/new) and add the Supabase Vercel Integration ([vercel.com/integrations/supabase](https://vercel.com/integrations/supabase)) to auto-inject Supabase env vars. For other env vars (Stripe, etc.), add them manually in Vercel Project → Settings → Environment Variables.
-- Vercel auto-deploys on every merge to `main`
+- Production deploys are manual — re-run `/deploy` after code changes to update. PR preview deployments are automatic.
 
 ## Deploy Interface
 
@@ -213,13 +213,34 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
    ```bash
    vercel link --yes --project <name> [--scope "<team>"]
    ```
-2. Connect GitHub repo for auto-deploy:
+2. Connect GitHub repo for PR preview deployments:
    ```bash
    vercel git connect --yes
    ```
    Prerequisite: Vercel GitHub App installed on the GitHub org/account.
    - "Login Connection" error → user needs to connect GitHub at https://vercel.com/account/settings/authentication
    - "Failed to connect" → user needs to install Vercel GitHub App on their org
+3. Disable production auto-deploy (keep PR previews only):
+   Extract the Vercel auth token (see "Auth token location" under Environment Variables) and project name, then:
+   ```bash
+   # Get project ID
+   PROJECT_INFO=$(curl -s "https://api.vercel.com/v9/projects/<name>?slug=<team>" \
+     -H "Authorization: Bearer <vercel_token>")
+   PROJECT_ID=$(echo "$PROJECT_INFO" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+   # Disable production auto-deploy
+   curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID" \
+     -H "Authorization: Bearer <vercel_token>" \
+     -H "Content-Type: application/json" \
+     -d '{"autoAssignCustomDomains": true, "gitForkProtection": true}'
+   ```
+   Then set the production branch to a non-existent branch to prevent auto-deploy on merge:
+   ```bash
+   curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID" \
+     -H "Authorization: Bearer <vercel_token>" \
+     -H "Content-Type: application/json" \
+     -d '{"productionDeploymentBranch": "__manual_deploy_only__"}'
+   ```
+   This ensures merges to `main` only create preview deployments (for CI smoke tests), not production deploys. Production deploys are triggered manually via `vercel --prod --yes` when running `/deploy`.
 
 ### Domain Setup
 

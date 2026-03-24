@@ -19,8 +19,8 @@ Print a deployment summary:
 **Surface URL:** https://<surface_url>
 **Health check:** [show per-service results — e.g., database: ok, auth: ok, analytics: ok, payment: ok]
 
-**Auto-deploy:** [If git_connect_failed] Not configured — see hosting stack file's Project Setup for GitHub connection instructions. [Else] Active — merges to main auto-deploy to production.
-**Auto-migrate:** [If database has migrations] Active — migrations are applied per the database stack file's conventions.
+**Production deploys:** Manual — re-run `/deploy` to update. PR preview deployments are automatic (if GitHub connected).
+**Auto-migrate:** [If database has migrations] Migrations are applied on each `/deploy` run (idempotent).
 
 [If domain add succeeded] **Custom domain:** https://<name>.<domain>
 [If domain add failed] **Custom domain (manual):** See hosting stack file's `## Deploy Interface > Domain Setup` for the add-domain command and DNS requirements.
@@ -81,6 +81,9 @@ Print a deployment summary:
 2. After publishing and collecting usage data, run `/iterate` to analyze metrics and decide what to change
 3. When the experiment ends, run `/retro` to file a retrospective, then `/teardown` to remove cloud resources (surface infrastructure)
 
+**To update after code changes:**
+- Merge your changes to `main`, then re-run `/deploy` — it detects the existing deployment and runs in update mode (redeploys code, syncs env vars, runs migrations, provisions only new services)
+
 **If something goes wrong after deploy:**
 - Run `/rollback` to revert to the previous deployment (hosting only — does not affect database)
 - For data issues: see `.claude/patterns/incident-response.md`
@@ -114,11 +117,21 @@ Write `.claude/deploy-manifest.json` with the resources created during this depl
     "skipped": ["<provider>"]
   },
   "external_services": ["<service-slug>"],
+  "deploy_mode": "<initial|update>",
   "deployed_at": "<ISO 8601 timestamp>"
 }
 ```
 
-Omit sections for inactive stack categories (e.g., no `database` key if `stack.database` is absent). The `hosting.provider` and `database.provider` fields tell `/teardown` which stack file to load for teardown commands. This manifest is consumed by `/teardown` to identify what to delete.
+**Update mode manifest behavior:**
+- Update `deployed_at` to the current timestamp
+- Add new entries for `added_services` (newly provisioned resources)
+- Keep existing entries for `unchanged_services` (preserve previous manifest values)
+- For `removed_services`: keep the entry but add `"status": "orphaned"` to it. Example: `"posthog": {"dashboard_id": "123", "status": "orphaned"}`. This signals that the resource exists but is no longer referenced by experiment.yaml.
+  - `/teardown` deletes ALL entries (active + orphaned)
+  - `/deploy` update mode skips health checks for orphaned entries
+  - **Backward compatibility:** missing `status` field = `"active"` (default)
+
+Omit sections for inactive stack categories on initial deploy (e.g., no `database` key if `stack.database` is absent). The `hosting.provider` and `database.provider` fields tell `/teardown` which stack file to load for teardown commands. This manifest is consumed by `/teardown` to identify what to delete.
 
 If the write fails, warn but continue — the manifest is for convenience, not correctness.
 
