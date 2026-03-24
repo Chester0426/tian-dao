@@ -70,7 +70,7 @@ Rules are in priority order. When two rules conflict, the lower-numbered rule wi
 
 ## Rule 5: Deploy-Ready
 - Every PR must pass `npm run build` with zero errors before committing
-- Skills use the verification procedure in `.claude/patterns/verify.md` (3-attempt retry with error tracking)
+- Skills use the verification procedure in `.claude/patterns/verify.md` (3-attempt retry with error tracking). All skills follow the state machine execution pattern — see Rule 13.
 - No broken imports, no missing env vars in code
 - Reference `.env.example` for all environment variables
 - Every page (web-app) must render and every endpoint (service) must respond without runtime errors
@@ -139,3 +139,12 @@ run /verify, such as /resolve). No manual note-taking is required. When
 fixing bugs outside of a skill context (ad-hoc requests), evaluate whether
 the root cause is in a template file and follow `.claude/patterns/observe.md`
 if so.
+
+## Rule 13: Skill Execution Pattern
+All 15 skills use state machines with JIT (Just-In-Time) dispatch. Each skill's command file (`.claude/commands/<skill>.md`) contains a dispatch table pointing to state files at `.claude/patterns/<skill>/state-*.md`. Read only one state file at a time — never read ahead.
+- Each state file has 6 required sections: PRECONDITIONS, ACTIONS, POSTCONDITIONS, VERIFY, STATE TRACKING, NEXT
+- `.claude/patterns/state-registry.json` maps every skill's states to postcondition checks, enforced at runtime by `.claude/hooks/state-completion-gate.sh`
+- Context files (`.claude/<skill>-context.json`) track execution state with base schema: `{skill, branch, timestamp, completed_states}`
+- To modify a skill's behavior, edit the corresponding state files (`.claude/patterns/<skill>/state-*.md`) — don't modify the orchestrator (`.claude/commands/<skill>.md`) without also updating state files and `state-registry.json`
+- To add or remove states, update both the state file on disk and the registry entry — they must stay in sync
+- Never remove the VERIFY or STATE TRACKING sections from a state file
