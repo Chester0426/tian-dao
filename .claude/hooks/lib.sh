@@ -111,3 +111,156 @@ handle_validation() {
     deny "${gate_name} blocked: ${detail}. ${suffix}"
   fi
 }
+
+# --- normalize_states ---
+# Reads completed_states from a context JSON file. Normalizes all entries
+# to strings (int 0 → "0", mixed types handled). Outputs space-separated list.
+# Returns empty string if file missing, field absent, or parse error.
+# Usage: STATES=$(normalize_states "/path/to/context.json")
+normalize_states() {
+  local ctx_file="$1"
+  [[ ! -f "$ctx_file" ]] && { echo ""; return; }
+  python3 -c "
+import json
+try:
+    d = json.load(open('$ctx_file'))
+    print(' '.join(str(s) for s in d.get('completed_states', [])))
+except: print('')
+" 2>/dev/null || echo ""
+}
+
+# --- get_required_states ---
+# Reads _required_states array from agent_gates[$SKILL] in state-registry.json.
+# Returns space-separated list of state IDs. Empty string if skill or key missing.
+# Usage: REQUIRED=$(get_required_states "bootstrap")
+get_required_states() {
+  local skill="$1"
+  local registry="${CLAUDE_PROJECT_DIR:-.}/.claude/patterns/state-registry.json"
+  [[ ! -f "$registry" ]] && { echo ""; return; }
+  python3 -c "
+import json
+d = json.load(open('$registry'))
+rs = d.get('agent_gates',{}).get('$skill',{}).get('_required_states',[])
+print(' '.join(str(s) for s in rs))
+" 2>/dev/null || echo ""
+}
+
+# --- check_verdict_gates ---
+# Loops over gate verdict files, checks existence + PASS verdict + optional branch match.
+# Appends errors to the global ERRORS array. Does not exit — caller decides.
+# $1: space-separated list of gate names (e.g., "bg1 bg2 bg2.5 bg4")
+# $2: verdicts directory path
+# $3: (optional) branch name — when set, also validates verdict.branch matches
+# Usage: check_verdict_gates "bg1 bg2 bg2.5 bg4" "$VERDICTS_DIR"
+#        check_verdict_gates "g4 g5 g6" "$VERDICTS_DIR" "$BRANCH"
+check_verdict_gates() {
+  local gates_list="$1" verdicts_dir="$2" branch="${3:-}"
+  for gate in $gates_list; do
+    local gf="$verdicts_dir/$gate.json"
+    if [[ ! -f "$gf" ]]; then
+      ERRORS+=("${gate^^} verdict missing")
+      continue
+    fi
+    local v; v=$(read_json_field "$gf" "verdict")
+    [[ "$v" != "PASS" ]] && ERRORS+=("${gate^^} verdict is ${v:-?}, not PASS")
+    if [[ -n "$branch" ]]; then
+      local vb; vb=$(read_json_field "$gf" "branch")
+      [[ -n "$vb" && "$vb" != "$branch" ]] && ERRORS+=("${gate^^} verdict is for branch $vb, not $branch")
+    fi
+  done
+}
+
+# --- validate_merge_json ---
+# Parameterized JSON validation for merge gate hooks. Reads merge content from stdin.
+# Parses merge content, loads traces, compares fields per check definitions.
+# Returns "OK", "PARSE_ERROR", or "FAIL:<details>" — caller passes to handle_validation.
+# $1: check definitions JSON string (declarative field comparisons)
+# Usage: VALIDATION=$(echo "$CONTENT" | validate_merge_json "$CHECK_DEFS")
+validate_merge_json() {
+  local check_defs="$1"
+  python3 -c "
+import json, sys, os
+
+content = sys.stdin.read().strip()
+errors = []
+
+try:
+    merge = json.loads(content)
+except json.JSONDecodeError:
+    print('PARSE_ERROR')
+    sys.exit(0)
+
+traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
+checks = json.loads('''$check_defs''')
+
+for trace_def in checks.get('traces', []):
+    trace_path = os.path.join(traces_dir, trace_def['trace_file'])
+    if not os.path.exists(trace_path):
+        errors.append(trace_def.get('missing_error', trace_def['trace_file'] + ' not found'))
+        continue
+    try:
+        trace = json.load(open(trace_path))
+    except (json.JSONDecodeError, IOError):
+        continue
+
+    merge_key = trace_def.get('merge_key')
+    merge_section = merge.get(merge_key, {}) if merge_key else merge
+
+    for fdef in trace_def.get('fields', []):
+        t_val = trace.get(fdef['trace_field'])
+        m_val = merge_section.get(fdef['merge_field'])
+        if fdef.get('null_ok') and (t_val is None or m_val is None):
+            continue
+        if t_val != m_val:
+            prefix = (merge_key + '.') if merge_key else ''
+            errors.append(f'{prefix}{fdef[\"merge_field\"]} mismatch: trace={t_val}, merge={m_val}')
+
+    for sub in trace_def.get('sub_traces', []):
+        sub_path = os.path.join(traces_dir, sub['trace_file'])
+        if sub.get('condition') == 'exists' and not os.path.exists(sub_path):
+            continue
+        try:
+            sub_trace = json.load(open(sub_path))
+        except (json.JSONDecodeError, IOError):
+            continue
+        for fdef in sub.get('fields', []):
+            t_val = sub_trace.get(fdef['trace_field'])
+            m_val = merge_section.get(fdef['merge_field'])
+            if fdef.get('null_ok') and (t_val is None or m_val is None):
+                continue
+            if t_val != m_val:
+                prefix = (merge_key + '.') if merge_key else ''
+                errors.append(f'{prefix}{fdef[\"merge_field\"]} mismatch: trace={t_val}, merge={m_val}')
+
+for sc in checks.get('self_checks', []):
+    if sc['type'] == 'count_match':
+        arr = merge.get(sc['array_field'], [])
+        count = merge.get(sc['count_field'], 0)
+        if count != len(arr):
+            errors.append(f'{sc[\"count_field\"]} ({count}) != len({sc[\"array_field\"]}) ({len(arr)})')
+
+if errors:
+    print('FAIL:' + '; '.join(errors))
+else:
+    print('OK')
+" 2>/dev/null || echo "OK"
+}
+
+# --- check_trace_verdict ---
+# Checks a single field in a trace JSON file against an expected value.
+# Returns "yes" (match), "no" (mismatch), or "missing" (file/field absent).
+# Usage: RESULT=$(check_trace_verdict "/path/to/trace.json" "verdict" "PASS")
+check_trace_verdict() {
+  local trace_file="$1" field="$2" expected="$3"
+  [[ ! -f "$trace_file" ]] && { echo "missing"; return; }
+  python3 -c "
+import json
+try:
+    d = json.load(open('$trace_file'))
+    val = d.get('$field')
+    if val is None: print('missing')
+    elif str(val) == '$expected': print('yes')
+    else: print('no')
+except: print('missing')
+" 2>/dev/null || echo "missing"
+}

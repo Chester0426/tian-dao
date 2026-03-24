@@ -25,82 +25,40 @@ if [[ -z "$CONTENT" ]]; then
 fi
 
 # Validate merge JSON against source traces
-VALIDATION=$(echo "$CONTENT" | python3 -c "
-import json, sys, os
-
-content = sys.stdin.read().strip()
-errors = []
-
-try:
-    merge = json.loads(content)
-except json.JSONDecodeError:
-    print('PARSE_ERROR')
-    sys.exit(0)
-
-traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
-
-# Check design-critic trace
-dc_trace_path = os.path.join(traces_dir, 'design-critic.json')
-if os.path.exists(dc_trace_path):
-    try:
-        dc = json.load(open(dc_trace_path))
-        dc_merge = merge.get('design_critic', {})
-
-        # Compare verdict
-        if dc.get('verdict', '') != dc_merge.get('verdict', ''):
-            errors.append(f'design_critic.verdict mismatch: trace={dc.get(\"verdict\",\"\")}, merge={dc_merge.get(\"verdict\",\"\")}')
-
-        # Compare min_score
-        if dc.get('min_score') is not None and dc_merge.get('min_score') is not None:
-            if dc.get('min_score') != dc_merge.get('min_score'):
-                errors.append(f'design_critic.min_score mismatch: trace={dc.get(\"min_score\")}, merge={dc_merge.get(\"min_score\")}')
-    except (json.JSONDecodeError, IOError):
-        pass
-
-    # Validate shared_fixes_applied if design-critic-shared.json exists
-    shared_path = os.path.join(traces_dir, 'design-critic-shared.json')
-    if os.path.exists(shared_path):
-        try:
-            shared = json.load(open(shared_path))
-            merge_shared = dc_merge.get('shared_fixes_applied', None)
-            trace_shared = shared.get('fixes_applied', 0)
-            if merge_shared is not None and merge_shared != trace_shared:
-                errors.append(f'design_critic.shared_fixes_applied mismatch: trace={trace_shared}, merge={merge_shared}')
-        except (json.JSONDecodeError, IOError):
-            pass
-else:
-    errors.append('design-critic.json trace not found — cannot validate merge')
-
-# Check ux-journeyer trace
-ux_trace_path = os.path.join(traces_dir, 'ux-journeyer.json')
-if os.path.exists(ux_trace_path):
-    try:
-        ux = json.load(open(ux_trace_path))
-        ux_merge = merge.get('ux_journeyer', {})
-
-        # Compare verdict
-        if ux.get('verdict', '') != ux_merge.get('verdict', ''):
-            errors.append(f'ux_journeyer.verdict mismatch: trace={ux.get(\"verdict\",\"\")}, merge={ux_merge.get(\"verdict\",\"\")}')
-
-        # Compare clicks_to_value
-        if ux.get('clicks_to_value') is not None and ux_merge.get('clicks_to_value') is not None:
-            if ux.get('clicks_to_value') != ux_merge.get('clicks_to_value'):
-                errors.append(f'ux_journeyer.clicks_to_value mismatch: trace={ux.get(\"clicks_to_value\")}, merge={ux_merge.get(\"clicks_to_value\")}')
-
-        # Compare dead_ends
-        if ux.get('dead_ends') is not None and ux_merge.get('dead_ends') is not None:
-            if ux.get('dead_ends') != ux_merge.get('dead_ends'):
-                errors.append(f'ux_journeyer.dead_ends mismatch: trace={ux.get(\"dead_ends\")}, merge={ux_merge.get(\"dead_ends\")}')
-    except (json.JSONDecodeError, IOError):
-        pass
-else:
-    errors.append('ux-journeyer.json trace not found — cannot validate merge')
-
-if errors:
-    print('FAIL:' + '; '.join(errors))
-else:
-    print('OK')
-" 2>/dev/null || echo "OK")
+DESIGN_UX_CHECKS='{
+  "traces": [
+    {
+      "trace_file": "design-critic.json",
+      "merge_key": "design_critic",
+      "missing_error": "design-critic.json trace not found — cannot validate merge",
+      "fields": [
+        {"trace_field": "verdict",   "merge_field": "verdict"},
+        {"trace_field": "min_score", "merge_field": "min_score", "null_ok": true}
+      ],
+      "sub_traces": [
+        {
+          "trace_file": "design-critic-shared.json",
+          "condition": "exists",
+          "fields": [
+            {"trace_field": "fixes_applied", "merge_field": "shared_fixes_applied", "null_ok": true}
+          ]
+        }
+      ]
+    },
+    {
+      "trace_file": "ux-journeyer.json",
+      "merge_key": "ux_journeyer",
+      "missing_error": "ux-journeyer.json trace not found — cannot validate merge",
+      "fields": [
+        {"trace_field": "verdict",         "merge_field": "verdict"},
+        {"trace_field": "clicks_to_value", "merge_field": "clicks_to_value", "null_ok": true},
+        {"trace_field": "dead_ends",       "merge_field": "dead_ends",       "null_ok": true}
+      ]
+    }
+  ],
+  "self_checks": []
+}'
+VALIDATION=$(echo "$CONTENT" | validate_merge_json "$DESIGN_UX_CHECKS")
 
 handle_validation "$VALIDATION" "Design-UX merge gate" "Merge JSON must match source agent traces."
 

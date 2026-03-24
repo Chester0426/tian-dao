@@ -62,12 +62,8 @@ if [[ "$BRANCH" =~ ^chore/distribute ]]; then
   # Only block at final state (state 7+ completed = ready for verify+commit)
   CTX="$PROJECT_DIR/.claude/distribute-context.json"
   if [[ -f "$CTX" ]]; then
-    AT_FINAL=$(python3 -c "
-import json
-d = json.load(open('$CTX'))
-cs = [str(s) for s in d.get('completed_states', [])]
-print('yes' if '7' in cs else 'no')
-" 2>/dev/null || echo "no")
+    STATES=$(normalize_states "$CTX")
+    AT_FINAL=$([[ " $STATES " == *" 7 "* ]] && echo "yes" || echo "no")
     if [[ "$AT_FINAL" == "yes" ]]; then
       deny "Distribute commit blocked: verify-report.md missing — run verify before final commit."
     fi
@@ -80,12 +76,8 @@ if [[ "$BRANCH" =~ ^chore/review ]]; then
   PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
   CTX="$PROJECT_DIR/.claude/review-context.json"
   if [[ -f "$CTX" ]]; then
-    AT_FINAL=$(python3 -c "
-import json
-d = json.load(open('$CTX'))
-cs = [str(s) for s in d.get('completed_states', [])]
-print('yes' if '4' in cs else 'no')
-" 2>/dev/null || echo "no")
+    STATES=$(normalize_states "$CTX")
+    AT_FINAL=$([[ " $STATES " == *" 4 "* ]] && echo "yes" || echo "no")
     if [[ "$AT_FINAL" == "yes" && ! -f "$PROJECT_DIR/.claude/review-complete.json" ]]; then
       deny "Review commit blocked: review-complete.json missing — complete review validation first."
     fi
@@ -138,19 +130,7 @@ ERRORS=()
 
 # Check 1: G4 verdict file exists with PASS
 VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
-if [[ ! -f "$VERDICTS_DIR/g4.json" ]]; then
-  ERRORS+=("G4 Implementation Gate verdict missing — run G4 before committing")
-else
-  V=$(read_json_field "$VERDICTS_DIR/g4.json" "verdict")
-  if [[ "$V" != "PASS" ]]; then
-    ERRORS+=("G4 verdict is $V, not PASS")
-  fi
-  # Freshness: G4 branch must match current branch
-  G4_BRANCH=$(read_json_field "$VERDICTS_DIR/g4.json" "branch")
-  if [[ -n "$G4_BRANCH" && "$G4_BRANCH" != "$BRANCH" ]]; then
-    ERRORS+=("G4 verdict is for branch '$G4_BRANCH', not current branch '$BRANCH'")
-  fi
-fi
+check_verdict_gates "g4" "$VERDICTS_DIR" "$BRANCH"
 
 # Check 2: verify-report.md exists with passing build
 REPORT="$PROJECT_DIR/.claude/verify-report.md"

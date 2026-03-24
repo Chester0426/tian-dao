@@ -172,6 +172,7 @@
       "pattern-classifier":         { "required_states": ["0","1","2","3","4","5","6"] }
     },
     "bootstrap": {
+      "_required_states": ["0","1","2","3","3a","3b","4","5","6","7","8","9","10","11","12","13","14","15"],
       "gate-keeper":        { "allow_unconditional": true },
       "scaffold-externals": { "allow_unconditional": true },
       "scaffold-setup":     { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8"], "artifacts": [".claude/gate-verdicts/bg1.json"], "deny_isolation": ["worktree"] },
@@ -187,7 +188,11 @@
       "visual-implementer": { "required_states": ["0","1","2","3","4","5","6","7","8","9"], "artifacts": [".claude/gate-verdicts/g3.json"] }
     },
     "harden": {
+      "_required_states": ["0","1","2","3","4","5","6","7","8","9"],
       "implementer":        { "required_states": ["0","1","2","3","4"] }
+    },
+    "distribute": {
+      "_required_states": ["0","1","1_5","2","3","4","5","6","7","8","9"]
     },
     "audit":    { "_default": { "required_states": ["0"] } },
     "review":   { "_default": { "required_states": ["0","1"] } },

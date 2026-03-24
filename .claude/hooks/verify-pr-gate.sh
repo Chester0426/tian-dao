@@ -40,11 +40,11 @@ elif [[ "$BRANCH" =~ ^chore/harden ]]; then
   fi
   CTX="$PROJECT_DIR/.claude/harden-context.json"
   if [[ -f "$CTX" ]]; then
+    STATES=$(normalize_states "$CTX")
+    REQUIRED=$(get_required_states "harden")
     MISSING=$(python3 -c "
-import json
-d = json.load(open('$CTX'))
-cs = [str(s) for s in d.get('completed_states', [])]
-required = [str(i) for i in range(10)]
+cs = set('$STATES'.split())
+required = '$REQUIRED'.split()
 missing = [s for s in required if s not in cs]
 print(','.join(missing) if missing else 'NONE')
 " 2>/dev/null || echo "NONE")
@@ -59,11 +59,11 @@ elif [[ "$BRANCH" =~ ^chore/distribute ]]; then
   fi
   CTX="$PROJECT_DIR/.claude/distribute-context.json"
   if [[ -f "$CTX" ]]; then
+    STATES=$(normalize_states "$CTX")
+    REQUIRED=$(get_required_states "distribute")
     MISSING=$(python3 -c "
-import json
-d = json.load(open('$CTX'))
-cs = [str(s) for s in d.get('completed_states', [])]
-required = ['0','1','1_5','2','3','4','5','6','7','8']
+cs = set('$STATES'.split())
+required = '$REQUIRED'.split()
 missing = [s for s in required if s not in cs]
 print(','.join(missing) if missing else 'NONE')
 " 2>/dev/null || echo "NONE")
@@ -121,36 +121,8 @@ fi  # end branch-aware checks
 # Check 6: Gate verdict files (G4, G5, G6) exist with PASS for current branch
 # Only required for /change skill branches — other skills use their own verification.
 if [[ "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^feat/bootstrap ]] && [[ ! "$BRANCH" =~ ^fix/resolve- ]]; then
-VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
-VERDICT_CHECK=$(python3 -c "
-import json, os, sys
-verdicts_dir = '$VERDICTS_DIR'
-branch = '$BRANCH'
-errors = []
-for gate in ['g4', 'g5', 'g6']:
-    path = os.path.join(verdicts_dir, gate + '.json')
-    if not os.path.exists(path):
-        errors.append(gate.upper() + ' verdict missing')
-        continue
-    try:
-        d = json.load(open(path))
-    except Exception:
-        errors.append(gate.upper() + ' verdict file is not valid JSON')
-        continue
-    if d.get('verdict') != 'PASS':
-        errors.append(gate.upper() + ' verdict is ' + str(d.get('verdict','?')) + ', not PASS')
-    v_branch = d.get('branch', '')
-    if branch and v_branch and v_branch != branch:
-        errors.append(gate.upper() + ' verdict is for branch ' + v_branch + ', not ' + branch)
-if errors:
-    print('FAIL:' + '; '.join(errors))
-else:
-    print('OK')
-" 2>/dev/null || echo "OK")
-if [[ "$VERDICT_CHECK" == FAIL:* ]]; then
-  DETAIL="${VERDICT_CHECK#FAIL:}"
-  ERRORS+=("Check 6 (gate verdicts): $DETAIL")
-fi
+  VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
+  check_verdict_gates "g4 g5 g6" "$VERDICTS_DIR" "$BRANCH"
 fi  # end branch-prefix guard for Check 6
 
 # If any check failed, deny the PR creation
