@@ -1166,600 +1166,452 @@ def check_61_footer_directive_sync() -> list[str]:
     return errors
 
 
-def main() -> int:
-    """Run all semantic checks. Returns exit code (0=pass, 1=fail)."""
-    global ERRORS
-    ERRORS = []
+BASE_REQUIRED_EXPERIMENT_FIELDS = [
+    "name",
+    "owner",
+    "type",
+    "description",
+    "thesis",
+    "target_user",
+    "distribution",
+    "behaviors",
+    "stack",
+]
 
-    # ---------------------------------------------------------------------------
-    # Collect files
-    # ---------------------------------------------------------------------------
-
-    stack_files = sorted(
-        f
-        for f in glob.glob(".claude/stacks/**/*.md", recursive=True)
-        if "TEMPLATE" not in f
-    )
-    skill_files = sorted(glob.glob(".claude/commands/*.md"))
-
-    # Pre-read all file contents
-    stack_contents: dict[str, str] = {}
-    for sf in stack_files:
-        with open(sf) as f:
-            stack_contents[sf] = f.read()
-
-    skill_contents: dict[str, str] = {}
-    for sf in skill_files:
-        with open(sf) as f:
-            skill_contents[sf] = f.read()
-
-    # Required fields for experiment.yaml — used by Check 3 (fixtures) and Check 6 (consistency)
-    BASE_REQUIRED_EXPERIMENT_FIELDS = [
-        "name",
-        "owner",
-        "type",
-        "description",
-        "thesis",
-        "target_user",
-        "distribution",
-        "behaviors",
-        "stack",
-    ]
+OPTIONAL_CATEGORIES = {"database", "auth", "payment", "email", "testing"}
 
 
-    def get_required_experiment_fields(experiment_type: str | None = None) -> list[str]:
-        """Return required experiment.yaml fields based on archetype type."""
-        effective = experiment_type if experiment_type else "web-app"
-        archetype_path = f".claude/archetypes/{effective}.md"
-        extra = ["pages"]  # fallback if archetype file missing
-        if os.path.isfile(archetype_path):
-            fm = parse_frontmatter(archetype_path)
-            if fm and "required_experiment_fields" in fm:
-                extra = fm["required_experiment_fields"]
-        return BASE_REQUIRED_EXPERIMENT_FIELDS + extra
+def get_required_experiment_fields(experiment_type: str | None = None) -> list[str]:
+    """Return required experiment.yaml fields based on archetype type."""
+    effective = experiment_type if experiment_type else "web-app"
+    archetype_path = f".claude/archetypes/{effective}.md"
+    extra = ["pages"]  # fallback if archetype file missing
+    if os.path.isfile(archetype_path):
+        fm = parse_frontmatter(archetype_path)
+        if fm and "required_experiment_fields" in fm:
+            extra = fm["required_experiment_fields"]
+    return BASE_REQUIRED_EXPERIMENT_FIELDS + extra
 
 
-    # Default for web-app — used by Check 6 (consistency with Makefile)
-    REQUIRED_EXPERIMENT_FIELDS = get_required_experiment_fields("web-app")
+def parse_makefile_targets(makefile_content: str) -> dict[str, str]:
+    """Parse Makefile targets and their recipe text."""
+    target_pattern = re.compile(r"^([a-zA-Z0-9_-]+)\s*:(?!=)", re.MULTILINE)
+    targets: dict[str, str] = {}
+    matches = list(target_pattern.finditer(makefile_content))
+    for i, m in enumerate(matches):
+        name = m.group(1)
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(makefile_content)
+        recipe = makefile_content[start:end]
+        targets[name] = recipe
+    return targets
 
-    # ---------------------------------------------------------------------------
-    # Check 1: Import Completeness in TSX Templates
-    # ---------------------------------------------------------------------------
 
-    for e in check_1_import_completeness(stack_contents):
-        error(e)
+def check_2_makefile_target_guards(makefile_content: str) -> list[str]:
+    """Check 2: Makefile npm/node targets guard on package.json."""
+    errors: list[str] = []
+    if not makefile_content:
+        return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 2: Makefile Target Guards
-    # ---------------------------------------------------------------------------
+    EXEMPT_TARGETS = {
+        "validate", "clean", "clean-all", "help",
+        "test-e2e", "supabase-start", "supabase-stop",
+    }
 
-    makefile_path = "Makefile"
-    if os.path.isfile(makefile_path):
-        with open(makefile_path) as f:
-            makefile_content = f.read()
+    targets = parse_makefile_targets(makefile_content)
 
-        # Targets that don't need guards:
-        # - Pre-bootstrap / meta: validate, clean, clean-all, help
-        # - Post-bootstrap only: dev, deploy, test-e2e (user runs these after
-        #   bootstrap; npm errors are self-explanatory in this context)
-        EXEMPT_TARGETS = {
-            "validate",
-            "clean",
-            "clean-all",
-            "help",
-            "test-e2e",
-            "supabase-start",
-            "supabase-stop",
-        }
-
-        # Parse Makefile targets and their recipe lines
-        # A target line looks like: target-name: [deps] ## comment
-        # Recipe lines follow, indented with a tab
-        target_pattern = re.compile(r"^([a-zA-Z0-9_-]+)\s*:(?!=)", re.MULTILINE)
-        targets = {}
-        matches = list(target_pattern.finditer(makefile_content))
-        for i, m in enumerate(matches):
-            name = m.group(1)
-            start = m.end()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(makefile_content)
-            recipe = makefile_content[start:end]
-            targets[name] = recipe
-
-        for target_name, recipe in targets.items():
-            if target_name in EXEMPT_TARGETS:
-                continue
-            if target_name.startswith("."):
-                continue
-
-            # Check if this target uses npm or node commands
-            uses_npm = bool(re.search(r"\bnpm\b|\bnpx\b|\bnode\b", recipe))
-            if not uses_npm:
-                continue
-
-            # Check for a package.json guard
-            has_guard = bool(
-                re.search(r"if\s+\[.*package\.json", recipe)
-                or re.search(r"test\s+-f\s+package\.json", recipe)
-                or re.search(r"-f\s+package\.json", recipe)
-                or re.search(r"-e\s+package\.json", recipe)
-            )
-
-            if not has_guard:
-                line_num = makefile_content[
-                    : makefile_content.index(f"{target_name}:")
-                ].count("\n") + 1
-                error(
-                    f"[2] {makefile_path}:{line_num}: target '{target_name}' uses "
-                    f"npm/node but has no package.json guard"
-                )
-
-    # ---------------------------------------------------------------------------
-    # Check 3: Fixture Validation
-    # ---------------------------------------------------------------------------
-
-    fixture_dir = "tests/fixtures"
-    fixture_type_map: dict[str, str] = {}
-    if os.path.isdir(fixture_dir):
-        fixture_files = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
-
-        if not fixture_files:
-            error(f"[3] {fixture_dir}: no fixture files found")
-
-        for ff in fixture_files:
-            with open(ff) as f:
-                try:
-                    fixture = yaml.safe_load(f)
-                except yaml.YAMLError as e:
-                    error(f"[3] {ff}: invalid YAML: {e}")
-                    continue
-
-            if not isinstance(fixture, dict):
-                error(f"[3] {ff}: fixture must be a YAML mapping")
-                continue
-
-            # Check required top-level keys
-            for key in ["experiment", "events", "assertions"]:
-                if key not in fixture:
-                    error(f"[3] {ff}: missing required key '{key}'")
-
-            experiment = fixture.get("experiment", {})
-            if not isinstance(experiment, dict):
-                error(f"[3] {ff}: 'experiment' must be a mapping")
-                continue
-
-            # Validate experiment.name format
-            name = experiment.get("name", "")
-            if not re.match(r"^[a-z][a-z0-9-]*$", str(name)):
-                error(
-                    f"[3] {ff}: experiment.name '{name}' must be lowercase, start with "
-                    f"a letter, and use only a-z, 0-9, hyphens"
-                )
-
-            # Resolve per-fixture archetype required fields
-            fixture_type = experiment.get("type", "web-app")
-            fixture_type_map[ff] = fixture_type
-            fixture_required = get_required_experiment_fields(fixture_type)
-
-            # Validate required experiment fields
-            for field in fixture_required:
-                if not experiment.get(field):
-                    error(f"[3] {ff}: experiment.{field} is missing or empty")
-
-            # Validate golden_path includes landing (only for archetypes requiring golden_path)
-            if "golden_path" in fixture_required:
-                golden_path = experiment.get("golden_path", [])
-                if isinstance(golden_path, list):
-                    has_landing = any(
-                        isinstance(entry, dict) and entry.get("page") == "landing"
-                        for entry in golden_path
-                    )
-                    if not has_landing:
-                        error(f"[3] {ff}: experiment.golden_path must include a 'landing' entry")
-                    # Derive pages from golden_path for downstream checks
-                    pages = [
-                        {"name": entry.get("page")}
-                        for entry in golden_path
-                        if isinstance(entry, dict) and entry.get("page")
-                    ]
-                    # Deduplicate by page name
-                    seen_pages: set[str] = set()
-                    unique_pages: list[dict] = []
-                    for p in pages:
-                        if p["name"] not in seen_pages:
-                            seen_pages.add(p["name"])
-                            unique_pages.append(p)
-                    pages = unique_pages
-                else:
-                    pages = []
-            elif "pages" in fixture_required:
-                pages = experiment.get("pages", [])
-                if isinstance(pages, list):
-                    has_landing = any(
-                        isinstance(p, dict) and p.get("name") == "landing" for p in pages
-                    )
-                    if not has_landing:
-                        error(f"[3] {ff}: experiment.pages must include a 'landing' entry")
-            else:
-                pages = []  # no pages for service archetype
-
-            # Validate assertions
-            assertions = fixture.get("assertions", {})
-            if isinstance(assertions, dict):
-                # If no payment stack, events with requires: [payment] should not exist
-                stack = experiment.get("stack", {})
-                has_payment = "payment" in stack if isinstance(stack, dict) else False
-                payment_required = assertions.get("payment_events_required", False)
-                if payment_required and not has_payment:
-                    error(
-                        f"[3] {ff}: assertions.payment_events_required is true but "
-                        f"experiment.stack has no payment entry"
-                    )
-
-                # Signup and landing event checks — archetype-aware
-                skippable = assertions.get("skippable_events", [])
-                if "golden_path" in fixture_required or "pages" in fixture_required:
-                    # Web-app: if no signup page, signup events should be in skippable
-                    has_signup = False
-                    if isinstance(pages, list):
-                        has_signup = any(
-                            isinstance(p, dict) and p.get("name") == "signup"
-                            for p in pages
-                        )
-                    if not has_signup:
-                        for ev in ["signup_start", "signup_complete"]:
-                            if ev not in skippable:
-                                error(
-                                    f"[3] {ff}: no signup page but '{ev}' not in "
-                                    f"assertions.skippable_events"
-                                )
-                else:
-                    # Non-web-app (service, cli, etc.): determine which events must be skippable
-                    # visit_landing is skippable only when surface is none;
-                    # when a surface is configured, visit_landing fires on the surface page
-                    fixture_stack = experiment.get("stack", {})
-                    effective_surface = fixture_stack.get("surface")
-                    if effective_surface is None:
-                        effective_surface = "co-located" if "hosting" in fixture_stack else "detached"
-                    non_webapp_skippable = ["signup_start", "signup_complete"]
-                    if effective_surface == "none":
-                        non_webapp_skippable.append("visit_landing")
-                    for ev in non_webapp_skippable:
-                        if ev not in skippable:
-                            error(
-                                f"[3] {ff}: {fixture_type} type but '{ev}' not in "
-                                f"assertions.skippable_events"
-                            )
-
-                # Validate min_pages matches actual page count
-                min_pages = assertions.get("min_pages")
-                if min_pages is not None and isinstance(pages, list):
-                    if len(pages) < min_pages:
-                        error(
-                            f"[3] {ff}: experiment has {len(pages)} page(s) but "
-                            f"assertions.min_pages is {min_pages}"
-                        )
-
-                # Validate min_endpoints matches actual endpoint count
-                endpoints = experiment.get("endpoints", [])
-                min_endpoints = assertions.get("min_endpoints")
-                if min_endpoints is not None and isinstance(endpoints, list):
-                    if len(endpoints) < min_endpoints:
-                        error(
-                            f"[3] {ff}: experiment has {len(endpoints)} endpoint(s) but "
-                            f"assertions.min_endpoints is {min_endpoints}"
-                        )
-
-                # Validate min_commands matches actual command count
-                commands = experiment.get("commands", [])
-                min_commands = assertions.get("min_commands")
-                if min_commands is not None and isinstance(commands, list):
-                    if len(commands) < min_commands:
-                        error(
-                            f"[3] {ff}: experiment has {len(commands)} command(s) but "
-                            f"assertions.min_commands is {min_commands}"
-                        )
-
-                # Validate variant assertions and structure
-                experiment_variants = experiment.get("variants")
-                has_variants_assertion = assertions.get("has_variants")
-                variant_count_assertion = assertions.get("variant_count")
-
-                if experiment_variants is not None:
-                    # Fixture has variants — validate structure
-                    if not isinstance(experiment_variants, list):
-                        error(f"[3] {ff}: experiment.variants must be a list")
-                    elif len(experiment_variants) < 2:
-                        error(
-                            f"[3] {ff}: experiment.variants must have at least 2 entries"
-                        )
-                    else:
-                        variant_slugs_seen: set[str] = set()
-                        for vi, vv in enumerate(experiment_variants):
-                            if not isinstance(vv, dict):
-                                error(
-                                    f"[3] {ff}: experiment.variants[{vi}] must be a mapping"
-                                )
-                                continue
-                            for vfield in [
-                                "slug", "headline", "subheadline", "cta", "pain_points"
-                            ]:
-                                if not vv.get(vfield):
-                                    error(
-                                        f"[3] {ff}: experiment.variants[{vi}].{vfield} "
-                                        f"is missing or empty"
-                                    )
-                            vslug = vv.get("slug", "")
-                            if vslug in variant_slugs_seen:
-                                error(
-                                    f"[3] {ff}: duplicate variant slug: {vslug}"
-                                )
-                            variant_slugs_seen.add(vslug)
-                            vpp = vv.get("pain_points", [])
-                            if isinstance(vpp, list) and len(vpp) != 3:
-                                error(
-                                    f"[3] {ff}: experiment.variants[{vi}].pain_points "
-                                    f"must have exactly 3 items"
-                                )
-
-                    # Validate has_variants assertion
-                    if has_variants_assertion is not None and not has_variants_assertion:
-                        error(
-                            f"[3] {ff}: experiment has variants but "
-                            f"assertions.has_variants is false"
-                        )
-
-                    # Validate variant_count assertion
-                    if (
-                        variant_count_assertion is not None
-                        and isinstance(experiment_variants, list)
-                        and len(experiment_variants) != variant_count_assertion
-                    ):
-                        error(
-                            f"[3] {ff}: experiment has {len(experiment_variants)} variant(s) "
-                            f"but assertions.variant_count is "
-                            f"{variant_count_assertion}"
-                        )
-                else:
-                    # No variants — assertions should not claim variants exist
-                    if has_variants_assertion:
-                        error(
-                            f"[3] {ff}: assertions.has_variants is true but "
-                            f"experiment has no variants field"
-                        )
-
-            # Validate events structure (flat map)
-            events = fixture.get("events", {})
-            if isinstance(events, dict):
-                # If no payment stack, events with requires: [payment] should not exist
-                if not has_payment:
-                    for ename, edef in events.items():
-                        if isinstance(edef, dict) and "payment" in (edef.get("requires") or []):
-                            error(
-                                f"[3] {ff}: events.{ename} has requires: [payment] but "
-                                f"experiment.stack has no payment entry"
-                            )
-    else:
-        # No fixture directory is not an error — fixtures are optional pre-creation
-        pass
-
-    # ---------------------------------------------------------------------------
-    # Check 4: Frontmatter ↔ Content Sync
-    # ---------------------------------------------------------------------------
-
-    # 4a: Code block section headers (### `path`) should be in files: frontmatter
-    for sf, content in stack_contents.items():
-        fm = parse_frontmatter(sf)
-        if not fm:
+    for target_name, recipe in targets.items():
+        if target_name in EXEMPT_TARGETS:
+            continue
+        if target_name.startswith("."):
             continue
 
-        fm_files = set(fm.get("files", []) or [])
-        header_paths = set(re.findall(r"###\s+`([^`]+)`", content))
+        uses_npm = bool(re.search(r"\bnpm\b|\bnpx\b|\bnode\b", recipe))
+        if not uses_npm:
+            continue
 
-        for path in sorted(header_paths):
-            if path not in fm_files:
-                error(
-                    f"[4] {sf}: code block header path '{path}' not listed in "
-                    f"frontmatter 'files'"
-                )
-
-    # 4b: Makefile clean lines should match clean.files/clean.dirs frontmatter
-    if os.path.isfile(makefile_path):
-        clean_match = re.search(
-            r"^clean:.*?\n((?:\t.*\n)*)", makefile_content, re.MULTILINE
+        has_guard = bool(
+            re.search(r"if\s+\[.*package\.json", recipe)
+            or re.search(r"test\s+-f\s+package\.json", recipe)
+            or re.search(r"-f\s+package\.json", recipe)
+            or re.search(r"-e\s+package\.json", recipe)
         )
-        if clean_match:
-            clean_recipe = clean_match.group(1)
 
-            makefile_clean_items: dict[str, set[str]] = {}
-            for line in clean_recipe.splitlines():
-                line_s = line.strip()
-                if not line_s:
-                    continue
-                tag_match = re.search(r"#\s+(\w+/\w+)\s*$", line_s)
-                if not tag_match:
-                    continue
-                tag = tag_match.group(1)
-                line_body = line_s[: tag_match.start()].strip()
-                rm_match = re.match(r"rm\s+(?:-rf|-f)\s+(.*)", line_body)
-                if rm_match:
-                    items = rm_match.group(1).split()
-                    makefile_clean_items.setdefault(tag, set()).update(items)
-
-            for sf in stack_files:
-                fm = parse_frontmatter(sf)
-                if not fm or "clean" not in fm:
-                    continue
-                cat_val = sf.replace(".claude/stacks/", "").replace(".md", "")
-                clean_fm = fm.get("clean", {}) or {}
-                fm_clean_files = set(clean_fm.get("files", []) or [])
-                fm_clean_dirs = set(clean_fm.get("dirs", []) or [])
-                fm_all = fm_clean_files | fm_clean_dirs
-
-                if not fm_all:
-                    continue
-
-                if cat_val not in makefile_clean_items:
-                    error(
-                        f"[4] {sf}: clean frontmatter has entries but no "
-                        f"Makefile clean line tagged '# {cat_val}'"
-                    )
-                    continue
-
-                mk_items = makefile_clean_items[cat_val]
-
-                for item in sorted(fm_all - mk_items):
-                    error(
-                        f"[4] {sf}: clean item '{item}' not in Makefile "
-                        f"clean target (# {cat_val})"
-                    )
-                for item in sorted(mk_items - fm_all):
-                    error(
-                        f"[4] Makefile clean (# {cat_val}): item '{item}' not in "
-                        f"{sf} clean frontmatter"
-                    )
-
-    # ---------------------------------------------------------------------------
-    # Check 5: Conditional Dependency References
-    # ---------------------------------------------------------------------------
-
-    for e in check_5_conditional_dependency_refs(skill_contents):
-        error(e)
-
-    OPTIONAL_CATEGORIES = {"database", "auth", "payment", "email", "testing"}
-
-    # ---------------------------------------------------------------------------
-    # Check 6: Required Fields Consistency
-    # ---------------------------------------------------------------------------
-
-    if os.path.isfile(makefile_path):
-        mk_required_match = re.search(
-            r"required\s*=\s*\[([^\]]+)\]", makefile_content
-        )
-        if mk_required_match:
-            mk_fields_raw = mk_required_match.group(1)
-            mk_fields = [
-                f.strip().strip("'\"")
-                for f in mk_fields_raw.split(",")
-                if f.strip()
-            ]
-            mk_fields_set = set(mk_fields)
-            sem_fields_set = set(REQUIRED_EXPERIMENT_FIELDS)
-
-            for field in sorted(mk_fields_set - sem_fields_set):
-                error(
-                    f"[6] Makefile validate has required field '{field}' "
-                    f"missing from validate-semantics.py"
-                )
-            for field in sorted(sem_fields_set - mk_fields_set):
-                error(
-                    f"[6] validate-semantics.py has required field '{field}' "
-                    f"missing from Makefile validate"
-                )
-
-    # ---------------------------------------------------------------------------
-    # Check 7: Fixture Stack Coverage
-    # ---------------------------------------------------------------------------
-
-    if os.path.isdir(fixture_dir):
-        fixture_files_cov = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
-
-        # Collect category/value pairs from stack file paths
-        # Exclude distribution/ — distribution is not a bootstrap stack category;
-        # it's a runtime choice made at /distribute time and has no experiment.yaml stack entry.
-        # Exclude ai/ — ai is an optional add-on for agent experiments, not a core
-        # bootstrap category; no fixture currently exercises it.
-        stack_pairs = set()
-        for sf in stack_files:
-            pair = sf.replace(".claude/stacks/", "").replace(".md", "")
-            if pair.startswith("distribution/") or pair.startswith("ai/"):
-                continue
-            stack_pairs.add(pair)
-
-        # Collect stack coverage from all fixtures
-        fixture_stack_coverage: dict[str, set[str]] = {}
-        all_fixture_stacks: set[str] = set()
-
-        for ff in fixture_files_cov:
-            with open(ff) as f:
-                try:
-                    fixture = yaml.safe_load(f)
-                except yaml.YAMLError:
-                    continue
-            if not isinstance(fixture, dict):
-                continue
-            experiment = fixture.get("experiment", {})
-            stack = experiment.get("stack", {})
-            if isinstance(stack, dict):
-                pairs: set[str] = set()
-                # Map per-service keys to stack file directories
-                SERVICE_KEY_TO_DIR = {
-                    "runtime": "framework",
-                    "hosting": "hosting",
-                    "ui": "ui",
-                    "testing": "testing",
-                }
-                for k, v in stack.items():
-                    if k == "services":
-                        continue  # handled below
-                    pairs.add(f"{k}/{v}")
-                # Extract per-service stacks from services[] array
-                services = stack.get("services", [])
-                if isinstance(services, list):
-                    for svc in services:
-                        if isinstance(svc, dict):
-                            for svc_key, stack_dir in SERVICE_KEY_TO_DIR.items():
-                                if svc_key in svc:
-                                    pairs.add(f"{stack_dir}/{svc[svc_key]}")
-                fixture_stack_coverage[ff] = pairs
-                all_fixture_stacks |= pairs
-
-        # Each stack file should be covered by at least one fixture
-        for pair in sorted(stack_pairs):
-            if pair not in all_fixture_stacks:
-                error(
-                    f"[7] Stack file .claude/stacks/{pair}.md has no "
-                    f"fixture coverage in {fixture_dir}/"
-                )
-
-        # Parse bootstrap.md for mandatory categories
-        bootstrap_path = ".claude/commands/bootstrap.md"
-        if os.path.isfile(bootstrap_path):
-            with open(bootstrap_path) as f:
-                bootstrap_content = f.read()
-
-            always_match = re.search(
-                r"always:\s*([^;)]+?)(?:\)|;|$)", bootstrap_content
+        if not has_guard:
+            line_num = makefile_content[
+                : makefile_content.index(f"{target_name}:")
+            ].count("\n") + 1
+            errors.append(
+                f"[2] Makefile:{line_num}: target '{target_name}' uses "
+                f"npm/node but has no package.json guard"
             )
-            if always_match:
-                mandatory_cats = [
-                    c.strip().rstrip(",")
-                    for c in always_match.group(1).split(",")
-                    if c.strip()
-                ]
+    return errors
 
-                for ff, pairs in fixture_stack_coverage.items():
-                    fixture_cats = {p.split("/")[0] for p in pairs}
-                    # Read archetype excluded_stacks for this fixture
-                    ft = fixture_type_map.get(ff, "web-app")
-                    excluded: set[str] = set()
-                    arch_path = f".claude/archetypes/{ft}.md"
-                    if os.path.isfile(arch_path):
-                        afm = parse_frontmatter(arch_path)
-                        if afm:
-                            excluded = set(afm.get("excluded_stacks", []))
-                    for cat in mandatory_cats:
-                        if cat in excluded:
-                            continue  # skip excluded categories for this archetype
-                        if cat not in fixture_cats:
-                            error(
-                                f"[7] {ff}: missing mandatory stack category "
-                                f"'{cat}' (must be in all fixtures)"
+
+def check_3_fixture_validation_inline(
+    fixture_dir: str,
+    get_required_fields_fn,
+) -> tuple[list[str], dict[str, str]]:
+    """Check 3: Fixture files are structurally correct (inline version with file I/O).
+
+    Returns (errors, fixture_type_map).
+    """
+    errors: list[str] = []
+    fixture_type_map: dict[str, str] = {}
+
+    if not os.path.isdir(fixture_dir):
+        return errors, fixture_type_map
+
+    fixture_files = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
+
+    if not fixture_files:
+        errors.append(f"[3] {fixture_dir}: no fixture files found")
+        return errors, fixture_type_map
+
+    for ff in fixture_files:
+        with open(ff) as f:
+            try:
+                fixture = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                errors.append(f"[3] {ff}: invalid YAML: {e}")
+                continue
+
+        if not isinstance(fixture, dict):
+            errors.append(f"[3] {ff}: fixture must be a YAML mapping")
+            continue
+
+        for key in ["experiment", "events", "assertions"]:
+            if key not in fixture:
+                errors.append(f"[3] {ff}: missing required key '{key}'")
+
+        experiment = fixture.get("experiment", {})
+        if not isinstance(experiment, dict):
+            errors.append(f"[3] {ff}: 'experiment' must be a mapping")
+            continue
+
+        name = experiment.get("name", "")
+        if not re.match(r"^[a-z][a-z0-9-]*$", str(name)):
+            errors.append(
+                f"[3] {ff}: experiment.name '{name}' must be lowercase, start with "
+                f"a letter, and use only a-z, 0-9, hyphens"
+            )
+
+        fixture_type = experiment.get("type", "web-app")
+        fixture_type_map[ff] = fixture_type
+        fixture_required = get_required_fields_fn(fixture_type)
+
+        for field in fixture_required:
+            if not experiment.get(field):
+                errors.append(f"[3] {ff}: experiment.{field} is missing or empty")
+
+        if "golden_path" in fixture_required:
+            golden_path = experiment.get("golden_path", [])
+            if isinstance(golden_path, list):
+                has_landing = any(
+                    isinstance(entry, dict) and entry.get("page") == "landing"
+                    for entry in golden_path
+                )
+                if not has_landing:
+                    errors.append(f"[3] {ff}: experiment.golden_path must include a 'landing' entry")
+                pages = [
+                    {"name": entry.get("page")}
+                    for entry in golden_path
+                    if isinstance(entry, dict) and entry.get("page")
+                ]
+                seen_pages: set[str] = set()
+                unique_pages: list[dict] = []
+                for p in pages:
+                    if p["name"] not in seen_pages:
+                        seen_pages.add(p["name"])
+                        unique_pages.append(p)
+                pages = unique_pages
+            else:
+                pages = []
+        elif "pages" in fixture_required:
+            pages = experiment.get("pages", [])
+            if isinstance(pages, list):
+                has_landing = any(
+                    isinstance(p, dict) and p.get("name") == "landing" for p in pages
+                )
+                if not has_landing:
+                    errors.append(f"[3] {ff}: experiment.pages must include a 'landing' entry")
+        else:
+            pages = []
+
+        assertions = fixture.get("assertions", {})
+        if isinstance(assertions, dict):
+            stack = experiment.get("stack", {})
+            has_payment = "payment" in stack if isinstance(stack, dict) else False
+            payment_required = assertions.get("payment_events_required", False)
+            if payment_required and not has_payment:
+                errors.append(
+                    f"[3] {ff}: assertions.payment_events_required is true but "
+                    f"experiment.stack has no payment entry"
+                )
+
+            skippable = assertions.get("skippable_events", [])
+            if "golden_path" in fixture_required or "pages" in fixture_required:
+                has_signup = False
+                if isinstance(pages, list):
+                    has_signup = any(
+                        isinstance(p, dict) and p.get("name") == "signup"
+                        for p in pages
+                    )
+                if not has_signup:
+                    for ev in ["signup_start", "signup_complete"]:
+                        if ev not in skippable:
+                            errors.append(
+                                f"[3] {ff}: no signup page but '{ev}' not in "
+                                f"assertions.skippable_events"
+                            )
+            else:
+                fixture_stack = experiment.get("stack", {})
+                effective_surface = fixture_stack.get("surface")
+                if effective_surface is None:
+                    effective_surface = "co-located" if "hosting" in fixture_stack else "detached"
+                non_webapp_skippable = ["signup_start", "signup_complete"]
+                if effective_surface == "none":
+                    non_webapp_skippable.append("visit_landing")
+                for ev in non_webapp_skippable:
+                    if ev not in skippable:
+                        errors.append(
+                            f"[3] {ff}: {fixture_type} type but '{ev}' not in "
+                            f"assertions.skippable_events"
+                        )
+
+            min_pages = assertions.get("min_pages")
+            if min_pages is not None and isinstance(pages, list):
+                if len(pages) < min_pages:
+                    errors.append(
+                        f"[3] {ff}: experiment has {len(pages)} page(s) but "
+                        f"assertions.min_pages is {min_pages}"
+                    )
+
+            endpoints = experiment.get("endpoints", [])
+            min_endpoints = assertions.get("min_endpoints")
+            if min_endpoints is not None and isinstance(endpoints, list):
+                if len(endpoints) < min_endpoints:
+                    errors.append(
+                        f"[3] {ff}: experiment has {len(endpoints)} endpoint(s) but "
+                        f"assertions.min_endpoints is {min_endpoints}"
+                    )
+
+            commands = experiment.get("commands", [])
+            min_commands = assertions.get("min_commands")
+            if min_commands is not None and isinstance(commands, list):
+                if len(commands) < min_commands:
+                    errors.append(
+                        f"[3] {ff}: experiment has {len(commands)} command(s) but "
+                        f"assertions.min_commands is {min_commands}"
+                    )
+
+            experiment_variants = experiment.get("variants")
+            has_variants_assertion = assertions.get("has_variants")
+            variant_count_assertion = assertions.get("variant_count")
+
+            if experiment_variants is not None:
+                if not isinstance(experiment_variants, list):
+                    errors.append(f"[3] {ff}: experiment.variants must be a list")
+                elif len(experiment_variants) < 2:
+                    errors.append(
+                        f"[3] {ff}: experiment.variants must have at least 2 entries"
+                    )
+                else:
+                    variant_slugs_seen: set[str] = set()
+                    for vi, vv in enumerate(experiment_variants):
+                        if not isinstance(vv, dict):
+                            errors.append(
+                                f"[3] {ff}: experiment.variants[{vi}] must be a mapping"
+                            )
+                            continue
+                        for vfield in [
+                            "slug", "headline", "subheadline", "cta", "pain_points"
+                        ]:
+                            if not vv.get(vfield):
+                                errors.append(
+                                    f"[3] {ff}: experiment.variants[{vi}].{vfield} "
+                                    f"is missing or empty"
+                                )
+                        vslug = vv.get("slug", "")
+                        if vslug in variant_slugs_seen:
+                            errors.append(
+                                f"[3] {ff}: duplicate variant slug: {vslug}"
+                            )
+                        variant_slugs_seen.add(vslug)
+                        vpp = vv.get("pain_points", [])
+                        if isinstance(vpp, list) and len(vpp) != 3:
+                            errors.append(
+                                f"[3] {ff}: experiment.variants[{vi}].pain_points "
+                                f"must have exactly 3 items"
                             )
 
-    # ---------------------------------------------------------------------------
-    # Check 8: Tool & Prereq Validity
-    # ---------------------------------------------------------------------------
+                if has_variants_assertion is not None and not has_variants_assertion:
+                    errors.append(
+                        f"[3] {ff}: experiment has variants but "
+                        f"assertions.has_variants is false"
+                    )
 
+                if (
+                    variant_count_assertion is not None
+                    and isinstance(experiment_variants, list)
+                    and len(experiment_variants) != variant_count_assertion
+                ):
+                    errors.append(
+                        f"[3] {ff}: experiment has {len(experiment_variants)} variant(s) "
+                        f"but assertions.variant_count is "
+                        f"{variant_count_assertion}"
+                    )
+            else:
+                if has_variants_assertion:
+                    errors.append(
+                        f"[3] {ff}: assertions.has_variants is true but "
+                        f"experiment has no variants field"
+                    )
+
+        events = fixture.get("events", {})
+        if isinstance(events, dict):
+            if not has_payment:
+                for ename, edef in events.items():
+                    if isinstance(edef, dict) and "payment" in (edef.get("requires") or []):
+                        errors.append(
+                            f"[3] {ff}: events.{ename} has requires: [payment] but "
+                            f"experiment.stack has no payment entry"
+                        )
+
+    return errors, fixture_type_map
+
+
+def check_6_required_fields_consistency(
+    makefile_content: str | None,
+    required_experiment_fields: list[str],
+) -> list[str]:
+    """Check 6: Makefile and validator agree on required fields."""
+    errors: list[str] = []
+    if not makefile_content:
+        return errors
+    mk_required_match = re.search(
+        r"required\s*=\s*\[([^\]]+)\]", makefile_content
+    )
+    if not mk_required_match:
+        return errors
+    mk_fields_raw = mk_required_match.group(1)
+    mk_fields = [
+        f.strip().strip("'\"")
+        for f in mk_fields_raw.split(",")
+        if f.strip()
+    ]
+    mk_fields_set = set(mk_fields)
+    sem_fields_set = set(required_experiment_fields)
+
+    for field in sorted(mk_fields_set - sem_fields_set):
+        errors.append(
+            f"[6] Makefile validate has required field '{field}' "
+            f"missing from validate-semantics.py"
+        )
+    for field in sorted(sem_fields_set - mk_fields_set):
+        errors.append(
+            f"[6] validate-semantics.py has required field '{field}' "
+            f"missing from Makefile validate"
+        )
+    return errors
+
+
+def check_7_fixture_stack_coverage_inline(
+    fixture_dir: str,
+    stack_files: list[str],
+    fixture_type_map: dict[str, str],
+    bootstrap_content: str | None,
+) -> list[str]:
+    """Check 7: Every stack file is covered by at least one fixture (inline version with file I/O)."""
+    errors: list[str] = []
+    if not os.path.isdir(fixture_dir):
+        return errors
+
+    fixture_files_cov = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
+
+    stack_pairs = set()
+    for sf in stack_files:
+        pair = sf.replace(".claude/stacks/", "").replace(".md", "")
+        if pair.startswith("distribution/") or pair.startswith("ai/"):
+            continue
+        stack_pairs.add(pair)
+
+    fixture_stack_coverage: dict[str, set[str]] = {}
+    all_fixture_stacks: set[str] = set()
+
+    SERVICE_KEY_TO_DIR = {
+        "runtime": "framework",
+        "hosting": "hosting",
+        "ui": "ui",
+        "testing": "testing",
+    }
+
+    for ff in fixture_files_cov:
+        with open(ff) as f:
+            try:
+                fixture = yaml.safe_load(f)
+            except yaml.YAMLError:
+                continue
+        if not isinstance(fixture, dict):
+            continue
+        experiment = fixture.get("experiment", {})
+        stack = experiment.get("stack", {})
+        if isinstance(stack, dict):
+            pairs: set[str] = set()
+            for k, v in stack.items():
+                if k == "services":
+                    continue
+                pairs.add(f"{k}/{v}")
+            services = stack.get("services", [])
+            if isinstance(services, list):
+                for svc in services:
+                    if isinstance(svc, dict):
+                        for svc_key, stack_dir in SERVICE_KEY_TO_DIR.items():
+                            if svc_key in svc:
+                                pairs.add(f"{stack_dir}/{svc[svc_key]}")
+            fixture_stack_coverage[ff] = pairs
+            all_fixture_stacks |= pairs
+
+    for pair in sorted(stack_pairs):
+        if pair not in all_fixture_stacks:
+            errors.append(
+                f"[7] Stack file .claude/stacks/{pair}.md has no "
+                f"fixture coverage in {fixture_dir}/"
+            )
+
+    if bootstrap_content:
+        always_match = re.search(
+            r"always:\s*([^;)]+?)(?:\)|;|$)", bootstrap_content
+        )
+        if always_match:
+            mandatory_cats = [
+                c.strip().rstrip(",")
+                for c in always_match.group(1).split(",")
+                if c.strip()
+            ]
+            for ff, pairs in fixture_stack_coverage.items():
+                fixture_cats = {p.split("/")[0] for p in pairs}
+                ft = fixture_type_map.get(ff, "web-app")
+                excluded: set[str] = set()
+                arch_path = f".claude/archetypes/{ft}.md"
+                if os.path.isfile(arch_path):
+                    afm = parse_frontmatter(arch_path)
+                    if afm:
+                        excluded = set(afm.get("excluded_stacks", []))
+                for cat in mandatory_cats:
+                    if cat in excluded:
+                        continue
+                    if cat not in fixture_cats:
+                        errors.append(
+                            f"[7] {ff}: missing mandatory stack category "
+                            f"'{cat}' (must be in all fixtures)"
+                        )
+    return errors
+
+
+def check_8_tool_prereq_validity(skill_contents: dict[str, str]) -> list[str]:
+    """Check 8: Referenced tools in skill prose exist."""
+    errors: list[str] = []
     KNOWN_TOOLS = {
         "Read", "Write", "Edit", "Bash", "Glob", "Grep",
         "WebFetch", "WebSearch", "Task", "NotebookEdit",
@@ -1767,7 +1619,6 @@ def main() -> int:
         "Skill", "TaskCreate", "TaskUpdate", "TaskGet", "TaskList",
         "TaskOutput", "TaskStop",
     }
-
     for sf, content in skill_contents.items():
         prose = extract_prose(content)
         for m in re.finditer(r"using the (\w+) tool", prose):
@@ -1775,25 +1626,23 @@ def main() -> int:
             if tool_name not in KNOWN_TOOLS:
                 pos = content.find(m.group(0))
                 line_num = content[:pos].count("\n") + 1 if pos >= 0 else "?"
-                error(
+                errors.append(
                     f"[8] {sf}:{line_num}: references unknown tool "
                     f"'{tool_name}'"
                 )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 9: Env Loading Outside Next.js Runtime
-    # ---------------------------------------------------------------------------
 
+def check_9_env_loading_outside_nextjs(stack_contents: dict[str, str]) -> list[str]:
+    """Check 9: Non-src templates that use process.env load env config."""
+    errors: list[str] = []
     for sf, content in stack_contents.items():
-        # Get section header positions
         headers = [
             (m.start(), m.group(1))
             for m in re.finditer(r"###\s+`([^`]+)`", content)
         ]
         blocks = extract_code_blocks(content, {"ts", "tsx", "js"})
 
-        # Check if any code block in this stack file already loads env
-        # (e.g., playwright.config.ts loads env for all Playwright templates)
         file_has_env_loader = any(
             re.search(r"loadEnvConfig|dotenv|@next/env", b["code"])
             for b in blocks
@@ -1801,7 +1650,6 @@ def main() -> int:
 
         for block in blocks:
             block_start = block["start_line"]
-            # Find closest header before this block
             closest_path = None
             for hdr_pos, path in headers:
                 hdr_line = content[:hdr_pos].count("\n") + 1
@@ -1818,45 +1666,41 @@ def main() -> int:
                 re.search(r"loadEnvConfig|dotenv|@next/env", block["code"])
             )
             if not has_env_loading and not file_has_env_loader:
-                error(
+                errors.append(
                     f"[9] {sf}: template for '{closest_path}' uses process.env "
                     f"but doesn't load env config (loadEnvConfig/dotenv/@next/env)"
                 )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 10: Validate Warning Differentiation
-    # ---------------------------------------------------------------------------
 
-    if os.path.isfile(makefile_path):
-        validate_recipe = targets.get("validate", "")
+def check_10_validate_warning_differentiation(
+    makefile_content: str | None,
+    targets: dict[str, str],
+) -> list[str]:
+    """Check 10: Makefile validate success message varies with warnings."""
+    errors: list[str] = []
+    if not makefile_content:
+        return errors
+    validate_recipe = targets.get("validate", "")
 
-        has_conditional = bool(
-            re.search(r"(?i)WARN|warning.*if|if.*warn", validate_recipe)
+    has_conditional = bool(
+        re.search(r"(?i)WARN|warning.*if|if.*warn", validate_recipe)
+    )
+    has_passed_message = bool(
+        re.search(r"Validation passed", validate_recipe)
+    )
+
+    if has_passed_message and not has_conditional:
+        errors.append(
+            f"[10] Makefile validate: success message is unconditional — "
+            f"should differentiate between clean pass and pass with warnings"
         )
-        has_passed_message = bool(
-            re.search(r"Validation passed", validate_recipe)
-        )
+    return errors
 
-        if has_passed_message and not has_conditional:
-            error(
-                f"[10] Makefile validate: success message is unconditional — "
-                f"should differentiate between clean pass and pass with warnings"
-            )
 
-    # ---------------------------------------------------------------------------
-    # Check 11: Hardcoded Provider Names Match Assumes
-    # ---------------------------------------------------------------------------
-
-    for e in check_11_hardcoded_provider_names(stack_contents):
-        error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 12: Prose File References in Reads Frontmatter
-    # ---------------------------------------------------------------------------
-
-    # Spec files that should be in reads when referenced as a source of truth.
-    # Excludes runtime-check files (package.json, .env.example) which are existence
-    # checks, not files Claude reads for context.
+def check_12_prose_file_refs_in_reads(skill_contents: dict[str, str]) -> list[str]:
+    """Check 12: Prose file references appear in reads frontmatter."""
+    errors: list[str] = []
     SPEC_REFERENCE_FILES = {"CLAUDE.md", "experiment/EVENTS.yaml"}
 
     for sf, content in skill_contents.items():
@@ -1867,88 +1711,84 @@ def main() -> int:
         prose = extract_prose(content)
 
         for ref_file in SPEC_REFERENCE_FILES:
-            # Look for directive references (e.g., "CLAUDE.md Rule 4", "per CLAUDE.md")
-            # Exclude example text like "(e.g., ... CLAUDE.md Rule Z)"
             for m_ref in re.finditer(
                 rf"\b{re.escape(ref_file)}\b", prose
             ):
-                # Skip if inside example parenthetical (e.g., ...)
                 start = max(0, m_ref.start() - 100)
                 context_before = prose[start : m_ref.start()]
                 if re.search(r"e\.g\.\s*,", context_before):
                     continue
 
-                # Check if this file is in reads
                 matched = any(ref_file in r or r in ref_file for r in reads)
                 if not matched:
                     pos = content.find(ref_file)
                     line_num = content[:pos].count("\n") + 1 if pos >= 0 else "?"
-                    error(
+                    errors.append(
                         f"[12] {sf}:{line_num}: prose references '{ref_file}' "
                         f"but it's not in 'reads' frontmatter"
                     )
-                    break  # One error per file per reference is enough
+                    break
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 13: Fixture Coverage for Stack File Branching Conditions
-    # ---------------------------------------------------------------------------
 
-    if os.path.isdir(fixture_dir):
-        fixture_files_branch = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
+def check_13_fixture_branching_coverage(
+    fixture_dir: str,
+    stack_contents: dict[str, str],
+) -> list[str]:
+    """Check 13: Conditional stack paths have fixture coverage."""
+    errors: list[str] = []
+    if not os.path.isdir(fixture_dir):
+        return errors
 
-        # Collect fixture stack configs
-        fixture_stacks_13: list[dict[str, str]] = []
-        for ff in fixture_files_branch:
-            with open(ff) as f:
-                try:
-                    fixture = yaml.safe_load(f)
-                except yaml.YAMLError:
-                    continue
-            if not isinstance(fixture, dict):
+    fixture_files_branch = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
+
+    fixture_stacks_13: list[dict[str, str]] = []
+    for ff in fixture_files_branch:
+        with open(ff) as f:
+            try:
+                fixture = yaml.safe_load(f)
+            except yaml.YAMLError:
                 continue
-            experiment = fixture.get("experiment", {})
-            stack = experiment.get("stack", {})
-            if isinstance(stack, dict):
-                fixture_stacks_13.append(stack)
+        if not isinstance(fixture, dict):
+            continue
+        experiment = fixture.get("experiment", {})
+        stack = experiment.get("stack", {})
+        if isinstance(stack, dict):
+            fixture_stacks_13.append(stack)
 
-        # For each stack file, check for conditional branching
-        for sf, content in stack_contents.items():
-            prose = extract_prose(content)
-            cat_val = sf.replace(".claude/stacks/", "").replace(".md", "")
-            category = cat_val.split("/")[0]
+    for sf, content in stack_contents.items():
+        prose = extract_prose(content)
+        cat_val = sf.replace(".claude/stacks/", "").replace(".md", "")
+        category = cat_val.split("/")[0]
 
-            # Find "when stack.X is NOT Y" or "when stack.X is also Y" patterns
-            for m in re.finditer(
-                r"(?i)when\s+`?stack\.(\w+)`?\s+is\s+NOT\s+(\w+)",
-                prose,
-            ):
-                dep_category = m.group(1)
-                dep_value = m.group(2)
+        for m in re.finditer(
+            r"(?i)when\s+`?stack\.(\w+)`?\s+is\s+NOT\s+(\w+)",
+            prose,
+        ):
+            dep_category = m.group(1)
+            dep_value = m.group(2)
 
-                # Check if any fixture exercises the "NOT" branch
-                has_not_branch = any(
-                    dep_category not in fs or fs.get(dep_category) != dep_value
-                    for fs in fixture_stacks_13
-                    if category in fs  # Only fixtures that use this stack category
+            has_not_branch = any(
+                dep_category not in fs or fs.get(dep_category) != dep_value
+                for fs in fixture_stacks_13
+                if category in fs
+            )
+
+            if not has_not_branch:
+                errors.append(
+                    f"[13] {sf}: has conditional for 'stack.{dep_category} "
+                    f"is NOT {dep_value}' but no fixture exercises this branch"
                 )
+    return errors
 
-                if not has_not_branch:
-                    error(
-                        f"[13] {sf}: has conditional for 'stack.{dep_category} "
-                        f"is NOT {dep_value}' but no fixture exercises this branch"
-                    )
 
-    # ---------------------------------------------------------------------------
-    # Check 14: Stack File Provides Fallback When Assumes Not Met
-    # ---------------------------------------------------------------------------
-
+def check_14_stack_fallback_when_assumes_not_met(stack_contents: dict[str, str]) -> list[str]:
+    """Check 14: Stack files with optional assumes have fallback sections."""
+    errors: list[str] = []
     FALLBACK_INDICATORS = re.compile(
         r"(?i)\b(?:fallback|no[- ]auth|without|not met|absent|simplified|"
         r"when.*(?:not|missing|absent)|anonymous)\b"
     )
-
-    # Only flag when assumes include optional categories — mandatory categories
-    # (framework, analytics, ui, hosting) are always present per bootstrap.md
     OPTIONAL_ASSUME_CATEGORIES = {"database", "auth", "payment", "testing"}
 
     for sf, content in stack_contents.items():
@@ -1959,7 +1799,6 @@ def main() -> int:
         if not assumes:
             continue
 
-        # Filter to only optional assumed dependencies
         optional_assumes = [
             a for a in assumes
             if a.split("/")[0] in OPTIONAL_ASSUME_CATEGORIES
@@ -1969,250 +1808,226 @@ def main() -> int:
 
         prose = extract_prose(content)
         if not FALLBACK_INDICATORS.search(prose):
-            error(
+            errors.append(
                 f"[14] {sf}: has optional assumes {optional_assumes} but no "
                 f"fallback section for when dependencies are absent"
             )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 15: Makefile Deploy Hosting Guard
-    # ---------------------------------------------------------------------------
 
-    if os.path.isfile(makefile_path):
-        deploy_recipe = targets.get("deploy", "")
+def check_15_makefile_deploy_hosting_guard(
+    makefile_content: str | None,
+    targets: dict[str, str],
+) -> list[str]:
+    """Check 15: Makefile deploy target checks hosting stack."""
+    errors: list[str] = []
+    if not makefile_content:
+        return errors
+    deploy_recipe = targets.get("deploy", "")
 
-        # Check for hosting-provider-specific commands
-        provider_commands = {
-            "vercel": r"\bvercel\b",
-            "netlify": r"\bnetlify\b",
-            "fly": r"\bfly\b|\bflyctl\b",
+    provider_commands = {
+        "vercel": r"\bvercel\b",
+        "netlify": r"\bnetlify\b",
+        "fly": r"\bfly\b|\bflyctl\b",
+    }
+
+    for provider, pattern in provider_commands.items():
+        if re.search(pattern, deploy_recipe):
+            has_hosting_guard = bool(
+                re.search(
+                    r"(?:HOSTING|hosting|stack.*hosting)",
+                    deploy_recipe,
+                )
+            )
+            if not has_hosting_guard:
+                line_num = makefile_content[
+                    : makefile_content.index("deploy:")
+                ].count("\n") + 1
+                errors.append(
+                    f"[15] Makefile:{line_num}: deploy target uses "
+                    f"'{provider}' command without hosting stack guard"
+                )
+    return errors
+
+
+def check_19_fixture_testing_partial_assumes(
+    fixture_dir: str,
+    stack_files: list[str],
+) -> list[str]:
+    """Check 19: Testing fixtures cover partial-met assumes scenario."""
+    errors: list[str] = []
+    if not os.path.isdir(fixture_dir):
+        return errors
+
+    fixture_files_testing = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
+
+    testing_assumes_categories: set[str] = set()
+    for sf in stack_files:
+        if "/testing/" in sf:
+            fm_t = parse_frontmatter(sf)
+            if fm_t:
+                for a in fm_t.get("assumes", []) or []:
+                    testing_assumes_categories.add(a.split("/")[0])
+
+    if not testing_assumes_categories:
+        return errors
+
+    optional_testing_assumes = testing_assumes_categories & OPTIONAL_CATEGORIES
+
+    testing_fixtures_all_met: list[str] = []
+    testing_fixtures_none_met: list[str] = []
+    testing_fixtures_partial_met: list[str] = []
+
+    for ff in fixture_files_testing:
+        with open(ff) as f:
+            try:
+                fixture = yaml.safe_load(f)
+            except yaml.YAMLError:
+                continue
+        if not isinstance(fixture, dict):
+            continue
+        experiment = fixture.get("experiment", {})
+        stack = experiment.get("stack", {})
+        if not isinstance(stack, dict):
+            continue
+
+        if "testing" not in stack:
+            continue
+
+        met = {
+            cat for cat in optional_testing_assumes
+            if cat in stack
         }
 
-        for provider, pattern in provider_commands.items():
-            if re.search(pattern, deploy_recipe):
-                # Check for a hosting stack guard
-                has_hosting_guard = bool(
-                    re.search(
-                        r"(?:HOSTING|hosting|stack.*hosting)",
-                        deploy_recipe,
-                    )
-                )
-                if not has_hosting_guard:
-                    line_num = makefile_content[
-                        : makefile_content.index("deploy:")
-                    ].count("\n") + 1
-                    error(
-                        f"[15] Makefile:{line_num}: deploy target uses "
-                        f"'{provider}' command without hosting stack guard"
-                    )
+        if met == optional_testing_assumes:
+            testing_fixtures_all_met.append(ff)
+        elif not met:
+            testing_fixtures_none_met.append(ff)
+        else:
+            testing_fixtures_partial_met.append(ff)
 
-    # ---------------------------------------------------------------------------
-    # Check 16: Change Payment-Auth Dependency
-    # ---------------------------------------------------------------------------
+    if testing_fixtures_all_met and testing_fixtures_none_met and not testing_fixtures_partial_met:
+        errors.append(
+            f"[19] tests/fixtures/: testing fixtures only cover "
+            f"all-met and none-met assumes scenarios without at least "
+            f"one partial-met fixture (e.g., auth present, database absent)"
+        )
+    return errors
 
-    change_path = ".claude/commands/change.md"
-    if os.path.isfile(change_path):
-        change_content = read_skill_with_states(change_path)
-        for e in check_16_change_payment_auth(change_content, change_path):
-            error(e)
 
-    # ---------------------------------------------------------------------------
-    # Check 17: Stack File Env Vars in Prose Match Frontmatter Declarations
-    # ---------------------------------------------------------------------------
+def check_20_makefile_help_no_env_vars(makefile_content: str | None) -> list[str]:
+    """Check 20: Makefile help comments don't hardcode optional env vars."""
+    errors: list[str] = []
+    if not makefile_content:
+        return errors
 
-    for e in check_17_env_vars_prose_frontmatter_sync(stack_contents):
-        error(e)
+    for m in re.finditer(r"^([a-zA-Z0-9_-]+):\s*.*?##\s*(.+)$", makefile_content, re.MULTILINE):
+        target_name_20 = m.group(1)
+        help_text = m.group(2)
 
-    # ---------------------------------------------------------------------------
-    # Check 18: Change Skill Validates Payment Requires Database
-    # ---------------------------------------------------------------------------
-
-    change_path_db = ".claude/commands/change.md"
-    if os.path.isfile(change_path_db):
-        change_content_db = read_skill_with_states(change_path_db)
-        for e in check_18_change_payment_database(change_content_db, change_path_db):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 19: Fixture Coverage for Testing with Partial Assumes
-    # ---------------------------------------------------------------------------
-
-    if os.path.isdir(fixture_dir):
-        fixture_files_testing = sorted(glob.glob(os.path.join(fixture_dir, "*.yaml")))
-
-        # Collect fixture stack configs for testing fixtures only
-        testing_fixtures_all_met: list[str] = []
-        testing_fixtures_none_met: list[str] = []
-        testing_fixtures_partial_met: list[str] = []
-
-        # Get testing stack file assumes
-        testing_assumes_categories: set[str] = set()
-        for sf in stack_files:
-            if "/testing/" in sf:
-                fm_t = parse_frontmatter(sf)
-                if fm_t:
-                    for a in fm_t.get("assumes", []) or []:
-                        testing_assumes_categories.add(a.split("/")[0])
-
-        # Only run check if we have testing assumes to validate against
-        if testing_assumes_categories:
-            optional_testing_assumes = testing_assumes_categories & OPTIONAL_CATEGORIES
-
-            for ff in fixture_files_testing:
-                with open(ff) as f:
-                    try:
-                        fixture = yaml.safe_load(f)
-                    except yaml.YAMLError:
-                        continue
-                if not isinstance(fixture, dict):
-                    continue
-                experiment = fixture.get("experiment", {})
-                stack = experiment.get("stack", {})
-                if not isinstance(stack, dict):
-                    continue
-
-                # Only consider fixtures with testing
-                if "testing" not in stack:
-                    continue
-
-                # Check which optional assumes are met
-                met = {
-                    cat for cat in optional_testing_assumes
-                    if cat in stack
-                }
-
-                if met == optional_testing_assumes:
-                    testing_fixtures_all_met.append(ff)
-                elif not met:
-                    testing_fixtures_none_met.append(ff)
-                else:
-                    testing_fixtures_partial_met.append(ff)
-
-            if testing_fixtures_all_met and testing_fixtures_none_met and not testing_fixtures_partial_met:
-                error(
-                    f"[19] tests/fixtures/: testing fixtures only cover "
-                    f"all-met and none-met assumes scenarios without at least "
-                    f"one partial-met fixture (e.g., auth present, database absent)"
-                )
-
-    # ---------------------------------------------------------------------------
-    # Check 20: Makefile Help Text Doesn't Hard-Code Optional Env Var Names
-    # ---------------------------------------------------------------------------
-
-    if os.path.isfile(makefile_path):
-        with open(makefile_path) as f:
-            makefile_content_help = f.read()
-
-        # Parse target help comments: lines matching "target-name: ## help text"
-        for m in re.finditer(r"^([a-zA-Z0-9_-]+):\s*.*?##\s*(.+)$", makefile_content_help, re.MULTILINE):
-            target_name_20 = m.group(1)
-            help_text = m.group(2)
-
-            # Look for environment variable names in help text
-            env_vars_in_help = re.findall(
-                r"\b(?:NEXT_PUBLIC_[A-Z_]+|[A-Z][A-Z_]{3,}(?:_KEY|_URL|_ID|_SECRET|_TOKEN|_ANON_KEY|_ROLE_KEY))\b",
-                help_text,
+        env_vars_in_help = re.findall(
+            r"\b(?:NEXT_PUBLIC_[A-Z_]+|[A-Z][A-Z_]{3,}(?:_KEY|_URL|_ID|_SECRET|_TOKEN|_ANON_KEY|_ROLE_KEY))\b",
+            help_text,
+        )
+        if env_vars_in_help:
+            line_num = makefile_content[: m.start()].count("\n") + 1
+            errors.append(
+                f"[20] Makefile:{line_num}: target '{target_name_20}' help "
+                f"text contains environment variable name(s) "
+                f"{env_vars_in_help} that are conditional on stack configuration"
             )
-            if env_vars_in_help:
-                line_num = makefile_content_help[: m.start()].count("\n") + 1
-                error(
-                    f"[20] Makefile:{line_num}: target '{target_name_20}' help "
-                    f"text contains environment variable name(s) "
-                    f"{env_vars_in_help} that are conditional on stack configuration"
-                )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 21: Stack File Packages in Prose Match Frontmatter Declarations
-    # ---------------------------------------------------------------------------
 
-    for e in check_21_packages_prose_frontmatter_sync(stack_contents):
-        error(e)
+def check_22_bootstrap_payment_database(bootstrap_content: str | None) -> list[str]:
+    """Check 22: Bootstrap validates payment requires database."""
+    errors: list[str] = []
+    bootstrap_path = ".claude/commands/bootstrap.md"
+    if not bootstrap_content:
+        return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 22: Bootstrap Payment-Database Dependency
-    # ---------------------------------------------------------------------------
-
-    bootstrap_path_22 = ".claude/commands/bootstrap.md"
-    if os.path.isfile(bootstrap_path_22):
-        bootstrap_content_22 = read_skill_with_states(bootstrap_path_22)
-
-        # Find the Phase 1 Step 3 validation section (narrative or state machine format)
+    validate_section_match = re.search(
+        r"(?i)(?:###?\s*|\d+\.\s*(?:\*\*)?)Validate (?:idea|experiment)\.yaml(?:\*\*)?\s*\n(.*?)(?=\n\d+\.\s*\*\*|\n###?\s|\n##\s|\Z)",
+        bootstrap_content,
+        re.DOTALL,
+    )
+    if not validate_section_match:
         validate_section_match = re.search(
-            r"(?i)(?:###?\s*|\d+\.\s*(?:\*\*)?)Validate (?:idea|experiment)\.yaml(?:\*\*)?\s*\n(.*?)(?=\n\d+\.\s*\*\*|\n###?\s|\n##\s|\Z)",
-            bootstrap_content_22,
+            r"(?i)#{1,2}\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n#{1,2}\s*STATE|\n#\s*STATE|\Z)",
+            bootstrap_content,
             re.DOTALL,
         )
-        if not validate_section_match:
-            validate_section_match = re.search(
-                r"(?i)#{1,2}\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n#{1,2}\s*STATE|\n#\s*STATE|\Z)",
-                bootstrap_content_22,
-                re.DOTALL,
+    if validate_section_match:
+        validate_section = validate_section_match.group(1)
+        has_db_check = bool(
+            re.search(
+                r"(?i)payment.*database.*present|database.*present.*payment|"
+                r"payment\s+requires.*database|"
+                r"stack\.database.*(?:missing|present|also)|"
+                r"stack\.payment.*(?:verify|check).*stack\.database",
+                validate_section,
             )
-        if validate_section_match:
-            validate_section = validate_section_match.group(1)
-            has_db_check = bool(
-                re.search(
-                    r"(?i)payment.*database.*present|database.*present.*payment|"
-                    r"payment\s+requires.*database|"
-                    r"stack\.database.*(?:missing|present|also)|"
-                    r"stack\.payment.*(?:verify|check).*stack\.database",
-                    validate_section,
-                )
-            )
-            if not has_db_check:
-                error(
-                    f"[22] {bootstrap_path_22}: Validate experiment.yaml section "
-                    f"doesn't validate that `stack.payment` requires "
-                    f"`stack.database` to also be present"
-                )
-        else:
-            error(
-                f"[22] {bootstrap_path_22}: could not find Validate experiment.yaml "
-                f"section to check payment-database dependency"
-            )
-
-    # ---------------------------------------------------------------------------
-    # Check 23: Testing CI Template Includes Payment Env Vars When ci.yml Does
-    # ---------------------------------------------------------------------------
-
-    ci_yml_path_23 = ".github/workflows/ci.yml"
-    if os.path.isfile(ci_yml_path_23):
-        with open(ci_yml_path_23) as f:
-            ci_content_23 = f.read()
-
-        # Check if ci.yml e2e job contains Stripe env vars
-        e2e_match = re.search(
-            r"e2e:.*?(?=\n  \w+:|\Z)", ci_content_23, re.DOTALL
         )
-        if e2e_match:
-            e2e_section = e2e_match.group(0)
-            stripe_vars_in_ci = re.findall(
-                r"(STRIPE_\w+|NEXT_PUBLIC_STRIPE_\w+)", e2e_section
+        if not has_db_check:
+            errors.append(
+                f"[22] {bootstrap_path}: Validate experiment.yaml section "
+                f"doesn't validate that `stack.payment` requires "
+                f"`stack.database` to also be present"
             )
+    else:
+        errors.append(
+            f"[22] {bootstrap_path}: could not find Validate experiment.yaml "
+            f"section to check payment-database dependency"
+        )
+    return errors
 
-            if stripe_vars_in_ci:
-                # Check that testing stack CI template also mentions them
-                for sf, content in stack_contents.items():
-                    if "/testing/" not in sf:
-                        continue
-                    ci_template_match = re.search(
-                        r"## CI Job Template\s*\n(.*?)(?=\n## |\Z)",
-                        content,
-                        re.DOTALL,
+
+def check_23_testing_ci_payment_env_vars(stack_contents: dict[str, str]) -> list[str]:
+    """Check 23: Testing CI template includes payment env vars when ci.yml does."""
+    errors: list[str] = []
+    ci_yml_path = ".github/workflows/ci.yml"
+    if not os.path.isfile(ci_yml_path):
+        return errors
+
+    with open(ci_yml_path) as f:
+        ci_content = f.read()
+
+    e2e_match = re.search(
+        r"e2e:.*?(?=\n  \w+:|\Z)", ci_content, re.DOTALL
+    )
+    if not e2e_match:
+        return errors
+
+    e2e_section = e2e_match.group(0)
+    stripe_vars_in_ci = re.findall(
+        r"(STRIPE_\w+|NEXT_PUBLIC_STRIPE_\w+)", e2e_section
+    )
+
+    if not stripe_vars_in_ci:
+        return errors
+
+    for sf, content in stack_contents.items():
+        if "/testing/" not in sf:
+            continue
+        ci_template_match = re.search(
+            r"## CI Job Template\s*\n(.*?)(?=\n## |\Z)",
+            content,
+            re.DOTALL,
+        )
+        if ci_template_match:
+            ci_template = ci_template_match.group(1)
+            for var in stripe_vars_in_ci:
+                if var not in ci_template:
+                    errors.append(
+                        f"[23] {sf}: CI Job Template missing '{var}' "
+                        f"which is present in ci.yml e2e job"
                     )
-                    if ci_template_match:
-                        ci_template = ci_template_match.group(1)
-                        for var in stripe_vars_in_ci:
-                            if var not in ci_template:
-                                error(
-                                    f"[23] {sf}: CI Job Template missing '{var}' "
-                                    f"which is present in ci.yml e2e job"
-                                )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 24: Testing Stack No-Auth Fallback Includes CI Job Template
-    # ---------------------------------------------------------------------------
 
+def check_24_testing_noauth_fallback_ci(stack_contents: dict[str, str]) -> list[str]:
+    """Check 24: Testing stack no-auth fallback includes CI job template."""
+    errors: list[str] = []
     for sf, content in stack_contents.items():
         if "/testing/" not in sf:
             continue
@@ -2220,7 +2035,6 @@ def main() -> int:
         if not fm:
             continue
 
-        # Check for No-Auth Fallback section
         fallback_match = re.search(
             r"## No-Auth Fallback\s*\n(.*?)(?=\n## [^#]|\Z)",
             content,
@@ -2228,44 +2042,47 @@ def main() -> int:
         )
         if fallback_match:
             fallback_section = fallback_match.group(1)
-            # Check for a YAML code block with an e2e: job definition
             yaml_blocks = re.findall(
                 r"```yaml\s*\n(.*?)```", fallback_section, re.DOTALL
             )
             has_e2e_job = any("e2e:" in block for block in yaml_blocks)
             if not has_e2e_job:
-                error(
+                errors.append(
                     f"[24] {sf}: No-Auth Fallback section missing a CI job "
                     f"template (YAML code block with 'e2e:' job definition)"
                 )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 25: Change Skill Test Type Permits Adding Testing to experiment.yaml Stack
-    # ---------------------------------------------------------------------------
 
-    change_path_25 = ".claude/commands/change.md"
-    if os.path.isfile(change_path_25):
-        change_content_25 = read_skill_with_states(change_path_25)
+def check_25_change_test_type_testing_stack(change_content: str | None) -> list[str]:
+    """Check 25: Change skill Test type permits adding testing to experiment.yaml stack."""
+    errors: list[str] = []
+    change_path = ".claude/commands/change.md"
+    if not change_content:
+        return errors
 
-        # Look for text indicating the Test type can add testing to experiment.yaml stack
-        has_testing_addition = bool(
-            re.search(
-                r"(?i)(?:test.*(?:add|update).*(?:experiment\.yaml|idea\.yaml|stack).*testing|"
-                r"testing.*(?:experiment\.yaml|idea\.yaml|stack)|"
-                r"stack\.testing.*(?:experiment\.yaml|idea\.yaml))",
-                change_content_25,
-            )
+    has_testing_addition = bool(
+        re.search(
+            r"(?i)(?:test.*(?:add|update).*(?:experiment\.yaml|idea\.yaml|stack).*testing|"
+            r"testing.*(?:experiment\.yaml|idea\.yaml|stack)|"
+            r"stack\.testing.*(?:experiment\.yaml|idea\.yaml))",
+            change_content,
         )
-        if not has_testing_addition:
-            error(
-                f"[25] {change_path_25}: Test type constraints do not address "
-                f"adding `testing` to experiment.yaml stack section"
-            )
+    )
+    if not has_testing_addition:
+        errors.append(
+            f"[25] {change_path}: Test type constraints do not address "
+            f"adding `testing` to experiment.yaml stack section"
+        )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 26: Testing Stack Env Frontmatter Excludes Assumes-Dependent Vars
-    # ---------------------------------------------------------------------------
 
+def check_26_testing_env_frontmatter_assumes(
+    stack_files: list[str],
+    stack_contents: dict[str, str],
+) -> list[str]:
+    """Check 26: Testing stack env frontmatter excludes assumes-dependent vars."""
+    errors: list[str] = []
     for sf in stack_files:
         if "/testing/" not in sf:
             continue
@@ -2281,7 +2098,6 @@ def main() -> int:
         if not optional_assumes:
             continue
 
-        # Check if there's a fallback section (meaning assumes are truly optional)
         content = stack_contents.get(sf, "")
         has_fallback = bool(
             re.search(r"(?i)fallback|no[- ]auth", content)
@@ -2289,7 +2105,6 @@ def main() -> int:
         if not has_fallback:
             continue
 
-        # Get provider names from optional assumes
         provider_names = set()
         for a in optional_assumes:
             provider_names.add(a.split("/")[1].upper())
@@ -2302,16 +2117,17 @@ def main() -> int:
         for var in all_env:
             for provider in provider_names:
                 if provider in var:
-                    error(
+                    errors.append(
                         f"[26] {sf}: env frontmatter var '{var}' contains "
                         f"provider name '{provider}' from optional assumes — "
                         f"should not be unconditional when a fallback exists"
                     )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 27: Auth Template Post-Auth Redirects
-    # ---------------------------------------------------------------------------
 
+def check_27_auth_post_auth_redirects(stack_contents: dict[str, str]) -> list[str]:
+    """Check 27: Auth page templates contain router.push/redirect after auth success."""
+    errors: list[str] = []
     for sf, content in stack_contents.items():
         if "/auth/" not in sf:
             continue
@@ -2319,7 +2135,6 @@ def main() -> int:
         blocks = extract_code_blocks(content, {"tsx", "jsx"})
         for block in blocks:
             code = block["code"]
-            # Check if this is a signup or login page template
             is_signup = "signUp" in code or "handleSignup" in code
             is_login = "signInWithPassword" in code or "handleLogin" in code
             if not is_signup and not is_login:
@@ -2327,7 +2142,6 @@ def main() -> int:
 
             page_type = "signup" if is_signup else "login"
 
-            # Check for a redirect call after the auth success path
             has_redirect = bool(
                 re.search(r"router\.push\(|router\.replace\(|redirect\(", code)
             )
@@ -2336,7 +2150,7 @@ def main() -> int:
             )
 
             if not has_redirect or has_only_todo:
-                error(
+                errors.append(
                     f"[27] {sf}:{block['start_line']}: {page_type} page template "
                     f"has no post-auth redirect (router.push/redirect) — only a "
                     f"TODO comment"
@@ -2344,86 +2158,88 @@ def main() -> int:
                     else f"[27] {sf}:{block['start_line']}: {page_type} page "
                     f"template missing post-auth redirect (router.push/redirect)"
                 )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 28: Change Assumes Validation Matches Bootstrap Assumes Validation
-    # ---------------------------------------------------------------------------
 
-    change_path_28 = ".claude/commands/change.md"
-    bootstrap_path_28 = ".claude/commands/bootstrap.md"
-    if os.path.isfile(change_path_28) and os.path.isfile(bootstrap_path_28):
-        change_content_28 = read_skill_with_states(change_path_28)
+def check_28_change_assumes_validation(change_content: str | None) -> list[str]:
+    """Check 28: Change skill value-matches assumes, not just category-exists."""
+    errors: list[str] = []
+    change_path = ".claude/commands/change.md"
+    if not change_content:
+        return errors
 
-        # Find assumes validation text in change.md
-        assumes_refs = list(
-            re.finditer(r"(?i)assumes.*list", change_content_28)
+    assumes_refs = list(
+        re.finditer(r"(?i)assumes.*list", change_content)
+    )
+    if not assumes_refs:
+        return errors
+
+    has_value_matching = bool(
+        re.search(
+            r"(?i)category[/:]value|value\s+(?:must\s+)?match|"
+            r"matching\s+.*pair|category:\s*value.*pair|"
+            r"not just.*(?:category|present)",
+            change_content,
         )
-        if assumes_refs:
-            # Check if the change skill's assumes validation includes
-            # value-matching language (not just category existence)
-            change_assumes_text = change_content_28
-            has_value_matching = bool(
-                re.search(
-                    r"(?i)category[/:]value|value\s+(?:must\s+)?match|"
-                    r"matching\s+.*pair|category:\s*value.*pair|"
-                    r"not just.*(?:category|present)",
-                    change_assumes_text,
-                )
-            )
-            has_category_only = bool(
-                re.search(
-                    r"(?i)check if the corresponding stack category exists",
-                    change_assumes_text,
-                )
-            )
-            if has_category_only and not has_value_matching:
-                error(
-                    f"[28] {change_path_28}: assumes validation uses "
-                    f"category-existence language instead of value-matching "
-                    f"language (should match bootstrap's approach)"
-                )
-
-    # ---------------------------------------------------------------------------
-    # Check 29: Change Payment Validation Before Plan Phase
-    # ---------------------------------------------------------------------------
-
-    change_path_29 = ".claude/commands/change.md"
-    if os.path.isfile(change_path_29):
-        change_content_29 = read_skill_with_states(change_path_29)
-
-        # Find payment dependency validation text (the stop messages)
-        payment_validation_pattern = re.compile(
-            r"Payment requires (?:authentication|a database)",
-            re.IGNORECASE,
+    )
+    has_category_only = bool(
+        re.search(
+            r"(?i)check if the corresponding stack category exists",
+            change_content,
         )
-        payment_matches = list(payment_validation_pattern.finditer(change_content_29))
+    )
+    if has_category_only and not has_value_matching:
+        errors.append(
+            f"[28] {change_path}: assumes validation uses "
+            f"category-existence language instead of value-matching "
+            f"language (should match bootstrap's approach)"
+        )
+    return errors
 
-        if payment_matches:
-            # Find the plan phase marker
-            plan_phase_match = re.search(
-                r"## Phase 1|### STOP",
-                change_content_29,
-            )
-            if plan_phase_match:
-                plan_phase_pos = plan_phase_match.start()
-                # At least one payment validation instance must appear before plan phase
-                has_pre_plan = any(
-                    m.start() < plan_phase_pos for m in payment_matches
-                )
-                if not has_pre_plan:
-                    error(
-                        f"[29] {change_path_29}: all payment dependency "
-                        f"validation appears after the plan phase — at least "
-                        f"one check must be in preconditions (before Phase 1)"
-                    )
 
-    # ---------------------------------------------------------------------------
-    # Check 30: Analytics Stack Files Include Dashboard Navigation Section
-    # ---------------------------------------------------------------------------
+def check_29_change_payment_before_plan(change_content: str | None) -> list[str]:
+    """Check 29: Payment dependency checks appear before plan phase."""
+    errors: list[str] = []
+    change_path = ".claude/commands/change.md"
+    if not change_content:
+        return errors
 
-    analytics_stack_files = [
-        sf for sf in stack_files if "/analytics/" in sf
-    ]
+    payment_validation_pattern = re.compile(
+        r"Payment requires (?:authentication|a database)",
+        re.IGNORECASE,
+    )
+    payment_matches = list(payment_validation_pattern.finditer(change_content))
+
+    if not payment_matches:
+        return errors
+
+    plan_phase_match = re.search(
+        r"## Phase 1|### STOP",
+        change_content,
+    )
+    if not plan_phase_match:
+        return errors
+
+    plan_phase_pos = plan_phase_match.start()
+    has_pre_plan = any(
+        m.start() < plan_phase_pos for m in payment_matches
+    )
+    if not has_pre_plan:
+        errors.append(
+            f"[29] {change_path}: all payment dependency "
+            f"validation appears after the plan phase — at least "
+            f"one check must be in preconditions (before Phase 1)"
+        )
+    return errors
+
+
+def check_30_analytics_dashboard_navigation(
+    stack_files: list[str],
+    stack_contents: dict[str, str],
+) -> list[str]:
+    """Check 30: Analytics stack files include Dashboard Navigation section."""
+    errors: list[str] = []
+    analytics_stack_files = [sf for sf in stack_files if "/analytics/" in sf]
 
     for sf in analytics_stack_files:
         content = stack_contents[sf]
@@ -2431,52 +2247,56 @@ def main() -> int:
             re.search(r"(?i)^## Dashboard Navigation", content, re.MULTILINE)
         )
         if not has_dashboard_nav:
-            error(
+            errors.append(
                 f"[30] {sf}: analytics stack file missing required "
                 f"'## Dashboard Navigation' section (needed by /iterate skill)"
             )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 31: Change Skill Revalidates Testing Assumes for All Change Types
-    # ---------------------------------------------------------------------------
 
-    change_path_31 = ".claude/commands/change.md"
-    if os.path.isfile(change_path_31):
-        change_content_31 = read_skill_with_states(change_path_31)
+def check_31_change_testing_assumes_revalidation(change_content: str | None) -> list[str]:
+    """Check 31: Change skill revalidates testing assumes for all change types."""
+    errors: list[str] = []
+    change_path = ".claude/commands/change.md"
+    if not change_content:
+        return errors
 
-        # Find preconditions section (by content, not step number)
-        preconditions_match = re.search(
-            r"(?:## Step \d+:.*?[Cc]heck.*?preconditions|# STATE \d+:\s*CHECK_PRECONDITIONS).*?\n(.*?)(?=\n## Step \d|\n## Phase|\n# STATE|\Z)",
-            change_content_31,
-            re.DOTALL,
+    preconditions_match = re.search(
+        r"(?:## Step \d+:.*?[Cc]heck.*?preconditions|# STATE \d+:\s*CHECK_PRECONDITIONS).*?\n(.*?)(?=\n## Step \d|\n## Phase|\n# STATE|\Z)",
+        change_content,
+        re.DOTALL,
+    )
+    if preconditions_match:
+        preconditions_text = preconditions_match.group(1)
+
+        has_non_test_assumes_check = bool(
+            re.search(
+                r"(?i)(?:NOT\s+Test|type\s+is\s+NOT\s+Test).*testing.*assumes|"
+                r"testing.*assumes.*(?:NOT\s+Test|type\s+is\s+NOT\s+Test)",
+                preconditions_text,
+                re.DOTALL,
+            )
         )
-        if preconditions_match:
-            preconditions_text = preconditions_match.group(1)
-
-            # Look for testing assumes validation NOT gated by Test-type classification
-            # There should be a check that runs when type is NOT Test
-            has_non_test_assumes_check = bool(
-                re.search(
-                    r"(?i)(?:NOT\s+Test|type\s+is\s+NOT\s+Test).*testing.*assumes|"
-                    r"testing.*assumes.*(?:NOT\s+Test|type\s+is\s+NOT\s+Test)",
-                    preconditions_text,
-                    re.DOTALL,
-                )
+        if not has_non_test_assumes_check:
+            errors.append(
+                f"[31] {change_path}: preconditions step does not "
+                f"revalidate testing assumes for non-Test change types"
             )
-            if not has_non_test_assumes_check:
-                error(
-                    f"[31] {change_path_31}: preconditions step does not "
-                    f"revalidate testing assumes for non-Test change types"
-                )
-        else:
-            error(
-                f"[31] {change_path_31}: could not find preconditions step "
-                f"to check testing assumes revalidation"
-            )
+    else:
+        errors.append(
+            f"[31] {change_path}: could not find preconditions step "
+            f"to check testing assumes revalidation"
+        )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 32: Analytics Stack Files Include Test Blocking Section
-    # ---------------------------------------------------------------------------
+
+def check_32_analytics_test_blocking(
+    stack_files: list[str],
+    stack_contents: dict[str, str],
+) -> list[str]:
+    """Check 32: Analytics stack files include Test Blocking section."""
+    errors: list[str] = []
+    analytics_stack_files = [sf for sf in stack_files if "/analytics/" in sf]
 
     for sf in analytics_stack_files:
         content = stack_contents[sf]
@@ -2484,49 +2304,22 @@ def main() -> int:
             re.search(r"(?i)^## Test Blocking", content, re.MULTILINE)
         )
         if not has_test_blocking:
-            error(
+            errors.append(
                 f"[32] {sf}: analytics stack file missing required "
                 f"'## Test Blocking' section (needed by testing stack's "
                 f"blockAnalytics helper)"
             )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 33: Skill Prose Phantom Event Names
-    # ---------------------------------------------------------------------------
 
-    events_yaml_path = "experiment/EVENTS.yaml"
-    if os.path.isfile(events_yaml_path):
-        with open(events_yaml_path) as f:
-            events_data = yaml.safe_load(f) or {}
-
-        defined_events: set[str] = set()
-        flat_events = events_data.get("events", {})
-        if isinstance(flat_events, dict):
-            for ename, edef in flat_events.items():
-                defined_events.add(ename)
-
-        global_props = set((events_data.get("global_properties", {}) or {}).keys())
-
-        event_props: set[str] = set()
-        if isinstance(flat_events, dict):
-            for ename, edef in flat_events.items():
-                if isinstance(edef, dict):
-                    for prop_name in (edef.get("properties", {}) or {}).keys():
-                        event_props.add(prop_name)
-
-        for e in check_33_phantom_event_names(skill_contents, defined_events, global_props, event_props):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 34: Stack Files with Fallback Sections Annotate Conditional Files
-    # ---------------------------------------------------------------------------
-
+def check_34_conditional_files_frontmatter(stack_contents: dict[str, str]) -> list[str]:
+    """Check 34: Fallback stacks annotate conditional files in frontmatter."""
+    errors: list[str] = []
     for sf, content in stack_contents.items():
         fm = parse_frontmatter(sf)
         if not fm:
             continue
 
-        # Check if this stack file has a fallback section
         has_fallback = bool(
             re.search(r"(?i)## No-Auth Fallback|## .*Fallback", content)
         )
@@ -2537,12 +2330,10 @@ def main() -> int:
         if not fm_files:
             continue
 
-        # Get the files block from frontmatter to check for # conditional comment
         fm_match = re.match(r"^---\n(.*?\n)---", content, re.DOTALL)
         if not fm_match:
             continue
         fm_text = fm_match.group(1)
-        # Extract the full files block (files: line + all indented list entries)
         files_block_match = re.search(
             r"^files:.*(?:\n  - .*)*", fm_text, re.MULTILINE
         )
@@ -2550,30 +2341,23 @@ def main() -> int:
             continue
         files_block = files_block_match.group(0)
 
-        # Find code block headers that only appear outside the fallback section
         fallback_start = re.search(r"(?i)## No-Auth Fallback|## .*Fallback", content)
         if not fallback_start:
             continue
 
-        # Get headers before fallback
         pre_fallback = content[:fallback_start.start()]
         post_fallback = content[fallback_start.start():]
 
         pre_headers = set(re.findall(r"###\s+`([^`]+)`", pre_fallback))
         post_headers = set(re.findall(r"###\s+`([^`]+)`", post_fallback))
 
-        # Files whose headers only appear in pre-fallback (full template only)
         full_only_headers = pre_headers - post_headers
 
-        # Check if any frontmatter files match full-only headers
         assumes_dependent_files = [f for f in fm_files if f in full_only_headers]
 
-        # Check for # conditional annotation on the files: key line OR on
-        # individual file entries for each assumes-dependent file
         if assumes_dependent_files:
             unannotated = []
             for dep_file in assumes_dependent_files:
-                # Check if this specific file's entry line has # conditional
                 entry_match = re.search(
                     rf"^\s*-\s+{re.escape(dep_file)}.*#\s*conditional",
                     files_block,
@@ -2581,22 +2365,21 @@ def main() -> int:
                 )
                 if not entry_match:
                     unannotated.append(dep_file)
-            # Also accept a blanket # conditional on the files: key line
             if unannotated and "# conditional" not in files_block.split("\n")[0]:
-                error(
+                errors.append(
                     f"[34] {sf}: files frontmatter lists assumes-dependent files "
                     f"{unannotated} but lacks '# conditional' annotation"
                 )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 35: No-Auth CI Template Includes Commented Database Placeholder Env Vars
-    # ---------------------------------------------------------------------------
 
+def check_35_noauth_ci_database_env_vars(stack_contents: dict[str, str]) -> list[str]:
+    """Check 35: No-auth CI template includes database placeholder env vars."""
+    errors: list[str] = []
     for sf, content in stack_contents.items():
         if "/testing/" not in sf:
             continue
 
-        # Find the full-auth CI Job Template
         full_ci_match = re.search(
             r"## CI Job Template\s*\n(.*?)(?=\n## |\Z)",
             content,
@@ -2605,7 +2388,6 @@ def main() -> int:
         if not full_ci_match:
             continue
 
-        # Find the No-Auth CI Job Template
         noauth_ci_match = re.search(
             r"### No-Auth CI Job Template\s*\n(.*?)(?=\n### |\n## |\Z)",
             content,
@@ -2617,8 +2399,6 @@ def main() -> int:
         full_ci_text = full_ci_match.group(1)
         noauth_ci_text = noauth_ci_match.group(1)
 
-        # Check for database-related env var names (SUPABASE from database/supabase)
-        # in the full-auth template
         db_env_vars = re.findall(
             r"(NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_ANON_KEY)",
             full_ci_text,
@@ -2627,57 +2407,543 @@ def main() -> int:
         if db_env_vars:
             for var in set(db_env_vars):
                 if var not in noauth_ci_text:
-                    error(
+                    errors.append(
                         f"[35] {sf}: No-Auth CI Job Template missing database "
                         f"env var '{var}' which is present in full-auth CI "
                         f"Job Template (should be commented or uncommented)"
                     )
+    return errors
 
-    # ---------------------------------------------------------------------------
-    # Check 36: (removed — bootstrap now supports stack.testing)
-    # ---------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------
-    # Check 37: Change Skill Classification Precedes Classification-Dependent Checks
-    # ---------------------------------------------------------------------------
+def check_37_change_classification_before_dependent(change_content: str | None) -> list[str]:
+    """Check 37: Classification step precedes classification-dependent checks."""
+    errors: list[str] = []
+    change_path = ".claude/commands/change.md"
+    if not change_content:
+        return errors
 
-    change_path_37 = ".claude/commands/change.md"
-    if os.path.isfile(change_path_37):
-        change_content_37 = read_skill_with_states(change_path_37)
+    classify_match = re.search(
+        r"^## Step (\d+):.*(?:Classify|classify)",
+        change_content,
+        re.MULTILINE,
+    )
 
-        # Find the step heading containing "Classify"
-        classify_match = re.search(
-            r"^## Step (\d+):.*(?:Classify|classify)",
-            change_content_37,
-            re.MULTILINE,
+    step_pattern = re.compile(
+        r"^## Step (\d+):.*\n(.*?)(?=^## Step \d|\Z)",
+        re.MULTILINE | re.DOTALL,
+    )
+    classification_dependent_steps: list[tuple[int, str]] = []
+    for m in step_pattern.finditer(change_content):
+        step_num = int(m.group(1))
+        body = m.group(2)
+        if re.search(r"classified as|is classified as|is a Fix|is NOT Test", body):
+            classification_dependent_steps.append((step_num, body[:50]))
+
+    if classify_match and classification_dependent_steps:
+        classify_step = int(classify_match.group(1))
+        for dep_step, _ in classification_dependent_steps:
+            if dep_step < classify_step:
+                errors.append(
+                    f"[37] {change_path}: Step {dep_step} uses "
+                    f"classification-dependent language but appears before "
+                    f"the classification step (Step {classify_step})"
+                )
+    return errors
+
+
+def check_40_distribute_feedback_event(distribute_content: str | None) -> list[str]:
+    """Check 40: distribute.md contains feedback_submitted event definition."""
+    errors: list[str] = []
+    distribute_path = ".claude/commands/distribute.md"
+    if not distribute_content:
+        return errors
+
+    yaml_blocks = extract_code_blocks(distribute_content, {"yaml"})
+    has_event_def = any(
+        "feedback_submitted" in block["code"] and "funnel_stage:" in block["code"]
+        for block in yaml_blocks
+    )
+    if not has_event_def:
+        errors.append(
+            f"[40] {distribute_path}: must contain a YAML code block "
+            f"defining the 'feedback_submitted' event (added to "
+            f"experiment/EVENTS.yaml events map during Step 7c)"
         )
+    return errors
 
-        # Find step headings whose body contains "classified as" or "is a Fix"
-        step_pattern = re.compile(
-            r"^## Step (\d+):.*\n(.*?)(?=^## Step \d|\Z)",
-            re.MULTILINE | re.DOTALL,
-        )
-        classification_dependent_steps: list[tuple[int, str]] = []
-        for m in step_pattern.finditer(change_content_37):
-            step_num = int(m.group(1))
-            body = m.group(2)
-            if re.search(r"classified as|is classified as|is a Fix|is NOT Test", body):
-                classification_dependent_steps.append((step_num, body[:50]))
 
-        if classify_match and classification_dependent_steps:
-            classify_step = int(classify_match.group(1))
-            for dep_step, _ in classification_dependent_steps:
-                if dep_step < classify_step:
-                    error(
-                        f"[37] {change_path_37}: Step {dep_step} uses "
-                        f"classification-dependent language but appears before "
-                        f"the classification step (Step {classify_step})"
+def check_41_distribution_docs_references() -> list[str]:
+    """Check 41: docs/*.md files referenced in distribute.md or distribution stack files exist."""
+    errors: list[str] = []
+    docs_ref_sources = [".claude/commands/distribute.md"] + glob.glob(
+        ".claude/stacks/distribution/*.md"
+    )
+    for src_path in docs_ref_sources:
+        if os.path.isfile(src_path):
+            with open(src_path) as f:
+                content = f.read()
+
+            for ref_match in re.finditer(r"`(docs/[^`]+\.md)`", content):
+                referenced_path = ref_match.group(1)
+                if not os.path.isfile(referenced_path):
+                    errors.append(
+                        f"[41] {src_path}: references `{referenced_path}` "
+                        f"but that file does not exist on disk"
                     )
+    return errors
+
+
+def check_42_distribute_validates_analytics(distribute_content: str | None) -> list[str]:
+    """Check 42: distribute.md preconditions validate stack.analytics."""
+    errors: list[str] = []
+    distribute_path = ".claude/commands/distribute.md"
+    if not distribute_content:
+        return errors
+
+    preconditions_match = re.search(
+        r"(?:## Step 1:|# STATE \d+:\s*VALIDATE_PRECONDITIONS).*?\n(.*?)(?=\n## Step 2:|\n# STATE|\Z)",
+        distribute_content,
+        re.DOTALL,
+    )
+    if preconditions_match:
+        preconditions_text = preconditions_match.group(1)
+        has_analytics_validation = bool(
+            re.search(
+                r"(?i)analytics.*(?:required|not present|not configured).*stop|"
+                r"stack\.analytics.*(?:present|not|missing)|"
+                r"(?:verify|check).*stack\.analytics",
+                preconditions_text,
+            )
+        )
+        if not has_analytics_validation:
+            errors.append(
+                f"[42] {distribute_path}: preconditions section does not "
+                f"validate that `stack.analytics` is present in experiment.yaml "
+                f"before proceeding"
+            )
+    else:
+        errors.append(
+            f"[42] {distribute_path}: could not find preconditions section "
+            f"(Step 1) to check analytics validation"
+        )
+    return errors
+
+
+def check_43_distribute_validates_events_structure(distribute_content: str | None) -> list[str]:
+    """Check 43: distribute.md preconditions validate events is a dict."""
+    errors: list[str] = []
+    distribute_path = ".claude/commands/distribute.md"
+    if not distribute_content:
+        return errors
+
+    preconditions_match = re.search(
+        r"(?:## Step 1:|# STATE \d+:\s*VALIDATE_PRECONDITIONS).*?\n(.*?)(?=\n## Step 2:|\n# STATE|\Z)",
+        distribute_content,
+        re.DOTALL,
+    )
+    if preconditions_match:
+        preconditions_text = preconditions_match.group(1)
+        has_events_validation = bool(
+            re.search(
+                r"`events`.*(?:dict|map|stop|malformed|missing)",
+                preconditions_text,
+                re.DOTALL,
+            )
+        )
+        if not has_events_validation:
+            has_events_validation = bool(
+                re.search(
+                    r"events.*(?:dict|map)",
+                    preconditions_text,
+                )
+            )
+        if not has_events_validation:
+            errors.append(
+                f"[43] {distribute_path}: preconditions section does not "
+                f"validate that experiment/EVENTS.yaml `events` is a well-formed "
+                f"dict before proceeding"
+            )
+    else:
+        errors.append(
+            f"[43] {distribute_path}: could not find preconditions section "
+            f"(Step 1) to check events validation"
+        )
+    return errors
+
+
+def check_44_bootstrap_validates_variants(bootstrap_content: str | None) -> list[str]:
+    """Check 44: bootstrap.md Step 3 contains variant validation logic."""
+    errors: list[str] = []
+    bootstrap_path = ".claude/commands/bootstrap.md"
+    if not bootstrap_content:
+        return errors
+
+    validate_section_match = re.search(
+        r"##.*(?:Step 3|Validate (?:idea|experiment)\.yaml).*?\n(.*?)(?=\n## |\Z)",
+        bootstrap_content,
+        re.DOTALL,
+    )
+    if not validate_section_match:
+        validate_section_match = re.search(
+            r"(?i)#{1,2}\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n#{1,2}\s*STATE|\n#\s*STATE|\Z)",
+            bootstrap_content,
+            re.DOTALL,
+        )
+    if validate_section_match:
+        validate_text = validate_section_match.group(1)
+        has_variant_validation = bool(
+            re.search(
+                r"variants?.*(?:present|list|at least 2|slug|valid)",
+                validate_text,
+                re.IGNORECASE,
+            )
+        )
+        if not has_variant_validation:
+            errors.append(
+                f"[44] {bootstrap_path}: Step 3 (Validate experiment.yaml) does not "
+                f"contain variant validation logic (expected mention of variants "
+                f"with present/list/slug/at least 2)"
+            )
+        has_archetype_guard = bool(
+            re.search(
+                r"variants?.*archetype.*(?:NOT|not|!=).*web-app|web-app.*only.*variants?",
+                validate_text,
+                re.IGNORECASE,
+            )
+        )
+        if not has_archetype_guard:
+            errors.append(
+                f"[44] {bootstrap_path}: Step 3 (Validate experiment.yaml) does not "
+                f"restrict variants to web-app archetype (expected archetype guard "
+                f"near variants validation)"
+            )
+    else:
+        errors.append(
+            f"[44] {bootstrap_path}: could not find 'Validate experiment.yaml' "
+            f"section (Step 3) to check variant validation"
+        )
+    return errors
+
+
+def check_45_visit_landing_variant_property(events_data: dict | None) -> list[str]:
+    """Check 45: visit_landing event has variant property."""
+    errors: list[str] = []
+    events_path = "experiment/EVENTS.yaml"
+    if not events_data or not isinstance(events_data, dict):
+        return errors
+
+    flat_events = events_data.get("events", {})
+    if isinstance(flat_events, dict) and "visit_landing" in flat_events:
+        visit_landing_event = flat_events["visit_landing"]
+        props = visit_landing_event.get("properties", {}) if isinstance(visit_landing_event, dict) else {}
+        if not isinstance(props, dict) or "variant" not in props:
+            errors.append(
+                f"[45] {events_path}: visit_landing event is missing "
+                f"a 'variant' property (needed for experiment matrix)"
+            )
+    else:
+        errors.append(
+            f"[45] {events_path}: visit_landing event not found "
+            f"in events map"
+        )
+    return errors
+
+
+def check_47_deploy_dashboard_setup(deploy_content: str | None) -> list[str]:
+    """Check 47: deploy.md contains analytics dashboard and scheduled digest setup."""
+    errors: list[str] = []
+    if not deploy_content:
+        return errors
+    has_dashboard = bool(re.search(r"(?i)dashboard", deploy_content))
+    has_digest = bool(re.search(r"(?i)digest|subscription|subscribe", deploy_content))
+    if not has_dashboard:
+        errors.append("[47] deploy.md: missing analytics dashboard setup section")
+    if not has_digest:
+        errors.append("[47] deploy.md: missing scheduled digest/subscription setup")
+    return errors
+
+
+def check_48_iterate_next_checkin(iterate_content: str | None) -> list[str]:
+    """Check 48: iterate.md contains Next Check-in schedule section."""
+    errors: list[str] = []
+    if not iterate_content:
+        return errors
+    has_checkin = bool(re.search(r"(?i)next.check.in", iterate_content))
+    if not has_checkin:
+        errors.append("[48] iterate.md: missing Next Check-in schedule section")
+    return errors
+
+
+def check_49_bootstrap_email_auth_database(bootstrap_content: str | None) -> list[str]:
+    """Check 49: bootstrap validates email requires auth and database."""
+    errors: list[str] = []
+    if not bootstrap_content:
+        return errors
+    bs_prose = extract_prose(bootstrap_content)
+    has_email_auth = bool(re.search(
+        r"(?i)email.*auth.*present|email\s+requires.*auth", bs_prose
+    ))
+    has_email_db = bool(re.search(
+        r"(?i)email.*database.*present|email\s+requires.*database", bs_prose
+    ))
+    if not has_email_auth:
+        errors.append("[49] bootstrap.md: missing email-requires-auth dependency check")
+    if not has_email_db:
+        errors.append("[49] bootstrap.md: missing email-requires-database dependency check")
+    return errors
+
+
+def check_50_change_email_auth_database(change_content: str | None) -> list[str]:
+    """Check 50: change validates email requires auth and database."""
+    errors: list[str] = []
+    if not change_content:
+        return errors
+    change_prose = extract_prose(change_content)
+    has_email_ref = bool(re.search(r"(?i)adding\s+.*email|email.*stack", change_prose))
+    if not has_email_ref:
+        return errors
+    has_email_auth_chk = bool(re.search(
+        r"(?i)email.*auth.*present|email\s+requires.*auth", change_prose
+    ))
+    has_email_db_chk = bool(re.search(
+        r"(?i)email.*database.*present|email\s+requires.*database", change_prose
+    ))
+    if not has_email_auth_chk:
+        errors.append("[50] change.md: mentions adding email stack without auth-presence validation")
+    if not has_email_db_chk:
+        errors.append("[50] change.md: mentions adding email stack without database-presence validation")
+    return errors
+
+
+def check_51_track_server_event_signature(stack_contents: dict[str, str]) -> list[str]:
+    """Check 51: trackServerEvent calls pass string as distinctId, not object."""
+    errors: list[str] = []
+    analytics_server_sig = None
+    for sf in sorted(f for f in stack_contents if "/analytics/" in f):
+        content = stack_contents[sf]
+        if re.search(r"trackServerEvent\s*\(\s*\n?\s*event:\s*string,\s*\n?\s*distinctId:\s*string", content):
+            analytics_server_sig = sf
+            break
+
+    if not analytics_server_sig:
+        return errors
+
+    for sf, content in stack_contents.items():
+        code_blocks = extract_code_blocks(content, {"ts", "tsx", "typescript"})
+        for block in code_blocks:
+            bad_calls = re.findall(
+                r'trackServerEvent\s*\(\s*"[^"]+"\s*,\s*\{',
+                block["code"],
+            )
+            for call in bad_calls:
+                errors.append(
+                    f"[51] {sf}: trackServerEvent call passes object as distinctId "
+                    f"(expected string) near line {block['start_line']}: {call.strip()}"
+                )
+    return errors
+
+
+def check_52_track_server_event_awaited(stack_contents: dict[str, str]) -> list[str]:
+    """Check 52: trackServerEvent calls are awaited in stack file code blocks."""
+    errors: list[str] = []
+    analytics_server_sig = None
+    for sf in sorted(f for f in stack_contents if "/analytics/" in f):
+        content = stack_contents[sf]
+        if re.search(r"trackServerEvent\s*\(\s*\n?\s*event:\s*string,\s*\n?\s*distinctId:\s*string", content):
+            analytics_server_sig = sf
+            break
+
+    if not analytics_server_sig:
+        return errors
+
+    for sf, content in stack_contents.items():
+        code_blocks = extract_code_blocks(content, {"ts", "tsx", "typescript"})
+        for block in code_blocks:
+            unwaited = re.findall(
+                r"^(?!.*\bawait\b)(?!.*\bfunction\b).*\btrackServerEvent\s*\(",
+                block["code"],
+                re.MULTILINE,
+            )
+            for call in unwaited:
+                errors.append(
+                    f"[52] {sf}: trackServerEvent call without await "
+                    f"near line {block['start_line']}: {call.strip()}"
+                )
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# Check registry and runner
+# ---------------------------------------------------------------------------
+
+
+def run_checks(
+    checks: list[tuple[int, str, object]],
+    ctx: dict,
+) -> list[str]:
+    """Run a list of check entries and collect all errors.
+
+    Each entry is (check_number, description, callable_that_takes_ctx).
+    """
+    all_errors: list[str] = []
+    for _num, _desc, check_fn in checks:
+        errs = check_fn(ctx)
+        if errs:
+            all_errors.extend(errs)
+    return all_errors
+
+
+CHECKS: list[tuple[int, str, object]] = [
+    (1, "Import Completeness", lambda ctx: check_1_import_completeness(ctx["stack_contents"])),
+    (2, "Makefile Target Guards", lambda ctx: check_2_makefile_target_guards(ctx["makefile_content"]) if ctx["makefile_content"] else []),
+    (3, "Fixture Validation", lambda ctx: ctx["_check_3_result"][0]),
+    (4, "Frontmatter Content Sync", lambda ctx: check_4_frontmatter_content_sync(ctx["stack_files"], ctx["stack_contents"], ctx["makefile_content"])),
+    (5, "Conditional Dependency References", lambda ctx: check_5_conditional_dependency_refs(ctx["skill_contents"])),
+    (6, "Required Fields Consistency", lambda ctx: check_6_required_fields_consistency(ctx["makefile_content"], ctx["REQUIRED_EXPERIMENT_FIELDS"])),
+    (7, "Fixture Stack Coverage", lambda ctx: check_7_fixture_stack_coverage_inline(ctx["fixture_dir"], ctx["stack_files"], ctx["fixture_type_map"], ctx["bootstrap_content"])),
+    (8, "Tool Prereq Validity", lambda ctx: check_8_tool_prereq_validity(ctx["skill_contents"])),
+    (9, "Env Loading Outside Next.js Runtime", lambda ctx: check_9_env_loading_outside_nextjs(ctx["stack_contents"])),
+    (10, "Validate Warning Differentiation", lambda ctx: check_10_validate_warning_differentiation(ctx["makefile_content"], ctx["makefile_targets"])),
+    (11, "Hardcoded Provider Names Match Assumes", lambda ctx: check_11_hardcoded_provider_names(ctx["stack_contents"])),
+    (12, "Prose File References in Reads Frontmatter", lambda ctx: check_12_prose_file_refs_in_reads(ctx["skill_contents"])),
+    (13, "Fixture Branching Coverage", lambda ctx: check_13_fixture_branching_coverage(ctx["fixture_dir"], ctx["stack_contents"])),
+    (14, "Stack Fallback When Assumes Not Met", lambda ctx: check_14_stack_fallback_when_assumes_not_met(ctx["stack_contents"])),
+    (15, "Makefile Deploy Hosting Guard", lambda ctx: check_15_makefile_deploy_hosting_guard(ctx["makefile_content"], ctx["makefile_targets"])),
+    (16, "Change Payment-Auth Dependency", lambda ctx: check_16_change_payment_auth(ctx["change_content"], ".claude/commands/change.md") if ctx["change_content"] else []),
+    (17, "Env Vars Prose-Frontmatter Sync", lambda ctx: check_17_env_vars_prose_frontmatter_sync(ctx["stack_contents"])),
+    (18, "Change Payment-Database Dependency", lambda ctx: check_18_change_payment_database(ctx["change_content"], ".claude/commands/change.md") if ctx["change_content"] else []),
+    (19, "Fixture Testing Partial Assumes", lambda ctx: check_19_fixture_testing_partial_assumes(ctx["fixture_dir"], ctx["stack_files"])),
+    (20, "Makefile Help No Env Var Names", lambda ctx: check_20_makefile_help_no_env_vars(ctx["makefile_content"])),
+    (21, "Packages Prose-Frontmatter Sync", lambda ctx: check_21_packages_prose_frontmatter_sync(ctx["stack_contents"])),
+    (22, "Bootstrap Payment-Database Dependency", lambda ctx: check_22_bootstrap_payment_database(ctx["bootstrap_content"])),
+    (23, "Testing CI Payment Env Vars", lambda ctx: check_23_testing_ci_payment_env_vars(ctx["stack_contents"])),
+    (24, "Testing No-Auth Fallback CI Template", lambda ctx: check_24_testing_noauth_fallback_ci(ctx["stack_contents"])),
+    (25, "Change Test Type Testing Stack", lambda ctx: check_25_change_test_type_testing_stack(ctx["change_content"])),
+    (26, "Testing Env Frontmatter Assumes", lambda ctx: check_26_testing_env_frontmatter_assumes(ctx["stack_files"], ctx["stack_contents"])),
+    (27, "Auth Post-Auth Redirects", lambda ctx: check_27_auth_post_auth_redirects(ctx["stack_contents"])),
+    (28, "Change Assumes Validation", lambda ctx: check_28_change_assumes_validation(ctx["change_content"])),
+    (29, "Change Payment Before Plan", lambda ctx: check_29_change_payment_before_plan(ctx["change_content"])),
+    (30, "Analytics Dashboard Navigation", lambda ctx: check_30_analytics_dashboard_navigation(ctx["stack_files"], ctx["stack_contents"])),
+    (31, "Change Testing Assumes Revalidation", lambda ctx: check_31_change_testing_assumes_revalidation(ctx["change_content"])),
+    (32, "Analytics Test Blocking", lambda ctx: check_32_analytics_test_blocking(ctx["stack_files"], ctx["stack_contents"])),
+    (33, "Phantom Event Names", lambda ctx: check_33_phantom_event_names(ctx["skill_contents"], ctx["defined_events"], ctx["global_props"], ctx["event_props"]) if ctx["events_data"] else []),
+    (34, "Conditional Files Frontmatter", lambda ctx: check_34_conditional_files_frontmatter(ctx["stack_contents"])),
+    (35, "No-Auth CI Database Env Vars", lambda ctx: check_35_noauth_ci_database_env_vars(ctx["stack_contents"])),
+    # 36 removed
+    (37, "Change Classification Before Dependent", lambda ctx: check_37_change_classification_before_dependent(ctx["change_content"])),
+    (38, "Ads.yaml Schema", lambda ctx: check_38_ads_yaml_schema(ctx["ads_data"], "experiment/ads.yaml") if ctx["ads_data"] else []),
+    (39, "Ads Campaign Name Match", lambda ctx: check_39_ads_campaign_name(ctx["ads_data"], ctx["idea_data"], "experiment/ads.yaml") if ctx["ads_data"] and ctx["idea_data"] else []),
+    (40, "Distribute Feedback Event", lambda ctx: check_40_distribute_feedback_event(ctx["distribute_content"])),
+    (41, "Distribution Docs References", lambda ctx: check_41_distribution_docs_references()),
+    (42, "Distribute Validates Analytics", lambda ctx: check_42_distribute_validates_analytics(ctx["distribute_content"])),
+    (43, "Distribute Validates Events Structure", lambda ctx: check_43_distribute_validates_events_structure(ctx["distribute_content"])),
+    (44, "Bootstrap Validates Variants", lambda ctx: check_44_bootstrap_validates_variants(ctx["bootstrap_content"])),
+    (45, "visit_landing Variant Property", lambda ctx: check_45_visit_landing_variant_property(ctx["events_data"])),
+    (46, "Iterate Verdict", lambda ctx: check_46_iterate_verdict(ctx["iterate_content"]) if ctx["iterate_content"] else []),
+    (47, "Deploy Dashboard Setup", lambda ctx: check_47_deploy_dashboard_setup(ctx["deploy_content"])),
+    (48, "Iterate Next Check-in", lambda ctx: check_48_iterate_next_checkin(ctx["iterate_content"])),
+    (49, "Bootstrap Email-Auth-Database", lambda ctx: check_49_bootstrap_email_auth_database(ctx["bootstrap_content"])),
+    (50, "Change Email-Auth-Database", lambda ctx: check_50_change_email_auth_database(ctx["change_content"])),
+    (51, "trackServerEvent Signature", lambda ctx: check_51_track_server_event_signature(ctx["stack_contents"])),
+    (52, "trackServerEvent Awaited", lambda ctx: check_52_track_server_event_awaited(ctx["stack_contents"])),
+    (53, "Supabase Delete Flag", lambda ctx: check_53_supabase_delete_flag({**ctx["skill_contents"], **ctx["stack_contents"]})),
+    (54, "Procedure Production Branch", lambda ctx: check_54_procedure_production_branch(ctx["procedure_contents"]) if ctx["procedure_contents"] else []),
+    (55, "Production References TDD", lambda ctx: check_55_production_references_tdd(ctx["procedure_contents"]) if ctx["procedure_contents"] else []),
+    (56, "Production References Implementer", lambda ctx: check_56_production_references_implementer(ctx["procedure_contents"]) if ctx["procedure_contents"] else []),
+    (57, "Change Production Precondition", lambda ctx: check_57_change_production_precondition(ctx["change_content"]) if ctx["change_content"] else []),
+    (58, "Agent Tool Consistency", lambda ctx: check_58_agent_tool_consistency(ctx["agent_contents"]) if ctx["agent_contents"] else []),
+    (59, "Framework-Archetype Compatibility", lambda ctx: check_59_framework_archetype_compatibility(ctx["bootstrap_content"], ctx["change_content"]) if ctx["bootstrap_content"] and ctx["change_content"] else []),
+    (60, "Settings Hook Paths", lambda ctx: check_60_settings_hook_paths()),
+    (61, "Footer Directive Sync", lambda ctx: check_61_footer_directive_sync()),
+]
+
+
+def main() -> int:
+    """Run all semantic checks. Returns exit code (0=pass, 1=fail)."""
+    global ERRORS
+    ERRORS = []
 
     # ---------------------------------------------------------------------------
-    # Check 38: Ads.yaml Schema Validation
+    # Collect files and read contents
     # ---------------------------------------------------------------------------
 
+    stack_files = sorted(
+        f
+        for f in glob.glob(".claude/stacks/**/*.md", recursive=True)
+        if "TEMPLATE" not in f
+    )
+    skill_files = sorted(glob.glob(".claude/commands/*.md"))
+
+    stack_contents: dict[str, str] = {}
+    for sf in stack_files:
+        with open(sf) as f:
+            stack_contents[sf] = f.read()
+
+    skill_contents: dict[str, str] = {}
+    for sf in skill_files:
+        with open(sf) as f:
+            skill_contents[sf] = f.read()
+
+    # Read Makefile
+    makefile_path = "Makefile"
+    makefile_content: str | None = None
+    makefile_targets: dict[str, str] = {}
+    if os.path.isfile(makefile_path):
+        with open(makefile_path) as f:
+            makefile_content = f.read()
+        makefile_targets = parse_makefile_targets(makefile_content)
+
+    # Pre-read commonly used skill files
+    bootstrap_path = ".claude/commands/bootstrap.md"
+    bootstrap_content = read_skill_with_states(bootstrap_path) if os.path.isfile(bootstrap_path) else None
+
+    change_path = ".claude/commands/change.md"
+    change_content = read_skill_with_states(change_path) if os.path.isfile(change_path) else None
+
+    deploy_path = ".claude/commands/deploy.md"
+    deploy_content = read_skill_with_states(deploy_path) if os.path.isfile(deploy_path) else None
+
+    iterate_path = ".claude/commands/iterate.md"
+    iterate_content = read_skill_with_states(iterate_path) if os.path.isfile(iterate_path) else None
+
+    distribute_path = ".claude/commands/distribute.md"
+    distribute_content = read_skill_with_states(distribute_path) if os.path.isfile(distribute_path) else None
+
+    # Pre-read procedure files
+    procedure_contents: dict[str, str] = {}
+    for pf in glob.glob(".claude/procedures/*.md"):
+        if os.path.isfile(pf):
+            with open(pf) as f:
+                procedure_contents[pf] = f.read()
+
+    # Pre-read agent files
+    agent_contents: dict[str, str] = {}
+    for af in glob.glob(".claude/agents/*.md"):
+        if os.path.isfile(af):
+            with open(af) as f:
+                agent_contents[af] = f.read()
+
+    # Pre-parse events data
+    events_data: dict | None = None
+    defined_events: set[str] = set()
+    global_props: set[str] = set()
+    event_props: set[str] = set()
+    events_yaml_path = "experiment/EVENTS.yaml"
+    if os.path.isfile(events_yaml_path):
+        with open(events_yaml_path) as f:
+            events_data = yaml.safe_load(f) or {}
+        flat_events = events_data.get("events", {})
+        if isinstance(flat_events, dict):
+            for ename in flat_events:
+                defined_events.add(ename)
+            for ename, edef in flat_events.items():
+                if isinstance(edef, dict):
+                    for prop_name in (edef.get("properties", {}) or {}).keys():
+                        event_props.add(prop_name)
+        global_props = set((events_data.get("global_properties", {}) or {}).keys())
+
+    # Pre-parse ads data
+    ads_data: dict | None = None
     ads_yaml_path = "experiment/ads.yaml"
     if os.path.isfile(ads_yaml_path):
         with open(ads_yaml_path) as f:
@@ -2685,453 +2951,59 @@ def main() -> int:
                 ads_data = yaml.safe_load(f)
             except yaml.YAMLError as e:
                 error(f"[38] {ads_yaml_path}: invalid YAML: {e}")
-                ads_data = None
+        if ads_data and not isinstance(ads_data, dict):
+            ads_data = None
 
-        if ads_data and isinstance(ads_data, dict):
-            for e in check_38_ads_yaml_schema(ads_data, ads_yaml_path):
-                error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 39: Ads.yaml Campaign Name Matches experiment.yaml Name
-    # ---------------------------------------------------------------------------
-
-    if os.path.isfile(ads_yaml_path) and os.path.isfile("experiment/experiment.yaml"):
+    # Pre-parse experiment.yaml for idea data
+    idea_data: dict | None = None
+    if os.path.isfile("experiment/experiment.yaml"):
         with open("experiment/experiment.yaml") as f:
-            idea_data_39 = yaml.safe_load(f)
+            idea_data = yaml.safe_load(f)
+        if idea_data and not isinstance(idea_data, dict):
+            idea_data = None
 
-        if os.path.isfile(ads_yaml_path):
-            with open(ads_yaml_path) as f:
-                try:
-                    ads_data_39 = yaml.safe_load(f)
-                except yaml.YAMLError:
-                    ads_data_39 = None
-
-            if (
-                ads_data_39
-                and isinstance(ads_data_39, dict)
-                and isinstance(idea_data_39, dict)
-            ):
-                for e in check_39_ads_campaign_name(ads_data_39, idea_data_39, ads_yaml_path):
-                    error(e)
+    # Fixture dir and type map (computed by check 3, needed by check 7)
+    fixture_dir = "tests/fixtures"
+    REQUIRED_EXPERIMENT_FIELDS = get_required_experiment_fields("web-app")
+    check_3_result = check_3_fixture_validation_inline(fixture_dir, get_required_experiment_fields)
+    fixture_type_map = check_3_result[1]
 
     # ---------------------------------------------------------------------------
-    # Check 40: Distribute Skill Prose Event Names
+    # Build context dict
     # ---------------------------------------------------------------------------
 
-    # The distribute skill adds feedback_submitted to experiment/EVENTS.yaml at runtime.
-    # Verify that distribute.md contains the event definition in a code block
-    # (so it can be added during Step 7c).
-    distribute_path = ".claude/commands/distribute.md"
-    if os.path.isfile(distribute_path):
-        distribute_content = read_skill_with_states(distribute_path)
-
-        # distribute.md must contain a YAML code block that defines feedback_submitted
-        yaml_blocks = extract_code_blocks(distribute_content, {"yaml"})
-        has_event_def = any(
-            "feedback_submitted" in block["code"] and "funnel_stage:" in block["code"]
-            for block in yaml_blocks
-        )
-        if not has_event_def:
-            error(
-                f"[40] {distribute_path}: must contain a YAML code block "
-                f"defining the 'feedback_submitted' event (added to "
-                f"experiment/EVENTS.yaml events map during Step 7c)"
-            )
-
-    # ---------------------------------------------------------------------------
-    # Check 41: Distribution Docs References Exist
-    # ---------------------------------------------------------------------------
-
-    # Check distribute.md and distribution stack files for docs references
-    _docs_ref_sources_41 = [".claude/commands/distribute.md"] + glob.glob(
-        ".claude/stacks/distribution/*.md"
-    )
-    for _src_path_41 in _docs_ref_sources_41:
-        if os.path.isfile(_src_path_41):
-            with open(_src_path_41) as f:
-                _content_41 = f.read()
-
-            # Find backtick-wrapped docs/ references
-            for _ref_match_41 in re.finditer(r"`(docs/[^`]+\.md)`", _content_41):
-                referenced_path_41 = _ref_match_41.group(1)
-                if not os.path.isfile(referenced_path_41):
-                    error(
-                        f"[41] {_src_path_41}: references `{referenced_path_41}` "
-                        f"but that file does not exist on disk"
-                    )
+    ctx = {
+        "stack_files": stack_files,
+        "stack_contents": stack_contents,
+        "skill_contents": skill_contents,
+        "makefile_content": makefile_content,
+        "makefile_targets": makefile_targets,
+        "fixture_dir": fixture_dir,
+        "fixture_type_map": fixture_type_map,
+        "REQUIRED_EXPERIMENT_FIELDS": REQUIRED_EXPERIMENT_FIELDS,
+        "get_required_experiment_fields": get_required_experiment_fields,
+        "bootstrap_content": bootstrap_content,
+        "change_content": change_content,
+        "deploy_content": deploy_content,
+        "iterate_content": iterate_content,
+        "distribute_content": distribute_content,
+        "procedure_contents": procedure_contents,
+        "agent_contents": agent_contents,
+        "events_data": events_data,
+        "defined_events": defined_events,
+        "global_props": global_props,
+        "event_props": event_props,
+        "ads_data": ads_data,
+        "idea_data": idea_data,
+        "_check_3_result": check_3_result,
+    }
 
     # ---------------------------------------------------------------------------
-    # Check 42: Distribute Skill Validates Analytics Stack in experiment.yaml
+    # Run all checks
     # ---------------------------------------------------------------------------
 
-    distribute_path_42 = ".claude/commands/distribute.md"
-    if os.path.isfile(distribute_path_42):
-        distribute_content_42 = read_skill_with_states(distribute_path_42)
-
-        # Find preconditions section (between "Step 1" and "Step 2" headings)
-        preconditions_match_42 = re.search(
-            r"(?:## Step 1:|# STATE \d+:\s*VALIDATE_PRECONDITIONS).*?\n(.*?)(?=\n## Step 2:|\n# STATE|\Z)",
-            distribute_content_42,
-            re.DOTALL,
-        )
-        if preconditions_match_42:
-            preconditions_text_42 = preconditions_match_42.group(1)
-            # Check for a stop message mentioning analytics being required
-            has_analytics_validation = bool(
-                re.search(
-                    r"(?i)analytics.*(?:required|not present|not configured).*stop|"
-                    r"stack\.analytics.*(?:present|not|missing)|"
-                    r"(?:verify|check).*stack\.analytics",
-                    preconditions_text_42,
-                )
-            )
-            if not has_analytics_validation:
-                error(
-                    f"[42] {distribute_path_42}: preconditions section does not "
-                    f"validate that `stack.analytics` is present in experiment.yaml "
-                    f"before proceeding"
-                )
-        else:
-            error(
-                f"[42] {distribute_path_42}: could not find preconditions section "
-                f"(Step 1) to check analytics validation"
-            )
-
-    # ---------------------------------------------------------------------------
-    # Check 43: Distribute Skill Validates experiment/EVENTS.yaml events Structure
-    # ---------------------------------------------------------------------------
-
-    distribute_path_43 = ".claude/commands/distribute.md"
-    if os.path.isfile(distribute_path_43):
-        distribute_content_43 = read_skill_with_states(distribute_path_43)
-
-        # Find preconditions section (between "Step 1" and "Step 2" headings)
-        preconditions_match_43 = re.search(
-            r"(?:## Step 1:|# STATE \d+:\s*VALIDATE_PRECONDITIONS).*?\n(.*?)(?=\n## Step 2:|\n# STATE|\Z)",
-            distribute_content_43,
-            re.DOTALL,
-        )
-        if preconditions_match_43:
-            preconditions_text_43 = preconditions_match_43.group(1)
-            # Check for events map validation near stop/dict/malformed/missing context
-            has_events_validation = bool(
-                re.search(
-                    r"`events`.*(?:dict|map|stop|malformed|missing)",
-                    preconditions_text_43,
-                    re.DOTALL,
-                )
-            )
-            if not has_events_validation:
-                # Fallback: check if it mentions validating events structure at all
-                has_events_validation = bool(
-                    re.search(
-                        r"events.*(?:dict|map)",
-                        preconditions_text_43,
-                    )
-                )
-            if not has_events_validation:
-                error(
-                    f"[43] {distribute_path_43}: preconditions section does not "
-                    f"validate that experiment/EVENTS.yaml `events` is a well-formed "
-                    f"dict before proceeding"
-                )
-        else:
-            error(
-                f"[43] {distribute_path_43}: could not find preconditions section "
-                f"(Step 1) to check events validation"
-            )
-
-    # ---------------------------------------------------------------------------
-    # Check 44: Bootstrap Skill Validates Variants
-    # ---------------------------------------------------------------------------
-
-    bootstrap_path_44 = ".claude/commands/bootstrap.md"
-    if os.path.isfile(bootstrap_path_44):
-        bootstrap_content_44 = read_skill_with_states(bootstrap_path_44)
-
-        # Find the "Validate experiment.yaml" section (Step 3 or STATE 3)
-        validate_section_match = re.search(
-            r"##.*(?:Step 3|Validate (?:idea|experiment)\.yaml).*?\n(.*?)(?=\n## |\Z)",
-            bootstrap_content_44,
-            re.DOTALL,
-        )
-        if not validate_section_match:
-            validate_section_match = re.search(
-                r"(?i)#{1,2}\s*STATE\s+\d+[a-z]*:\s*VALIDATE_EXPERIMENT\s*\n(.*?)(?=\n---\s*\n#{1,2}\s*STATE|\n#\s*STATE|\Z)",
-                bootstrap_content_44,
-                re.DOTALL,
-            )
-        if validate_section_match:
-            validate_text = validate_section_match.group(1)
-            has_variant_validation = bool(
-                re.search(
-                    r"variants?.*(?:present|list|at least 2|slug|valid)",
-                    validate_text,
-                    re.IGNORECASE,
-                )
-            )
-            if not has_variant_validation:
-                error(
-                    f"[44] {bootstrap_path_44}: Step 3 (Validate experiment.yaml) does not "
-                    f"contain variant validation logic (expected mention of variants "
-                    f"with present/list/slug/at least 2)"
-                )
-            # Sub-check: variants must be restricted to web-app archetype
-            has_archetype_guard = bool(
-                re.search(
-                    r"variants?.*archetype.*(?:NOT|not|!=).*web-app|web-app.*only.*variants?",
-                    validate_text,
-                    re.IGNORECASE,
-                )
-            )
-            if not has_archetype_guard:
-                error(
-                    f"[44] {bootstrap_path_44}: Step 3 (Validate experiment.yaml) does not "
-                    f"restrict variants to web-app archetype (expected archetype guard "
-                    f"near variants validation)"
-                )
-        else:
-            error(
-                f"[44] {bootstrap_path_44}: could not find 'Validate experiment.yaml' "
-                f"section (Step 3) to check variant validation"
-            )
-
-    # ---------------------------------------------------------------------------
-    # Check 45: visit_landing Event Has Variant Property
-    # ---------------------------------------------------------------------------
-
-    events_path_45 = "experiment/EVENTS.yaml"
-    if os.path.isfile(events_path_45):
-        with open(events_path_45) as f:
-            events_data_45 = yaml.safe_load(f)
-
-        if isinstance(events_data_45, dict):
-            flat_events_45 = events_data_45.get("events", {})
-            if isinstance(flat_events_45, dict) and "visit_landing" in flat_events_45:
-                visit_landing_event = flat_events_45["visit_landing"]
-                props = visit_landing_event.get("properties", {}) if isinstance(visit_landing_event, dict) else {}
-                if not isinstance(props, dict) or "variant" not in props:
-                    error(
-                        f"[45] {events_path_45}: visit_landing event is missing "
-                        f"a 'variant' property (needed for experiment matrix)"
-                    )
-            else:
-                error(
-                    f"[45] {events_path_45}: visit_landing event not found "
-                    f"in events map"
-                )
-
-    # ---------------------------------------------------------------------------
-    # Check 46: Iterate Skill Contains Experiment Verdict
-    # ---------------------------------------------------------------------------
-
-    iterate_path_46 = ".claude/commands/iterate.md"
-    if os.path.isfile(iterate_path_46):
-        iterate_content_46 = read_skill_with_states(iterate_path_46)
-        for e in check_46_iterate_verdict(iterate_content_46):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 47: Deploy Skill Contains Analytics Dashboard Setup
-    # ---------------------------------------------------------------------------
-
-    deploy_path_47 = ".claude/commands/deploy.md"
-    if os.path.isfile(deploy_path_47):
-        deploy_content_47 = read_skill_with_states(deploy_path_47)
-        has_dashboard = bool(re.search(r"(?i)dashboard", deploy_content_47))
-        has_digest = bool(re.search(r"(?i)digest|subscription|subscribe", deploy_content_47))
-        if not has_dashboard:
-            error("[47] deploy.md: missing analytics dashboard setup section")
-        if not has_digest:
-            error("[47] deploy.md: missing scheduled digest/subscription setup")
-
-    # ---------------------------------------------------------------------------
-    # Check 48: Iterate Skill Contains Next Check-in Schedule
-    # ---------------------------------------------------------------------------
-
-    iterate_path_48 = ".claude/commands/iterate.md"
-    if os.path.isfile(iterate_path_48):
-        iterate_content_48 = read_skill_with_states(iterate_path_48)
-        has_checkin = bool(re.search(r"(?i)next.check.in", iterate_content_48))
-        if not has_checkin:
-            error("[48] iterate.md: missing Next Check-in schedule section")
-
-    # ---------------------------------------------------------------------------
-    # Check 49: Bootstrap Email-Auth-Database Dependency
-    # ---------------------------------------------------------------------------
-
-    bootstrap_path_49 = ".claude/commands/bootstrap.md"
-    if os.path.isfile(bootstrap_path_49):
-        bs_content_49 = read_skill_with_states(bootstrap_path_49)
-        bs_prose_49 = extract_prose(bs_content_49)
-        has_email_auth = bool(re.search(
-            r"(?i)email.*auth.*present|email\s+requires.*auth", bs_prose_49
-        ))
-        has_email_db = bool(re.search(
-            r"(?i)email.*database.*present|email\s+requires.*database", bs_prose_49
-        ))
-        if not has_email_auth:
-            error("[49] bootstrap.md: missing email-requires-auth dependency check")
-        if not has_email_db:
-            error("[49] bootstrap.md: missing email-requires-database dependency check")
-
-    # ---------------------------------------------------------------------------
-    # Check 50: Change Email-Auth-Database Dependency
-    # ---------------------------------------------------------------------------
-
-    change_path_50 = ".claude/commands/change.md"
-    if os.path.isfile(change_path_50):
-        change_content_50 = read_skill_with_states(change_path_50)
-        change_prose_50 = extract_prose(change_content_50)
-        has_email_ref = bool(re.search(r"(?i)adding\s+.*email|email.*stack", change_prose_50))
-        if has_email_ref:
-            has_email_auth_chk = bool(re.search(
-                r"(?i)email.*auth.*present|email\s+requires.*auth", change_prose_50
-            ))
-            has_email_db_chk = bool(re.search(
-                r"(?i)email.*database.*present|email\s+requires.*database", change_prose_50
-            ))
-            if not has_email_auth_chk:
-                error("[50] change.md: mentions adding email stack without auth-presence validation")
-            if not has_email_db_chk:
-                error("[50] change.md: mentions adding email stack without database-presence validation")
-
-    # ---------------------------------------------------------------------------
-    # Check 51: Verify trackServerEvent Calls Match Analytics Stack Signature
-    # trackServerEvent(event, distinctId, properties?) — 2nd arg must be a string,
-    # not an object literal. Catches calls like trackServerEvent("event", { ... })
-    # which pass an object as distinctId instead of a string identifier.
-    # ---------------------------------------------------------------------------
-
-    analytics_server_sig = None  # (event, distinctId, properties?)
-    for sf in glob.glob(".claude/stacks/analytics/*.md"):
-        with open(sf) as f:
-            analytics_content = f.read()
-        # Check if this stack defines trackServerEvent with a distinctId: string param
-        if re.search(r"trackServerEvent\s*\(\s*\n?\s*event:\s*string,\s*\n?\s*distinctId:\s*string", analytics_content):
-            analytics_server_sig = sf
-            break
-
-    if analytics_server_sig:
-        # Scan all stack files for trackServerEvent calls in code blocks
-        for sf in glob.glob(".claude/stacks/**/*.md", recursive=True):
-            with open(sf) as f:
-                sf_content = f.read()
-            code_blocks = extract_code_blocks(sf_content, {"ts", "tsx", "typescript"})
-            for block in code_blocks:
-                # Find trackServerEvent calls where the 2nd arg starts with { (object literal)
-                bad_calls = re.findall(
-                    r'trackServerEvent\s*\(\s*"[^"]+"\s*,\s*\{',
-                    block["code"],
-                )
-                for call in bad_calls:
-                    error(
-                        f"[51] {sf}: trackServerEvent call passes object as distinctId "
-                        f"(expected string) near line {block['start_line']}: {call.strip()}"
-                    )
-
-    # ---------------------------------------------------------------------------
-    # Check 52: Verify trackServerEvent Calls Are Awaited in Stack File Code Blocks
-    # trackServerEvent is async — without await, serverless functions may terminate
-    # before the event is flushed, silently losing analytics data.
-    # ---------------------------------------------------------------------------
-
-    if analytics_server_sig:
-        for sf in glob.glob(".claude/stacks/**/*.md", recursive=True):
-            with open(sf) as f:
-                sf_content_52 = f.read()
-            code_blocks_52 = extract_code_blocks(sf_content_52, {"ts", "tsx", "typescript"})
-            for block in code_blocks_52:
-                # Find trackServerEvent calls NOT preceded by await on the same line
-                # Exclude function definitions (export async function trackServerEvent)
-                unwaited = re.findall(
-                    r"^(?!.*\bawait\b)(?!.*\bfunction\b).*\btrackServerEvent\s*\(",
-                    block["code"],
-                    re.MULTILINE,
-                )
-                for call in unwaited:
-                    error(
-                        f"[52] {sf}: trackServerEvent call without await "
-                        f"near line {block['start_line']}: {call.strip()}"
-                    )
-
-    # ---------------------------------------------------------------------------
-    # Check 53: Verify Supabase CLI Commands Use Correct Flag Syntax
-    # ---------------------------------------------------------------------------
-
-    all_file_contents_53: dict[str, str] = {}
-    for sf in glob.glob(".claude/commands/*.md") + glob.glob(".claude/stacks/**/*.md", recursive=True):
-        with open(sf) as f:
-            all_file_contents_53[sf] = f.read()
-    for e in check_53_supabase_delete_flag(all_file_contents_53):
-        error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 54-56: Production Path Consistency in Procedure Files
-    # ---------------------------------------------------------------------------
-
-    procedure_contents: dict[str, str] = {}
-    for pf in glob.glob(".claude/procedures/*.md"):
-        if os.path.isfile(pf):
-            with open(pf) as f:
-                procedure_contents[pf] = f.read()
-
-    if procedure_contents:
-        for e in check_54_procedure_production_branch(procedure_contents):
-            error(e)
-        for e in check_55_production_references_tdd(procedure_contents):
-            error(e)
-        for e in check_56_production_references_implementer(procedure_contents):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 57: change.md Production Precondition Checks Testing
-    # ---------------------------------------------------------------------------
-
-    change_path_57 = ".claude/commands/change.md"
-    if os.path.isfile(change_path_57):
-        change_content_57 = read_skill_with_states(change_path_57)
-        for e in check_57_change_production_precondition(change_content_57):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 58: Agent Tool Consistency
-    # ---------------------------------------------------------------------------
-
-    agent_contents: dict[str, str] = {}
-    for af in glob.glob(".claude/agents/*.md"):
-        if os.path.isfile(af):
-            with open(af) as f:
-                agent_contents[af] = f.read()
-
-    if agent_contents:
-        for e in check_58_agent_tool_consistency(agent_contents):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 59: Framework-Archetype Compatibility Validation
-    # ---------------------------------------------------------------------------
-
-    bootstrap_path_59 = ".claude/commands/bootstrap.md"
-    change_path_59 = ".claude/commands/change.md"
-    if os.path.isfile(bootstrap_path_59) and os.path.isfile(change_path_59):
-        bs_content_59 = read_skill_with_states(bootstrap_path_59)
-        ch_content_59 = read_skill_with_states(change_path_59)
-        for e in check_59_framework_archetype_compatibility(bs_content_59, ch_content_59):
-            error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 60: Settings.json Hook Paths
-    # ---------------------------------------------------------------------------
-
-    for e in check_60_settings_hook_paths():
-        error(e)
-
-    # ---------------------------------------------------------------------------
-    # Check 61: Footer Directive Sync
-    # ---------------------------------------------------------------------------
-
-    for e in check_61_footer_directive_sync():
+    all_errors = run_checks(CHECKS, ctx)
+    for e in all_errors:
         error(e)
 
     # ---------------------------------------------------------------------------
