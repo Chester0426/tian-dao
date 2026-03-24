@@ -442,3 +442,250 @@ else:
     ERRORS+=("$AGENT_NAME FILE_BOUNDARY contains shared paths ($SHARED_FILES) — per-page agents must NOT include src/components/ or src/lib/")
   fi
 }
+
+# --- _parse_check_result ---
+# Parses JSON {"errors":[...],"warnings":[...]} from check functions.
+# Appends to global ERRORS and WARNINGS arrays.
+# Usage: _parse_check_result "$RESULT"
+_parse_check_result() {
+  local result="$1"
+  [[ "$result" == "OK" || -z "$result" ]] && return
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && ERRORS+=("$line")
+  done < <(echo "$result" | python3 -c "import json,sys; [print(x) for x in json.load(sys.stdin).get('errors',[])]" 2>/dev/null)
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && WARNINGS+=("$line")
+  done < <(echo "$result" | python3 -c "import json,sys; [print(x) for x in json.load(sys.stdin).get('warnings',[])]" 2>/dev/null)
+}
+
+# --- check_artifact_presence ---
+# Table-driven artifact existence checks for verify-report-gate.
+# Covers Checks 1-7, 13b, 15: file existence, field validation, trace checks.
+# Returns JSON {"errors":[...],"warnings":[...]} — caller uses _parse_check_result.
+# $1: project directory  $2: has_hard_gate (0|1)  $3: report content
+# Usage: RESULT=$(check_artifact_presence "$PROJECT_DIR" "$HAS_HARD_GATE" "$CONTENT")
+check_artifact_presence() {
+  local project_dir="$1" has_hard_gate="$2" content="$3"
+  echo "$content" | HAS_HARD_GATE="$has_hard_gate" python3 -c "
+import json, os, glob, sys
+
+project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
+hard_gate = int(os.environ.get('HAS_HARD_GATE', '0')) > 0
+content = sys.stdin.read()
+errors = []
+warnings = []
+
+# --- Check 1: verify-context.json exists + field validation ---
+ctx_path = os.path.join(project, '.claude/verify-context.json')
+ctx = {}
+if not os.path.exists(ctx_path):
+    errors.append('verify-context.json not found — STATE 0 (Read Context) did not run')
+else:
+    try:
+        ctx = json.load(open(ctx_path))
+        missing = [k for k in ['scope','archetype','run_id','timestamp'] if k not in ctx or not ctx[k]]
+        if missing:
+            errors.append('verify-context.json missing required fields: ' + ','.join(missing))
+    except:
+        errors.append('verify-context.json parse error')
+
+scope = ctx.get('scope', '')
+arch = ctx.get('archetype', '')
+
+# --- Check 2: fix-log.md exists ---
+fix_log_path = os.path.join(project, '.claude/fix-log.md')
+if not os.path.exists(fix_log_path):
+    errors.append('fix-log.md not found — STATE 0 (Read Context) did not run')
+
+# --- Check 3: agent-traces/ has >= 1 trace ---
+traces_dir = os.path.join(project, '.claude/agent-traces')
+traces = []
+if not os.path.isdir(traces_dir):
+    errors.append('agent-traces/ directory not found — no agents were spawned')
+else:
+    traces = glob.glob(os.path.join(traces_dir, '*.json'))
+    if len(traces) < 1:
+        errors.append('agent-traces/ has 0 trace files — no agents completed')
+
+# --- Check 4: Each trace has checks_performed ---
+for t in traces:
+    try:
+        d = json.load(open(t))
+        cp = d.get('checks_performed', None)
+        recovery = d.get('recovery', False)
+        if recovery and isinstance(cp, list): continue
+        if isinstance(cp, list) and len(cp) > 0: continue
+        errors.append(os.path.basename(t) + ' missing checks_performed array — agent used old trace format')
+    except:
+        errors.append(os.path.basename(t) + ' parse error')
+
+# --- Check 5: security-merge.json (skip on hard gate) ---
+if not hard_gate and scope in ('full', 'security'):
+    if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
+        errors.append('security-merge.json not found — security merge step was skipped (scope=' + scope + ')')
+
+# --- Check 6: fix-log vs auto_observe (skip on hard gate) ---
+if not hard_gate and os.path.exists(fix_log_path):
+    try:
+        lines = open(fix_log_path).readlines()[1:]  # skip header
+        fix_entries = sum(1 for l in lines if l.strip())
+        if fix_entries > 0 and 'auto_observe' in content and 'skipped-no-fixes' in content:
+            errors.append('fix-log.md has ' + str(fix_entries) + ' fix entries but auto_observe is skipped-no-fixes — observer must run when fixes exist')
+    except: pass
+
+# --- Check 7: e2e-result.json (skip on hard gate) ---
+if not hard_gate:
+    e2e_path = os.path.join(project, '.claude/e2e-result.json')
+    if not os.path.exists(e2e_path):
+        errors.append('e2e-result.json not found — E2E tests (STATE 5) did not run')
+    else:
+        try:
+            e2e = json.load(open(e2e_path))
+            if not e2e.get('passed', False):
+                warnings.append('e2e-result.json: passed=false — E2E tests failed')
+        except: pass
+
+# --- Check 13b: design-critic-shared when per-page has unresolved_shared ---
+if scope in ('full', 'visual') and arch == 'web-app':
+    has_shared = False
+    for f in glob.glob(os.path.join(traces_dir, 'design-critic-*.json')):
+        if 'design-critic-shared' in f: continue
+        try:
+            d = json.load(open(f))
+            if d.get('unresolved_shared', 0) > 0:
+                has_shared = True; break
+        except: pass
+    if has_shared and not os.path.exists(os.path.join(traces_dir, 'design-critic-shared.json')):
+        errors.append('design-critic-shared.json missing but per-page agents reported shared-component issues')
+
+# --- Check 15: Postcondition artifact backstop ---
+for f in ['verify-context.json', 'fix-log.md']:
+    if not os.path.exists(os.path.join(project, '.claude', f)):
+        errors.append(f + ' missing (STATE 0)')
+if not os.path.exists(os.path.join(project, '.claude/build-result.json')):
+    errors.append('build-result.json missing (STATE 1)')
+if scope in ('full', 'visual') and arch == 'web-app':
+    if not os.path.exists(os.path.join(project, '.claude/design-ux-merge.json')):
+        errors.append('design-ux-merge.json missing (STATE 3)')
+if not hard_gate:
+    if scope in ('full', 'security'):
+        if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
+            errors.append('security-merge.json missing (STATE 4)')
+    if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
+        errors.append('e2e-result.json missing (STATE 5)')
+
+print(json.dumps({'errors': errors, 'warnings': warnings}))
+" 2>/dev/null || echo "OK"
+}
+
+# --- check_cross_artifact_consistency ---
+# Cross-artifact consistency checks for verify-report-gate.
+# Covers Checks 12, 14, 16-19: verdict matching, fix counts, frontmatter, Q-score.
+# Returns JSON {"errors":[...],"warnings":[...]} — caller uses _parse_check_result.
+# $1: project directory  $2: report content
+# Usage: RESULT=$(check_cross_artifact_consistency "$PROJECT_DIR" "$CONTENT")
+check_cross_artifact_consistency() {
+  local project_dir="$1" content="$2"
+  echo "$content" | python3 -c "
+import json, os, glob, re, sys
+
+project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
+content = sys.stdin.read()
+traces_dir = os.path.join(project, '.claude/agent-traces')
+errors = []
+warnings = []
+
+# --- Check 12: agent_verdicts in report vs actual trace verdicts ---
+match = re.search(r'agent_verdicts:\s*(.+)', content)
+if match and os.path.isdir(traces_dir):
+    try:
+        report_verdicts = json.loads(match.group(1).strip())
+        for name, rv in report_verdicts.items():
+            tp = os.path.join(traces_dir, name + '.json')
+            if os.path.exists(tp):
+                try:
+                    tv = json.load(open(tp)).get('verdict', 'missing')
+                    if str(rv) != str(tv):
+                        errors.append('agent_verdicts mismatch: ' + name + ': report=' + str(rv) + ', trace=' + str(tv))
+                except: pass
+    except json.JSONDecodeError:
+        pass
+
+# --- Check 14: Fix count cross-reference (WARN only) ---
+fix_log_path = os.path.join(project, '.claude/fix-log.md')
+if os.path.isdir(traces_dir) and os.path.exists(fix_log_path):
+    try:
+        fix_log = open(fix_log_path).read()
+        prefix_map = {
+            'design-critic': 'Fix (design-critic):',
+            'ux-journeyer': 'Fix (ux-journeyer):',
+            'security-fixer': 'Fix (security-fixer):'
+        }
+        for tf in glob.glob(os.path.join(traces_dir, '*.json')):
+            name = os.path.basename(tf).replace('.json', '')
+            if name.startswith('design-critic-'): continue
+            try:
+                d = json.load(open(tf))
+                fixes = d.get('fixes', None)
+                if fixes is None: continue
+                prefix = prefix_map.get(name, 'Fix (' + name + '):')
+                if len(fixes) != fix_log.count(prefix):
+                    warnings.append(name + ': trace=' + str(len(fixes)) + ', log=' + str(fix_log.count(prefix)))
+            except: pass
+    except: pass
+
+# --- Check 16: hard_gate_failure field present ---
+if content and 'hard_gate_failure:' not in content:
+    errors.append('hard_gate_failure field missing from report frontmatter — must be true or false')
+
+# --- Check 17: process_violation field present ---
+if content and 'process_violation:' not in content:
+    errors.append('process_violation field missing from report frontmatter — must be true or false')
+
+# --- Check 18: Lead-side trace field validation ---
+dc_path = os.path.join(traces_dir, 'design-critic.json')
+if os.path.exists(dc_path):
+    try:
+        d = json.load(open(dc_path))
+        pr = d.get('pages_reviewed', 0)
+        if not isinstance(pr, int) or pr < 1:
+            errors.append('design-critic pages_reviewed=%s (expected int >= 1)' % pr)
+    except: pass
+ux_path = os.path.join(traces_dir, 'ux-journeyer.json')
+if os.path.exists(ux_path):
+    try:
+        d = json.load(open(ux_path))
+        ude = d.get('unresolved_dead_ends', None)
+        if ude is not None and not isinstance(ude, int):
+            errors.append('ux-journeyer unresolved_dead_ends=%s (expected int)' % ude)
+    except: pass
+sf_path = os.path.join(traces_dir, 'security-fixer.json')
+if os.path.exists(sf_path):
+    try:
+        d = json.load(open(sf_path))
+        uc = d.get('unresolved_critical', None)
+        if uc is not None and not isinstance(uc, int):
+            errors.append('security-fixer unresolved_critical=%s (expected int)' % uc)
+    except: pass
+
+# --- Check 19: Q-score in verify-history.jsonl ---
+ctx_path = os.path.join(project, '.claude/verify-context.json')
+if os.path.exists(ctx_path):
+    try:
+        run_id = json.load(open(ctx_path)).get('run_id', '')
+        hist_path = os.path.join(project, '.claude/verify-history.jsonl')
+        if not os.path.exists(hist_path):
+            errors.append('verify-history.jsonl missing — Q-score not calculated')
+        else:
+            lines = [l.strip() for l in open(hist_path) if l.strip()]
+            if not lines:
+                errors.append('verify-history.jsonl is empty — Q-score not recorded')
+            else:
+                last = json.loads(lines[-1])
+                if last.get('run_id') != run_id:
+                    errors.append('verify-history.jsonl last run_id (' + str(last.get('run_id','?')) + ') != current (' + run_id + ') — Q-score not recorded for this run')
+    except: pass
+
+print(json.dumps({'errors': errors, 'warnings': warnings}))
+" 2>/dev/null || echo "OK"
+}
