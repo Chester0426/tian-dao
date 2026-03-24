@@ -99,5 +99,59 @@
     "7": "true",
     "8": "test -f .claude/verify-report.md",
     "9": "true"
+  },
+  "deploy": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true",
+    "4": "true",
+    "5": "test -f .claude/deploy-manifest.json"
+  },
+  "teardown": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true",
+    "4": "true"
+  },
+  "spec": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true",
+    "4": "true",
+    "5": "true",
+    "6": "true",
+    "7": "test -f experiment/experiment.yaml"
+  },
+  "rollback": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true"
+  },
+  "iterate": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true",
+    "4": "test -f .claude/iterate-manifest.json"
+  },
+  "retro": {
+    "0": "true",
+    "1": "true",
+    "2": "true",
+    "3": "true"
+  },
+  "solve": {
+    "0": "true",
+    "1": "true",
+    "2": "true"
+  },
+  "audit": {
+    "0": "true",
+    "1": "true",
+    "2": "true"
   }
 }
