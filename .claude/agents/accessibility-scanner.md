@@ -24,8 +24,7 @@ You are an accessibility enforcer. Every WCAG violation you find is a real perso
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"accessibility-scanner","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/accessibility-scanner.json
+python3 scripts/init-trace.py accessibility-scanner
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.

@@ -24,8 +24,7 @@ You are a fresh agent with **NO project context**. You received a diff, fix summ
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-RUN_ID=$(python3 -c "import json;print(json.load(open('.claude/verify-context.json')).get('run_id',''))" 2>/dev/null || echo "")
-mkdir -p .claude/agent-traces && echo '{"agent":"observer","status":"started","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","run_id":"'"$RUN_ID"'"}' > .claude/agent-traces/observer.json
+python3 scripts/init-trace.py observer
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.

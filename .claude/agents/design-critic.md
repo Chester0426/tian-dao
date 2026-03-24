@@ -78,25 +78,8 @@ Read and follow `.claude/procedures/design-critic.md` for the full step-by-step 
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-python3 << 'TRACE_EOF'
-import json, os
-from datetime import datetime, timezone
-run_id = ""
-try:
-    with open(".claude/verify-context.json") as f:
-        run_id = json.load(f).get("run_id", "")
-except: pass
-os.makedirs(".claude/agent-traces", exist_ok=True)
-trace = {
-    "agent": "design-critic",
-    "status": "started",
-    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "run_id": run_id,
-    "page": "<page_name>"
-}
-with open(".claude/agent-traces/design-critic-<page_name>.json", "w") as f:
-    json.dump(trace, f, indent=2)
-TRACE_EOF
+python3 scripts/init-trace.py design-critic "design-critic-<page_name>.json"
+python3 -c "import json;f='.claude/agent-traces/design-critic-<page_name>.json';d=json.load(open(f));d['page']='<page_name>';json.dump(d,open(f,'w'),indent=2)"
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.

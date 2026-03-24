@@ -61,24 +61,7 @@ Read and follow `.claude/procedures/ux-journeyer.md` for the full step-by-step p
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-python3 << 'TRACE_EOF'
-import json, os
-from datetime import datetime, timezone
-run_id = ""
-try:
-    with open(".claude/verify-context.json") as f:
-        run_id = json.load(f).get("run_id", "")
-except: pass
-os.makedirs(".claude/agent-traces", exist_ok=True)
-trace = {
-    "agent": "ux-journeyer",
-    "status": "started",
-    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "run_id": run_id
-}
-with open(".claude/agent-traces/ux-journeyer.json", "w") as f:
-    json.dump(trace, f, indent=2)
-TRACE_EOF
+python3 scripts/init-trace.py ux-journeyer
 ```
 
 This registers your presence. If you exhaust turns before writing the final trace, the started-only trace signals incomplete work to the orchestrator.

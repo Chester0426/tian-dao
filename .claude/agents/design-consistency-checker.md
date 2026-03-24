@@ -42,24 +42,7 @@ Read and follow `.claude/procedures/design-consistency-checker.md` for the full 
 Your FIRST Bash command — before any other work — MUST be:
 
 ```bash
-python3 << 'TRACE_EOF'
-import json, os
-from datetime import datetime, timezone
-run_id = ""
-try:
-    with open(".claude/verify-context.json") as f:
-        run_id = json.load(f).get("run_id", "")
-except: pass
-os.makedirs(".claude/agent-traces", exist_ok=True)
-trace = {
-    "agent": "design-consistency-checker",
-    "status": "started",
-    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "run_id": run_id
-}
-with open(".claude/agent-traces/design-consistency-checker.json", "w") as f:
-    json.dump(trace, f, indent=2)
-TRACE_EOF
+python3 scripts/init-trace.py design-consistency-checker
 ```
 
 Started trace contains `agent`, `status`, `timestamp`, `run_id` only — no `checks_performed`, no `verdict`. The final trace overwrites this file entirely.
