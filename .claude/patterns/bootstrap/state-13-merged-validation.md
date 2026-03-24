@@ -8,15 +8,7 @@
 Run combined verification after all parallel subagents complete -- these checks catch compilation and semantic issues:
 
 1. **Build**: run `npm run build` -- the project must compile
-2. **Page/endpoint/command existence:**
-   - If archetype is `web-app`: for each unique page referenced in experiment.yaml `golden_path`,
-     verify `src/app/<page-name>/page.tsx` exists (or root page for `landing`).
-     If surface != none: verify landing page file exists (`src/app/page.tsx`
-     or `src/components/landing-content.tsx` for variants)
-   - If archetype is `service`: for each endpoint in experiment.yaml `endpoints`,
-     verify the handler file exists at the path defined by the framework stack file
-   - If archetype is `cli`: for each command in experiment.yaml `commands`, verify
-     `src/commands/<command-name>.ts` exists
+2. **Page/endpoint/command existence:** Verify each behavior's primary artifact exists per archetype. (Per `patterns/archetype-behavior-check.md`: web-app=`src/app/<page>/page.tsx` + landing, service=handler per framework stack file, cli=`src/commands/<cmd>.ts`)
 3. **Analytics wiring** (if `stack.analytics` is present) -- systematic batch verification:
    - (a) Read `experiment/EVENTS.yaml` `events` map. Filter entries by `requires` (match
      current stack keys) and `archetypes` (match current archetype). This produces the

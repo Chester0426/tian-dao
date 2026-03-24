@@ -9,28 +9,27 @@
 
 > **Branch cleanup on failure:** Any "stop" in this step leaves you on a feature branch (created in Step 1). Include in the stop message: "To abort: `git checkout main && git branch -D <branch-name>`. To fix and retry: make the required changes to experiment.yaml, then re-run `/change`."
 
+- Follow checkpoint resumption protocol per `patterns/checkpoint-resumption.md`. (Key: read frontmatter, validate archetype match, restore context, jump to target state)
 - If `.claude/current-plan.md` exists and the current branch starts with `change/`:
-  1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
-     - Parse `type`, `scope`, `archetype`, `stack`, and `checkpoint` from frontmatter. If parsing fails (invalid YAML or missing required fields): stop — "Plan file has corrupted frontmatter. Delete `.claude/current-plan.md` and re-run `/change` to start fresh."
-     - Compare frontmatter `archetype` to current experiment.yaml `type`. If they differ: stop — "Saved plan was for archetype `<saved>`, but experiment.yaml now specifies `<current>`. Plans are archetype-specific. Options: (1) Revert experiment.yaml type to `<saved>`, or (2) Delete `.claude/current-plan.md` and re-run `/change` for a new plan."
-     - Use these values directly — do NOT re-classify or re-resolve stack
-     - Read archetype file and stack files using frontmatter values
-     - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
-     - Resume at the step indicated by `checkpoint`:
-       - `phase2-gate` → Phase 2 Pre-flight (read procedures, write process checklist)
-       - `phase2-step5` → Step 5 (update specs)
-       - `phase2-step6` → Step 6 (specs done, implement — re-read the plan to determine which type constraints apply)
-       - `phase2-step7` → Step 7 (implementation done, verify)
-       - `phase2-step8` → Step 8 (verification done, commit/PR)
-     - Tell user: "Resuming from [checkpoint]. Type: [type], Scope: [scope]."
-  2. If no frontmatter (old format): read experiment.yaml `type` to resolve the current archetype. Warn the user: "Resuming from old-format plan. If the experiment archetype changed since this plan was created, delete `.claude/current-plan.md` and re-run `/change`." Then skip Phase 1, jump to Step 5.
-- Else if `.claude/current-plan.md` exists but the current branch does NOT start with `change/`:
-  - Read the plan's `branch` field from frontmatter (if present)
-  - Tell the user: "Found a prior `/change` plan (`.claude/current-plan.md`) but you're on `<current-branch>`, not a `change/` branch. Options:\n  1. Resume on the saved branch: `git checkout <saved-branch>` then re-run `/change`\n  2. Start fresh: delete the plan (`rm .claude/current-plan.md`) and re-run `/change`"
-  - Stop — do NOT proceed until the user chooses.
-> **If resuming from a failed /change:** see `.claude/patterns/recovery.md`. The plan in `.claude/current-plan.md` persists across sessions.
+  1. Read frontmatter. If parsing fails: stop — "Plan file has corrupted frontmatter. Delete `.claude/current-plan.md` and re-run `/change` to start fresh."
+  2. Compare frontmatter `archetype` to current experiment.yaml `type`. If they differ: stop — "Saved plan was for archetype `<saved>`, but experiment.yaml now specifies `<current>`. Delete `.claude/current-plan.md` and re-run `/change` for a new plan."
+  3. Use frontmatter values directly — do NOT re-classify or re-resolve stack. Read context_files to restore context.
+  4. Resume per /change checkpoint mapping:
+
+     | Checkpoint | Resumes at |
+     |-----------|------------|
+     | `phase2-gate` | STATE 8 (Phase 2 Pre-flight) |
+     | `phase2-step5` | STATE 9 (update specs) |
+     | `phase2-step6` | STATE 10 (implement) |
+     | `phase2-step7` | STATE 11 (verify) |
+     | `phase2-step8` | STATE 12 (commit/PR) |
+
+  5. If no frontmatter (old format): warn user, read experiment.yaml type, skip Phase 1, jump to Step 5.
+- Else if `.claude/current-plan.md` exists but NOT on a `change/` branch: offer resume or fresh start, then stop.
+> **If resuming from a failed /change:** see `.claude/patterns/recovery.md`. The plan persists across sessions.
 - If the change will add any new category to experiment.yaml `stack`: read the archetype file's `excluded_stacks` list. If the new category appears in `excluded_stacks`, stop: "The `<archetype>` archetype excludes the `<category>` stack. You cannot add `<category>: <value>` to this project."
 - For analytics changes: verify the analytics library file exists (see analytics stack file for expected path). If it doesn't, stop and tell the user: "Analytics library not found. Run `/bootstrap` first."
+- Validate stack dependencies per `patterns/stack-dependency-validation.md`. (Key: payment/email→require auth+database; playwright→incompatible with service/cli; production→requires testing)
 - If `$ARGUMENTS` mentions payment or the change will add `payment` to the stack: verify `stack.auth` and `stack.database` are present in experiment.yaml. If `stack.auth` is missing, stop: "Payment requires authentication. Add `auth: supabase` (or another auth provider) to experiment.yaml `stack` first." If `stack.database` is missing, stop: "Payment requires a database. Add `database: supabase` (or another database provider) to experiment.yaml `stack` first."
 - If `$ARGUMENTS` mentions email or the change will add `email` to the stack: verify `stack.auth` and `stack.database` are present in experiment.yaml. If `stack.auth` is missing, stop: "Email requires authentication to know who to send emails to. Add `auth: supabase` (or another auth provider) to experiment.yaml `stack` first." If `stack.database` is missing, stop: "Email requires a database to track user activation status. Add `database: supabase` (or another database provider) to experiment.yaml `stack` first." Then read the email stack file's `assumes` list and verify each `category/value` pair against experiment.yaml `stack` (the value must match exactly, not just the category — e.g., `framework/nextjs` requires `stack.services[].runtime: nextjs`). If any assumption is unmet, stop: "Email stack requires [unmet dependencies]. Current stack has [actual values]. Update experiment.yaml `stack` to match, or choose a different email provider."
 - If `testing` is present in experiment.yaml `stack` and the classified type is NOT Test: read the testing stack file's `assumes` list and verify each `category/value` pair against experiment.yaml `stack` (the value must match exactly, not just the category — e.g., `database/supabase` requires `stack.database: supabase`, not just any database provider). If any assumption is unmet, stop: "Your testing setup assumes [unmet dependencies]. Tests will break. Run '/change fix test configuration' first, or remove 'testing' from experiment.yaml 'stack'." Then check archetype compatibility: if archetype is `service` or `cli` and `stack.testing` is `playwright`, stop: "Playwright requires a browser and is not compatible with the `<archetype>` archetype. Use `testing: vitest` instead."

@@ -9,7 +9,7 @@
 
 #### scaffold-pages (two-phase)
 
-**Phase A (serial, before fan-out, web-app only):** If the archetype is NOT `web-app`, skip Phase A entirely -- service and CLI archetypes do not have an app shell. Proceed directly to Phase B.
+**Phase A (serial, before fan-out, web-app only):** Service and cli archetypes skip Phase A entirely — proceed to Phase B. (Per `patterns/archetype-behavior-check.md`)
 
 The lead (not a subagent) creates:
 - Root layout (`src/app/layout.tsx`) with font imports and globals.css
@@ -81,7 +81,7 @@ Between B1 completion and B2 spawning, verify the lib files compile cleanly:
    -- page agents would inherit broken types. Errors: [list errors]"
    This prevents compounding type failures across the B2 fan-out.
 
-**Phase B2 (pages + landing -- web-app only):** If the archetype is NOT `web-app`, skip Phase B2 entirely -- service and CLI archetypes do not have pages from `golden_path`. Only after B1 manifest verification AND type-check checkpoint pass. Spawn one `scaffold-pages` agent per golden_path page (excluding landing -- handled by scaffold-landing). The agent-state-gate hook enforces this ordering: scaffold-pages and scaffold-landing are blocked until `.claude/agent-traces/scaffold-libs.json` exists with status "complete".
+**Phase B2 (pages + landing -- web-app only):** Service and cli archetypes skip Phase B2. (Per `patterns/archetype-behavior-check.md`) Only after B1 manifest verification AND type-check checkpoint pass. Spawn one `scaffold-pages` agent per golden_path page (excluding landing -- handled by scaffold-landing). The agent-state-gate hook enforces this ordering: scaffold-pages and scaffold-landing are blocked until `.claude/agent-traces/scaffold-libs.json` exists with status "complete".
 
 Each per-page agent prompt:
 - "Create SINGLE page: `<page_name>` at route `<route>`."
