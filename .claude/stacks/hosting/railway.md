@@ -29,11 +29,10 @@ Railway supports two deployment modes:
 railway up
 ```
 
-### Auto-Deploy on Push
-- Railway's GitHub integration auto-deploys on every push to `main`
-- Preview environments can be enabled per-branch in Railway dashboard
-- `make deploy` remains available for manual CLI deploys and first-time project linking
-- Skills should not include `make deploy` as a required iteration step — pushing to `main` is sufficient when GitHub integration is active
+### Production Deploys Are Manual
+- Production deploys are triggered by re-running `/deploy` (which runs `railway up --detach`)
+- GitHub auto-deploy integration is **not connected** — this avoids unnecessary builds and keeps costs predictable
+- `make deploy` remains available for manual CLI deploys
 
 ## Health Check
 
@@ -89,9 +88,10 @@ railway link          # links to existing project
 railway service       # select or create a service
 ```
 
-### Connect GitHub
-- Install the Railway GitHub App on your repo via Railway dashboard → Project → Settings → GitHub
-- Railway auto-deploys on push to the configured branch
+### Note on GitHub Integration
+- GitHub auto-deploy is **not connected** by default — production deploys are manual via `railway up --detach`
+- If you want auto-deploy, install the Railway GitHub App manually via Railway dashboard → Project → Settings → GitHub
+- Re-running `/deploy` always deploys the latest code regardless of GitHub integration status
 
 ### First Deploy
 ```bash
@@ -105,7 +105,7 @@ Unlike serverless platforms, Railway runs persistent processes — in-memory rat
 For high-traffic production use, consider Redis-based rate limiting via a Railway Redis add-on.
 
 ## Patterns
-- Railway auto-deploys when GitHub integration is connected and code is pushed to `main`
+- Production deploys are manual — re-run `/deploy` or use `railway up --detach`
 - The app must listen on `process.env.PORT` — Railway assigns the port dynamically
 - Use Nixpacks for zero-config deploys; add a Dockerfile only when customization is needed
 - Environment variables are configured in Railway dashboard or via CLI
@@ -113,8 +113,8 @@ For high-traffic production use, consider Redis-based rate limiting via a Railwa
 - In-memory rate limiting works on Railway (persistent process, not serverless)
 
 ## PR Instructions
-- After merging: run `/deploy` in Claude Code to set up Railway automatically. Or manually: create a project at [railway.app](https://railway.app), connect your GitHub repo, and add environment variables in the Railway dashboard.
-- Railway auto-deploys on every push to `main` when GitHub integration is connected
+- After merging: run `/deploy` in Claude Code to set up Railway automatically. Or manually: create a project at [railway.app](https://railway.app) and add environment variables in the Railway dashboard.
+- Production deploys are manual — re-run `/deploy` after code changes to update
 
 ## Deploy Interface
 
@@ -147,8 +147,7 @@ Standardized subsections referenced by deploy.md and teardown.md. Each subsectio
    ```bash
    railway service
    ```
-4. Connect GitHub: Install the Railway GitHub App on your repo via Railway dashboard → Project → Settings → GitHub. Railway auto-deploys on push to the configured branch.
-   - If GitHub connection cannot be automated, inform the user: "Connect your GitHub repo in Railway dashboard → Project → Settings → GitHub. Tell me when done."
+4. _(GitHub auto-deploy is not connected — production deploys are manual via `railway up --detach`. See "Note on GitHub Integration" above if you want to enable it later.)_
 
 ### Domain Setup
 

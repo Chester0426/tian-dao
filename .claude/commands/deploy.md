@@ -1,5 +1,5 @@
 ---
-description: "Deploy the app. Run once after /bootstrap PR is merged."
+description: "Deploy or update the app. Run after /bootstrap PR is merged; re-run to update."
 type: analysis-only
 reads:
   - experiment/experiment.yaml

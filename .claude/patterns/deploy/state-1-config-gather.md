@@ -7,6 +7,10 @@
 
 **ACTIONS:**
 
+> **Update mode shortcut:** If `deploy_mode == "update"` (from deploy-context.json), config gathering is streamlined. Only **added services** (from the diff in STATE 0) need full config collection. Unchanged services already have their config on the hosting provider. See the update mode branch below.
+
+### Initial mode (full config gathering)
+
 1. **Hosting config** (skip for surface-only deployments)**:** Read the hosting stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the team/org/account (e.g., run the CLI command listed there). Check the experiment.yaml field listed in the stack file — if set, skip the prompt.
 2. **Database config** (if `stack.database` is present): Read the database stack file's `## Deploy Interface > Config Gathering`. Follow the instructions to discover the org/region/account. Check the experiment.yaml fields listed — if set, skip the prompts.
 3. **DB password** (if applicable): Generate with `openssl rand -base64 24`.
@@ -27,6 +31,16 @@
    - **Manual (CLI available)** — CLI exists but not installed/authed -> user can install to enable auto
    - **Manual (no CLI)** — no CLI for this service -> web dashboard
    - Note: Fake Door features have no env vars and no API routes — UI-only. Skip them.
+
+### Update mode (diff-based config gathering)
+
+When `deploy_mode == "update"`:
+
+1. **Unchanged services** — skip config gathering entirely. Their credentials are already set on the hosting provider from the previous deploy.
+   - Prompt the user: "Existing service credentials are already configured on the hosting provider. Type **resync** to re-gather all credentials (e.g., after key rotation), or press Enter to skip."
+   - If user types `resync`: fall back to **initial mode** gathering above for all services.
+2. **Added services** — gather full config using the same steps as initial mode, but only for the newly added stack categories. For example, if `stack.payment: stripe` was added since last deploy, collect Stripe keys.
+3. **Removed services** — skip entirely. These will be marked as `"orphaned"` in the manifest (STATE 5).
 
 **POSTCONDITIONS:**
 - Hosting config gathered (team/org/account) or skipped for surface-only
