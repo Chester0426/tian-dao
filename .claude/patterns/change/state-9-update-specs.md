@@ -12,7 +12,7 @@ Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
 > **Gate check:** Read `.claude/current-plan.md` and look for `## Process Checklist`.
 > If missing, STOP — execute the Phase 2 Pre-flight above first.
 
-- **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey, update the archetype-specific journey field accordingly: `golden_path` for web-app (adds a page, changes a CTA destination, or changes a key step), `endpoints` for service (adds or modifies an endpoint in the main flow), `commands` for cli (adds a new command). Do NOT remove or modify existing behaviors.
+- **Feature**: add the new behavior to experiment.yaml `behaviors` list. If the new behavior changes the user journey, update the archetype-specific journey field per `patterns/archetype-behavior-check.md`. (Key: web-app=`golden_path`, service=`endpoints`, cli=`commands`) Do NOT remove or modify existing behaviors.
 - **Upgrade**: do NOT modify experiment.yaml `behaviors` (the behavior already exists — it was listed when the Fake Door was created). Add new env vars to `.env.example`.
 - **Analytics**: if the user approved custom events, add them to the `events` map in experiment/EVENTS.yaml with appropriate `funnel_stage`, following the `<object>_<action>` naming convention with all properties.
 - **Fix / Polish**: do NOT modify experiment.yaml or experiment/EVENTS.yaml.

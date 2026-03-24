@@ -8,19 +8,18 @@
 Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
 
 - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`:
-  1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
-     - Parse `archetype`, `stack`, and `checkpoint` from frontmatter
-     - Use these values directly — do NOT re-resolve archetype or stack
-     - Read archetype file and stack files using frontmatter values
-     - Read all files listed in `context_files` to restore source-of-truth context (experiment.yaml, experiment/EVENTS.yaml, etc.). If a listed file no longer exists, skip it and warn the user.
-     - Resume at the phase indicated by `checkpoint`:
-       - `phase2-setup` -> **jump to STATE 9**
-       - `phase2-design` -> **jump to STATE 10** (setup done)
-       - `phase2-scaffold` -> **jump to STATE 11** (design done)
-       - `phase2-wire` -> **jump to STATE 14** (scaffold done)
-       - `awaiting-verify` -> **TERMINAL**. Bootstrap complete. Run `/verify` to validate and create PR.
-     - Tell user: "Resuming bootstrap from [checkpoint]. Archetype: [archetype]."
-  2. If no frontmatter (old format): fall back to current behavior — skip States 1-7, jump to STATE 8.
+  1. Read frontmatter. Use values directly — do NOT re-resolve archetype or stack. Read context_files to restore context.
+  2. Resume per /bootstrap checkpoint mapping:
+
+     | Checkpoint | Resumes at |
+     |-----------|------------|
+     | `phase2-setup` | STATE 9 (setup phase) |
+     | `phase2-design` | STATE 10 (design phase) |
+     | `phase2-scaffold` | STATE 11 (parallel scaffold) |
+     | `phase2-wire` | STATE 14 (wire phase) |
+     | `awaiting-verify` | TERMINAL — run `/verify` |
+
+  3. If no frontmatter (old format): skip States 1-7, jump to STATE 8.
 - If `package.json` exists AND `src/app/` contains page or route entry points:
   VERIFY: `find src/app -name 'page.tsx' -o -name 'route.ts' 2>/dev/null | head -1`
   If output is non-empty: stop and tell the user: "This project has already been bootstrapped. Use `/change ...` to make changes, or run `make clean` to start over."
