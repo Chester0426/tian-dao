@@ -40,7 +40,7 @@
 5. Write `.claude/verify-context.json` (includes `skill` for Q-score attribution, `run_id` for trace freshness validation, and `baseline_available` for delta reporting):
    ```bash
    cat > .claude/verify-context.json << CTXEOF
-   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","skill":"<skill from step 3>","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","baseline_available":$BASELINE_AVAILABLE,"completed_states":[0]}
+   {"scope":"<scope>","archetype":"<type>","quality":"<quality|mvp>","skill":"<skill from step 3>","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","baseline_available":$BASELINE_AVAILABLE,"completed_states":[0]}
    CTXEOF
    ```
 
@@ -65,5 +65,10 @@ test -f .claude/verify-context.json && test -f .claude/fix-log.md && test -d .cl
 ```
 
 > **Hook-enforced:** `phase-transition-gate.sh` validates these postconditions before allowing the next state's agents to spawn.
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh verify 0
+```
 
 **NEXT:** Read [state-1-build-lint-loop.md](state-1-build-lint-loop.md) to continue.

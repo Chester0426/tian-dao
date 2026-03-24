@@ -49,7 +49,7 @@
 Create `.claude/deploy-context.json` to initialize state tracking:
 ```bash
 cat > .claude/deploy-context.json << CTXEOF
-{"skill":"deploy","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"deploy","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

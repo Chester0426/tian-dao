@@ -30,7 +30,7 @@ Read and validate context files:
 Create `.claude/iterate-context.json` to initialize state tracking:
 ```bash
 cat > .claude/iterate-context.json << CTXEOF
-{"skill":"iterate","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"iterate","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 
