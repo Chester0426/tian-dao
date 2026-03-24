@@ -1,0 +1,43 @@
+# STATE 0: READ_CONTEXT
+
+**PRECONDITIONS:**
+- Git repository exists in working directory
+
+**ACTIONS:**
+
+Read these context files:
+- Read `.claude/deploy-manifest.json` and extract:
+  - `hosting.provider` -- the hosting provider
+  - `canonical_url` -- the production URL
+- If the file is missing or `hosting` is absent, STOP: "No deploy manifest found. Has this project been deployed with `/deploy`?"
+
+Read the hosting stack file at `.claude/stacks/hosting/<provider>.md`, specifically the `### Rollback` subsection under `## Deploy Interface`.
+
+If no `### Rollback` subsection exists, STOP: "Rollback procedure not documented for this hosting provider. See `.claude/patterns/incident-response.md` for manual recovery steps."
+
+Read `experiment/experiment.yaml` to determine the archetype (`type` field, default: `web-app`).
+
+Create `.claude/rollback-context.json` to initialize state tracking:
+```bash
+cat > .claude/rollback-context.json << CTXEOF
+{"skill":"rollback","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+CTXEOF
+```
+
+**POSTCONDITIONS:**
+- `.claude/deploy-manifest.json` has been read and `hosting.provider` and `canonical_url` extracted
+- Hosting stack file has been read and rollback procedure identified
+- `experiment/experiment.yaml` has been read for archetype
+- `.claude/rollback-context.json` exists
+
+**VERIFY:**
+```bash
+test -f .claude/rollback-context.json && echo "OK" || echo "FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh rollback 0
+```
+
+**NEXT:** Read [state-1-plan.md](state-1-plan.md) to continue.

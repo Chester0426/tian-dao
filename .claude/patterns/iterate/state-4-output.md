@@ -1,0 +1,120 @@
+# STATE 4: OUTPUT
+
+**PRECONDITIONS:**
+- Decision and recommendations complete (STATE 3 POSTCONDITIONS met)
+
+**ACTIONS:**
+
+### Save analysis for /change context
+
+Write `.claude/iterate-manifest.json`:
+```json
+{
+  "experiment_id": "<experiment.yaml name>",
+  "round": 1,
+  "verdict": "<SCALE|KILL|PIVOT|REFINE|TOO_EARLY>",
+  "bottleneck": {
+    "stage": "<funnel stage name>",
+    "conversion": "<percentage>",
+    "diagnosis": "<one-line diagnosis>",
+    "dimension": "<REACH|DEMAND|ACTIVATE|MONETIZE|RETAIN>",
+    "ratio": 0.65,
+    "recommendation": "<dimension-specific recommendation>"
+  },
+  "recommendations": [
+    {
+      "action": "<what to do>",
+      "skill": "</change ...>",
+      "expected_impact": "<which metric improves>"
+    }
+  ],
+  "variant_winner": "<slug or null>",
+  "analyzed_at": "<ISO 8601>",
+  "hypothesis_verdicts": [
+    {
+      "hypothesis_id": "<id from spec-manifest>",
+      "metric_formula": "<metric.formula from hypothesis>",
+      "metric_operator": "<metric.operator from hypothesis>",
+      "computed_value": "<result of evaluating formula against event counts>",
+      "threshold": "<metric.threshold from hypothesis>",
+      "verdict": "<CONFIRMED|REJECTED|INCONCLUSIVE|BLOCKED>",
+      "blocked_by": "<parent hypothesis id or null>",
+      "sample_size": 0,
+      "confidence_level": "<insufficient data|directional signal|reliable|high confidence>"
+    }
+  ],
+  "funnel_scores": {
+    "reach": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "demand": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "activate": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "monetize": { "score": 0, "confidence": "<tag>", "sample_size": 0, "threshold_source": "<hypothesis|events-yaml>" },
+    "retain": null
+  }
+}
+```
+
+- `experiment_id`: populated from experiment.yaml `name` field. Identifies which experiment this analysis belongs to.
+- `round`: auto-incremented iteration counter. On first `/iterate` run, set to `1`. On subsequent runs, read existing `.claude/iterate-manifest.json` and set `round` to previous value + 1. This tracks how many iteration cycles the experiment has gone through.
+- `hypothesis_verdicts` and `funnel_scores` are only populated when spec-manifest.json exists. Omit both fields for experiments without /spec.
+- `bottleneck.dimension`, `bottleneck.ratio`, and `bottleneck.recommendation` are populated from the Validation Scorecard. For experiments without spec-manifest, populate from funnel analysis only (`dimension` and `ratio` may be null).
+
+This file is read by `/change` to provide context for the next iteration.
+
+### Summarize next steps
+
+End with a clear, numbered action list. Prepend the verdict from STATE 3:
+
+```
+## Recommended Next Steps
+
+**Verdict: [SCALE/KILL/PIVOT/REFINE/TOO EARLY]** -- [one-line summary]
+
+1. Run `/change sharpen landing page headline to address [specific user pain]`
+2. Run `/change add onboarding checklist after signup`
+3. Post in [distribution channel from experiment.yaml] -- drive more top-of-funnel traffic
+
+Your measurement window ends in [X days]. [Verdict-specific guidance].
+```
+
+### Retro reminder
+If the experiment is near its planned end date or the user is considering stopping:
+> Your measurement window ends in [X days]. When you're ready to wrap up, run **`/retro`** to generate a structured retrospective and file it as feedback on the template repo.
+
+### Next Check-in
+
+Based on the measurement window and current progress, provide a concrete schedule:
+
+```
+## Next Check-in
+
+| Milestone | Date | Action |
+|-----------|------|--------|
+| Next data check | [3 days from now] | Run `/iterate` again |
+| Decision point | [when time_pct hits 50%] | Verdict becomes actionable -- REFINE/KILL verdicts require decision |
+| Window closes | [experiment end date] | Run `/retro` to file retrospective |
+```
+
+- Calculate dates from the experiment timeline and the elapsed days reported in STATE 3
+- If verdict is TOO EARLY: check deployment and traffic state to provide actionable next steps:
+  - If `.claude/deploy-manifest.json` does not exist: "Your app isn't deployed yet. Run `/deploy` to go live, then return to `/iterate` after a few days of traffic."
+  - If deployed but analytics shows 0 events: "Your app is deployed but receiving no traffic. Run `/distribute` to drive traffic, or manually visit the app to verify it's accessible."
+  - If deployed and some events exist: "Traffic is building -- check back in 3 days or when 30+ visits are logged, whichever comes first."
+- If verdict is KILL, the next check-in is NOW -- recommend immediate decision
+- Tell the user: "Set a calendar reminder for [next check-in date] to run `/iterate` again."
+
+**POSTCONDITIONS:**
+- `.claude/iterate-manifest.json` written with verdict, bottleneck, recommendations, and scores
+- Next steps summary presented to user
+- Next check-in schedule provided
+
+**VERIFY:**
+```bash
+test -f .claude/iterate-manifest.json && echo "OK" || echo "FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh iterate 4
+```
+
+**NEXT:** TERMINAL -- iterate analysis complete.

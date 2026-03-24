@@ -1,0 +1,40 @@
+# STATE 0: INPUT_PARSE
+
+**PRECONDITIONS:**
+- User has invoked `/solve` with arguments
+
+**ACTIONS:**
+
+Read the problem statement from the user's arguments: `$ARGUMENTS`
+
+If `$ARGUMENTS` is empty, ask the user to describe the problem.
+
+### Depth Selection
+
+- Default: `full` (4 Opus agents, ~3 min)
+- If user includes `--light` or `--quick` in arguments: use `light` mode (~30s, 0 agents)
+- If user includes `--full` in arguments: use `full` mode
+
+Create `.claude/solve-context.json` to initialize state tracking:
+```bash
+cat > .claude/solve-context.json << CTXEOF
+{"skill":"solve","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+CTXEOF
+```
+
+**POSTCONDITIONS:**
+- Problem statement captured (from arguments or user input)
+- Depth mode selected (`full` or `light`)
+- `.claude/solve-context.json` exists
+
+**VERIFY:**
+```bash
+test -f .claude/solve-context.json && echo "OK" || echo "FAIL"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh solve 0
+```
+
+**NEXT:** Read [state-1-execute.md](state-1-execute.md) to continue.
