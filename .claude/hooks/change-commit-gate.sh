@@ -18,7 +18,7 @@ fi
 
 # If the current branch is not change/, feat/, fix/, or chore/harden, allow it
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-if [[ ! "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^chore/harden ]]; then
+if [[ ! "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^chore/(harden|distribute|review) ]]; then
   exit 0
 fi
 
@@ -54,6 +54,53 @@ EOF
     exit 0
   fi
   exit 0  # verify-report exists, allow
+fi
+
+# Handle chore/distribute branches — require verify-report.md before final commit
+if [[ "$BRANCH" =~ ^chore/distribute ]]; then
+  PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+  REPORT="$PROJECT_DIR/.claude/verify-report.md"
+  if [[ -f "$REPORT" ]]; then
+    exit 0  # verify-report exists, allow
+  fi
+  # Only block at final state (state 7+ completed = ready for verify+commit)
+  CTX="$PROJECT_DIR/.claude/distribute-context.json"
+  if [[ -f "$CTX" ]]; then
+    AT_FINAL=$(python3 -c "
+import json
+d = json.load(open('$CTX'))
+cs = [str(s) for s in d.get('completed_states', [])]
+print('yes' if '7' in cs else 'no')
+" 2>/dev/null || echo "no")
+    if [[ "$AT_FINAL" == "yes" ]]; then
+      cat <<EOF
+{"permissionDecision": "deny", "message": "Distribute commit blocked: verify-report.md missing — run verify before final commit."}
+EOF
+      exit 0
+    fi
+  fi
+  exit 0
+fi
+
+# Handle chore/review branches — require review-complete.json before final commit
+if [[ "$BRANCH" =~ ^chore/review ]]; then
+  PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+  CTX="$PROJECT_DIR/.claude/review-context.json"
+  if [[ -f "$CTX" ]]; then
+    AT_FINAL=$(python3 -c "
+import json
+d = json.load(open('$CTX'))
+cs = [str(s) for s in d.get('completed_states', [])]
+print('yes' if '4' in cs else 'no')
+" 2>/dev/null || echo "no")
+    if [[ "$AT_FINAL" == "yes" && ! -f "$PROJECT_DIR/.claude/review-complete.json" ]]; then
+      cat <<EOF
+{"permissionDecision": "deny", "message": "Review commit blocked: review-complete.json missing — complete review validation first."}
+EOF
+      exit 0
+    fi
+  fi
+  exit 0
 fi
 
 # Only allow worktree merge commits through unconditionally

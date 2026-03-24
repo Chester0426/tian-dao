@@ -20,7 +20,16 @@ python3 .claude/scripts/write-q-score.py \
   --run-id "$RUN_ID" || true
 ```
 
-Commit, push, open PR. Populate the PR Verification checklist from `.claude/verify-report.md` contents. After the PR is created, delete `.claude/current-plan.md` and `.claude/verify-report.md`.
+- You are already on a `chore/harden-*` branch (created in STATE 4). Do not create another branch.
+- Commit message: imperative mood describing the hardening (e.g., "Add specification tests for auth and payment flows")
+- Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
+  - **Summary**: what modules were hardened and why (quality: production)
+  - **What Changed**: list every file created/modified (spec files, on-touch.yaml, etc.)
+  - **Checklist — Build**: confirm build passes, no hardcoded secrets
+  - **Checklist — Verification**: populate from `.claude/verify-report.md` contents
+- Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
+- If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
+- After PR is created, delete `.claude/current-plan.md` and `.claude/verify-report.md`.
 
 Key design decisions:
 - Dependency-ordered sequential execution -- fail-fast prevents cascading breakage, dependencies satisfied before dependents

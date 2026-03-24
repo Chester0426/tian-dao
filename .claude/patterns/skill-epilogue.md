@@ -8,7 +8,8 @@ Follow this procedure at the end of code-writing skills that do NOT run `/verify
 
 **Skip for:**
 - Skills that embed `/verify` (`/bootstrap`, `/change`, `/harden`, `/distribute`) — verify.md STATE 6 handles observation
-- Analysis-only skills (`/review`, `/iterate`, `/retro`, `/solve`, `/optimize-prompt`, `/rollback`, `/teardown`) — no code changes to observe
+- Skills with own validation loop (`/review` — iterative fix-validate in states 2a-2f, produces `review-complete.json`)
+- Analysis-only skills (`/iterate`, `/retro`, `/solve`, `/optimize-prompt`, `/rollback`, `/teardown`) — no code changes to observe
 - `/spec` — uses inline observation at Step 7c.2 (no commit gate possible)
 - `/deploy` — observation remains best-effort at Step 5e (no commit gate possible)
 

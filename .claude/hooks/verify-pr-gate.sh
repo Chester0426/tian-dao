@@ -34,6 +34,44 @@ elif [[ "$BRANCH" =~ ^fix/resolve- ]]; then
   if [[ ! -f "$PROJECT_DIR/.claude/observe-result.json" ]]; then
     ERRORS+=("observe-result.json not found — /resolve must complete observation before PR")
   fi
+elif [[ "$BRANCH" =~ ^chore/harden ]]; then
+  # /harden runs /verify — require verify-report.md + completed_states
+  if [[ ! -f "$REPORT" ]]; then
+    ERRORS+=("verify-report.md not found — /harden must run /verify before PR")
+  fi
+  CTX="$PROJECT_DIR/.claude/harden-context.json"
+  if [[ -f "$CTX" ]]; then
+    MISSING=$(python3 -c "
+import json
+d = json.load(open('$CTX'))
+cs = [str(s) for s in d.get('completed_states', [])]
+required = [str(i) for i in range(10)]
+missing = [s for s in required if s not in cs]
+print(','.join(missing) if missing else 'NONE')
+" 2>/dev/null || echo "NONE")
+    if [[ "$MISSING" != "NONE" ]]; then
+      ERRORS+=("harden states [$MISSING] not complete — finish all states before PR")
+    fi
+  fi
+elif [[ "$BRANCH" =~ ^chore/distribute ]]; then
+  # /distribute runs /verify — require verify-report.md + completed_states
+  if [[ ! -f "$REPORT" ]]; then
+    ERRORS+=("verify-report.md not found — /distribute must run /verify before PR")
+  fi
+  CTX="$PROJECT_DIR/.claude/distribute-context.json"
+  if [[ -f "$CTX" ]]; then
+    MISSING=$(python3 -c "
+import json
+d = json.load(open('$CTX'))
+cs = [str(s) for s in d.get('completed_states', [])]
+required = ['0','1','1_5','2','3','4','5','6','7','8']
+missing = [s for s in required if s not in cs]
+print(','.join(missing) if missing else 'NONE')
+" 2>/dev/null || echo "NONE")
+    if [[ "$MISSING" != "NONE" ]]; then
+      ERRORS+=("distribute states [$MISSING] not complete — finish all states before PR")
+    fi
+  fi
 else
   # Standard path: Checks 1-5 (verify-report.md required)
 

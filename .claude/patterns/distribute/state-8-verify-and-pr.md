@@ -20,11 +20,15 @@ Run the verification procedure per `.claude/patterns/verify.md`.
 > **Gate check:** Read `.claude/verify-report.md`. If it does not exist,
 > STOP — go back and run verify.md above. Do NOT commit without a verification report.
 
-Commit, push, and open a PR with:
-- **Summary**: what was generated and why (include the selected channel)
-- **Distribution Setup**: step-by-step channel + analytics setup instructions (from stack file)
-- **What Changed**: files modified (landing page UTM capture, experiment/EVENTS.yaml, ads.yaml, FeedbackWidget)
-- The full `ads.yaml` content in the PR body for easy review
+- You are already on a `chore/distribute-*` branch. Do not create another branch.
+- Commit message: imperative mood describing the distribution setup (e.g., "Add Google Ads campaign config with UTM capture")
+- Push and open PR using `.github/PULL_REQUEST_TEMPLATE.md` format:
+  - **Summary**: what was generated and why (include the selected channel)
+  - **Distribution Setup**: step-by-step channel + analytics setup instructions (from stack file)
+  - **What Changed**: files modified (landing page UTM capture, experiment/EVENTS.yaml, ads.yaml, FeedbackWidget)
+  - The full `ads.yaml` content in the PR body for easy review
+- Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
+- If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
 
 **POSTCONDITIONS:**
 - `experiment/ads.yaml` exists
