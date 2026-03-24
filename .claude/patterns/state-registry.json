@@ -11,7 +11,7 @@
     "8": "test -f .claude/patterns-saved.json"
   },
   "bootstrap": {
-    "0": "git branch --show-current | grep -q 'feat/bootstrap'",
+    "0": "test -f .claude/bootstrap-context.json && git branch --show-current | grep -q 'feat/bootstrap'",
     "1": "test -f experiment/experiment.yaml && test -f experiment/EVENTS.yaml",
     "2": "true",
     "3": "true",
@@ -31,7 +31,7 @@
     "15": "test -f .claude/gate-verdicts/bg4.json"
   },
   "change": {
-    "0": "test -f package.json && test -f experiment/EVENTS.yaml",
+    "0": "test -f .claude/change-context.json && test -f package.json && test -f experiment/EVENTS.yaml",
     "1": "git branch --show-current | grep -q 'change/'",
     "2": "true",
     "3": "true",
@@ -46,7 +46,7 @@
     "12": "true"
   },
   "harden": {
-    "0": "test -f package.json",
+    "0": "test -f .claude/harden-context.json && test -f package.json",
     "1": "true",
     "2": "true",
     "3": "test -f .claude/current-plan.md && grep -q 'skill: harden' .claude/current-plan.md",
@@ -58,7 +58,7 @@
     "9": "true"
   },
   "review": {
-    "0": "true",
+    "0": "test -f .claude/review-context.json",
     "1": "true",
     "2a": "true",
     "2b": "true",
@@ -71,7 +71,7 @@
     "5": "test -f .claude/review-complete.json"
   },
   "resolve": {
-    "0": "true",
+    "0": "test -f .claude/resolve-context.json",
     "1": "true",
     "2": "true",
     "3": "true",
@@ -88,7 +88,7 @@
     "11": "test -f .claude/observe-result.json"
   },
   "distribute": {
-    "0": "true",
+    "0": "test -f .claude/distribute-context.json",
     "1": "true",
     "1_5": "true",
     "2": "true",
@@ -101,7 +101,7 @@
     "9": "true"
   },
   "deploy": {
-    "0": "true",
+    "0": "test -f .claude/deploy-context.json",
     "1": "true",
     "2": "true",
     "3": "true",
@@ -109,14 +109,14 @@
     "5": "test -f .claude/deploy-manifest.json"
   },
   "teardown": {
-    "0": "true",
+    "0": "test -f .claude/teardown-context.json",
     "1": "true",
     "2": "true",
     "3": "true",
     "4": "true"
   },
   "spec": {
-    "0": "true",
+    "0": "test -f .claude/spec-context.json",
     "1": "true",
     "2": "true",
     "3": "true",
@@ -126,31 +126,31 @@
     "7": "test -f experiment/experiment.yaml"
   },
   "rollback": {
-    "0": "true",
+    "0": "test -f .claude/rollback-context.json",
     "1": "true",
     "2": "true",
     "3": "true"
   },
   "iterate": {
-    "0": "true",
+    "0": "test -f .claude/iterate-context.json",
     "1": "true",
     "2": "true",
     "3": "true",
     "4": "test -f .claude/iterate-manifest.json"
   },
   "retro": {
-    "0": "true",
+    "0": "test -f .claude/retro-context.json",
     "1": "true",
     "2": "true",
     "3": "true"
   },
   "solve": {
-    "0": "true",
+    "0": "test -f .claude/solve-context.json",
     "1": "true",
     "2": "true"
   },
   "audit": {
-    "0": "true",
+    "0": "test -f .claude/audit-context.json",
     "1": "true",
     "2": "true"
   }

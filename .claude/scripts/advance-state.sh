@@ -22,9 +22,11 @@ import json
 f='$CTX'; d=json.load(open(f))
 cs=d.get('completed_states',[])
 state='$STATE_NUM'
-# Normalize: try int first, fall back to string (for states like '3a')
+# Normalize: try int first, fall back to string (for states like '3a', '1_5')
+# Guard against PEP 515: int('1_5') silently returns 15
 try:
-    state=int(state)
+    if '_' not in state:
+        state=int(state)
 except ValueError:
     pass
 if state not in cs: cs.append(state)

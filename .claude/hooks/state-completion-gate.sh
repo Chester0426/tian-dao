@@ -37,8 +37,41 @@ skill_reg = reg.get('$SKILL', {})
 print(skill_reg.get('$STATE_ID', ''))
 " 2>/dev/null || echo "")
 
+# --- Chain check: verify all prior states are in completed_states ---
+# This prevents skipping states (e.g., jumping from STATE 0 to STATE 3).
+# Uses registry key order as the canonical state sequence.
+if [[ "$SKILL" == "verify" ]]; then
+  CTX_FILE="$PROJECT_DIR/.claude/verify-context.json"
+else
+  CTX_FILE="$PROJECT_DIR/.claude/${SKILL}-context.json"
+fi
+
+if [[ -f "$CTX_FILE" ]]; then
+  CHAIN_RESULT=$(python3 -c "
+import json, sys
+reg = json.load(open('$REGISTRY'))
+ctx = json.load(open('$CTX_FILE'))
+cs = [str(s) for s in ctx.get('completed_states', [])]
+states = list(reg.get('$SKILL', {}).keys())
+cur = '$STATE_ID'
+if cur in states:
+    idx = states.index(cur)
+    missing = [s for s in states[:idx] if s not in cs]
+    if missing:
+        print(','.join(missing))
+" 2>/dev/null || echo "")
+
+  if [[ -n "$CHAIN_RESULT" ]]; then
+    cat <<EOF
+{"permissionDecision": "deny", "message": "State completion gate: $SKILL STATE $STATE_ID — prior states not complete: [$CHAIN_RESULT]. Complete earlier states before advancing."}
+EOF
+    exit 0
+  fi
+fi
+
+# --- Artifact check: run VERIFY command from registry ---
 if [[ -z "$VERIFY_CMD" || "$VERIFY_CMD" == "true" ]]; then
-  exit 0  # No verify or always-pass (conditional postconditions handled by downstream hooks)
+  exit 0  # No artifact check for this state (chain check above still enforces order)
 fi
 
 # Run the verify command from project root
