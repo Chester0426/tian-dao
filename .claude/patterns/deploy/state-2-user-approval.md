@@ -1,0 +1,45 @@
+# STATE 2: USER_APPROVAL
+
+**PRECONDITIONS:**
+- Configuration gathered (STATE 1 POSTCONDITIONS met)
+
+**ACTIONS:**
+
+Present a summary of what will be created:
+
+```
+## Deployment Plan
+
+**Hosting (<provider>):** <name> (<team/account info from Config Gathering>)
+**Database (<provider>):** <name> (<org/account info from Config Gathering>)
+**Environment variables:** <list of env vars to be set>
+**Migrations:** <N migration files will be applied>
+
+**External service credentials (post-deploy):**
+- [service] — auto via CLI (`<cli>` installed + authed)
+- [service] — manual setup — CLI `<cli>` available but not installed (`<install-cmd>`)
+- [service] — manual setup (no CLI)
+- (Or: "None")
+
+Reply **approve** to proceed, or tell me what to change.
+```
+
+**STOP.** Do not proceed until the user approves.
+
+If the user requests changes, revise the plan and present it again. Repeat until approved.
+
+**POSTCONDITIONS:**
+- User has explicitly approved the deployment plan
+
+**VERIFY:**
+```bash
+# User message contains approval (e.g., "approve", "looks good", "proceed")
+echo "User approval received"
+```
+
+**STATE TRACKING:** After postconditions pass, mark this state complete:
+```bash
+bash .claude/scripts/advance-state.sh deploy 2
+```
+
+**NEXT:** Read [state-3-provision.md](state-3-provision.md) to continue.

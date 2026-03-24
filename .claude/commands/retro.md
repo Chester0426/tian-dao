@@ -12,126 +12,18 @@ modifies_specs: false
 ---
 Run a structured retrospective for the current experiment and file it as a GitHub Issue.
 
-## Step 1: Gather Automated Data
+## JIT State Dispatch
 
-Verify `experiment/experiment.yaml` exists. If not, stop and tell the user: "No experiment found — `experiment/experiment.yaml` is missing. Make sure you're in the right project directory."
+Read each STATE's file **only when transitioning to that state**. Do NOT read ahead. Complete the VERIFY check before reading the next state. This ensures you hold only one state's instructions in working memory at a time.
 
-Verify `experiment/EVENTS.yaml` exists. If not, stop and tell the user: "experiment/EVENTS.yaml not found. This file defines all analytics events and is required. Restore it from your template repo or re-create it following the format in the experiment/EVENTS.yaml section of the template."
+| STATE | Name | Phase | File |
+|-------|------|-------|------|
+| 0 | READ_CONTEXT | Plan | [state-0-read-context.md](../patterns/retro/state-0-read-context.md) |
+| 1 | INTERVIEW | Plan | [state-1-interview.md](../patterns/retro/state-1-interview.md) |
+| 2 | GENERATE | Implement | [state-2-generate.md](../patterns/retro/state-2-generate.md) |
+| 3 | FILE_ISSUE | Implement | [state-3-file-issue.md](../patterns/retro/state-3-file-issue.md) |
 
-If `package.json` does not exist, warn: "No app found — this retro will be based on your qualitative feedback only. If you want to include analytics data, run `/bootstrap` and `/deploy` first."
-
-If `.claude/iterate-manifest.json` exists, read it and extract the `verdict`, `bottleneck`, and `recommendations` fields. Include in the summary: "Last `/iterate` analysis: verdict **[verdict]**, bottleneck: [bottleneck.diagnosis]." This context will inform Q1 follow-up.
-
-If `.claude/verify-history.jsonl` exists, read it and compute per-skill Q summary:
-```bash
-python3 -c "
-import json
-entries = [json.loads(l) for l in open('.claude/verify-history.jsonl') if l.strip()]
-if not entries:
-    print('No Q-score data available.')
-else:
-    from collections import defaultdict
-    groups = defaultdict(list)
-    for e in entries:
-        groups[e.get('skill','unknown')].append(e.get('q_skill', None))
-    print('Skill Quality Summary:')
-    for skill, qs in sorted(groups.items()):
-        qs = [q for q in qs if q is not None]
-        if qs:
-            print(f'  {skill}: {len(qs)} runs, avg Q={sum(qs)/len(qs):.2f}, min Q={min(qs):.2f}')
-" 2>/dev/null || echo "No Q-score history found."
-```
-Include the output in the summary presented to the user.
-
-Collect these data points and present a summary before asking questions:
-
-1. **Git activity**
-   - Run `git log --oneline --no-decorate -50` — report commit count and date range
-   - Run `gh pr list --state all --limit 50` — report PR counts (merged, open, closed)
-
-2. **App scope**
-   - Count primary units based on archetype (read `.claude/archetypes/<type>.md`, type from experiment.yaml, default `web-app`):
-     - web-app: count page directories in `src/app/` (excluding `api/`)
-     - service: count API route directories (e.g., `src/app/api/` or `src/routes/`)
-     - cli: count command modules in `src/commands/`
-   - If the archetype has a detached surface (`stack.surface: detached` or inferred), also count surface pages (e.g., `site/` directory or deployed surface assets)
-   - Count production dependencies from `package.json` (if it exists)
-
-3. **Spec files**
-   - Read `experiment/experiment.yaml` — extract experiment name, description, target user, thesis, funnel thresholds
-   - Read `experiment/EVENTS.yaml` — list events being tracked
-
-Present the summary and then proceed to Step 2.
-
-## Step 2: Ask Four Questions
-
-Ask these questions **one at a time** by ending your response after each question. Wait for the user's reply before asking the next question.
-
-**Resumption:** If interrupted mid-conversation, the user can re-run `/retro`. If the user provides answers to previous questions up front (e.g., pasting prior responses), skip those questions and continue from where they left off. If the user provides all four answers at once, skip the one-at-a-time flow entirely and proceed to Step 3.
-
-### Q1: Outcome
-"What was the outcome of this experiment?"
-- Succeeded — hit or exceeded thesis target
-- Partially succeeded — made progress but didn't hit target
-- Failed — didn't move the metric
-- Inconclusive — not enough data or time
-
-Follow-up: "What was the actual result vs the target in your thesis: [thesis]?"
-
-### Q2: What worked
-"What worked well? (workflow, tools, stack, anything)"
-
-### Q3: What was painful
-"What was painful, confusing, or slow?"
-
-### Q4: What was missing
-"What capability did you wish you had but didn't?"
-
-## Step 3: Generate Structured Retro
-
-Compile all data into a structured document with these sections:
-
-1. **Experiment Summary** — name, description, target user, thesis, outcome, metric results
-2. **Timeline & Activity** — commits, PRs, pages built, scope delivered vs planned
-3. **Stack Used** — from experiment.yaml `stack`
-4. **Team Assessment** — answers to Q2-Q4
-5. **Template Improvement Suggestions** — specific, actionable changes mapped to template components (e.g., "Add X to the bootstrap skill", "Change Y in CLAUDE.md Rule Z")
-6. **Skill Quality Summary** — per-skill Q-score table from `.claude/verify-history.jsonl` (if available):
-
-   | Skill | Runs | Avg Q | Min Q | Top Rework Source |
-   |-------|------|-------|-------|-------------------|
-
-   If no Q-score data exists, note: "No Q-score data available — Q tracking requires running /verify after /bootstrap or /change."
-
-Show the full retro to the user before filing.
-
-## Step 4: File as GitHub Issue
-
-1. Determine the target repo: use the current repo via `gh repo view --json nameWithOwner --jq '.nameWithOwner'`. If `gh` is not available or the command fails, ask the user: "Where should I file this retro? Enter a repo in `owner/repo` format, or say 'skip' to print it to the terminal instead."
-2. If the user says "skip", print the retro to the terminal and stop.
-
-File the issue:
-```
-gh issue create \
-  --title "Retro: <experiment-name> — <outcome>" \
-  --label "retro" \
-  --body "<structured retro content>"
-```
-
-### Error Handling
-- If `gh issue create` fails with a label error (e.g., label "retro" doesn't exist): retry **without** the `--label "retro"` flag. The user may not have triage permissions to create labels.
-- If `gh issue create` fails for any other reason: show the full error message and suggest:
-  - Check GitHub authentication: `gh auth status`
-  - Try filing manually by copying the retro content above
-- If the issue is created successfully, show the issue URL.
-
-## Step 5: Next steps
-
-After filing the retro, guide the user:
-- If the archetype is `web-app` or `service` and cloud infrastructure was deployed: "If you're done with this experiment, run `/teardown` to remove cloud resources (Vercel, Supabase, etc.)."
-- If the archetype is `cli` and `surface` is `none` (or no surface was deployed): "CLI tools with no surface have no cloud infrastructure to tear down. If you want to unpublish the npm package, run `npm unpublish <name>` (within 72 hours of publish) or deprecate it with `npm deprecate <name> \"Experiment concluded\"`."
-- If the archetype is `cli` and `surface` is `detached` or `co-located` (default for CLI is `detached`): "Your marketing surface is deployed to cloud infrastructure. Run `/teardown` to remove it. For the npm package, run `npm unpublish <name>` (within 72 hours of publish) or deprecate it with `npm deprecate <name> \"Experiment concluded\"`."
-- For all archetypes: "Your source code, experiment.yaml, and experiment history are preserved on the main branch."
+Begin at STATE 0. Read [state-0-read-context.md](../patterns/retro/state-0-read-context.md) now.
 
 ## Do NOT
 - Modify any code files

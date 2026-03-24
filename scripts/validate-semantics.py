@@ -2927,8 +2927,7 @@ def main() -> int:
 
     iterate_path_46 = ".claude/commands/iterate.md"
     if os.path.isfile(iterate_path_46):
-        with open(iterate_path_46) as f:
-            iterate_content_46 = f.read()
+        iterate_content_46 = read_skill_with_states(iterate_path_46)
         for e in check_46_iterate_verdict(iterate_content_46):
             error(e)
 
@@ -2938,8 +2937,7 @@ def main() -> int:
 
     deploy_path_47 = ".claude/commands/deploy.md"
     if os.path.isfile(deploy_path_47):
-        with open(deploy_path_47) as f:
-            deploy_content_47 = f.read()
+        deploy_content_47 = read_skill_with_states(deploy_path_47)
         has_dashboard = bool(re.search(r"(?i)dashboard", deploy_content_47))
         has_digest = bool(re.search(r"(?i)digest|subscription|subscribe", deploy_content_47))
         if not has_dashboard:
@@ -2953,8 +2951,7 @@ def main() -> int:
 
     iterate_path_48 = ".claude/commands/iterate.md"
     if os.path.isfile(iterate_path_48):
-        with open(iterate_path_48) as f:
-            iterate_content_48 = f.read()
+        iterate_content_48 = read_skill_with_states(iterate_path_48)
         has_checkin = bool(re.search(r"(?i)next.check.in", iterate_content_48))
         if not has_checkin:
             error("[48] iterate.md: missing Next Check-in schedule section")
