@@ -4,11 +4,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract file_path from tool_input
-FILE_PATH=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null || echo "")
+FILE_PATH=$(read_payload_field "tool_input.file_path")
 
 # Only fire when file_path contains "verify-report"
 if [[ "$FILE_PATH" != *"verify-report"* ]]; then
@@ -21,13 +20,11 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 ERRORS=()
 WARNINGS=()
 
-TOOL_NAME=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null || echo "")
-CONTENT=""
-if [[ "$TOOL_NAME" == "Write" ]]; then
-  CONTENT=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('content',''))" 2>/dev/null || echo "")
-elif [[ "$TOOL_NAME" == "Edit" ]]; then
-  CONTENT=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('new_string',''))" 2>/dev/null || echo "")
-fi
+extract_write_content
+
+# ═══════════════════════════════════════════════════════════════════
+# === Section A: Artifact Presence (Checks 1-7, 15) ===
+# ═══════════════════════════════════════════════════════════════════
 
 # Check 1: verify-context.json exists (STATE 0 ran)
 if [[ ! -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
@@ -100,14 +97,7 @@ fi
 
 # Check 5: If scope is full/security, security-merge.json must exist (skip on hard gate)
 if [[ "$HAS_HARD_GATE" -eq 0 ]] && [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-  SCOPE=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
-    print(d.get('scope', ''))
-except:
-    print('')
-" 2>/dev/null || echo "")
+  SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
   if [[ "$SCOPE" == "full" || "$SCOPE" == "security" ]]; then
     if [[ ! -f "$PROJECT_DIR/.claude/security-merge.json" ]]; then
       ERRORS+=("security-merge.json not found — security merge step was skipped (scope=$SCOPE)")
@@ -133,38 +123,54 @@ if [[ "$HAS_HARD_GATE" -eq 0 ]]; then
   if [[ ! -f "$PROJECT_DIR/.claude/e2e-result.json" ]]; then
     ERRORS+=("e2e-result.json not found — E2E tests (STATE 5) did not run")
   else
-    E2E_PASSED=$(python3 -c "
-import json
-try:
-    d = json.load(open('$PROJECT_DIR/.claude/e2e-result.json'))
-    print('yes' if d.get('passed', False) else 'no')
-except:
-    print('no')
-" 2>/dev/null || echo "no")
-    if [[ "$E2E_PASSED" != "yes" ]]; then
+    E2E_PASSED=$(read_json_field "$PROJECT_DIR/.claude/e2e-result.json" "passed")
+    if [[ "$E2E_PASSED" != "True" ]]; then
       WARNINGS+=("e2e-result.json: passed=false — E2E tests failed")
     fi
   fi
 fi
 
+# Check 15: All STATE postcondition artifacts exist (backstop for agent-state-gate.sh)
+# When hard_gate_failure: true, STATEs 4-6 are correctly skipped — their artifacts are optional.
+if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
+  POSTCOND_CHECK=$(HAS_HARD_GATE="$HAS_HARD_GATE" python3 -c "
+import json, os
+project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
+ctx = json.load(open(os.path.join(project, '.claude/verify-context.json')))
+scope, arch = ctx.get('scope', ''), ctx.get('archetype', '')
+hard_gate = int(os.environ.get('HAS_HARD_GATE', '0')) > 0
+errors = []
+for f in ['verify-context.json', 'fix-log.md']:
+    if not os.path.exists(os.path.join(project, '.claude', f)):
+        errors.append(f'{f} missing (STATE 0)')
+if scope in ('full', 'visual') and arch == 'web-app':
+    if not os.path.exists(os.path.join(project, '.claude/design-ux-merge.json')):
+        errors.append('design-ux-merge.json missing (STATE 3)')
+if not hard_gate:
+    if scope in ('full', 'security'):
+        if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
+            errors.append('security-merge.json missing (STATE 4)')
+    if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
+        errors.append('e2e-result.json missing (STATE 5)')
+if not os.path.exists(os.path.join(project, '.claude/build-result.json')):
+    errors.append('build-result.json missing (STATE 1)')
+if errors: print('FAIL:' + '; '.join(errors))
+else: print('OK')
+" 2>/dev/null || echo "OK")
+  if [[ "$POSTCOND_CHECK" == FAIL:* ]]; then
+    POSTCOND_DETAIL="${POSTCOND_CHECK#FAIL:}"
+    ERRORS+=("Check 15: Missing postcondition artifacts: $POSTCOND_DETAIL")
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# === Section B: Agent Trace Verdicts (Checks 8-11, 13-14) ===
+# ═══════════════════════════════════════════════════════════════════
+
 # Check 8: If scope is full/visual AND archetype is web-app, design-ux-merge.json must exist
 if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-  SCOPE_DUX=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
-    print(d.get('scope', ''))
-except:
-    print('')
-" 2>/dev/null || echo "")
-  ARCHETYPE_DUX=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
-    print(d.get('archetype', ''))
-except:
-    print('')
-" 2>/dev/null || echo "")
+  SCOPE_DUX=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
+  ARCHETYPE_DUX=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "archetype")
   if [[ ("$SCOPE_DUX" == "full" || "$SCOPE_DUX" == "visual") && "$ARCHETYPE_DUX" == "web-app" ]]; then
     if [[ ! -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]]; then
       ERRORS+=("design-ux-merge.json not found — Design-UX merge step was skipped (scope=$SCOPE_DUX, archetype=$ARCHETYPE_DUX)")
@@ -175,9 +181,9 @@ fi
 # Check 9: design-critic hard gate
 DC_TRACE="$TRACE_DIR/design-critic.json"
 if [[ -f "$DC_TRACE" ]]; then
-  DC_VERDICT=$(python3 -c "import json; d=json.load(open('$DC_TRACE')); print(d.get('verdict',''))" 2>/dev/null || echo "")
-  DC_RECOVERY=$(python3 -c "import json; d=json.load(open('$DC_TRACE')); print('true' if d.get('recovery') else 'false')" 2>/dev/null || echo "false")
-  if [[ "$DC_VERDICT" == "unresolved" || "$DC_RECOVERY" == "true" ]]; then
+  DC_VERDICT=$(read_json_field "$DC_TRACE" "verdict")
+  DC_RECOVERY=$(read_json_field "$DC_TRACE" "recovery")
+  if [[ "$DC_VERDICT" == "unresolved" || "$DC_RECOVERY" == "True" ]]; then
     if ! echo "$CONTENT" | grep -q 'hard_gate_failure: *true'; then
       ERRORS+=("design-critic verdict=$DC_VERDICT recovery=$DC_RECOVERY requires hard_gate_failure: true in report frontmatter")
     fi
@@ -187,10 +193,10 @@ fi
 # Check 10: ux-journeyer hard gate
 UX_TRACE="$TRACE_DIR/ux-journeyer.json"
 if [[ -f "$UX_TRACE" ]]; then
-  UX_VERDICT=$(python3 -c "import json; d=json.load(open('$UX_TRACE')); print(d.get('verdict',''))" 2>/dev/null || echo "")
-  UX_UDE=$(python3 -c "import json; d=json.load(open('$UX_TRACE')); print(d.get('unresolved_dead_ends',0))" 2>/dev/null || echo "0")
-  UX_RECOVERY=$(python3 -c "import json; d=json.load(open('$UX_TRACE')); print('true' if d.get('recovery') else 'false')" 2>/dev/null || echo "false")
-  if [[ "$UX_VERDICT" == "blocked" || "$UX_UDE" -gt 0 || "$UX_RECOVERY" == "true" ]]; then
+  UX_VERDICT=$(read_json_field "$UX_TRACE" "verdict")
+  UX_UDE=$(read_json_field "$UX_TRACE" "unresolved_dead_ends")
+  UX_RECOVERY=$(read_json_field "$UX_TRACE" "recovery")
+  if [[ "$UX_VERDICT" == "blocked" || "$UX_UDE" -gt 0 || "$UX_RECOVERY" == "True" ]]; then
     if ! echo "$CONTENT" | grep -q 'hard_gate_failure: *true'; then
       ERRORS+=("ux-journeyer verdict=$UX_VERDICT unresolved_dead_ends=$UX_UDE recovery=$UX_RECOVERY requires hard_gate_failure: true in report frontmatter")
     fi
@@ -200,58 +206,19 @@ fi
 # Check 11: security-fixer hard gate
 SF_TRACE="$TRACE_DIR/security-fixer.json"
 if [[ -f "$SF_TRACE" ]]; then
-  SF_VERDICT=$(python3 -c "import json; d=json.load(open('$SF_TRACE')); print(d.get('verdict',''))" 2>/dev/null || echo "")
-  SF_UC=$(python3 -c "import json; d=json.load(open('$SF_TRACE')); print(d.get('unresolved_critical',0))" 2>/dev/null || echo "0")
-  SF_RECOVERY=$(python3 -c "import json; d=json.load(open('$SF_TRACE')); print('true' if d.get('recovery') else 'false')" 2>/dev/null || echo "false")
-  if [[ ("$SF_VERDICT" == "partial" && "$SF_UC" -gt 0) || "$SF_RECOVERY" == "true" ]]; then
+  SF_VERDICT=$(read_json_field "$SF_TRACE" "verdict")
+  SF_UC=$(read_json_field "$SF_TRACE" "unresolved_critical")
+  SF_RECOVERY=$(read_json_field "$SF_TRACE" "recovery")
+  if [[ ("$SF_VERDICT" == "partial" && "$SF_UC" -gt 0) || "$SF_RECOVERY" == "True" ]]; then
     if ! echo "$CONTENT" | grep -q 'hard_gate_failure: *true'; then
       ERRORS+=("security-fixer verdict=$SF_VERDICT unresolved_critical=$SF_UC recovery=$SF_RECOVERY requires hard_gate_failure: true in report frontmatter")
     fi
   fi
 fi
 
-# Check 12: agent_verdicts in report must match actual trace verdicts
-if [[ -d "$TRACE_DIR" && -n "$CONTENT" ]]; then
-  VERDICTS_MISMATCH=$(REPORT_CONTENT="$CONTENT" python3 -c "
-import json, glob, re, sys, os
-
-content = os.environ['REPORT_CONTENT']
-traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
-errors = []
-
-# Extract agent_verdicts from frontmatter
-match = re.search(r'agent_verdicts:\s*(.+)', content)
-if match:
-    try:
-        report_verdicts = json.loads(match.group(1).strip())
-        # Compare against actual traces
-        for name, report_verdict in report_verdicts.items():
-            trace_path = os.path.join(traces_dir, name + '.json')
-            if os.path.exists(trace_path):
-                try:
-                    trace = json.load(open(trace_path))
-                    trace_verdict = trace.get('verdict', 'missing')
-                    if str(report_verdict) != str(trace_verdict):
-                        errors.append(f'{name}: report={report_verdict}, trace={trace_verdict}')
-                except (json.JSONDecodeError, IOError):
-                    pass
-    except json.JSONDecodeError:
-        pass  # Can't parse agent_verdicts — fail open
-
-if errors:
-    print('FAIL:' + '; '.join(errors))
-else:
-    print('OK')
-" 2>/dev/null || echo "OK")
-  if [[ "$VERDICTS_MISMATCH" == FAIL:* ]]; then
-    MISMATCH_DETAIL="${VERDICTS_MISMATCH#FAIL:}"
-    ERRORS+=("agent_verdicts mismatch with traces: $MISMATCH_DETAIL")
-  fi
-fi
-
 # Check 13: design-consistency-checker trace required for full/visual + web-app
-SCOPE_13=$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/.claude/verify-context.json')).get('scope',''))" 2>/dev/null || echo "")
-ARCH_13=$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/.claude/verify-context.json')).get('archetype',''))" 2>/dev/null || echo "")
+SCOPE_13=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
+ARCH_13=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "archetype")
 if [[ "$SCOPE_13" =~ ^(full|visual)$ ]] && [[ "$ARCH_13" == "web-app" ]]; then
   if [ ! -f "$PROJECT_DIR/.claude/agent-traces/design-consistency-checker.json" ]; then
     ERRORS+=("Check 13: design-consistency-checker.json trace missing for scope=$SCOPE_13 archetype=$ARCH_13")
@@ -312,36 +279,46 @@ else: print('OK')
   fi
 fi
 
-# Check 15: All STATE postcondition artifacts exist (backstop for agent-state-gate.sh)
-# When hard_gate_failure: true, STATEs 4-6 are correctly skipped — their artifacts are optional.
-if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-  POSTCOND_CHECK=$(HAS_HARD_GATE="$HAS_HARD_GATE" python3 -c "
-import json, os
-project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
-ctx = json.load(open(os.path.join(project, '.claude/verify-context.json')))
-scope, arch = ctx.get('scope', ''), ctx.get('archetype', '')
-hard_gate = int(os.environ.get('HAS_HARD_GATE', '0')) > 0
+# ═══════════════════════════════════════════════════════════════════
+# === Section C: Cross-Artifact Consistency (Checks 12, 16-19) ===
+# ═══════════════════════════════════════════════════════════════════
+
+# Check 12: agent_verdicts in report must match actual trace verdicts
+if [[ -d "$TRACE_DIR" && -n "$CONTENT" ]]; then
+  VERDICTS_MISMATCH=$(REPORT_CONTENT="$CONTENT" python3 -c "
+import json, glob, re, sys, os
+
+content = os.environ['REPORT_CONTENT']
+traces_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.') + '/.claude/agent-traces'
 errors = []
-for f in ['verify-context.json', 'fix-log.md']:
-    if not os.path.exists(os.path.join(project, '.claude', f)):
-        errors.append(f'{f} missing (STATE 0)')
-if scope in ('full', 'visual') and arch == 'web-app':
-    if not os.path.exists(os.path.join(project, '.claude/design-ux-merge.json')):
-        errors.append('design-ux-merge.json missing (STATE 3)')
-if not hard_gate:
-    if scope in ('full', 'security'):
-        if not os.path.exists(os.path.join(project, '.claude/security-merge.json')):
-            errors.append('security-merge.json missing (STATE 4)')
-    if not os.path.exists(os.path.join(project, '.claude/e2e-result.json')):
-        errors.append('e2e-result.json missing (STATE 5)')
-if not os.path.exists(os.path.join(project, '.claude/build-result.json')):
-    errors.append('build-result.json missing (STATE 1)')
-if errors: print('FAIL:' + '; '.join(errors))
-else: print('OK')
+
+# Extract agent_verdicts from frontmatter
+match = re.search(r'agent_verdicts:\s*(.+)', content)
+if match:
+    try:
+        report_verdicts = json.loads(match.group(1).strip())
+        # Compare against actual traces
+        for name, report_verdict in report_verdicts.items():
+            trace_path = os.path.join(traces_dir, name + '.json')
+            if os.path.exists(trace_path):
+                try:
+                    trace = json.load(open(trace_path))
+                    trace_verdict = trace.get('verdict', 'missing')
+                    if str(report_verdict) != str(trace_verdict):
+                        errors.append(f'{name}: report={report_verdict}, trace={trace_verdict}')
+                except (json.JSONDecodeError, IOError):
+                    pass
+    except json.JSONDecodeError:
+        pass  # Can't parse agent_verdicts — fail open
+
+if errors:
+    print('FAIL:' + '; '.join(errors))
+else:
+    print('OK')
 " 2>/dev/null || echo "OK")
-  if [[ "$POSTCOND_CHECK" == FAIL:* ]]; then
-    POSTCOND_DETAIL="${POSTCOND_CHECK#FAIL:}"
-    ERRORS+=("Check 15: Missing postcondition artifacts: $POSTCOND_DETAIL")
+  if [[ "$VERDICTS_MISMATCH" == FAIL:* ]]; then
+    MISMATCH_DETAIL="${VERDICTS_MISMATCH#FAIL:}"
+    ERRORS+=("agent_verdicts mismatch with traces: $MISMATCH_DETAIL")
   fi
 fi
 
@@ -436,11 +413,7 @@ fi
 
 # If any check failed, deny the write
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
-  ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")
-  cat <<EOF
-{"permissionDecision": "deny", "message": "Verify report gate blocked: ${ERROR_MSG}Complete all verification steps before writing verify-report.md."}
-EOF
-  exit 0
+  deny_errors "Verify report gate blocked: " "Complete all verification steps before writing verify-report.md."
 fi
 
 # All checks passed — allow

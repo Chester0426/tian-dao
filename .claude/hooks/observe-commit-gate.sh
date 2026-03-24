@@ -6,11 +6,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract the command from tool_input.command
-COMMAND=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+COMMAND=$(read_payload_field "tool_input.command")
 
 # If the command doesn't contain `git commit`, allow it
 if [[ "$COMMAND" != *"git commit"* ]]; then
@@ -18,7 +17,7 @@ if [[ "$COMMAND" != *"git commit"* ]]; then
 fi
 
 # Only enforce on fix/ branches (/resolve uses fix/ prefix)
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+BRANCH=$(get_branch)
 if [[ ! "$BRANCH" =~ ^fix/ ]]; then
   exit 0
 fi
@@ -41,7 +40,4 @@ if [[ -f "$PROJECT_DIR/.claude/observe-result.json" ]]; then
 fi
 
 # No observation evidence found — deny
-cat <<EOF
-{"permissionDecision": "deny", "message": "Observation not performed. Run the skill epilogue (.claude/patterns/skill-epilogue.md) before the final commit. This ensures template-level issues are detected and filed."}
-EOF
-exit 0
+deny "Observation not performed. Run the skill epilogue (.claude/patterns/skill-epilogue.md) before the final commit. This ensures template-level issues are detected and filed."

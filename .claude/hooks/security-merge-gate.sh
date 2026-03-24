@@ -5,11 +5,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract file_path from tool_input
-FILE_PATH=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null || echo "")
+FILE_PATH=$(read_payload_field "tool_input.file_path")
 
 # Only fire when file_path contains "security-merge"
 if [[ "$FILE_PATH" != *"security-merge"* ]]; then
@@ -18,13 +17,7 @@ fi
 
 # --- security-merge.json write detected — run trace validation ---
 
-TOOL_NAME=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null || echo "")
-CONTENT=""
-if [[ "$TOOL_NAME" == "Write" ]]; then
-  CONTENT=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('content',''))" 2>/dev/null || echo "")
-elif [[ "$TOOL_NAME" == "Edit" ]]; then
-  CONTENT=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('new_string',''))" 2>/dev/null || echo "")
-fi
+extract_write_content
 
 # Skip if content is empty
 if [[ -z "$CONTENT" ]]; then
@@ -86,18 +79,7 @@ else:
     print('OK')
 " 2>/dev/null || echo "OK")
 
-if [[ "$VALIDATION" == "PARSE_ERROR" ]]; then
-  # Can't parse JSON — fail open
-  exit 0
-fi
-
-if [[ "$VALIDATION" == FAIL:* ]]; then
-  ERROR_DETAIL="${VALIDATION#FAIL:}"
-  cat <<EOF
-{"permissionDecision": "deny", "message": "Security merge gate blocked: ${ERROR_DETAIL}. Merge JSON must match source agent traces."}
-EOF
-  exit 0
-fi
+handle_validation "$VALIDATION" "Security merge gate" "Merge JSON must match source agent traces."
 
 # All checks passed — allow
 exit 0

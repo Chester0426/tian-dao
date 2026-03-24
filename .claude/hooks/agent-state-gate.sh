@@ -5,11 +5,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract subagent_type from tool_input (fail open on parse errors)
-SUBAGENT_TYPE=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('subagent_type',''))" 2>/dev/null || echo "")
+SUBAGENT_TYPE=$(read_payload_field "tool_input.subagent_type")
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 TRACES_DIR="$PROJECT_DIR/.claude/agent-traces"
@@ -137,30 +136,6 @@ fi
 # Ports all verify-specific logic from phase-transition-gate.sh
 # ══════════════════════════════════════════════════════════════════════
 
-# Helper: read field from context file
-read_context_field() {
-  local SKILL="$1"
-  local FIELD="$2"
-  local CTX_FILE
-  if [[ "$SKILL" == "verify" ]]; then
-    CTX_FILE="$PROJECT_DIR/.claude/verify-context.json"
-  else
-    CTX_FILE="$PROJECT_DIR/.claude/${SKILL}-context.json"
-  fi
-  if [[ -f "$CTX_FILE" ]]; then
-    python3 -c "
-import json
-try:
-    d = json.load(open('$CTX_FILE'))
-    print(d.get('$FIELD', ''))
-except:
-    print('')
-" 2>/dev/null || echo ""
-  else
-    echo ""
-  fi
-}
-
 check_trace_verdict() {
   local TRACE_FILE="$1"
   local CONTEXT="$2"
@@ -213,14 +188,14 @@ check_postcondition_artifacts() {
       [[ -d "$TRACES_DIR" ]] || ERRORS+=("agent-traces/ directory missing — STATE 0 incomplete")
       ;;
     3)
-      V_SCOPE=$(read_context_field verify scope)
-      V_ARCH=$(read_context_field verify archetype)
+      V_SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
+      V_ARCH=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "archetype")
       if [[ ("$V_SCOPE" == "full" || "$V_SCOPE" == "visual") && "$V_ARCH" == "web-app" ]]; then
         [[ -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]] || ERRORS+=("design-ux-merge.json missing — STATE 3 incomplete")
       fi
       ;;
     4)
-      V_SCOPE=$(read_context_field verify scope)
+      V_SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
       if [[ "$V_SCOPE" == "full" || "$V_SCOPE" == "security" ]]; then
         [[ -f "$PROJECT_DIR/.claude/security-merge.json" ]] || ERRORS+=("security-merge.json missing — STATE 4 incomplete")
       fi
@@ -271,7 +246,7 @@ check_build_result() {
     return
   fi
   local EXIT_CODE
-  EXIT_CODE=$(python3 -c "import json; print(json.load(open('$BR_FILE')).get('exit_code', -1))" 2>/dev/null || echo "-1")
+  EXIT_CODE=$(read_json_field "$BR_FILE" "exit_code")
   if [[ "$EXIT_CODE" != "0" ]]; then
     ERRORS+=("build-result.json exit_code=$EXIT_CODE — build did not pass (STATE 1 incomplete)")
   fi
@@ -323,7 +298,7 @@ verify_extended_checks() {
       check_trace_run_id "$TRACES_DIR/build-info-collector.json"
 
       local SCOPE
-      SCOPE=$(read_context_field verify scope)
+      SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
       if [[ "$SCOPE" == "full" || "$SCOPE" == "security" ]]; then
         for AGENT in security-defender security-attacker behavior-verifier; do
           if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
@@ -355,8 +330,8 @@ else:
         check_tier1_retry_complete "design-critic-*" "$TRACES_DIR"
         check_tier1_retry_complete "design-critic" "$TRACES_DIR"
         local SCOPE_V1 ARCH_V1
-        SCOPE_V1=$(read_context_field verify scope)
-        ARCH_V1=$(read_context_field verify archetype)
+        SCOPE_V1=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
+        ARCH_V1=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "archetype")
         if [[ "$SCOPE_V1" =~ ^(full|visual)$ ]] && [[ "$ARCH_V1" == "web-app" ]]; then
           if [ ! -f "$TRACES_DIR/design-consistency-checker.json" ]; then
             ERRORS+=("design-consistency-checker.json trace missing — spawn consistency checker before ux-journeyer")
@@ -377,8 +352,8 @@ else:
       check_trace_run_id "$TRACES_DIR/build-info-collector.json"
 
       local SF_SCOPE SF_ARCH
-      SF_SCOPE=$(read_context_field verify scope)
-      SF_ARCH=$(read_context_field verify archetype)
+      SF_SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
+      SF_ARCH=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "archetype")
       if [[ "$SF_ARCH" == "web-app" && ( "$SF_SCOPE" == "full" || "$SF_SCOPE" == "visual" ) ]]; then
         for AGENT in design-critic ux-journeyer; do
           if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
@@ -394,7 +369,7 @@ else:
       if [[ "$SF_ARCH" == "web-app" && ( "$SF_SCOPE" == "full" || "$SF_SCOPE" == "visual" ) ]]; then
         if [[ -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]]; then
           local MERGE_VERDICT
-          MERGE_VERDICT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.claude/design-ux-merge.json')).get('verdict',''))" 2>/dev/null || echo "")
+          MERGE_VERDICT=$(read_json_field "$PROJECT_DIR/.claude/design-ux-merge.json" "verdict")
           if [[ "$MERGE_VERDICT" == "fail" ]]; then
             ERRORS+=("design-ux-merge.json verdict=fail — hard gate failure, skip to STATE 7")
           fi
@@ -430,7 +405,7 @@ else:
           HAS_TESTING=$(grep -c "testing:" "$PROJECT_DIR/experiment/experiment.yaml" 2>/dev/null || echo "0")
           if [[ "$HAS_TESTING" -gt 0 ]]; then
             local E2E_REASON
-            E2E_REASON=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.claude/e2e-result.json')).get('reason',''))" 2>/dev/null || echo "")
+            E2E_REASON=$(read_json_field "$PROJECT_DIR/.claude/e2e-result.json" "reason")
             if [[ "$E2E_REASON" == "no testing stack" ]]; then
               ERRORS+=("e2e-result.json says 'no testing stack' but experiment.yaml has stack.testing — STATE 5 was not executed correctly")
             fi
@@ -496,16 +471,16 @@ bootstrap_extended_checks() {
     scaffold-*)
       local VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
       local BRANCH
-      BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+      BRANCH=$(get_branch)
 
       # BG1 verdict PASS + branch match
       if [[ -f "$VERDICTS_DIR/bg1.json" ]]; then
         local BG1_VERDICT BG1_BRANCH
-        BG1_VERDICT=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/bg1.json')).get('verdict',''))" 2>/dev/null || echo "")
+        BG1_VERDICT=$(read_json_field "$VERDICTS_DIR/bg1.json" "verdict")
         if [[ "$BG1_VERDICT" != "PASS" ]]; then
           ERRORS+=("BG1 verdict is '$BG1_VERDICT', not PASS — fix BG1 issues before spawning scaffold agents")
         fi
-        BG1_BRANCH=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/bg1.json')).get('branch',''))" 2>/dev/null || echo "")
+        BG1_BRANCH=$(read_json_field "$VERDICTS_DIR/bg1.json" "branch")
         if [[ "$BG1_BRANCH" != "$BRANCH" ]]; then
           ERRORS+=("BG1 verdict was for branch '$BG1_BRANCH', but current branch is '$BRANCH'")
         fi
@@ -524,7 +499,7 @@ bootstrap_extended_checks() {
           ERRORS+=("scaffold-libs manifest missing — scaffold-libs must complete before page/landing agents")
         else
           local LIBS_STATUS
-          LIBS_STATUS=$(python3 -c "import json; print(json.load(open('$LIBS_MANIFEST')).get('status',''))" 2>/dev/null || echo "")
+          LIBS_STATUS=$(read_json_field "$LIBS_MANIFEST" "status")
           if [[ "$LIBS_STATUS" != "complete" ]]; then
             ERRORS+=("scaffold-libs status is '$LIBS_STATUS', not 'complete' — wait for scaffold-libs to finish")
           fi
@@ -535,7 +510,7 @@ bootstrap_extended_checks() {
       if [[ "$SUBAGENT_TYPE" == "scaffold-wire" ]]; then
         if [[ -f "$VERDICTS_DIR/bg2.json" ]]; then
           local BG2_VERDICT
-          BG2_VERDICT=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/bg2.json')).get('verdict',''))" 2>/dev/null || echo "")
+          BG2_VERDICT=$(read_json_field "$VERDICTS_DIR/bg2.json" "verdict")
           if [[ "$BG2_VERDICT" != "PASS" ]]; then
             ERRORS+=("BG2 verdict is '$BG2_VERDICT', not PASS — fix BG2 issues before wiring")
           fi
@@ -554,12 +529,12 @@ change_extended_checks() {
     local VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
     if [[ -f "$VERDICTS_DIR/g3.json" ]]; then
       local G3_V G3_BRANCH CURRENT_BRANCH
-      G3_V=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/g3.json')).get('verdict',''))" 2>/dev/null || echo "")
+      G3_V=$(read_json_field "$VERDICTS_DIR/g3.json" "verdict")
       if [[ "$G3_V" != "PASS" ]]; then
         ERRORS+=("G3 verdict is $G3_V, not PASS — fix spec issues before implementation")
       fi
-      G3_BRANCH=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/g3.json')).get('branch',''))" 2>/dev/null || echo "")
-      CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+      G3_BRANCH=$(read_json_field "$VERDICTS_DIR/g3.json" "branch")
+      CURRENT_BRANCH=$(get_branch)
       if [[ -n "$G3_BRANCH" && "$G3_BRANCH" != "$CURRENT_BRANCH" ]]; then
         ERRORS+=("G3 verdict is for branch '$G3_BRANCH', not '$CURRENT_BRANCH'")
       fi
@@ -578,11 +553,7 @@ fi
 
 # ── Deny or allow ──
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
-  ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")
-  cat <<EOF
-{"permissionDecision": "deny", "message": "State gate blocked: ${ERROR_MSG}Complete prerequisite states before spawning $SUBAGENT_TYPE."}
-EOF
-  exit 0
+  deny_errors "State gate blocked: " "Complete prerequisite states before spawning $SUBAGENT_TYPE."
 fi
 
 # All checks passed — allow

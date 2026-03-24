@@ -5,11 +5,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract the command from tool_input.command
-COMMAND=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+COMMAND=$(read_payload_field "tool_input.command")
 
 # If the command doesn't contain `git commit`, allow it
 if [[ "$COMMAND" != *"git commit"* ]]; then
@@ -17,7 +16,7 @@ if [[ "$COMMAND" != *"git commit"* ]]; then
 fi
 
 # If the current branch is not change/, feat/, fix/, or chore/harden, allow it
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+BRANCH=$(get_branch)
 if [[ ! "$BRANCH" =~ ^(change|feat|fix)/ ]] && [[ ! "$BRANCH" =~ ^chore/(harden|distribute|review) ]]; then
   exit 0
 fi
@@ -48,10 +47,7 @@ print(m.group(1) if m else '')
   # Final harden commit — require verify-report.md
   REPORT="$PROJECT_DIR/.claude/verify-report.md"
   if [[ ! -f "$REPORT" ]]; then
-    cat <<EOF
-{"permissionDecision": "deny", "message": "Harden commit blocked: verify-report.md missing — run /verify before final commit."}
-EOF
-    exit 0
+    deny "Harden commit blocked: verify-report.md missing — run /verify before final commit."
   fi
   exit 0  # verify-report exists, allow
 fi
@@ -73,10 +69,7 @@ cs = [str(s) for s in d.get('completed_states', [])]
 print('yes' if '7' in cs else 'no')
 " 2>/dev/null || echo "no")
     if [[ "$AT_FINAL" == "yes" ]]; then
-      cat <<EOF
-{"permissionDecision": "deny", "message": "Distribute commit blocked: verify-report.md missing — run verify before final commit."}
-EOF
-      exit 0
+      deny "Distribute commit blocked: verify-report.md missing — run verify before final commit."
     fi
   fi
   exit 0
@@ -94,10 +87,7 @@ cs = [str(s) for s in d.get('completed_states', [])]
 print('yes' if '4' in cs else 'no')
 " 2>/dev/null || echo "no")
     if [[ "$AT_FINAL" == "yes" && ! -f "$PROJECT_DIR/.claude/review-complete.json" ]]; then
-      cat <<EOF
-{"permissionDecision": "deny", "message": "Review commit blocked: review-complete.json missing — complete review validation first."}
-EOF
-      exit 0
+      deny "Review commit blocked: review-complete.json missing — complete review validation first."
     fi
   fi
   exit 0
@@ -137,10 +127,7 @@ fi
 # recover: commits allowed only when a plan exists (proves recovery from valid state)
 if [[ "$COMMAND" == *"recover:"* ]]; then
   if [[ ! -f "$PLAN" ]]; then
-    cat <<EOF
-{"permissionDecision": "deny", "message": "recover: commit blocked — no current-plan.md found. Cannot recover without an existing plan."}
-EOF
-    exit 0
+    deny "recover: commit blocked — no current-plan.md found. Cannot recover without an existing plan."
   fi
   exit 0
 fi
@@ -154,12 +141,12 @@ VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
 if [[ ! -f "$VERDICTS_DIR/g4.json" ]]; then
   ERRORS+=("G4 Implementation Gate verdict missing — run G4 before committing")
 else
-  V=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/g4.json')).get('verdict',''))" 2>/dev/null || echo "")
+  V=$(read_json_field "$VERDICTS_DIR/g4.json" "verdict")
   if [[ "$V" != "PASS" ]]; then
     ERRORS+=("G4 verdict is $V, not PASS")
   fi
   # Freshness: G4 branch must match current branch
-  G4_BRANCH=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/g4.json')).get('branch',''))" 2>/dev/null || echo "")
+  G4_BRANCH=$(read_json_field "$VERDICTS_DIR/g4.json" "branch")
   if [[ -n "$G4_BRANCH" && "$G4_BRANCH" != "$BRANCH" ]]; then
     ERRORS+=("G4 verdict is for branch '$G4_BRANCH', not current branch '$BRANCH'")
   fi
@@ -186,11 +173,7 @@ fi
 
 # If any check failed, deny the commit
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
-  ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")
-  cat <<EOF
-{"permissionDecision": "deny", "message": "Change commit blocked: ${ERROR_MSG}Complete G4 gate and verification before final commit."}
-EOF
-  exit 0
+  deny_errors "Change commit blocked: " "Complete G4 gate and verification before final commit."
 fi
 
 # All checks passed — allow

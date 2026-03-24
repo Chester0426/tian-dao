@@ -5,11 +5,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract file_path from tool_input
-FILE_PATH=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null || echo "")
+FILE_PATH=$(read_payload_field "tool_input.file_path")
 
 # Only care about protected root files
 case "$FILE_PATH" in
@@ -21,7 +20,7 @@ case "$FILE_PATH" in
 esac
 
 # If the current branch is not feat/bootstrap*, allow
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+BRANCH=$(get_branch)
 if [[ "$BRANCH" != "feat/bootstrap" ]] && [[ ! "$BRANCH" =~ ^feat/bootstrap-[0-9]+$ ]]; then
   exit 0
 fi
@@ -35,7 +34,7 @@ if [[ ! -f "$VERDICTS_DIR/bg1.json" ]]; then
   exit 0
 fi
 
-BG1_VERDICT=$(python3 -c "import json; print(json.load(open('$VERDICTS_DIR/bg1.json')).get('verdict',''))" 2>/dev/null || echo "")
+BG1_VERDICT=$(read_json_field "$VERDICTS_DIR/bg1.json" "verdict")
 if [[ "$BG1_VERDICT" != "PASS" ]]; then
   exit 0
 fi
@@ -52,7 +51,4 @@ fi
 
 # All conditions met: we are in Phase B, root files are protected
 BASENAME=$(basename "$FILE_PATH")
-cat <<EOF
-{"permissionDecision": "deny", "message": "Bootstrap root protection: '$BASENAME' is a Phase A file and cannot be modified during Phase B. These files were created by the lead before fan-out and must not be overwritten by subagents."}
-EOF
-exit 0
+deny "Bootstrap root protection: '$BASENAME' is a Phase A file and cannot be modified during Phase B. These files were created by the lead before fan-out and must not be overwritten by subagents."

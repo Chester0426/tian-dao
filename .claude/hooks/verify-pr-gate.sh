@@ -4,11 +4,10 @@
 
 set -euo pipefail
 
-# Read the hook payload from stdin
-PAYLOAD=$(cat)
+source "$(dirname "$0")/lib.sh"
+parse_payload
 
-# Extract the command from tool_input.command
-COMMAND=$(echo "$PAYLOAD" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+COMMAND=$(read_payload_field "tool_input.command")
 
 # If the command doesn't contain `gh pr create`, allow it
 if [[ "$COMMAND" != *"gh pr create"* ]]; then
@@ -21,7 +20,7 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 REPORT="$PROJECT_DIR/.claude/verify-report.md"
 TRACES_DIR="$PROJECT_DIR/.claude/agent-traces"
 ERRORS=()
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+BRANCH=$(get_branch)
 
 # Branch-aware checks: skills that don't produce verify-report.md use their own artifacts
 if [[ "$BRANCH" =~ ^chore/review- ]]; then
@@ -112,10 +111,7 @@ else
 
     # Check 5: hard_gate_failure blocks PR (except standalone mode)
     HARD_GATE=$(echo "$FRONTMATTER" | grep 'hard_gate_failure: *true' || true)
-    MODE=""
-    if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-      MODE=$(python3 -c "import json; d=json.load(open('$PROJECT_DIR/.claude/verify-context.json')); print(d.get('mode',''))" 2>/dev/null || echo "")
-    fi
+    MODE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "mode")
     if [[ -n "$HARD_GATE" && "$MODE" != "standalone" ]]; then
       ERRORS+=("hard_gate_failure is true — verification hard gate(s) failed; PR blocked in non-standalone mode")
     fi
@@ -159,11 +155,7 @@ fi  # end branch-prefix guard for Check 6
 
 # If any check failed, deny the PR creation
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
-  ERROR_MSG=$(printf '%s; ' "${ERRORS[@]}")
-  cat <<EOF
-{"permissionDecision": "deny", "message": "PR gate blocked: ${ERROR_MSG}Run /verify to complete verification before creating a PR."}
-EOF
-  exit 0
+  deny_errors "PR gate blocked: " "Run /verify to complete verification before creating a PR."
 fi
 
 # All checks passed — allow

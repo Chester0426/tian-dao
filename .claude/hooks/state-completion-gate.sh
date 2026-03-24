@@ -6,8 +6,10 @@
 # Supports all skills via per-skill registry in state-registry.json.
 set -euo pipefail
 
-PAYLOAD=$(cat)
-COMMAND=$(echo "$PAYLOAD" | python3 -c "import sys, json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null || echo "")
+source "$(dirname "$0")/lib.sh"
+parse_payload
+
+COMMAND=$(read_payload_field "tool_input.command")
 
 # Only fire on advance-state.sh calls
 if [[ "$COMMAND" != *"advance-state.sh"* ]]; then
@@ -29,7 +31,7 @@ if [[ ! -f "$REGISTRY" ]]; then
   exit 0  # Fail-open if registry missing
 fi
 
-# Look up VERIFY command for this skill + state
+# Look up VERIFY command for this skill + state (nested lookup — keep inline)
 VERIFY_CMD=$(python3 -c "
 import json
 reg = json.load(open('$REGISTRY'))
@@ -62,10 +64,7 @@ if cur in states:
 " 2>/dev/null || echo "")
 
   if [[ -n "$CHAIN_RESULT" ]]; then
-    cat <<EOF
-{"permissionDecision": "deny", "message": "State completion gate: $SKILL STATE $STATE_ID — prior states not complete: [$CHAIN_RESULT]. Complete earlier states before advancing."}
-EOF
-    exit 0
+    deny "State completion gate: $SKILL STATE $STATE_ID — prior states not complete: [$CHAIN_RESULT]. Complete earlier states before advancing."
   fi
 fi
 
@@ -77,10 +76,7 @@ fi
 # Run the verify command from project root
 cd "$PROJECT_DIR"
 if ! eval "$VERIFY_CMD" >/dev/null 2>&1; then
-  cat <<EOF
-{"permissionDecision": "deny", "message": "State completion gate: $SKILL STATE $STATE_ID postconditions not met. VERIFY failed: $VERIFY_CMD — complete this state's actions before marking it done."}
-EOF
-  exit 0
+  deny "State completion gate: $SKILL STATE $STATE_ID postconditions not met. VERIFY failed: $VERIFY_CMD — complete this state's actions before marking it done."
 fi
 
 # Postconditions verified — allow
