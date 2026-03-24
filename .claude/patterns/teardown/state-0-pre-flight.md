@@ -32,7 +32,7 @@
 Create `.claude/teardown-context.json` to initialize state tracking:
 ```bash
 cat > .claude/teardown-context.json << CTXEOF
-{"skill":"teardown","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"teardown","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"teardown-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

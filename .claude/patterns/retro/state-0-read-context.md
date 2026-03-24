@@ -57,7 +57,7 @@ Present the summary and then proceed to STATE 1.
 Create `.claude/retro-context.json` to initialize state tracking:
 ```bash
 cat > .claude/retro-context.json << CTXEOF
-{"skill":"retro","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"retro","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"retro-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

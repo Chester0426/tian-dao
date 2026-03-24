@@ -108,9 +108,37 @@ Each line is a JSON object. The schema is backward-compatible — consumers use
 }
 ```
 
+### completion-scored — Q via execution completion
+
+Used by skills that embed `/verify` (for their own execution Q, distinct from
+the embedded verify Q) or produce no measurable agent artifacts.
+
+| Skill | Dimensions | Formula | Source |
+|-------|-----------|---------|--------|
+| bootstrap | Q_states, Q_gates | `completed / expected`; `gates_passed / gates_total` | bootstrap-context.json, gate-verdicts/ |
+| change | Q_states, Q_plan | `completed / expected`; `checked / total checkboxes` | change-context.json, current-plan.md |
+| harden | Q_states, Q_modules | `completed / expected`; `modules_done / modules_total` | harden-context.json, current-plan.md |
+| distribute | Q_states, Q_campaign | `completed / expected`; `1 if campaign_id else 0.5` | distribute-context.json, ads.yaml |
+| resolve | Q_states, Q_fix | `completed / expected`; `1.0 (reached terminal)` | resolve-context.json |
+| retro | Q_sections, Q_filed | `1.0`; `1 if issue created else 0.5` | terminal state output |
+| rollback | Q_rollback, Q_health | `1 if succeeded else 0`; `1 if health passed else 0` | terminal state output |
+| teardown | Q_deletion, Q_verification | `1 if manifest deleted else 0`; `1.0` | deploy-manifest.json absence |
+| audit | Q_coverage, Q_findings | `1.0`; `1 if findings > 0 else 0.5` | audit-context.json, audit-manifest.json |
+| solve | Q_depth, Q_output | `1 if full mode else 0.5`; `1.0` | solve-context.json |
+
+### artifact-scored — Q via output artifact quality
+
+| Skill | Dimensions | Formula | Source |
+|-------|-----------|---------|--------|
+| review | Q_yield, Q_precision | `fixed / max(fixed + disputed, 1)`; `1 - max(final - baseline, 0) / max(baseline, 1)` | review-complete.json |
+| iterate | Q_data, Q_verdict | `1 if sample_size > 0 else 0.5`; `1 if verdict != TOO_EARLY else 0.5` | iterate-manifest.json |
+
 ## Write Procedure
 
-All Q-score write points MUST follow this procedure (do not duplicate logic):
+**Shared writer:** All skills use `.claude/scripts/write-q-score.py`.
+Follow `.claude/patterns/skill-scoring.md` for the calling convention.
+
+The script implements the full Write Procedure:
 
 1. Compute the Q entry as a JSON object per the schema above
 2. Check the `SKILL_HISTORY_BACKEND` environment variable:

@@ -73,6 +73,20 @@ Only reached when:
 > See the channel's stack file "Setup Instructions" section for step-by-step guidance.
 > The PR from Step 8 is ready to merge — it contains the distribution code (UTM capture, feedback widget, ads.yaml) independent of campaign creation. Merge it now, then create the campaign manually.
 
+### Q-score
+
+Compute distribute execution quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/distribute-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+CAMPAIGN_CREATED=$(grep -q 'campaign_id' experiment/ads.yaml 2>/dev/null && echo "1.0" || echo "0.5")
+python3 .claude/scripts/write-q-score.py \
+  --skill distribute --scope distribute \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims "{\"campaign\": $CAMPAIGN_CREATED, \"completion\": 1.0}" \
+  --run-id "$RUN_ID" || true
+```
+
 ### 9g: Next steps
 
 > Your distribution campaign is ready. Next steps:

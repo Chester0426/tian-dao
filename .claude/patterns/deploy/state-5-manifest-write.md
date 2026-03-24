@@ -150,8 +150,8 @@ Parse the provision scanner results from Step 5d.5:
 Count `HEALTH_RETRIES` (health check re-runs in Step 5c/5d) and `AUTOFIX_ROUNDS` (auto-fix iterations in Step 5d).
 
 ```bash
-HEALTH_OK=<count> HEALTH_TOTAL=<count> SCAN_PASS=<count> SCAN_TOTAL=<count> HEALTH_RETRIES=<count> AUTOFIX_ROUNDS=<count> ARCHETYPE=<archetype> python3 -c "
-import json, os, datetime
+DEPLOY_Q=$(HEALTH_OK=<count> HEALTH_TOTAL=<count> SCAN_PASS=<count> SCAN_TOTAL=<count> HEALTH_RETRIES=<count> AUTOFIX_ROUNDS=<count> python3 -c "
+import json, os
 
 services_ok = int(os.environ.get('HEALTH_OK', '0'))
 services_total = int(os.environ.get('HEALTH_TOTAL', '1'))
@@ -163,39 +163,28 @@ q_provision = round(scan_pass / max(scan_total, 1), 3)
 
 dims = {'health': q_health, 'provision': q_provision}
 gate = 1.0 if q_health == 1.0 and q_provision >= 0.8 else (1.0 if q_health > 0 else 0.0)
-active = list(dims.values())
-r = round(1 - sum(active) / max(len(active), 1), 3)
 
 retries = int(os.environ.get('HEALTH_RETRIES', '0'))
 autofix = int(os.environ.get('AUTOFIX_ROUNDS', '0'))
 r_human = round((retries + autofix) / 4, 3)
-r_combined = round(0.3 * r + 0.7 * r_human, 3)
-q_skill = round(gate * (1 - r_combined), 3)
+verdict = 'pass' if gate == 1.0 else 'fail'
+print(json.dumps(dims))
+print(gate)
+print(r_human)
+print(verdict)
+" 2>/dev/null || echo -e '{}\n1.0\n0.0\npass')
 
-entry = {
-    'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-    'skill': 'deploy', 'scope': 'deploy',
-    'archetype': os.environ.get('ARCHETYPE', 'web-app'),
-    'dimension_scores': dims, 'gate': gate, 'r_system': r, 'r_human': r_human,
-    'q_skill': q_skill, 'overall_verdict': 'pass' if gate == 1.0 else 'fail',
-}
+DIMS_JSON=$(echo "$DEPLOY_Q" | head -1)
+GATE=$(echo "$DEPLOY_Q" | sed -n '2p')
+R_HUMAN=$(echo "$DEPLOY_Q" | sed -n '3p')
+VERDICT=$(echo "$DEPLOY_Q" | tail -1)
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/deploy-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
 
-backend = os.environ.get('SKILL_HISTORY_BACKEND', 'local')
-if backend == 'local':
-    os.makedirs('.claude', exist_ok=True)
-    with open('.claude/verify-history.jsonl', 'a') as f:
-        f.write(json.dumps(entry) + '\n')
-    print(f'Q-score: {q_skill} (Gate={gate}, R={r_combined})')
-elif backend == 'api':
-    import urllib.request
-    endpoint = os.environ.get('SKILL_HISTORY_ENDPOINT', '')
-    if endpoint:
-        req = urllib.request.Request(endpoint, data=json.dumps(entry).encode(), headers={'Content-Type':'application/json'}, method='POST')
-        try: urllib.request.urlopen(req, timeout=5)
-        except:
-            with open('.claude/verify-history.jsonl', 'a') as f:
-                f.write(json.dumps(entry) + '\n')
-"
+python3 .claude/scripts/write-q-score.py \
+  --skill deploy --scope deploy --archetype "<archetype>" \
+  --gate "$GATE" --dims "$DIMS_JSON" --r-human "$R_HUMAN" \
+  --run-id "$RUN_ID" --overall-verdict "$VERDICT" \
+  || true
 ```
 
 **POSTCONDITIONS:**

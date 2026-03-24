@@ -12,6 +12,20 @@
    Ask user first: "`.env.local` contains credentials for the deleted infrastructure.
    Delete it? (y/n)"
 
+### Q-score
+
+Compute teardown quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/teardown-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+Q_DELETION=$(test ! -f .claude/deploy-manifest.json && echo "1.0" || echo "0.0")
+python3 .claude/scripts/write-q-score.py \
+  --skill teardown --scope teardown \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims "{\"deletion\": $Q_DELETION, \"completion\": 1.0}" \
+  --run-id "$RUN_ID" || true
+```
+
 ### Step 5: Summary
 
 ```

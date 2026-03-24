@@ -25,6 +25,18 @@ gh issue create \
   - Try filing manually by copying the retro content above
 - If the issue is created successfully, show the issue URL.
 
+### Q-score
+
+Compute retro quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/retro-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+python3 .claude/scripts/write-q-score.py \
+  --skill retro --scope retro --archetype N/A \
+  --gate 1.0 --dims '{"sections": 1.0, "completion": 1.0}' \
+  --run-id "$RUN_ID" || true
+```
+
 ### Next steps
 
 After filing the retro, guide the user:

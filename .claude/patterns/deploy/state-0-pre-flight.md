@@ -61,7 +61,7 @@
 Create `.claude/deploy-context.json` to initialize state tracking:
 ```bash
 cat > .claude/deploy-context.json << CTXEOF
-{"skill":"deploy","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","deploy_mode":"<initial|update>","added_services":[<list>],"removed_services":[<list>],"unchanged_services":[<list>],"completed_states":[0]}
+{"skill":"deploy","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"deploy-$(date -u +%Y-%m-%dT%H:%M:%SZ)","deploy_mode":"<initial|update>","added_services":[<list>],"removed_services":[<list>],"unchanged_services":[<list>],"completed_states":[0]}
 CTXEOF
 ```
 - `deploy_mode`: `"initial"` for first deploy, `"update"` for re-deploy with existing manifest

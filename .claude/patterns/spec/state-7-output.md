@@ -68,11 +68,11 @@ Run `make validate` and capture the exit code to compute the spec's Q-score:
 make validate 2>&1; VALIDATE_EXIT=$?
 ```
 
-Compute spec Q dimensions and append to verify-history.jsonl (see `.claude/patterns/q-score.md` for the Write Procedure):
+Compute spec Q dimensions and write via shared script (see `.claude/patterns/skill-scoring.md`):
 
 ```bash
-VALIDATE_EXIT=$VALIDATE_EXIT python3 -c "
-import json, os, datetime
+SPEC_Q=$(VALIDATE_EXIT=$VALIDATE_EXIT python3 -c "
+import json, os
 
 manifest = json.load(open('.claude/spec-manifest.json'))
 level = manifest.get('level', 2)
@@ -97,33 +97,22 @@ q_variant = 1.0  # validated by Step 7c spot-check; default 1.0 if no variants
 
 dims = {'yaml': q_yaml, 'hypothesis': q_hypothesis, 'behavior': q_behavior, 'metric': q_metric, 'variant': q_variant}
 gate = 1.0 if validate_exit in (0, 2) else 0.0
-active = list(dims.values())
-r = round(1 - sum(active) / max(len(active), 1), 3)
-q_skill = round(gate * (1 - r), 3)
+verdict = 'pass' if gate == 1.0 else 'fail'
+print(json.dumps(dims))
+print(gate)
+print(verdict)
+" 2>/dev/null || echo -e '{}\n1.0\npass')
 
-entry = {
-    'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-    'skill': 'spec', 'scope': 'spec', 'archetype': 'N/A',
-    'dimension_scores': dims, 'gate': gate, 'r_system': r, 'r_human': 0.0,
-    'q_skill': q_skill, 'overall_verdict': 'pass' if gate == 1.0 else 'fail',
-}
+DIMS_JSON=$(echo "$SPEC_Q" | head -1)
+GATE=$(echo "$SPEC_Q" | sed -n '2p')
+VERDICT=$(echo "$SPEC_Q" | tail -1)
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/spec-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
 
-backend = os.environ.get('SKILL_HISTORY_BACKEND', 'local')
-if backend == 'local':
-    os.makedirs('.claude', exist_ok=True)
-    with open('.claude/verify-history.jsonl', 'a') as f:
-        f.write(json.dumps(entry) + '\n')
-    print(f'Q-score: {q_skill} (Gate={gate}, R={r})')
-elif backend == 'api':
-    import urllib.request
-    endpoint = os.environ.get('SKILL_HISTORY_ENDPOINT', '')
-    if endpoint:
-        req = urllib.request.Request(endpoint, data=json.dumps(entry).encode(), headers={'Content-Type':'application/json'}, method='POST')
-        try: urllib.request.urlopen(req, timeout=5)
-        except:
-            with open('.claude/verify-history.jsonl', 'a') as f:
-                f.write(json.dumps(entry) + '\n')
-"
+python3 .claude/scripts/write-q-score.py \
+  --skill spec --scope spec --archetype N/A \
+  --gate "$GATE" --dims "$DIMS_JSON" \
+  --run-id "$RUN_ID" --overall-verdict "$VERDICT" \
+  || true
 ```
 
 ### 7c.2: Observation check

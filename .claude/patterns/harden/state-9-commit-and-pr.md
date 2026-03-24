@@ -7,6 +7,19 @@
 
 **Gate check:** Read `.claude/verify-report.md`. If it does not exist, STOP -- go back and run STATE 8 above. Do NOT commit without a verification report.
 
+### Q-score
+
+Compute harden execution quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/harden-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+python3 .claude/scripts/write-q-score.py \
+  --skill harden --scope harden \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims "{\"completion\": 1.0}" \
+  --run-id "$RUN_ID" || true
+```
+
 Commit, push, open PR. Populate the PR Verification checklist from `.claude/verify-report.md` contents. After the PR is created, delete `.claude/current-plan.md` and `.claude/verify-report.md`.
 
 Key design decisions:

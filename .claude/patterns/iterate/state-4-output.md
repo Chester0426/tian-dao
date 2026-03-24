@@ -60,6 +60,32 @@ Write `.claude/iterate-manifest.json`:
 
 This file is read by `/change` to provide context for the next iteration.
 
+### Q-score
+
+Compute iterate analysis quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/iterate-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+ITERATE_DIMS=$(python3 -c "
+import json
+try:
+    m = json.load(open('.claude/iterate-manifest.json'))
+    verdict = m.get('verdict', 'TOO_EARLY')
+    q_verdict = 1.0 if verdict != 'TOO_EARLY' else 0.5
+    hvs = m.get('hypothesis_verdicts', [])
+    has_data = any(h.get('sample_size', 0) > 0 for h in hvs) if hvs else False
+    q_data = 1.0 if has_data else 0.5
+    print(json.dumps({'data': q_data, 'verdict': q_verdict}))
+except:
+    print(json.dumps({'completion': 1.0}))
+" 2>/dev/null || echo '{"completion": 1.0}')
+python3 .claude/scripts/write-q-score.py \
+  --skill iterate --scope iterate \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims "$ITERATE_DIMS" \
+  --run-id "$RUN_ID" || true
+```
+
 ### Summarize next steps
 
 End with a clear, numbered action list. Prepend the verdict from STATE 3:

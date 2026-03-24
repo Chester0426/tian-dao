@@ -5,6 +5,18 @@
 
 **ACTIONS:**
 
+### Q-score
+
+Compute resolve execution quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/resolve-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+python3 .claude/scripts/write-q-score.py \
+  --skill resolve --scope resolve --archetype N/A \
+  --gate 1.0 --dims "{\"completion\": 1.0}" \
+  --run-id "$RUN_ID" || true
+```
+
 Follow `.claude/patterns/skill-epilogue.md` to evaluate template observation.
 This runs the observer agent if fixes were logged in `.claude/fix-log.md`,
 or records "clean" if not. The epilogue must complete before the final commit

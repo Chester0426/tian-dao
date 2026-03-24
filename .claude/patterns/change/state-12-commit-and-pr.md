@@ -23,6 +23,22 @@
   - **Checklist — Verification**: populate from `.claude/verify-report.md` contents. If Step 7 was skipped or partially run, state why.
 - Fill in **every** section of the PR template. Empty sections are not acceptable. If a section does not apply, write "N/A" with a one-line reason.
 - If `git push` or `gh pr create` fails: show the error and tell the user to check their GitHub authentication (`gh auth status`) and remote configuration (`git remote -v`), then retry.
+### Q-score
+
+Compute change execution quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/change-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+PLAN_COMPLETE=$(grep -c '\- \[x\]' .claude/current-plan.md 2>/dev/null || echo "0")
+PLAN_TOTAL=$(grep -c '\- \[.\]' .claude/current-plan.md 2>/dev/null || echo "1")
+Q_PLAN=$(python3 -c "print(round(int('${PLAN_COMPLETE}') / max(int('${PLAN_TOTAL}'), 1), 3))")
+python3 .claude/scripts/write-q-score.py \
+  --skill change --scope change \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims "{\"plan\": $Q_PLAN, \"completion\": 1.0}" \
+  --run-id "$RUN_ID" || true
+```
+
 - Delete `.claude/current-plan.md`, `.claude/verify-report.md`, and `.claude/agent-traces/` (if it exists) — the plan is captured in the PR description and the verification results are in the PR checklist. Note: plan deletion happens AFTER Step 7 completes (spec-reviewer needs the plan during verification).
 - **Save planning patterns**: If this change revealed planning-relevant patterns (auth flow interactions, stack integration quirks, codebase conventions discovered during exploration, schema design patterns), save a brief entry to auto memory under a "Planning Patterns" heading. These get consulted during future Phase 1 exploration via `.claude/procedures/plan-exploration.md` Step 5.
 - Tell the user: "Change PR created. Next: review and merge to `main`. Run `/verify` to confirm tests pass." If the archetype is `cli`, add: "CLIs are distributed via `npm publish` or GitHub Releases — see the archetype file. After merging this PR to `main`, bump the version in `package.json` and run `npm publish` to release the update. If this change modified the marketing surface, also run `/deploy` to push the updated surface to production. After publishing and collecting usage data, run `/iterate` to review metrics, or `/retro` when ready to wrap up." Otherwise, add: "Then run `/deploy` if not yet deployed."

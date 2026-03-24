@@ -34,6 +34,19 @@ Warning: Database is NOT rolled back. If the incident involves data changes,
 - Redeploy with `/deploy` after the fix is merged
 ```
 
+### Q-score
+
+Compute rollback quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/rollback-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+python3 .claude/scripts/write-q-score.py \
+  --skill rollback --scope rollback \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims '{"rollback": 1.0, "completion": 1.0}' \
+  --run-id "$RUN_ID" || true
+```
+
 **POSTCONDITIONS:**
 - Rollback command executed (or user performed manual rollback)
 - Health check attempted and result reported

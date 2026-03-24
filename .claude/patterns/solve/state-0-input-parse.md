@@ -18,7 +18,7 @@ If `$ARGUMENTS` is empty, ask the user to describe the problem.
 Create `.claude/solve-context.json` to initialize state tracking:
 ```bash
 cat > .claude/solve-context.json << CTXEOF
-{"skill":"solve","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"solve","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"solve-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

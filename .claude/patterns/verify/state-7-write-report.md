@@ -188,7 +188,7 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
    q_skill = round(gate * (1 - r), 3)
 
    entry = {
-       'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+       'timestamp': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
        'run_id': ctx.get('run_id', ''),
        'skill': skill,
        'scope': scope,
@@ -205,27 +205,12 @@ Only include agents that were spawned (per scope). Mark others as "skipped — o
        'q_skill': q_skill,
    }
 
-   # Write using pluggable backend (see .claude/patterns/q-score.md Write Procedure)
-   backend = os.environ.get('SKILL_HISTORY_BACKEND', 'local')
-   if backend == 'local':
-       with open('.claude/verify-history.jsonl', 'a') as f:
-           f.write(json.dumps(entry) + '\n')
-       print(f'Q-score: {q_skill} (Gate={gate}, R={r}) — appended to verify-history.jsonl')
-   elif backend == 'api':
-       import urllib.request
-       endpoint = os.environ.get('SKILL_HISTORY_ENDPOINT', '')
-       if endpoint:
-           req = urllib.request.Request(endpoint, data=json.dumps(entry).encode(), headers={'Content-Type':'application/json'}, method='POST')
-           try:
-               urllib.request.urlopen(req, timeout=5)
-               print(f'Q-score: {q_skill} — sent to {endpoint}')
-           except Exception as e:
-               # Fallback to local on API failure
-               with open('.claude/verify-history.jsonl', 'a') as f:
-                   f.write(json.dumps(entry) + '\n')
-               print(f'Q-score: {q_skill} — API failed ({e}), fell back to local')
-   else:
-       print(f'Q-score: {q_skill} (tracking disabled)')
+   # Write via shared script (see .claude/patterns/q-score.md Write Procedure)
+   import subprocess, shlex
+   subprocess.run(
+       ['python3', '.claude/scripts/write-q-score.py', '--raw', json.dumps(entry)],
+       capture_output=False
+   )
    "
    ```
 

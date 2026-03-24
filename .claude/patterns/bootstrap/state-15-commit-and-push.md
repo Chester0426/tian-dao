@@ -10,6 +10,21 @@
 - Commit: "Bootstrap MVP scaffold from experiment.yaml"
 - **BG4 PR Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG4 PR Gate. Verify: on feature branch (not main), git status shows no uncommitted changes to tracked files, commit message follows imperative mood." If gate-keeper returns BLOCK, fix blocking items before pushing.
 - Push to the remote branch
+### Q-score
+
+Compute bootstrap execution quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/bootstrap-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+GATES_PASSED=$(ls .claude/gate-verdicts/bg*.json 2>/dev/null | wc -l | tr -d ' ')
+Q_GATES=$(python3 -c "print(round(int('${GATES_PASSED}') / max(4, 1), 3))")
+python3 .claude/scripts/write-q-score.py \
+  --skill bootstrap --scope bootstrap \
+  --archetype "$(python3 -c "import yaml; print(yaml.safe_load(open('experiment/experiment.yaml')).get('type','web-app'))" 2>/dev/null || echo web-app)" \
+  --gate 1.0 --dims "{\"gates\": $Q_GATES, \"completion\": 1.0}" \
+  --run-id "$RUN_ID" || true
+```
+
 - Delete `.claude/current-visual-brief.md` (keep `.claude/current-plan.md` -- `/verify` needs it)
 - Tell the user: "Bootstrap pushed. Run `/verify` to run verification and create the PR." If archetype is `cli` and surface is not `none`, add: "After merging, run `/deploy` for the marketing surface, then `npm publish` for the CLI binary." If archetype is `cli` and surface is `none`, add: "After merging, run `npm publish` for the CLI binary (no surface to deploy)."
 

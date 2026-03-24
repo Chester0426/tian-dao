@@ -77,7 +77,7 @@ Store prior findings as `prior_findings` for delta comparison in Step 2.
 Create `.claude/audit-context.json` to initialize state tracking:
 ```bash
 cat > .claude/audit-context.json << CTXEOF
-{"skill":"audit","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"audit","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"audit-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

@@ -77,7 +77,7 @@ Wait for user confirmation.
 Create `.claude/spec-context.json` to initialize state tracking:
 ```bash
 cat > .claude/spec-context.json << CTXEOF
-{"skill":"spec","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"spec","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"spec-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 

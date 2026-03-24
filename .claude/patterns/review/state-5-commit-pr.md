@@ -6,6 +6,29 @@
 
 **ACTIONS:**
 
+### Q-score
+
+Compute review execution quality (see `.claude/patterns/skill-scoring.md`):
+
+```bash
+RUN_ID=$(python3 -c "import json; print(json.load(open('.claude/review-context.json')).get('run_id', ''))" 2>/dev/null || echo "")
+REVIEW_DIMS=$(python3 -c "
+import json
+try:
+    r = json.load(open('.claude/review-complete.json'))
+    fixed = r.get('findings_fixed', 0)
+    disputed = r.get('findings_disputed', 0)
+    q_yield = round(fixed / max(fixed + disputed, 1), 3)
+    print(json.dumps({'yield': q_yield, 'completion': 1.0}))
+except:
+    print(json.dumps({'completion': 1.0}))
+" 2>/dev/null || echo '{"completion": 1.0}')
+python3 .claude/scripts/write-q-score.py \
+  --skill review --scope review --archetype N/A \
+  --gate 1.0 --dims "$REVIEW_DIMS" \
+  --run-id "$RUN_ID" || true
+```
+
 If no branch exists (no findings across all iterations):
   Report "Review clean — no findings" and stop.
 
