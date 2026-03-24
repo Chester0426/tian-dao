@@ -40,16 +40,7 @@ fi
 if [[ -f "$PLAN" ]]; then
   # Primary: verdict files
   VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
-  for GATE in bg1 bg2 bg2.5 bg4; do
-    if [[ ! -f "$VERDICTS_DIR/$GATE.json" ]]; then
-      ERRORS+=("$GATE verdict file missing")
-    else
-      V=$(read_json_field "$VERDICTS_DIR/$GATE.json" "verdict")
-      if [[ "$V" != "PASS" ]]; then
-        ERRORS+=("$GATE verdict is $V, not PASS")
-      fi
-    fi
-  done
+  check_verdict_gates "bg1 bg2 bg2.5 bg4" "$VERDICTS_DIR"
 
   # Freshness: BG1 timestamp > branch creation
   BRANCH_CREATED=$(git log --format=%aI "$(git merge-base main HEAD)" -1 2>/dev/null || echo "")
@@ -81,14 +72,12 @@ fi
 # Check 5: completed_states in bootstrap-context.json (defense-in-depth)
 BOOTSTRAP_CTX="$PROJECT_DIR/.claude/bootstrap-context.json"
 if [[ -f "$BOOTSTRAP_CTX" ]]; then
+  STATES=$(normalize_states "$BOOTSTRAP_CTX")
+  REQUIRED=$(get_required_states "bootstrap")
   MISSING_STATES=$(python3 -c "
-import json
-d = json.load(open('$BOOTSTRAP_CTX'))
-cs = d.get('completed_states', [])
-# Normalize all to strings for comparison
-cs_str = [str(s) for s in cs]
-required = ['0','1','2','3','3a','3b','4','5','6','7','8','9','10','11','12','13','14','15']
-missing = [s for s in required if s not in cs_str]
+cs = set('$STATES'.split())
+required = '$REQUIRED'.split()
+missing = [s for s in required if s not in cs]
 print(','.join(missing) if missing else 'NONE')
 " 2>/dev/null || echo "NONE")
   if [[ "$MISSING_STATES" != "NONE" ]]; then
