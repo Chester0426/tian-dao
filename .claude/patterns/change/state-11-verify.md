@@ -6,6 +6,8 @@
 
 **ACTIONS:**
 
+Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
+
 - Follow the verification procedure in `.claude/patterns/verify.md` with **scope: [scope from Step 3]**:
   1. Build & lint loop (max 3 attempts)
   2. Save notable patterns (if you fixed errors)

@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
+
 - Read `experiment/experiment.yaml` — understand the current scope, pages (derived from golden_path), existing behaviors, target user, thesis
 - Read `experiment/EVENTS.yaml` — understand existing analytics events (this is the canonical event list)
 - Read the archetype file at `.claude/archetypes/<type>.md` (type from experiment.yaml, default `web-app`). If the archetype is `service`, "pages" planning becomes "endpoint" planning — new capabilities map to API routes, not page folders. Skip Fake Door and landing page references. If the archetype is `cli`, new capabilities map to subcommand modules (`src/commands/`), not page folders or API routes. Skip Fake Door, landing page, and API route references.

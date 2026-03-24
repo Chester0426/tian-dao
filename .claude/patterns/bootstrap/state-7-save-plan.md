@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
+
 Write the plan to `.claude/current-plan.md` with YAML frontmatter:
 
 ```yaml

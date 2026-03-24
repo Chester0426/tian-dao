@@ -6,6 +6,8 @@
 
 **ACTIONS:**
 
+Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
+
 #### Feature constraints
 Follow the procedure in `.claude/procedures/change-feature.md`.
 

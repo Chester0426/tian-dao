@@ -7,6 +7,8 @@
 
 **ACTIONS:**
 
+Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
+
 > **Gate check:** Read `.claude/current-plan.md` and look for `## Process Checklist`.
 > If missing, STOP — execute the Phase 2 Pre-flight above first.
 

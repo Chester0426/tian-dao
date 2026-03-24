@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow gate execution procedure per `procedures/gate-execution.md`.
+
 Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute BG1 Validation Gate. Read experiment/experiment.yaml and verify: all required fields present and non-empty, name is lowercase-hyphen, no TODO values, archetype-specific field present, stack dependency rules (payment->auth+db, email->auth+db), quality:production->testing, variants restricted to web-app archetype, variants structure if present."
 
 If gate-keeper returns BLOCK, stop and report — do NOT proceed until validation passes.

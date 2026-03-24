@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
+
 - `package.json` exists (app is bootstrapped). If not -> stop: "No app found. Run `/bootstrap` first."
 - `npm run build` passes. If not -> stop: "App has build errors. Run `/change fix build errors` first."
 - If `quality: production` already set in experiment.yaml AND no `$ARGUMENTS`: stop -- "Already in production mode. Use `/harden <module>` to harden a specific module, or `/change` for new features."

@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
+
 ### STOP. End your response here. Say:
 > Plan ready. How would you like to proceed?
 > 1. **approve** — continue implementation now

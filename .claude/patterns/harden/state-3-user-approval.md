@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
+
 If K > 0, present the standard prompt:
 
 > Plan ready. How would you like to proceed?

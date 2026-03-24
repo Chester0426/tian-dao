@@ -6,6 +6,8 @@
 
 **ACTIONS:**
 
+Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
+
 > This step creates a data dependency: writing the checklist requires reading
 > the procedure files. Runs once per plan — idempotent.
 

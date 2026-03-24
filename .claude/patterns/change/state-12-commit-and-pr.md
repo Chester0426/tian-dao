@@ -7,6 +7,8 @@
 
 **ACTIONS:**
 
+Follow gate execution procedure per `procedures/gate-execution.md`.
+
 - **G5 Verification Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G5 Verification Gate. Verify: .claude/verify-report.md exists. Read it and check: agents_expected equals agents_completed; if 2+ implementer agents spawned, consistency_scan is not 'skipped'; if fix cycles ran, auto_observe is not 'skipped-no-fixes'; build result is pass; if quality: production and spec-reviewer in agents_completed, spec-reviewer verdict is not FAIL." If gate-keeper returns BLOCK, go back and complete Step 7.
 
 - You are already on a feature branch (created in Step 0). Do not create another branch.

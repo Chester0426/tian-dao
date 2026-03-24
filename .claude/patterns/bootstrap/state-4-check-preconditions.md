@@ -5,6 +5,8 @@
 
 **ACTIONS:**
 
+Follow checkpoint-resumption protocol per `patterns/checkpoint-resumption.md`.
+
 - If `.claude/current-plan.md` exists and the current branch starts with `feat/bootstrap`:
   1. Read `.claude/current-plan.md`. If it has YAML frontmatter (starts with `---`):
      - Parse `archetype`, `stack`, and `checkpoint` from frontmatter
