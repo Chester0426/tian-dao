@@ -25,6 +25,7 @@ fi
 # ── Single python3 block: detect active skill + registry checks ──
 # Passes payload and agent type via environment variables.
 # Returns JSON: {"skill":"...", "errors":[], "warn":""}
+# shellcheck disable=SC2153
 export _PAYLOAD="$PAYLOAD"
 export _AGENT_TYPE="$SUBAGENT_TYPE"
 GATE_RESULT=$(python3 << 'PYEOF'
