@@ -85,6 +85,7 @@ except:
 # --- extract_write_content ---
 # Sets globals TOOL_NAME and CONTENT from Write or Edit payload.
 # Must be called after parse_payload.
+# shellcheck disable=SC2034
 extract_write_content() {
   TOOL_NAME=$(read_payload_field "tool_name")
   CONTENT=""
@@ -288,6 +289,7 @@ require_trace_verdict() {
 # Usage: check_trace_run_id "$TRACES_DIR/agent.json"
 check_trace_run_id() {
   local TRACE_FILE="$1"
+  # shellcheck disable=SC2153
   if [[ ! -f "$TRACE_FILE" ]] || [[ ! -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
     return 0
   fi
@@ -465,8 +467,8 @@ _parse_check_result() {
 # $1: project directory  $2: has_hard_gate (0|1)  $3: report content
 # Usage: RESULT=$(check_artifact_presence "$PROJECT_DIR" "$HAS_HARD_GATE" "$CONTENT")
 check_artifact_presence() {
-  local project_dir="$1" has_hard_gate="$2" content="$3"
-  echo "$content" | HAS_HARD_GATE="$has_hard_gate" python3 -c "
+  local has_hard_gate="$2"
+  echo "$3" | HAS_HARD_GATE="$has_hard_gate" python3 -c "
 import json, os, glob, sys
 
 project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
@@ -585,8 +587,7 @@ print(json.dumps({'errors': errors, 'warnings': warnings}))
 # $1: project directory  $2: report content
 # Usage: RESULT=$(check_cross_artifact_consistency "$PROJECT_DIR" "$CONTENT")
 check_cross_artifact_consistency() {
-  local project_dir="$1" content="$2"
-  echo "$content" | python3 -c "
+  echo "$2" | python3 -c "
 import json, os, glob, re, sys
 
 project = os.environ.get('CLAUDE_PROJECT_DIR', '.')
