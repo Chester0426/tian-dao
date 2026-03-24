@@ -1142,8 +1142,8 @@ def check_61_footer_directive_sync() -> list[str]:
     """Check 61: Directive marker in agent-prompt-footer.md must match agent-state-gate.sh grep."""
     errors: list[str] = []
     footer_path = ".claude/agent-prompt-footer.md"
-    hook_path = ".claude/hooks/agent-state-gate.sh"
-    if not os.path.isfile(footer_path) or not os.path.isfile(hook_path):
+    hook_paths = [".claude/hooks/agent-state-gate.sh", ".claude/hooks/lib.sh"]
+    if not os.path.isfile(footer_path) or not any(os.path.isfile(p) for p in hook_paths):
         return errors
     with open(footer_path) as f:
         first_line = f.readline().strip()
@@ -1156,11 +1156,16 @@ def check_61_footer_directive_sync() -> list[str]:
     marker = marker.strip()
     if not marker.startswith("DIRECTIVES:"):
         return errors
-    with open(hook_path) as f:
-        hook_content = f.read()
-    if marker not in hook_content:
+    found = False
+    for hook_path in hook_paths:
+        if os.path.isfile(hook_path):
+            with open(hook_path) as f:
+                if marker in f.read():
+                    found = True
+                    break
+    if not found:
         errors.append(
-            f"[61] {hook_path}: directive grep pattern does not match "
+            f"[61] hook files: directive grep pattern does not match "
             f"agent-prompt-footer.md marker '{marker}'"
         )
     return errors
