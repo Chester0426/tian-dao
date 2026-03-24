@@ -20,7 +20,7 @@ Read `experiment/experiment.yaml` to determine the archetype (`type` field, defa
 Create `.claude/rollback-context.json` to initialize state tracking:
 ```bash
 cat > .claude/rollback-context.json << CTXEOF
-{"skill":"rollback","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"rollback","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
 CTXEOF
 ```
 
