@@ -64,4 +64,4 @@ echo "Triage approved by user"
 bash .claude/scripts/advance-state.sh resolve 2
 ```
 
-**NEXT:** Read [state-3-reproduce.md](state-3-reproduce.md) to continue.
+**NEXT:** If all issues were non-actionable (all closed above), skill is complete — TERMINAL. Otherwise, read [state-3-reproduce.md](state-3-reproduce.md) to continue.
