@@ -133,157 +133,11 @@ fi
 
 # ══════════════════════════════════════════════════════════════════════
 # Extended checks: verify
-# Ports all verify-specific logic from phase-transition-gate.sh
+# Helper functions (check_trace_run_id, check_postcondition_artifacts,
+# check_tier1_retry_complete, check_efficiency_directives,
+# check_build_result, check_file_boundary, require_trace_verdict)
+# are in lib.sh.
 # ══════════════════════════════════════════════════════════════════════
-
-check_trace_verdict() {
-  local TRACE_FILE="$1"
-  local CONTEXT="$2"
-  if [[ -f "$TRACE_FILE" ]]; then
-    local HAS_VERDICT
-    HAS_VERDICT=$(python3 -c "import json; d=json.load(open('$TRACE_FILE')); print('yes' if 'verdict' in d else 'no')" 2>/dev/null || echo "no")
-    if [[ "$HAS_VERDICT" != "yes" ]]; then
-      local BASENAME
-      BASENAME=$(basename "$TRACE_FILE")
-      ERRORS+=("$BASENAME trace incomplete (no verdict) — $CONTEXT")
-    fi
-  fi
-}
-
-check_trace_run_id() {
-  local TRACE_FILE="$1"
-  if [[ ! -f "$TRACE_FILE" ]] || [[ ! -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
-    return 0
-  fi
-  local RESULT
-  RESULT=$(python3 -c "
-import json
-ctx = json.load(open('$PROJECT_DIR/.claude/verify-context.json'))
-trace = json.load(open('$TRACE_FILE'))
-ctx_run_id = ctx.get('run_id', '')
-trace_run_id = trace.get('run_id', '')
-if not trace_run_id:
-    print('WARN')
-elif not ctx_run_id:
-    print('OK')
-elif trace_run_id != ctx_run_id:
-    print('STALE')
-else:
-    print('OK')
-" 2>/dev/null || echo "OK")
-  if [[ "$RESULT" == "STALE" ]]; then
-    local BASENAME
-    BASENAME=$(basename "$TRACE_FILE")
-    ERRORS+=("$BASENAME has stale run_id — trace is from a prior /verify run, not the current one")
-  fi
-}
-
-check_postcondition_artifacts() {
-  local PREV_STATE="$1"
-  local V_SCOPE V_ARCH
-  case "$PREV_STATE" in
-    0)
-      [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]] || ERRORS+=("verify-context.json missing — STATE 0 incomplete")
-      [[ -f "$PROJECT_DIR/.claude/fix-log.md" ]] || ERRORS+=("fix-log.md missing — STATE 0 incomplete")
-      [[ -d "$TRACES_DIR" ]] || ERRORS+=("agent-traces/ directory missing — STATE 0 incomplete")
-      ;;
-    3)
-      V_SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
-      V_ARCH=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "archetype")
-      if [[ ("$V_SCOPE" == "full" || "$V_SCOPE" == "visual") && "$V_ARCH" == "web-app" ]]; then
-        [[ -f "$PROJECT_DIR/.claude/design-ux-merge.json" ]] || ERRORS+=("design-ux-merge.json missing — STATE 3 incomplete")
-      fi
-      ;;
-    4)
-      V_SCOPE=$(read_json_field "$PROJECT_DIR/.claude/verify-context.json" "scope")
-      if [[ "$V_SCOPE" == "full" || "$V_SCOPE" == "security" ]]; then
-        [[ -f "$PROJECT_DIR/.claude/security-merge.json" ]] || ERRORS+=("security-merge.json missing — STATE 4 incomplete")
-      fi
-      ;;
-  esac
-}
-
-check_tier1_retry_complete() {
-  local AGENT_PATTERN="$1"
-  local TDIR="$2"
-  for TRACE in "$TDIR"/${AGENT_PATTERN}.json; do
-    [ -f "$TRACE" ] || continue
-    local STATE
-    STATE=$(python3 -c "
-import json
-d = json.load(open('$TRACE'))
-has_verdict = 'verdict' in d
-retry = d.get('retry_attempted', False)
-status = d.get('status', '')
-if has_verdict: print('COMPLETE')
-elif status in ('started','exhausted') and not has_verdict and not retry: print('NEEDS_RETRY')
-else: print('OK')
-" 2>/dev/null || echo "OK")
-    if [ "$STATE" = "NEEDS_RETRY" ]; then
-      ERRORS+=("$(basename "$TRACE") exhausted without retry — must retry before proceeding")
-    fi
-  done
-}
-
-check_efficiency_directives() {
-  if [ -f "$PROJECT_DIR/.claude/verify-context.json" ]; then
-    local PROMPT
-    PROMPT=$(python3 -c "
-import json,sys
-d=json.loads(sys.stdin.read())
-print(d.get('tool_input',{}).get('prompt',''))
-" <<< "$PAYLOAD" 2>/dev/null || echo "")
-    if ! echo "$PROMPT" | grep -q "DIRECTIVES:batch_search,pr_changed_first,context_digest,pre_existing"; then
-      ERRORS+=("Agent prompt missing efficiency directives — append .claude/agent-prompt-footer.md content")
-    fi
-  fi
-}
-
-check_build_result() {
-  local BR_FILE="$PROJECT_DIR/.claude/build-result.json"
-  if [[ ! -f "$BR_FILE" ]]; then
-    ERRORS+=("build-result.json missing — STATE 1 (Build & Lint Loop) did not record its result")
-    return
-  fi
-  local EXIT_CODE
-  EXIT_CODE=$(read_json_field "$BR_FILE" "exit_code")
-  if [[ "$EXIT_CODE" != "0" ]]; then
-    ERRORS+=("build-result.json exit_code=$EXIT_CODE — build did not pass (STATE 1 incomplete)")
-  fi
-}
-
-check_file_boundary() {
-  local AGENT_NAME="$1"
-  local PROMPT
-  PROMPT=$(python3 -c "
-import json,sys
-d=json.loads(sys.stdin.read())
-print(d.get('tool_input',{}).get('prompt',''))
-" <<< "$PAYLOAD" 2>/dev/null || echo "")
-
-  local BOUNDARY_RESULT
-  BOUNDARY_RESULT=$(python3 -c "
-import re, sys
-prompt = sys.stdin.read()
-m = re.search(r'FILE_BOUNDARY_START\n(.*?)FILE_BOUNDARY_END', prompt, re.DOTALL)
-if not m:
-    print('NO_MARKER')
-else:
-    files = m.group(1).strip()
-    shared = [f for f in files.split('\n') if f.strip().startswith('src/components/') or f.strip().startswith('src/lib/')]
-    if shared:
-        print('SHARED:' + ';'.join(shared[:3]))
-    else:
-        print('OK')
-" <<< "$PROMPT" 2>/dev/null || echo "OK")
-
-  if [[ "$BOUNDARY_RESULT" == "NO_MARKER" ]]; then
-    ERRORS+=("$AGENT_NAME prompt missing FILE_BOUNDARY marker — per-page agents must declare their file boundary")
-  elif [[ "$BOUNDARY_RESULT" == SHARED:* ]]; then
-    local SHARED_FILES="${BOUNDARY_RESULT#SHARED:}"
-    ERRORS+=("$AGENT_NAME FILE_BOUNDARY contains shared paths ($SHARED_FILES) — per-page agents must NOT include src/components/ or src/lib/")
-  fi
-}
 
 verify_extended_checks() {
   case "$SUBAGENT_TYPE" in
@@ -294,7 +148,7 @@ verify_extended_checks() {
       if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
         ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
       fi
-      check_trace_verdict "$TRACES_DIR/build-info-collector.json" "agent may still be running or exhausted turns"
+      require_trace_verdict"$TRACES_DIR/build-info-collector.json" "agent may still be running or exhausted turns"
       check_trace_run_id "$TRACES_DIR/build-info-collector.json"
 
       local SCOPE
@@ -304,7 +158,7 @@ verify_extended_checks() {
           if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
             ERRORS+=("$AGENT.json trace missing — Phase 1 agent incomplete (scope=$SCOPE)")
           else
-            check_trace_verdict "$TRACES_DIR/$AGENT.json" "agent may still be running or exhausted turns"
+            require_trace_verdict"$TRACES_DIR/$AGENT.json" "agent may still be running or exhausted turns"
             check_trace_run_id "$TRACES_DIR/$AGENT.json"
           fi
         done
@@ -336,7 +190,7 @@ else:
           if [ ! -f "$TRACES_DIR/design-consistency-checker.json" ]; then
             ERRORS+=("design-consistency-checker.json trace missing — spawn consistency checker before ux-journeyer")
           else
-            check_trace_verdict "$TRACES_DIR/design-consistency-checker.json" "consistency checker may still be running or exhausted turns"
+            require_trace_verdict"$TRACES_DIR/design-consistency-checker.json" "consistency checker may still be running or exhausted turns"
           fi
         fi
       fi
@@ -348,7 +202,7 @@ else:
       if [[ ! -f "$TRACES_DIR/build-info-collector.json" ]]; then
         ERRORS+=("build-info-collector.json trace missing — Phase 1 has not completed")
       fi
-      check_trace_verdict "$TRACES_DIR/build-info-collector.json" "agent may still be running or exhausted turns"
+      require_trace_verdict"$TRACES_DIR/build-info-collector.json" "agent may still be running or exhausted turns"
       check_trace_run_id "$TRACES_DIR/build-info-collector.json"
 
       local SF_SCOPE SF_ARCH
@@ -359,7 +213,7 @@ else:
           if [[ ! -f "$TRACES_DIR/$AGENT.json" ]]; then
             ERRORS+=("$AGENT.json trace missing — Phase 2 agent incomplete (scope=$SF_SCOPE, archetype=$SF_ARCH)")
           else
-            check_trace_verdict "$TRACES_DIR/$AGENT.json" "agent may still be running or exhausted turns"
+            require_trace_verdict"$TRACES_DIR/$AGENT.json" "agent may still be running or exhausted turns"
             check_trace_run_id "$TRACES_DIR/$AGENT.json"
           fi
         done
@@ -379,7 +233,7 @@ else:
         if [[ ! -f "$TRACES_DIR/behavior-verifier.json" ]]; then
           ERRORS+=("behavior-verifier.json trace missing — Phase 1 agent incomplete (scope=$SF_SCOPE)")
         fi
-        check_trace_verdict "$TRACES_DIR/behavior-verifier.json" "agent may still be running or exhausted turns"
+        require_trace_verdict"$TRACES_DIR/behavior-verifier.json" "agent may still be running or exhausted turns"
         check_trace_run_id "$TRACES_DIR/behavior-verifier.json"
       fi
       check_efficiency_directives
@@ -445,7 +299,7 @@ else: print('no')
         if [[ ! -f "$TRACES_DIR/design-critic-shared.json" ]]; then
           ERRORS+=("design-critic-shared.json missing — per-page agents reported shared-component issues")
         else
-          check_trace_verdict "$TRACES_DIR/design-critic-shared.json" "shared-component agent may still be running"
+          require_trace_verdict"$TRACES_DIR/design-critic-shared.json" "shared-component agent may still be running"
         fi
       fi
       check_efficiency_directives
@@ -474,17 +328,7 @@ bootstrap_extended_checks() {
       BRANCH=$(get_branch)
 
       # BG1 verdict PASS + branch match
-      if [[ -f "$VERDICTS_DIR/bg1.json" ]]; then
-        local BG1_VERDICT BG1_BRANCH
-        BG1_VERDICT=$(read_json_field "$VERDICTS_DIR/bg1.json" "verdict")
-        if [[ "$BG1_VERDICT" != "PASS" ]]; then
-          ERRORS+=("BG1 verdict is '$BG1_VERDICT', not PASS — fix BG1 issues before spawning scaffold agents")
-        fi
-        BG1_BRANCH=$(read_json_field "$VERDICTS_DIR/bg1.json" "branch")
-        if [[ "$BG1_BRANCH" != "$BRANCH" ]]; then
-          ERRORS+=("BG1 verdict was for branch '$BG1_BRANCH', but current branch is '$BRANCH'")
-        fi
-      fi
+      check_verdict_gates "bg1" "$VERDICTS_DIR" "$BRANCH"
 
       # scaffold-pages/landing: root files + scaffold-libs completion
       if [[ "$SUBAGENT_TYPE" == "scaffold-pages" ]] || [[ "$SUBAGENT_TYPE" == "scaffold-landing" ]]; then
@@ -508,13 +352,7 @@ bootstrap_extended_checks() {
 
       # scaffold-wire: BG2 verdict PASS
       if [[ "$SUBAGENT_TYPE" == "scaffold-wire" ]]; then
-        if [[ -f "$VERDICTS_DIR/bg2.json" ]]; then
-          local BG2_VERDICT
-          BG2_VERDICT=$(read_json_field "$VERDICTS_DIR/bg2.json" "verdict")
-          if [[ "$BG2_VERDICT" != "PASS" ]]; then
-            ERRORS+=("BG2 verdict is '$BG2_VERDICT', not PASS — fix BG2 issues before wiring")
-          fi
-        fi
+        check_verdict_gates "bg2" "$VERDICTS_DIR"
       fi
       ;;
   esac
@@ -527,18 +365,7 @@ bootstrap_extended_checks() {
 change_extended_checks() {
   if [[ "$SUBAGENT_TYPE" == "implementer" || "$SUBAGENT_TYPE" == "visual-implementer" ]]; then
     local VERDICTS_DIR="$PROJECT_DIR/.claude/gate-verdicts"
-    if [[ -f "$VERDICTS_DIR/g3.json" ]]; then
-      local G3_V G3_BRANCH CURRENT_BRANCH
-      G3_V=$(read_json_field "$VERDICTS_DIR/g3.json" "verdict")
-      if [[ "$G3_V" != "PASS" ]]; then
-        ERRORS+=("G3 verdict is $G3_V, not PASS — fix spec issues before implementation")
-      fi
-      G3_BRANCH=$(read_json_field "$VERDICTS_DIR/g3.json" "branch")
-      CURRENT_BRANCH=$(get_branch)
-      if [[ -n "$G3_BRANCH" && "$G3_BRANCH" != "$CURRENT_BRANCH" ]]; then
-        ERRORS+=("G3 verdict is for branch '$G3_BRANCH', not '$CURRENT_BRANCH'")
-      fi
-    fi
+    check_verdict_gates "g3" "$VERDICTS_DIR" "$(get_branch)"
   fi
 }
 
