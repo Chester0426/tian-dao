@@ -101,7 +101,7 @@ After each fix, append to `.claude/fix-log.md`.
 test -f .claude/security-merge.json
 ```
 
-> **Hook-enforced:** `phase-transition-gate.sh` validates STATE 4 postconditions before allowing observer to spawn.
+> **Hook-enforced:** `agent-state-gate.sh` validates STATE 4 postconditions before allowing observer to spawn.
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash

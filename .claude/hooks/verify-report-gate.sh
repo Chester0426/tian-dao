@@ -312,7 +312,7 @@ else: print('OK')
   fi
 fi
 
-# Check 15: All STATE postcondition artifacts exist (backstop for phase-transition-gate.sh)
+# Check 15: All STATE postcondition artifacts exist (backstop for agent-state-gate.sh)
 # When hard_gate_failure: true, STATEs 4-6 are correctly skipped — their artifacts are optional.
 if [[ -f "$PROJECT_DIR/.claude/verify-context.json" ]]; then
   POSTCOND_CHECK=$(HAS_HARD_GATE="$HAS_HARD_GATE" python3 -c "

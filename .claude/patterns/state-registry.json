@@ -153,5 +153,47 @@
     "0": "test -f .claude/audit-context.json",
     "1": "true",
     "2": "true"
+  },
+
+  "agent_gates": {
+    "verify": {
+      "build-info-collector":       { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "security-defender":          { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "security-attacker":          { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "behavior-verifier":          { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "performance-reporter":       { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "accessibility-scanner":      { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "spec-reviewer":              { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "design-critic":              { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "design-consistency-checker": { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "ux-journeyer":               { "required_states": ["0","1"], "artifacts": [".claude/build-result.json"] },
+      "security-fixer":             { "required_states": ["0","1","2","3"], "artifacts": [".claude/build-result.json"] },
+      "observer":                   { "required_states": ["0","1","2","3","4"], "artifacts": [".claude/e2e-result.json"] },
+      "pattern-classifier":         { "required_states": ["0","1","2","3","4","5","6"] }
+    },
+    "bootstrap": {
+      "gate-keeper":        { "allow_unconditional": true },
+      "scaffold-externals": { "allow_unconditional": true },
+      "scaffold-setup":     { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8"], "artifacts": [".claude/gate-verdicts/bg1.json"], "deny_isolation": ["worktree"] },
+      "scaffold-init":      { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8","9"], "artifacts": [".claude/gate-verdicts/bg1.json"], "deny_isolation": ["worktree"] },
+      "scaffold-libs":      { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8","9","10"], "artifacts": [".claude/gate-verdicts/bg1.json"], "deny_isolation": ["worktree"] },
+      "scaffold-pages":     { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8","9","10","11"], "artifacts": [".claude/gate-verdicts/bg1.json"], "deny_isolation": ["worktree"] },
+      "scaffold-landing":   { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8","9","10","11"], "artifacts": [".claude/gate-verdicts/bg1.json"], "deny_isolation": ["worktree"] },
+      "scaffold-wire":      { "required_states": ["0","1","2","3","3a","3b","4","5","6","7","8","9","10","11","12","13"], "artifacts": [".claude/gate-verdicts/bg1.json",".claude/gate-verdicts/bg2.json"], "deny_isolation": ["worktree"] }
+    },
+    "change": {
+      "gate-keeper":        { "allow_unconditional": true },
+      "implementer":        { "required_states": ["0","1","2","3","4","5","6","7","8","9"], "artifacts": [".claude/gate-verdicts/g3.json"] },
+      "visual-implementer": { "required_states": ["0","1","2","3","4","5","6","7","8","9"], "artifacts": [".claude/gate-verdicts/g3.json"] }
+    },
+    "harden": {
+      "implementer":        { "required_states": ["0","1","2","3","4"] }
+    },
+    "audit":    { "_default": { "required_states": ["0"] } },
+    "review":   { "_default": { "required_states": ["0","1"] } },
+    "resolve":  { "_default": { "required_states": ["0","1","2","3","4","4b"] } },
+    "deploy":   { "_default": { "required_states": ["0","1","2"] } },
+    "teardown": { "_default": { "required_states": ["0","1","2"] } },
+    "solve":    { "_default": { "required_states": ["0"] } }
   }
 }

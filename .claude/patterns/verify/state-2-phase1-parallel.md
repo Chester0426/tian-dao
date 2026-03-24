@@ -56,7 +56,7 @@ If `quality` is absent or not `production`, skip this agent.
 After each agent returns, use [Trace State Detection](../verify.md#trace-state-detection) to check each spawned agent's trace individually. Use [Recovery Traces](../verify.md#recovery-traces) for agents that returned output but crashed before writing their trace. Use [Exhaustion Protocol](../verify.md#exhaustion-protocol) for agents in Trace State 2.
 
 > **Template enforcement:** Read `.claude/agent-prompt-footer.md` and append its full content
-> to every agent spawn prompt. The phase-transition-gate hook checks for the directive marker.
+> to every agent spawn prompt. The agent-state-gate hook checks for the directive marker.
 
 **POSTCONDITIONS:** All scope-required Phase 1 traces exist in `.claude/agent-traces/`.
 

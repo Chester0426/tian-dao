@@ -39,5 +39,5 @@ Create the library files specified in each stack file's "Files to Create" sectio
    ```json
    {"agent": "scaffold-libs", "files_created": ["<list all files created>"], "status": "complete", "timestamp": "<ISO 8601>"}
    ```
-   This manifest gates Phase B2 agents via the bootstrap-agent-gate hook.
+   This manifest gates Phase B2 agents via the agent-state-gate hook.
 

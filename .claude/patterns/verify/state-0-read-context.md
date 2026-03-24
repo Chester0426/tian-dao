@@ -64,7 +64,7 @@
 test -f .claude/verify-context.json && test -f .claude/fix-log.md && test -d .claude/agent-traces
 ```
 
-> **Hook-enforced:** `phase-transition-gate.sh` validates these postconditions before allowing the next state's agents to spawn.
+> **Hook-enforced:** `agent-state-gate.sh` validates these postconditions before allowing the next state's agents to spawn.
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash

@@ -38,7 +38,7 @@ Write `.claude/epilogue-context.json`:
 }
 ```
 
-This file signals to `phase-transition-gate.sh` that the observer is being
+This file signals to `agent-state-gate.sh` that the observer is being
 spawned from a skill epilogue (not from verify.md), enabling the relaxed
 prerequisite path.
 

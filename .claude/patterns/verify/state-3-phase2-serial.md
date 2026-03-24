@@ -1,6 +1,6 @@
 # STATE 3: PHASE2_SERIAL
 
-**PRECONDITIONS:** All Phase 1 traces exist (hook-enforced by `phase-transition-gate.sh`).
+**PRECONDITIONS:** All Phase 1 traces exist (hook-enforced by `agent-state-gate.sh`).
 
 **ACTIONS:**
 
@@ -35,7 +35,7 @@ Spawn **one design-critic agent per page**, ALL as parallel foreground Agent cal
   src/app/<page>/<page>-content.tsx
   FILE_BOUNDARY_END
   ```
-  > **Hook-enforced:** `phase-transition-gate.sh` validates that no shared paths appear between these markers. The hook will BLOCK the agent spawn if shared paths are detected.
+  > **Hook-enforced:** `agent-state-gate.sh` validates that no shared paths appear between these markers. The hook will BLOCK the agent spawn if shared paths are detected.
 - Context digest summary
 - Instruction to write trace as `design-critic-<page_name>.json`
 - **Empty-boundary fast path**: If ALL files between `FILE_BOUNDARY_START` and `FILE_BOUNDARY_END`
@@ -102,7 +102,7 @@ because they were outside the per-page file boundary).
 4. Run `npm run build`. If build fails, fix (max 2 attempts).
 5. Append fixes to `.claude/fix-log.md`: `Fix (design-critic-shared): <file> — <desc>`
 
-> **Hook-enforced:** `phase-transition-gate.sh` blocks `design-consistency-checker` spawn if per-page traces report shared-component issues but `design-critic-shared.json` does not exist.
+> **Hook-enforced:** `agent-state-gate.sh` blocks `design-consistency-checker` spawn if per-page traces report shared-component issues but `design-critic-shared.json` does not exist.
 
 #### Stage 2: Consistency check + merge
 
@@ -206,7 +206,7 @@ After ALL per-page agents + Stage 1b + Stage 2 (consistency check) complete:
 3. If build errors: fix (max 2 attempts), append to fix-log
 4. Re-run `npm run build && npm run lint` to confirm clean.
 
-> **Downstream compatibility**: phase-transition-gate.sh and gate-keeper BG3 check the merged `design-critic.json` — no changes needed. `agents_completed` still lists `"design-critic"` (singular).
+> **Downstream compatibility**: agent-state-gate.sh and gate-keeper BG3 check the merged `design-critic.json` — no changes needed. `agents_completed` still lists `"design-critic"` (singular).
 
 #### Lead-side validation (design-critic)
 
@@ -260,7 +260,7 @@ test -f .claude/design-ux-merge.json
 ```
 Build command exited 0 after last Phase 2 agent.
 
-> **Hook-enforced:** `phase-transition-gate.sh` validates STATE 3 postconditions before allowing security-fixer to spawn.
+> **Hook-enforced:** `agent-state-gate.sh` validates STATE 3 postconditions before allowing security-fixer to spawn.
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:
 ```bash

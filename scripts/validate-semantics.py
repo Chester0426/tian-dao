@@ -1139,10 +1139,10 @@ def check_60_settings_hook_paths() -> list[str]:
 
 
 def check_61_footer_directive_sync() -> list[str]:
-    """Check 61: Directive marker in agent-prompt-footer.md must match phase-transition-gate.sh grep."""
+    """Check 61: Directive marker in agent-prompt-footer.md must match agent-state-gate.sh grep."""
     errors: list[str] = []
     footer_path = ".claude/agent-prompt-footer.md"
-    hook_path = ".claude/hooks/phase-transition-gate.sh"
+    hook_path = ".claude/hooks/agent-state-gate.sh"
     if not os.path.isfile(footer_path) or not os.path.isfile(hook_path):
         return errors
     with open(footer_path) as f:
