@@ -25,10 +25,15 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step6`.
 **POSTCONDITIONS:**
 - Specs updated per type-specific rules
 - Checkpoint updated to `phase2-step6`
+- If type is Feature: behavior IDs exist in `experiment/experiment.yaml`
 
 **VERIFY:**
 ```bash
-grep -q 'checkpoint: phase2-step6' .claude/current-plan.md && echo "OK" || echo "FAIL"
+grep -q 'checkpoint: phase2-step6' .claude/current-plan.md && python3 -c "
+import json
+pt = json.load(open('.claude/change-context.json')).get('preliminary_type', '')
+assert pt != 'Feature' or '  - id:' in open('experiment/experiment.yaml').read(), 'Feature requires behaviors in experiment.yaml'
+" && echo "OK" || echo "FAIL"
 ```
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:

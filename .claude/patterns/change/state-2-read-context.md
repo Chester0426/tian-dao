@@ -18,6 +18,17 @@ Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
   - Reference: "This change addresses the [bottleneck.stage] bottleneck identified by /iterate ([bottleneck.diagnosis])"
   - This provides continuity between analysis and implementation
 
+- **Persist exploration results** to `change-context.json`:
+  ```bash
+  python3 -c "
+  import json
+  ctx = json.load(open('.claude/change-context.json'))
+  ctx['preliminary_type'] = '<preliminary_type>'  # Feature|Upgrade|Fix|Polish|Analytics|Test
+  ctx['affected_areas'] = <N>  # integer count of affected areas from exploration
+  json.dump(ctx, open('.claude/change-context.json', 'w'))
+  "
+  ```
+
 **POSTCONDITIONS:**
 - `experiment/experiment.yaml` read and understood
 - `experiment/EVENTS.yaml` read and understood
@@ -26,6 +37,7 @@ Follow archetype behavior check per `patterns/archetype-behavior-check.md`.
 - Codebase structure scanned
 - Exploration results stored in working memory
 - Preliminary classification determined from `$ARGUMENTS` keywords
+- `preliminary_type` and `affected_areas` persisted to `.claude/change-context.json`
 
 **VERIFY:**
 ```bash

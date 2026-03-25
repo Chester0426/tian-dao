@@ -23,6 +23,16 @@ if $ARGUMENTS contains "--full":
     solve_depth = "full"   # user override
 ```
 
+**Persist solve_depth** to `change-context.json`:
+```bash
+python3 -c "
+import json
+ctx = json.load(open('.claude/change-context.json'))
+ctx['solve_depth'] = '<light|full>'  # result of the formula above
+json.dump(ctx, open('.claude/change-context.json', 'w'))
+"
+```
+
 State the depth selection with rationale. If the formula selects "full" but the affected
 areas appear independent (no shared state, no shared imports), suggest to the user:
 "3+ affected areas trigger full mode, but these areas look independent. Re-run with
@@ -53,12 +63,22 @@ Call `.claude/patterns/solve-reasoning.md` full mode (Phases 1-6).
 
 **POSTCONDITIONS:**
 - `solve_depth` determined and stated with rationale
+- `solve_depth` persisted to `.claude/change-context.json` and matches formula
 - Solve-reasoning pass completed (light or full)
 - Output stored in working memory for plan generation
 
 **VERIFY:**
 ```bash
-echo "Solve-reasoning complete — depth: [light|full]"
+python3 -c "
+import json
+ctx = json.load(open('.claude/change-context.json'))
+sd = ctx.get('solve_depth')
+assert sd in ('light', 'full'), 'solve_depth=%s' % sd
+pt = ctx.get('preliminary_type', '')
+aa = ctx.get('affected_areas', 0)
+if pt in ('Feature', 'Upgrade') and isinstance(aa, int) and aa >= 3:
+    assert sd == 'full', 'Formula requires full (type=%s, areas=%s) but got %s' % (pt, aa, sd)
+" && echo "OK" || echo "FAIL"
 ```
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:

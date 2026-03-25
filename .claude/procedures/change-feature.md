@@ -58,7 +58,14 @@
      d. Verify merge succeeded: `git log --oneline -1` must show the merge commit.
      e. Update the trace: set `worktree_merged: true`.
 
-     If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes.
+     If 2+ implementer agents were spawned: quick consistency scan — check for naming divergence, duplicate utilities (3+ copies per Rule 4), and mixed error handling patterns across modified files. Fix under green tests. Budget: 3 minutes. After scan, write result artifact:
+     ```bash
+     python3 -c "
+     import json, datetime
+     result = {'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), 'implementer_count': <N>, 'issues_found': <N>, 'issues_fixed': <N>, 'status': 'pass'}
+     json.dump(result, open('.claude/consistency-scan-result.json', 'w'))
+     "
+     ```
   8. Continue to Step 7
 - If `quality` is absent or `mvp` (default):
 - **MVP Task Breakdown** (Multi-layer features only — skip for Simple):

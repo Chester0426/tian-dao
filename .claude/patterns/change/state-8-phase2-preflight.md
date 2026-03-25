@@ -51,7 +51,7 @@ Before proceeding to Step 5, execute the process gate:
 
 > **Skip condition:** If `.claude/current-plan.md` already contains `## Process Checklist`, skip to Step 5.
 
-- **G3 Spec Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G3 Spec Gate for type [classification]. Verify: current-plan.md has `## Process Checklist`, checkpoint is at phase2-step6 or later. For Feature: experiment.yaml behaviors updated. For Upgrade: .env.example updated if needed. For Production quality: stack.testing present." If gate-keeper returns BLOCK, fix blocking items.
+- **G3 Spec Gate**: Spawn the `gate-keeper` agent (`subagent_type: gate-keeper`). Pass: "Execute G3 Spec Gate for type [classification]. Verify: current-plan.md has `## Process Checklist`, checkpoint is at phase2-step5 or later. For Feature: current-plan.md includes behavior specification. For Upgrade: .env.example updated if needed. For Production quality: stack.testing present." If gate-keeper returns BLOCK, fix blocking items.
 
 **POSTCONDITIONS:**
 - Procedure file read (if applicable for type)
