@@ -97,10 +97,19 @@ Update checkpoint in `.claude/current-plan.md` frontmatter to `phase2-step7`.
 - Implementer trace audit run
 - G4 Implementation Gate passed
 - Checkpoint updated to `phase2-step7`
+- If `quality: production`: all complete implementer traces have `worktree_merged: true`
+- If 2+ implementer traces exist: `.claude/consistency-scan-result.json` exists
 
 **VERIFY:**
 ```bash
-grep -q 'checkpoint: phase2-step7' .claude/current-plan.md && echo "OK" || echo "FAIL"
+grep -q 'checkpoint: phase2-step7' .claude/current-plan.md && python3 -c "
+import json, glob, os
+q = 'production' if 'quality: production' in open('experiment/experiment.yaml').read() else 'mvp'
+ts = glob.glob('.claude/agent-traces/implementer-*.json') + glob.glob('.claude/agent-traces/visual-implementer-*.json') if q == 'production' else []
+bad = [t for t in ts if json.load(open(t)).get('status') == 'complete' and not json.load(open(t)).get('worktree_merged')]
+assert not bad, 'Unmerged: ' + ','.join(bad)
+assert not (len(ts) >= 2 and not os.path.exists('.claude/consistency-scan-result.json')), '2+ implementers but no consistency-scan-result.json'
+" && echo "OK" || echo "FAIL"
 ```
 
 **STATE TRACKING:** After postconditions pass, mark this state complete:

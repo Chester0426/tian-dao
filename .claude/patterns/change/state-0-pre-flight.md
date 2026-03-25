@@ -16,7 +16,7 @@
 Create `.claude/change-context.json` to initialize state tracking:
 ```bash
 cat > .claude/change-context.json << CTXEOF
-{"skill":"change","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"change-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0]}
+{"skill":"change","branch":"$(git branch --show-current)","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","run_id":"change-$(date -u +%Y-%m-%dT%H:%M:%SZ)","completed_states":[0],"preliminary_type":null,"affected_areas":null,"solve_depth":null}
 CTXEOF
 ```
 

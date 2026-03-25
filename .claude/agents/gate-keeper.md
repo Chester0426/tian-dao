@@ -94,6 +94,7 @@ cat > .claude/gate-verdicts/<gate-id>.json << 'VEOF'
 {
   "gate": "<ID>",
   "verdict": "<PASS|BLOCK>",
+  "severity": "<critical|warning>",
   "branch": "<output of git branch --show-current>",
   "timestamp": "<ISO 8601>",
   "checks": [
@@ -107,6 +108,7 @@ Rules:
 - `<gate-id>` is the gate identifier in lowercase: `bg1`, `bg2`, `bg2.5`, `bg4`, `g1`, etc.
 - The `branch` field records the branch at verdict time — hooks use this for freshness validation.
 - This write is mandatory for every gate invocation. If the Bash write fails, report BLOCK.
+- `severity` defaults to `"critical"` for BLOCK verdicts. Set to `"warning"` only for informational checks that don't affect process compliance. Hooks treat both as blocking (non-overridable).
 
 ---
 
@@ -138,9 +140,9 @@ Verify after Phase 1 plan creation:
 Verify after specs are updated:
 
 1. `.claude/current-plan.md` contains `## Process Checklist` section
-2. Frontmatter `checkpoint` is `phase2-step6` or later
+2. Frontmatter `checkpoint` is `phase2-step5` or later
 3. Type-specific:
-   - **Feature**: `git diff main...HEAD -- experiment/experiment.yaml` shows behavior changes
+   - **Feature**: `.claude/current-plan.md` contains behavior specification (grep for `behavior` or `- id: b-`)
    - **Upgrade**: `.env.example` updated if plan mentions new env vars
    - **Fix/Polish/Analytics**: no experiment.yaml behavior changes required
    - **Test**: `stack.testing` present in experiment.yaml if adding tests for first time
