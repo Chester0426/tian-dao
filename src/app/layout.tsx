@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Serif_SC, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
-import { NavBar } from "@/components/nav-bar";
 import { RetainTracker } from "@/components/RetainTracker";
 
 const notoSerifSC = Noto_Serif_SC({
@@ -36,7 +35,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
-        <NavBar />
         <RetainTracker />
         {children}
       </body>
