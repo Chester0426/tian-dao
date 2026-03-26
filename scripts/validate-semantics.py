@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """Validate semantic correctness across stack files, skill files, and fixtures.
 
 Checks:
