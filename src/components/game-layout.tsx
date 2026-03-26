@@ -30,7 +30,7 @@ export function GameLayout({ children }: { children: React.ReactNode }) {
               <path d="M3 4.5h12M3 9h12M3 13.5h12" />
             </svg>
           </button>
-          <span className="ml-3 font-heading text-sm font-bold">仙途放置</span>
+          <span className="ml-3 font-heading text-sm font-bold">天道</span>
         </div>
         {children}
       </main>

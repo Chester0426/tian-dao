@@ -39,7 +39,7 @@ export function NavBar() {
   return (
     <nav className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-sm">
       <Link href="/" className="font-heading text-xl font-bold text-cinnabar">
-        仙途放置
+        天道
       </Link>
       <div className="flex items-center gap-2">
         {loading ? (

@@ -1,17 +1,20 @@
 // POST /api/game/mine-action — Execute a mining action (b-03, b-04, b-05)
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { getMasteryDoubleDropChance, melvorXpForLevel } from "@/lib/types";
+import { getSlotFromRequest } from "@/lib/slot-api";
 
 const MineActionSchema = z.object({
   mine_id: z.string().uuid(),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const slot = getSlotFromRequest(request);
 
   let body: unknown;
   try {
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
   const { data: lastSession } = await supabase
     .from("idle_sessions")
     .select("started_at")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .eq("type", "mining")
     .single();
 
@@ -60,7 +63,7 @@ export async function POST(request: Request) {
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .single();
 
   if (!profile) {
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
   const { data: miningSkill } = await supabase
     .from("mining_skills")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .single();
 
   if (!miningSkill) {
@@ -87,14 +90,14 @@ export async function POST(request: Request) {
   let { data: mastery } = await supabase
     .from("mine_masteries")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .eq("mine_id", mine_id)
     .single();
 
   if (!mastery) {
     const { data: newMastery, error: masteryCreateError } = await supabase
       .from("mine_masteries")
-      .insert({ user_id: user.id, mine_id, level: 1, xp: 0 })
+      .insert({ user_id: user.id, slot, mine_id, level: 1, xp: 0 })
       .select()
       .single();
     if (masteryCreateError) {
@@ -128,7 +131,7 @@ export async function POST(request: Request) {
   const { data: inventory } = await supabase
     .from("inventory_items")
     .select("id, item_type")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id).eq("slot", slot);
 
   const existingSlot = inventory?.find((item: { id: string; item_type: string }) => item.item_type === droppedItem);
   const slotsUsed = new Set(inventory?.map((item: { id: string; item_type: string }) => item.item_type) ?? []).size;
@@ -147,6 +150,7 @@ export async function POST(request: Request) {
     const { error: updateError } = await supabase.rpc("increment_item_quantity", {
       p_item_type: droppedItem,
       p_quantity: dropQuantity,
+      p_slot: slot,
     });
     if (updateError) {
       console.error("inventory update error:", updateError.message);
@@ -155,7 +159,7 @@ export async function POST(request: Request) {
   } else {
     const { error: insertError } = await supabase
       .from("inventory_items")
-      .insert({ user_id: user.id, item_type: droppedItem, quantity: dropQuantity });
+      .insert({ user_id: user.id, slot, item_type: droppedItem, quantity: dropQuantity });
     if (insertError) {
       console.error("inventory insert error:", insertError.message);
       return NextResponse.json({ error: "Failed to add to inventory" }, { status: 500 });
@@ -177,7 +181,7 @@ export async function POST(request: Request) {
   await supabase
     .from("mining_skills")
     .update({ xp: newMiningXp, level: newMiningLevel })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id).eq("slot", slot);
 
   // Update mastery XP and level
   const newMasteryXp = mastery.xp + xpMastery;
@@ -189,7 +193,7 @@ export async function POST(request: Request) {
   await supabase
     .from("mine_masteries")
     .update({ xp: newMasteryXp, level: newMasteryLevel })
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .eq("mine_id", mine_id);
 
   // Update 練體 XP (body tempering)
@@ -217,18 +221,19 @@ export async function POST(request: Request) {
       body_skill_xp: newBodySkillXp,
       body_skill_level: newBodySkillLevel,
     })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id).eq("slot", slot);
 
   // Update idle session (mark as active mining)
   await supabase
     .from("idle_sessions")
     .upsert({
       user_id: user.id,
+      slot,
       type: "mining",
       mine_id,
       started_at: new Date().toISOString(),
       ended_at: null,
-    }, { onConflict: "user_id,type" });
+    }, { onConflict: "user_id,slot,type" });
 
   return NextResponse.json({
     drop: { item_type: droppedItem, quantity: dropQuantity, is_double: isDoubleDrop },

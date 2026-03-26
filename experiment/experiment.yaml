@@ -159,15 +159,38 @@ behaviors:
       - "Purchase deducts 靈石碎片 and adds 1 slot"
       - "Next slot price is higher"
     level: 2
+  - id: b-11
+    hypothesis_id: h-02
+    given: "A logged-in player enters the game"
+    when: "They reach the character selection screen"
+    then: "They see 3 save slots — each empty or showing character summary (stage, mining level, last played)"
+    tests:
+      - "Character selection page shows 3 slots"
+      - "Empty slots show 'Create' button"
+      - "Occupied slots show character info and 'Load' button"
+    level: 2
+  - id: b-12
+    hypothesis_id: h-03
+    given: "A player selects an existing character"
+    when: "They load the character after being offline"
+    then: "Offline rewards are calculated (capped at 12 hours) and shown in a summary dialog before entering the game"
+    tests:
+      - "Offline rewards dialog shows time away, drops, and XP gained"
+      - "Rewards capped at 12 hours"
+      - "Player can dismiss dialog to enter dashboard"
+    level: 2
 
 # --- 4. Journey ---
 golden_path:
-  - step: "Visit landing page — see ink wash cultivation world and pitch"
+  - step: "Visit landing page — see cultivation world and pitch"
     event: visit_landing
     page: landing
   - step: "Click 'Start Cultivating' and sign up with email"
     event: signup_complete
     page: signup
+  - step: "Select or create a character from 3 save slots"
+    event: activate
+    page: characters
   - step: "Enter dashboard — see cultivation status and mining area"
     event: activate
     page: dashboard
@@ -177,7 +200,7 @@ golden_path:
   - step: "Return later — collect offline rewards, breakthrough 練體"
     event: breakthrough_complete
     page: dashboard
-target_clicks: 4
+target_clicks: 5
 
 # --- 5. Variants ---
 variants:
@@ -272,9 +295,14 @@ deploy:
 # Expansion: shop purchase with 靈石碎片, 1 slot at a time, escalating price
 # Future: bag items that add slots (potential on-chain NFT)
 #
+# == Save System ==
+# 3 save slots per account (like Melvor Idle)
+# Character selection screen after login
+# Each slot is fully independent (separate inventory, skills, progress)
+#
 # == Idle / Offline ==
 # Only one system active at a time
-# Max offline accumulation: 24 hours
+# Max offline accumulation: 12 hours
 # On return: summary screen with all gains
 #
 # == UI ==

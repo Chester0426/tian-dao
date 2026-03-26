@@ -54,8 +54,8 @@ function calculateOfflineRewards(
   // Only show offline rewards if at least 1 minute has passed
   if (minutesAway < 1) return null;
 
-  // Cap at 24 hours (1440 minutes)
-  const effectiveMinutes = Math.min(minutesAway, 1440);
+  // Cap at 12 hours (720 minutes)
+  const effectiveMinutes = Math.min(minutesAway, 720);
   // Actions: 1 per 3 seconds = 20 per minute
   const totalActions = effectiveMinutes * 20;
 
@@ -97,6 +97,7 @@ export default async function DashboardPage() {
     profile = {
       id: demoId,
       user_id: demoId,
+      slot: 1,
       cultivation_stage: 1,
       body_xp: 0,
       body_skill_level: 1,
@@ -107,6 +108,7 @@ export default async function DashboardPage() {
     miningSkill = {
       id: "",
       user_id: demoId,
+      slot: 1,
       level: 1,
       xp: 0,
       created_at: new Date().toISOString(),
@@ -124,6 +126,11 @@ export default async function DashboardPage() {
       redirect("/login");
     }
 
+    // Read selected slot from cookie
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
+
     // Fetch player data in parallel
     const [profileRes, miningSkillRes, masteryRes, inventoryRes, sessionRes] =
       await Promise.all([
@@ -131,24 +138,29 @@ export default async function DashboardPage() {
           .from("profiles")
           .select("*")
           .eq("user_id", user.id)
+          .eq("slot", slot)
           .single(),
         supabase
           .from("mining_skills")
           .select("*")
           .eq("user_id", user.id)
+          .eq("slot", slot)
           .single(),
         supabase
           .from("mine_masteries")
           .select("*")
-          .eq("user_id", user.id),
+          .eq("user_id", user.id)
+          .eq("slot", slot),
         supabase
           .from("inventory_items")
           .select("*")
-          .eq("user_id", user.id),
+          .eq("user_id", user.id)
+          .eq("slot", slot),
         supabase
           .from("idle_sessions")
           .select("*")
           .eq("user_id", user.id)
+          .eq("slot", slot)
           .order("created_at", { ascending: false })
           .limit(1),
       ]);

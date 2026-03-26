@@ -183,7 +183,7 @@ export default function LandingContent({
       <footer className="relative border-t border-border/50 px-6 py-12 text-center">
         <div className="mx-auto max-w-md">
           <p className="font-heading text-lg font-bold text-cinnabar/60">
-            仙途放置
+            天道
           </p>
           <div
             className="mx-auto my-3 h-px w-16"

@@ -12,6 +12,14 @@ const publicPaths = [
   "/v/earn",
 ];
 
+// Paths that require auth but NOT a slot selection
+const noSlotPaths = [
+  "/characters",
+  "/api/game/init-profile",
+  "/api/game/select-slot",
+  "/api/game/delete-character",
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -52,6 +60,15 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Check slot selection — redirect to /characters if no slot cookie set
+  // Skip for paths that don't need a slot (character selection, slot APIs)
+  if (!noSlotPaths.some((p) => pathname.startsWith(p))) {
+    const slot = request.cookies.get("x-slot")?.value;
+    if (!slot) {
+      return NextResponse.redirect(new URL("/characters", request.url));
+    }
   }
 
   return response;

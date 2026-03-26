@@ -654,6 +654,7 @@ export default function MiningPage() {
             {
               id: crypto.randomUUID(),
               user_id: "local",
+              slot: 1,
               item_type: lootEntry.item_type,
               quantity: dropQuantity,
               created_at: new Date().toISOString(),

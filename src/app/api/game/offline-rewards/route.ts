@@ -1,22 +1,25 @@
 // POST /api/game/offline-rewards — Calculate and apply offline progress (b-08)
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { melvorXpForLevel, getMasteryDoubleDropChance } from "@/lib/types";
+import { getSlotFromRequest } from "@/lib/slot-api";
 
-const MAX_OFFLINE_HOURS = 24;
+const MAX_OFFLINE_HOURS = 12;
 const ACTION_INTERVAL_SECONDS = 3;
 const ROCK_RESPAWN_SECONDS = 5;
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const slot = getSlotFromRequest(request);
 
   // Fetch latest idle session
   const { data: sessions } = await supabase
     .from("idle_sessions")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .eq("type", "mining")
     .order("started_at", { ascending: false })
     .limit(1);
@@ -52,20 +55,20 @@ export async function POST() {
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .single();
 
   const { data: mastery } = await supabase
     .from("mine_masteries")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .eq("mine_id", session.mine_id)
     .single();
 
   const { data: miningSkill } = await supabase
     .from("mining_skills")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.id).eq("slot", slot)
     .single();
 
   if (!profile || !miningSkill) {
@@ -109,7 +112,7 @@ export async function POST() {
     const { data: existingItem } = await supabase
       .from("inventory_items")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", user.id).eq("slot", slot)
       .eq("item_type", itemType)
       .single();
 
@@ -117,11 +120,12 @@ export async function POST() {
       await supabase.rpc("increment_item_quantity", {
         p_item_type: itemType,
         p_quantity: quantity,
+        p_slot: slot,
       });
     } else {
       await supabase
         .from("inventory_items")
-        .insert({ user_id: user.id, item_type: itemType, quantity });
+        .insert({ user_id: user.id, slot, item_type: itemType, quantity });
     }
   }
 
@@ -134,7 +138,7 @@ export async function POST() {
   await supabase
     .from("mining_skills")
     .update({ xp: newMiningXp, level: newMiningLevel })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id).eq("slot", slot);
 
   // Apply mastery XP
   if (mastery) {
@@ -146,7 +150,7 @@ export async function POST() {
     await supabase
       .from("mine_masteries")
       .update({ xp: newMasteryXp, level: newMasteryLevel })
-      .eq("user_id", user.id)
+      .eq("user_id", user.id).eq("slot", slot)
       .eq("mine_id", session.mine_id);
   }
 
@@ -170,7 +174,7 @@ export async function POST() {
       body_skill_xp: newBodySkillXp,
       body_skill_level: newBodySkillLevel,
     })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id).eq("slot", slot);
 
   // Update session end time
   await supabase

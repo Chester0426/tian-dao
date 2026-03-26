@@ -12,6 +12,7 @@ export type Json =
 export interface Profile {
   id: string; // uuid, references auth.users
   user_id: string; // uuid, references auth.users
+  slot: number; // 1-3, save slot
   cultivation_stage: number; // 1-9 for 練體 stages
   body_xp: number; // current 練體 XP within stage
   body_skill_level: number; // 1-99 post-練體9 skill track (starts at 9)
@@ -24,6 +25,7 @@ export interface Profile {
 export interface MiningSkill {
   id: string; // uuid
   user_id: string; // uuid, references auth.users
+  slot: number; // 1-3, save slot
   level: number; // 1-99
   xp: number; // total accumulated XP
   created_at: string; // timestamptz
@@ -33,6 +35,7 @@ export interface MiningSkill {
 export interface MineMastery {
   id: string; // uuid
   user_id: string; // uuid, references auth.users
+  slot: number; // 1-3, save slot
   mine_id: string; // uuid, references mines
   level: number; // 1-99
   xp: number; // total accumulated XP
@@ -43,6 +46,7 @@ export interface MineMastery {
 export interface InventoryItem {
   id: string; // uuid
   user_id: string; // uuid, references auth.users
+  slot: number; // 1-3, save slot
   item_type: string; // e.g. "coal", "copper_ore", "spirit_stone_fragment"
   quantity: number; // stackable, no cap per slot
   created_at: string; // timestamptz
@@ -77,6 +81,7 @@ export interface Mine {
 export interface IdleSession {
   id: string; // uuid
   user_id: string; // uuid, references auth.users
+  slot: number; // 1-3, save slot
   type: "mining"; // activity type (only mining in MVP)
   mine_id: string | null; // uuid, references mines (null for non-mining)
   started_at: string; // timestamptz — when idle began

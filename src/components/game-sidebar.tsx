@@ -47,7 +47,7 @@ export function GameSidebar({
           仙
         </span>
         <span className="font-heading text-base font-bold text-foreground">
-          仙途放置
+          天道
         </span>
       </div>
 
@@ -94,7 +94,7 @@ export function GameSidebar({
       {/* Footer */}
       <div className="border-t border-border/30 px-4 py-3">
         <p className="text-[10px] text-muted-foreground/40">
-          仙途放置 v0.1
+          天道 v0.1
         </p>
       </div>
     </aside>

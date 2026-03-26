@@ -1,6 +1,7 @@
 // POST /api/game/shop/buy-slot — Purchase inventory slot with spirit stones (b-10)
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { getSlotFromRequest } from "@/lib/slot-api";
 
 // Escalating price: base 5, doubles each purchased slot
 function slotPrice(currentSlots: number): number {
@@ -9,16 +10,19 @@ function slotPrice(currentSlots: number): number {
   return 5 * Math.pow(2, extraSlots);
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const slot = getSlotFromRequest(request);
 
   // Fetch profile to compute price
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("inventory_slots")
     .eq("user_id", user.id)
+    .eq("slot", slot)
     .single();
 
   if (profileError || !profile) {
@@ -30,6 +34,7 @@ export async function POST() {
   // Atomic buy: check balance, deduct, and increment slots in one transaction
   const { data: result, error: rpcError } = await supabase.rpc("buy_inventory_slot", {
     p_price: price,
+    p_slot: slot,
   });
 
   if (rpcError) {

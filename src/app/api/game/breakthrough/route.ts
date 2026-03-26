@@ -1,19 +1,23 @@
 // POST /api/game/breakthrough — Advance 練體 stage (b-06, b-07)
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { melvorXpForLevel } from "@/lib/types";
 import { trackServerEvent } from "@/lib/analytics-server";
+import { getSlotFromRequest } from "@/lib/slot-api";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const slot = getSlotFromRequest(request);
 
   // Fetch player profile
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("user_id", user.id)
+    .eq("slot", slot)
     .single();
 
   if (profileError || !profile) {
@@ -52,7 +56,8 @@ export async function POST() {
       // If unlocking skill track, initialize at level 9
       ...(isPostBodyTempering ? { body_skill_level: 9, body_skill_xp: 0 } : {}),
     })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("slot", slot);
 
   if (updateError) {
     console.error("breakthrough update error:", updateError.message);
