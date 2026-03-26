@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import type { Profile, MiningSkill, MineMastery, InventoryItem, IdleSession } from "@/lib/types";
@@ -81,72 +83,102 @@ function calculateOfflineRewards(
 }
 
 export default async function DashboardPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
 
-  if (!user) {
-    redirect("/login");
+  let profile: Profile;
+  let miningSkill: MiningSkill;
+  let masteries: MineMastery[];
+  let inventory: InventoryItem[];
+  let latestSession: IdleSession | null;
+
+  if (isDemo) {
+    // Demo mode: provide mock data so the page renders without Supabase
+    const demoId = "demo-user";
+    profile = {
+      id: demoId,
+      user_id: demoId,
+      cultivation_stage: 1,
+      body_xp: 0,
+      body_skill_level: 1,
+      body_skill_xp: 0,
+      inventory_slots: 20,
+      created_at: new Date().toISOString(),
+    };
+    miningSkill = {
+      id: "",
+      user_id: demoId,
+      level: 1,
+      xp: 0,
+      created_at: new Date().toISOString(),
+    };
+    masteries = [];
+    inventory = [];
+    latestSession = null;
+  } else {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/login");
+    }
+
+    // Fetch player data in parallel
+    const [profileRes, miningSkillRes, masteryRes, inventoryRes, sessionRes] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .single(),
+        supabase
+          .from("mining_skills")
+          .select("*")
+          .eq("user_id", user.id)
+          .single(),
+        supabase
+          .from("mine_masteries")
+          .select("*")
+          .eq("user_id", user.id),
+        supabase
+          .from("inventory_items")
+          .select("*")
+          .eq("user_id", user.id),
+        supabase
+          .from("idle_sessions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+
+    // Default profile for new players
+    profile = (profileRes.data as Profile) ?? {
+      id: user.id,
+      user_id: user.id,
+      cultivation_stage: 1,
+      body_xp: 0,
+      body_skill_level: 1,
+      body_skill_xp: 0,
+      inventory_slots: 20,
+      created_at: new Date().toISOString(),
+    };
+
+    miningSkill = (miningSkillRes.data as MiningSkill) ?? {
+      id: "",
+      user_id: user.id,
+      level: 1,
+      xp: 0,
+      created_at: new Date().toISOString(),
+    };
+
+    masteries = (masteryRes.data as MineMastery[]) ?? [];
+
+    inventory = (inventoryRes.data as InventoryItem[]) ?? [];
+
+    latestSession = (sessionRes.data as IdleSession[])?.[0] ?? null;
   }
-
-  // Fetch player data in parallel
-  const [profileRes, miningSkillRes, masteryRes, inventoryRes, sessionRes] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single(),
-      supabase
-        .from("mining_skills")
-        .select("*")
-        .eq("user_id", user.id)
-        .single(),
-      supabase
-        .from("mine_masteries")
-        .select("*")
-        .eq("user_id", user.id),
-      supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("user_id", user.id),
-      supabase
-        .from("idle_sessions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1),
-    ]);
-
-  // Default profile for new players
-  const profile: Profile = (profileRes.data as Profile) ?? {
-    id: user.id,
-    user_id: user.id,
-    cultivation_stage: 1,
-    body_xp: 0,
-    body_skill_level: 1,
-    body_skill_xp: 0,
-    inventory_slots: 20,
-    created_at: new Date().toISOString(),
-  };
-
-  const miningSkill: MiningSkill = (miningSkillRes.data as MiningSkill) ?? {
-    id: "",
-    user_id: user.id,
-    level: 1,
-    xp: 0,
-    created_at: new Date().toISOString(),
-  };
-
-  const masteries: MineMastery[] =
-    (masteryRes.data as MineMastery[]) ?? [];
-
-  const inventory: InventoryItem[] =
-    (inventoryRes.data as InventoryItem[]) ?? [];
-
-  const latestSession: IdleSession | null =
-    (sessionRes.data as IdleSession[])?.[0] ?? null;
 
   // Calculate offline rewards
   const offlineRewards = calculateOfflineRewards(latestSession, profile);

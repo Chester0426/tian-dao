@@ -15,13 +15,17 @@ const publicPaths = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip public paths, static files, and API routes
+  // Skip public paths and static files
   if (
     publicPaths.some((p) => pathname === p) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/") ||
     pathname.includes(".")
   ) {
+    return NextResponse.next();
+  }
+
+  // Demo mode bypass — skip auth for local dev / visual review
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true") {
     return NextResponse.next();
   }
 

@@ -422,3 +422,8 @@
     50% { transform: translateX(3%) scaleX(1.05); }
     100% { transform: translateX(0) scaleX(1); }
 }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

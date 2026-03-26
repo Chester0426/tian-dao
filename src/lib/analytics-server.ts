@@ -2,8 +2,8 @@ import { PostHog } from "posthog-node";
 
 const PROJECT_NAME = "xian-idle";
 const PROJECT_OWNER = "Chester0426";
-const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
-const POSTHOG_HOST = "https://us.i.posthog.com";
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
 
 export async function trackServerEvent(
   event: string,

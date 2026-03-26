@@ -23,6 +23,37 @@ import {
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
+// Scroll-reveal hook using IntersectionObserver
+// ---------------------------------------------------------------------------
+
+function useScrollReveal(options?: { threshold?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Check if already in viewport (above-the-fold elements)
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setIsVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: options?.threshold ?? 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [options?.threshold]);
+  return { ref, isVisible };
+}
+
+// ---------------------------------------------------------------------------
 // Constants & Game Data
 // ---------------------------------------------------------------------------
 
@@ -126,7 +157,7 @@ function XpBar({
 }) {
   const pct = maxXp > 0 ? Math.min((currentXp / maxXp) * 100, 100) : 0;
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
         <span className={`font-heading font-bold ${glowClass}`}>
           {label} <span className="text-foreground">Lv.{level}</span>
@@ -135,11 +166,24 @@ function XpBar({
           {currentXp.toLocaleString()} / {maxXp.toLocaleString()} XP
         </span>
       </div>
-      <div className="relative h-2.5 overflow-hidden rounded-full bg-muted">
+      <div className="relative h-3 overflow-hidden rounded-full bg-muted/60">
+        {/* Background texture */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-ink-4/5 to-transparent" />
+        {/* Progress fill with gradient */}
         <div
           className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${color}`}
-          style={{ width: `${pct}%` }}
+          style={{
+            width: `${pct}%`,
+            backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
+          }}
         />
+        {/* Shine effect at the leading edge */}
+        {pct > 5 && (
+          <div
+            className="absolute inset-y-0 w-1 rounded-full bg-white/20 transition-all duration-500"
+            style={{ left: `${Math.max(0, pct - 1)}%` }}
+          />
+        )}
       </div>
     </div>
   );
@@ -161,71 +205,126 @@ function RockDisplay({
   actionProgress: number;
 }) {
   const hpPct = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+  const isLowHp = hpPct <= 25 && hpPct > 0;
 
   return (
     <div className="relative flex flex-col items-center gap-4">
-      {/* Rock visualization */}
+      {/* Rock visualization - larger with atmospheric depth */}
       <div
-        className={`relative flex h-32 w-32 items-center justify-center rounded-2xl border transition-all duration-300 ${
+        className={`relative flex h-36 w-36 items-center justify-center rounded-2xl border-2 transition-all duration-500 ${
           isRespawning
-            ? "border-muted bg-muted/30 opacity-50"
+            ? "border-muted/40 bg-muted/20 opacity-40"
             : isMining
-              ? "border-jade/30 bg-card"
-              : "border-border bg-card"
+              ? "border-jade/30 bg-gradient-to-b from-card to-card/80"
+              : "border-border/60 bg-gradient-to-b from-card to-card/80"
         }`}
+        style={isMining && !isRespawning ? { animation: "mining-pulse 2.5s ease-in-out infinite" } : undefined}
       >
         {/* Ink noise overlay on rock */}
         <div className="ink-noise pointer-events-none absolute inset-0 rounded-2xl" />
 
-        {/* Rock icon - stylized mountain/mineral glyph */}
-        <div className={`relative z-10 select-none font-heading text-5xl transition-transform duration-150 ${
+        {/* Background radial glow when mining */}
+        {isMining && !isRespawning && (
+          <div className="absolute inset-0 rounded-2xl bg-radial-[at_50%_50%] from-jade-dim/40 to-transparent" />
+        )}
+
+        {/* Ambient particles when mining */}
+        {isMining && !isRespawning && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="absolute bottom-2 rounded-full bg-jade/50"
+                style={{
+                  left: `${20 + i * 15}%`,
+                  width: `${2 + (i % 2)}px`,
+                  height: `${2 + (i % 2)}px`,
+                  animation: `ambient-float ${2 + i * 0.5}s ease-out infinite`,
+                  animationDelay: `${i * 0.4}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Rock SVG — stylized mineral crystal */}
+        <div className={`relative z-10 select-none transition-transform duration-150 ${
           isMining && !isRespawning ? "animate-[rock-shake_0.15s_ease-in-out]" : ""
         }`}>
-          {isRespawning ? (
-            <span className="text-muted-foreground opacity-40">&#9671;</span>
-          ) : (
-            <span className={hpPct > 50 ? "text-ink-2" : hpPct > 25 ? "text-spirit-gold" : "text-cinnabar"}>
-              &#9670;
-            </span>
-          )}
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"
+            className={isLowHp ? "animate-[rock-crack-pulse_1.5s_ease-in-out_infinite]" : ""}
+            style={{ filter: isRespawning ? "grayscale(1) opacity(0.3)" : undefined }}
+          >
+            {/* Main crystal shape */}
+            <path d="M32 4L52 22L46 56H18L12 22L32 4Z" fill="currentColor"
+              className={hpPct > 50 ? "text-ink-3" : hpPct > 25 ? "text-spirit-gold/70" : "text-cinnabar/70"}
+            />
+            {/* Highlight facet */}
+            <path d="M32 4L42 20L32 42L22 20L32 4Z" fill="currentColor"
+              className={hpPct > 50 ? "text-ink-2" : hpPct > 25 ? "text-spirit-gold/50" : "text-cinnabar/50"}
+            />
+            {/* Shadow facet */}
+            <path d="M42 20L52 22L46 56H30L32 42L42 20Z" fill="currentColor"
+              className="text-ink-4/40"
+            />
+            {/* Crack lines when low HP */}
+            {isLowHp && (
+              <>
+                <line x1="28" y1="18" x2="22" y2="38" stroke="var(--cinnabar)" strokeWidth="1" opacity="0.7" />
+                <line x1="36" y1="24" x2="42" y2="44" stroke="var(--cinnabar)" strokeWidth="0.8" opacity="0.5" />
+              </>
+            )}
+            {/* Spirit stone sparkle hints */}
+            <circle cx="28" cy="30" r="1.5" fill="var(--spirit-gold)" opacity="0.6" />
+            <circle cx="38" cy="36" r="1" fill="var(--jade)" opacity="0.5" />
+          </svg>
         </div>
 
         {/* Mining action ring */}
         {isMining && !isRespawning && (
-          <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 128 128">
+          <svg className="absolute inset-0 h-full w-full -rotate-90 animate-[ring-glow_2s_ease-in-out_infinite]" viewBox="0 0 144 144">
+            {/* Track ring */}
+            <circle cx="72" cy="72" r="65" fill="none" stroke="var(--jade)" strokeWidth="1.5" opacity="0.1" />
+            {/* Progress ring */}
             <circle
-              cx="64"
-              cy="64"
-              r="58"
+              cx="72"
+              cy="72"
+              r="65"
               fill="none"
               stroke="var(--jade)"
-              strokeWidth="2"
-              strokeDasharray={`${(actionProgress / 100) * 364} 364`}
+              strokeWidth="2.5"
+              strokeDasharray={`${(actionProgress / 100) * 408} 408`}
               strokeLinecap="round"
               className="transition-all duration-100 ease-linear"
-              opacity="0.5"
+              opacity="0.7"
             />
           </svg>
         )}
       </div>
 
       {/* Rock HP bar */}
-      <div className="w-full max-w-[200px] space-y-1">
+      <div className="w-full max-w-[220px] space-y-1.5">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>岩石 HP</span>
-          <span className="tabular-nums">{hp} / {maxHp}</span>
+          <span className="font-heading font-medium">岩石 HP</span>
+          <span className="tabular-nums font-medium">{hp} / {maxHp}</span>
         </div>
-        <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+        <div className="relative h-2.5 overflow-hidden rounded-full bg-muted/60">
+          {/* Background shimmer track */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-ink-4/10 to-transparent" />
           <div
             className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${
-              isRespawning ? "bg-muted-foreground/30" : "bg-cinnabar"
+              isRespawning
+                ? "bg-muted-foreground/30"
+                : isLowHp
+                  ? "bg-gradient-to-r from-cinnabar to-cinnabar/70"
+                  : "bg-gradient-to-r from-cinnabar to-cinnabar/80"
             }`}
             style={{ width: `${hpPct}%` }}
           />
         </div>
         {isRespawning && (
-          <p className="text-center text-xs text-muted-foreground animate-pulse">
-            重生中... {(respawnTimeLeft / 1000).toFixed(1)}s
+          <p className="text-center text-xs text-muted-foreground">
+            <span className="animate-pulse">重生中...</span> <span className="tabular-nums">{(respawnTimeLeft / 1000).toFixed(1)}s</span>
           </p>
         )}
       </div>
@@ -236,15 +335,19 @@ function RockDisplay({
 function DropFeed({ drops }: { drops: MiningState["recentDrops"] }) {
   if (drops.length === 0) {
     return (
-      <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border">
-        <p className="text-sm text-muted-foreground">尚無掉落物</p>
+      <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/20">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-muted-foreground/30">
+          <path d="M16 4L26 12L22 28H10L6 12L16 4Z" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="16" cy="16" r="2" fill="currentColor" opacity="0.3" />
+        </svg>
+        <p className="text-sm text-muted-foreground/60">尚無掉落物</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-1.5 overflow-hidden">
-      {drops.map((drop) => {
+      {drops.map((drop, idx) => {
         const info = ITEM_DISPLAY[drop.item];
         const rarityColor =
           info?.rarity === "rare"
@@ -252,19 +355,29 @@ function DropFeed({ drops }: { drops: MiningState["recentDrops"] }) {
             : info?.rarity === "uncommon"
               ? "text-jade text-glow-jade"
               : "text-foreground";
+        const rarityBg =
+          info?.rarity === "rare"
+            ? "bg-spirit-gold-dim/30 border-spirit-gold/10"
+            : info?.rarity === "uncommon"
+              ? "bg-jade-dim/30 border-jade/10"
+              : "bg-card/60 border-transparent";
         return (
           <div
             key={drop.timestamp + drop.item}
-            className="flex items-center justify-between rounded-md bg-card/60 px-3 py-1.5 text-sm animate-[ink-fade-in_0.4s_ease-out]"
+            className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all hover:brightness-110 ${rarityBg}`}
+            style={{
+              animation: idx === 0 ? "loot-pop-in 0.35s ease-out" : undefined,
+              opacity: Math.max(0.4, 1 - idx * 0.1),
+            }}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <ItemIcon itemType={drop.item} size="sm" />
-              <span className={rarityColor}>{info?.name ?? drop.item}</span>
+              <span className={`font-medium ${rarityColor}`}>{info?.name ?? drop.item}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <span className="tabular-nums text-muted-foreground">x{drop.quantity}</span>
               {drop.isDouble && (
-                <Badge variant="outline" className="border-spirit-gold/40 text-spirit-gold text-[10px] px-1 py-0">
+                <Badge variant="outline" className="border-spirit-gold/40 bg-spirit-gold-dim/30 text-spirit-gold text-[10px] px-1.5 py-0 font-heading">
                   雙倍
                 </Badge>
               )}
@@ -320,19 +433,30 @@ function InventoryPanel({
       </div>
 
       {inventory.length === 0 ? (
-        <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-border">
-          <p className="text-sm text-muted-foreground">背包空空如也</p>
+        <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/20">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="text-muted-foreground/30">
+            <rect x="4" y="8" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M4 14h20" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+            <path d="M10 8V6a4 4 0 018 0v2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+          </svg>
+          <p className="text-sm text-muted-foreground/60">背包空空如也</p>
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
           {inventory.map((item) => {
             const info = ITEM_DISPLAY[item.item_type];
+            const slotBorder =
+              info?.rarity === "rare"
+                ? "border-spirit-gold/20 hover:border-spirit-gold/40"
+                : info?.rarity === "uncommon"
+                  ? "border-jade/20 hover:border-jade/40"
+                  : "border-border hover:border-jade/20";
             return (
               <TooltipProvider key={item.item_type} delay={200}>
                 <Tooltip>
-                  <TooltipTrigger className="group relative flex flex-col items-center gap-1 rounded-lg border border-border bg-card/60 p-2 transition-colors hover:border-jade/30 hover:bg-card">
+                  <TooltipTrigger className={`group relative flex flex-col items-center gap-1.5 rounded-lg border bg-card/60 p-2.5 transition-all duration-200 hover:bg-card hover:scale-[1.04] hover:shadow-lg ${slotBorder}`}>
                     <ItemIcon itemType={item.item_type} />
-                    <span className="text-[10px] tabular-nums text-muted-foreground">
+                    <span className="text-[10px] tabular-nums text-muted-foreground font-medium">
                       {item.quantity.toLocaleString()}
                     </span>
                   </TooltipTrigger>
@@ -348,9 +472,9 @@ function InventoryPanel({
           {Array.from({ length: Math.min(slots - slotsUsed, 8) }).map((_, i) => (
             <div
               key={`empty-${i}`}
-              className="flex h-[60px] items-center justify-center rounded-lg border border-dashed border-border/50"
+              className="flex h-[68px] items-center justify-center rounded-lg border border-dashed border-border/30 bg-muted/10 transition-colors hover:border-border/60"
             >
-              <span className="text-[10px] text-muted-foreground/30">+</span>
+              <span className="text-xs text-muted-foreground/20">+</span>
             </div>
           ))}
         </div>
@@ -616,7 +740,6 @@ export default function MiningPage() {
 
     lastTickRef.current = Date.now();
     let accumulatedAction = 0;
-    let accumulatedRespawn = 0;
 
     tickRef.current = setInterval(() => {
       const now = Date.now();
@@ -627,11 +750,9 @@ export default function MiningPage() {
         if (!prev.isMining) return prev;
 
         if (prev.isRespawning) {
-          accumulatedRespawn += delta;
           accumulatedAction = 0;
           const newRespawnLeft = Math.max(0, prev.respawnTimeLeft - delta);
           if (newRespawnLeft <= 0) {
-            accumulatedRespawn = 0;
             const newMaxHp = 1 + prev.masteryLevel;
             return {
               ...prev,
@@ -682,7 +803,6 @@ export default function MiningPage() {
     addXpFloat("mining", loot.xp_mining);
     addXpFloat("mastery", loot.xp_mastery);
     addXpFloat("body", loot.xp_body);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.totalActions]);
 
   const handleStartMining = useCallback(() => {
@@ -723,6 +843,13 @@ export default function MiningPage() {
     state.inventory.find((i) => i.item_type === "spirit_stone_fragment")?.quantity ?? 0;
   const slotsUsed = state.inventory.length;
 
+  // Scroll-reveal hooks for each section
+  const dropsReveal = useScrollReveal();
+  const inventoryReveal = useScrollReveal();
+  const xpReveal = useScrollReveal();
+  const infoReveal = useScrollReveal();
+  const masteryReveal = useScrollReveal();
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -752,19 +879,32 @@ export default function MiningPage() {
       {/* Page-level custom animations defined in mining-animations.css */}
 
       <div className="mx-auto max-w-5xl px-6 py-8 sm:px-12 sm:py-12 lg:px-16">
-        {/* Header */}
-        <header className="mb-8 animate-[ink-fade-in_0.6s_ease-out]">
+        {/* Header — with decorative brush stroke */}
+        <header className="relative mb-10 animate-[ink-fade-in_0.6s_ease-out]">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-heading text-3xl font-bold sm:text-4xl">
-              枯竭礦脈
-            </h1>
-            <Badge variant="outline" className="border-ink-4/30 text-muted-foreground text-xs">
+            <div className="relative">
+              <h1 className="font-heading text-3xl font-bold sm:text-4xl lg:text-[2.75rem] tracking-tight">
+                枯竭礦脈
+              </h1>
+              {/* Brush stroke underline accent */}
+              <div
+                className="absolute -bottom-1.5 left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-cinnabar via-cinnabar/60 to-transparent"
+                style={{ animation: "header-brush-in 0.8s ease-out 0.3s both" }}
+              />
+            </div>
+            <Badge variant="outline" className="border-ink-4/30 text-muted-foreground text-xs font-heading tracking-wide">
               Depleted Vein
             </Badge>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground max-w-xl">
-            最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。每次采掘消耗 3 秒，可獲得煤、銅礦或靈石碎片。
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。每次采掘消耗 <span className="text-foreground tabular-nums font-medium">3</span> 秒，可獲得煤、銅礦或靈石碎片。
           </p>
+          {/* Decorative corner mark (seal-like) */}
+          <div className="absolute -right-2 -top-2 hidden h-10 w-10 items-center justify-center rounded-sm border border-cinnabar/20 text-cinnabar/30 font-heading text-xs sm:flex"
+            style={{ animation: "seal-stamp 0.6s ease-out 0.5s both" }}
+          >
+            采
+          </div>
         </header>
 
         {/* Main grid */}
@@ -772,7 +912,7 @@ export default function MiningPage() {
           {/* LEFT COLUMN -- Mining area + drops */}
           <div className="lg:col-span-2 space-y-6">
             {/* Mining core */}
-            <Card className="scroll-surface relative overflow-hidden animate-[ink-fade-in_0.6s_ease-out_100ms_both]">
+            <Card className="scroll-surface relative overflow-hidden animate-[ink-fade-in_0.6s_ease-out_100ms_both] hover:shadow-lg transition-shadow duration-300">
               <CardContent className="flex flex-col items-center gap-6 py-8 sm:flex-row sm:items-start sm:gap-10">
                 {/* Rock */}
                 <RockDisplay
@@ -849,7 +989,12 @@ export default function MiningPage() {
             </Card>
 
             {/* Recent drops */}
-            <Card className="scroll-surface animate-[ink-fade-in_0.6s_ease-out_200ms_both]">
+            <Card className="scroll-surface" ref={dropsReveal.ref}
+              style={{
+                animation: dropsReveal.isVisible ? "scroll-reveal-left 0.5s ease-out both" : "none",
+                transform: dropsReveal.isVisible ? undefined : "translateX(-20px)",
+              }}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading text-lg">最近掉落</CardTitle>
               </CardHeader>
@@ -859,7 +1004,12 @@ export default function MiningPage() {
             </Card>
 
             {/* Inventory */}
-            <Card className="scroll-surface animate-[ink-fade-in_0.6s_ease-out_300ms_both]">
+            <Card className="scroll-surface" ref={inventoryReveal.ref}
+              style={{
+                animation: inventoryReveal.isVisible ? "scroll-reveal-up 0.5s ease-out 0.1s both" : "none",
+                transform: inventoryReveal.isVisible ? undefined : "translateY(24px)",
+              }}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-heading text-lg">背包</CardTitle>
@@ -883,7 +1033,12 @@ export default function MiningPage() {
           {/* RIGHT COLUMN -- Stats & XP */}
           <div className="space-y-6">
             {/* XP Bars */}
-            <Card className="scroll-surface relative animate-[ink-fade-in_0.6s_ease-out_150ms_both]">
+            <Card className="scroll-surface relative" ref={xpReveal.ref}
+              style={{
+                animation: xpReveal.isVisible ? "scroll-reveal-right 0.5s ease-out both" : "none",
+                transform: xpReveal.isVisible ? undefined : "translateX(20px)",
+              }}
+            >
               <XpFloater gains={xpFloats} />
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading text-lg">修煉進度</CardTitle>
@@ -914,7 +1069,7 @@ export default function MiningPage() {
                 <Separator />
 
                 {/* Body tempering */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-heading font-bold text-spirit-gold text-glow-gold">
                       練體 <span className="text-foreground">{state.bodyStage}階</span>
@@ -923,7 +1078,8 @@ export default function MiningPage() {
                       {state.bodyXp.toLocaleString()} / {xpForNextLevel(state.bodyStage).toLocaleString()} XP
                     </span>
                   </div>
-                  <div className="relative h-2.5 overflow-hidden rounded-full bg-muted">
+                  <div className="relative h-3 overflow-hidden rounded-full bg-muted/60">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-ink-4/5 to-transparent" />
                     <div
                       className="absolute inset-y-0 left-0 rounded-full bg-spirit-gold transition-all duration-500 ease-out"
                       style={{
@@ -931,6 +1087,7 @@ export default function MiningPage() {
                           (state.bodyXp / xpForNextLevel(state.bodyStage)) * 100,
                           100
                         )}%`,
+                        backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
                       }}
                     />
                   </div>
@@ -939,7 +1096,12 @@ export default function MiningPage() {
             </Card>
 
             {/* Mine info */}
-            <Card className="scroll-surface animate-[ink-fade-in_0.6s_ease-out_250ms_both]">
+            <Card className="scroll-surface" ref={infoReveal.ref}
+              style={{
+                animation: infoReveal.isVisible ? "scroll-reveal-up 0.5s ease-out 0.1s both" : "none",
+                transform: infoReveal.isVisible ? undefined : "translateY(24px)",
+              }}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading text-lg">礦場資訊</CardTitle>
               </CardHeader>
@@ -983,30 +1145,45 @@ export default function MiningPage() {
             </Card>
 
             {/* Mastery bonuses */}
-            <Card className="scroll-surface animate-[ink-fade-in_0.6s_ease-out_350ms_both]">
+            <Card className="scroll-surface" ref={masteryReveal.ref}
+              style={{
+                animation: masteryReveal.isVisible ? "scroll-reveal-right 0.5s ease-out both" : "none",
+                transform: masteryReveal.isVisible ? undefined : "translateX(20px)",
+              }}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading text-lg">精通獎勵</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {[10, 20, 30, 40, 50, 60, 70, 80, 90, 99].map((tier) => {
+                <div className="space-y-1.5">
+                  {[10, 20, 30, 40, 50, 60, 70, 80, 90, 99].map((tier, idx) => {
                     const chance = getMasteryDoubleDropChance(tier);
                     const unlocked = state.masteryLevel >= tier;
+                    const nextUnlock = !unlocked && (idx === 0 || state.masteryLevel >= [10, 20, 30, 40, 50, 60, 70, 80, 90, 99][idx - 1]);
                     return (
                       <div
                         key={tier}
-                        className={`flex items-center justify-between rounded-md px-3 py-1.5 text-xs transition-colors ${
+                        className={`group relative flex items-center justify-between overflow-hidden rounded-lg px-3 py-2 text-xs transition-all duration-300 ${
                           unlocked
-                            ? "bg-spirit-gold-dim text-spirit-gold"
-                            : "text-muted-foreground"
+                            ? "bg-spirit-gold-dim/40 text-spirit-gold border border-spirit-gold/15"
+                            : nextUnlock
+                              ? "bg-muted/40 text-muted-foreground border border-jade/10"
+                              : "text-muted-foreground/60"
                         }`}
                       >
-                        <span className="tabular-nums">Lv.{tier}</span>
-                        <span className="tabular-nums">
+                        {/* Progress bar fill for next unlock */}
+                        {nextUnlock && (
+                          <div
+                            className="absolute inset-y-0 left-0 bg-jade-dim/20 transition-all duration-500"
+                            style={{ width: `${Math.min((state.masteryLevel / tier) * 100, 100)}%` }}
+                          />
+                        )}
+                        <span className="relative z-10 tabular-nums font-heading font-bold">Lv.{tier}</span>
+                        <span className="relative z-10 tabular-nums">
                           雙倍 {(chance * 100).toFixed(0)}%
                         </span>
                         {unlocked && (
-                          <span className="text-spirit-gold font-bold">&#10003;</span>
+                          <span className="relative z-10 text-spirit-gold font-bold text-glow-gold">&#10003;</span>
                         )}
                       </div>
                     );

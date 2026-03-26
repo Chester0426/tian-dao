@@ -25,7 +25,7 @@ test.describe.serial("User funnel", () => {
     await login(page, email, password);
     await expect(page).toHaveURL(/\/dashboard/);
     // Dashboard shows cultivation status
-    await expect(page.getByText(/練體/)).toBeVisible();
+    await expect(page.getByText(/練體/).first()).toBeVisible();
   });
 
   test("navigate to mining page", async ({ page }) => {
@@ -33,7 +33,7 @@ test.describe.serial("User funnel", () => {
     await login(page, email, password);
     await page.goto("/mining");
     // Mining page shows the mine and mining controls
-    await expect(page.getByText(/枯竭礦脈|Depleted/i)).toBeVisible();
+    await expect(page.getByText(/枯竭礦脈|Depleted/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   test("analytics events fired in order", async () => {

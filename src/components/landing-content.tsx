@@ -163,6 +163,7 @@ export default function LandingContent({
   const painReveal = useScrollReveal(0.15);
   const featuresReveal = useScrollReveal(0.1);
   const proofReveal = useScrollReveal(0.1);
+  const stepsReveal = useScrollReveal(0.12);
   const ctaReveal = useScrollReveal(0.1);
 
   // Fire visit_landing on mount
@@ -181,7 +182,6 @@ export default function LandingContent({
         undefined,
       utm_content: new URLSearchParams(window.location.search).get("utm_content") ?? undefined,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -309,8 +309,9 @@ export default function LandingContent({
 
       {/* ================================================================
           SECTION 2: PAIN POINTS
-          Layout: 3-column asymmetric grid with cinnabar accents
-          Depth: scroll-surface cards + cinnabar left border
+          Layout: Left-aligned heading + staggered horizontal cards with
+          cinnabar slash-through effect (brush stroke aesthetic)
+          Animation: clipPath brush-reveal (not translateY)
           ================================================================ */}
       <section
         ref={painReveal.ref}
@@ -321,30 +322,40 @@ export default function LandingContent({
             <h2 className="font-heading text-2xl font-bold text-foreground md:text-3xl">
               修仙路上的三座大山
             </h2>
-            <p className="mt-3 text-ink-3">
+            <div
+              className="mt-4 h-0.5 w-24"
+              style={{
+                background: "linear-gradient(90deg, var(--cinnabar), transparent)",
+                clipPath: painReveal.revealed ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
+                transition: "clip-path 0.8s ease-out 0.2s",
+              }}
+            />
+            <p className="mt-4 text-ink-3">
               現有遊戲的問題，正是我們解決的起點。
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="space-y-5">
             {variant.painPoints.map((pain, i) => (
               <div
                 key={i}
-                className="scroll-surface relative rounded-lg border-l-2 border-l-cinnabar p-6"
+                className="group relative flex items-center gap-6 rounded-xl border border-border/40 bg-card/60 p-6 backdrop-blur-sm transition-colors duration-300 hover:border-cinnabar/30 hover:bg-cinnabar-dim/30 md:p-8"
                 style={{
-                  transform: painReveal.revealed
-                    ? "translateY(0) scale(1)"
-                    : "translateY(20px) scale(0.98)",
-                  transition: `transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${0.1 + i * 0.12}s`,
+                  clipPath: painReveal.revealed ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
+                  transition: `clip-path 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${0.15 + i * 0.18}s`,
                 }}
               >
+                {/* Large step number */}
+                <span className="shrink-0 font-heading text-5xl font-bold text-cinnabar/20 transition-colors group-hover:text-cinnabar/40 md:text-6xl">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
                 {/* Pain icon: X mark in cinnabar */}
-                <div className="mb-4 flex size-10 items-center justify-center rounded-md bg-cinnabar-dim">
+                <div className="flex shrink-0 size-10 items-center justify-center rounded-full border border-cinnabar/30 bg-cinnabar-dim">
                   <svg viewBox="0 0 24 24" className="size-5 text-cinnabar" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
                   </svg>
                 </div>
-                <p className="text-base font-medium leading-relaxed text-foreground">
+                <p className="text-base font-medium leading-relaxed text-foreground md:text-lg">
                   {pain}
                 </p>
               </div>
@@ -355,8 +366,9 @@ export default function LandingContent({
 
       {/* ================================================================
           SECTION 3: FEATURES
-          Layout: 2x2 grid (desktop), stacked (mobile), alternating icon positions
-          Depth: jade qi-glow on hover, glassmorphism cards
+          Layout: Asymmetric bento grid -- 2 tall left + 2 short right (desktop)
+          Stacked on mobile. Jade qi-glow on hover, glassmorphism cards.
+          Animation: scale-in from center (different from hero/pain)
           ================================================================ */}
       <section
         ref={featuresReveal.ref}
@@ -381,16 +393,20 @@ export default function LandingContent({
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
+          {/* Bento grid: asymmetric layout breaks centered-column monotony */}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feature, i) => (
               <div
                 key={i}
-                className="group scroll-surface relative rounded-xl p-8 transition-all duration-300 hover:scale-[1.01]"
+                className={`group scroll-surface relative rounded-xl p-8 transition-all duration-300 hover:scale-[1.02] ${
+                  i === 0 ? "lg:col-span-2 lg:row-span-1" : ""
+                } ${i === 3 ? "lg:col-span-2 lg:row-span-1" : ""}`}
                 style={{
                   transform: featuresReveal.revealed
-                    ? "translateY(0) scale(1)"
-                    : "translateY(24px) scale(0.97)",
-                  transition: `transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${0.08 + i * 0.1}s`,
+                    ? "scale(1)"
+                    : "scale(0.92)",
+                  opacity: featuresReveal.revealed ? 1 : 0.7,
+                  transition: `transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${0.05 + i * 0.08}s, opacity 0.6s ease ${0.05 + i * 0.08}s`,
                 }}
               >
                 {/* Jade glow on hover */}
@@ -404,7 +420,7 @@ export default function LandingContent({
                 <div className="relative z-10">
                   {/* Icon + title row */}
                   <div className="mb-4 flex items-start gap-4">
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-jade-dim text-jade transition-colors group-hover:bg-jade/20">
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-jade-dim text-jade transition-all duration-300 group-hover:bg-jade/20 group-hover:shadow-[0_0_16px_var(--jade-dim)]">
                       {feature.icon}
                     </div>
                     <div>
@@ -428,61 +444,88 @@ export default function LandingContent({
 
       {/* ================================================================
           SECTION 4: SOCIAL PROOF / METRICS
-          Layout: Full-width horizontal band, 3 stat counters
-          Depth: sticky-feel dark band with gold shimmer counters
+          Layout: Full-width band with decorative border accents and
+          gold shimmer dividers between stats
+          Animation: gold-breakthrough pulse on reveal (unique to this section)
           ================================================================ */}
       <section
         ref={proofReveal.ref}
-        className="relative overflow-hidden border-y border-border/50 px-6 py-20 md:px-12 lg:px-16"
+        className="ink-noise relative overflow-hidden px-6 py-24 md:px-12 md:py-28 lg:px-16"
         style={{
           background: "linear-gradient(135deg, var(--xuan-dark) 0%, var(--card) 50%, var(--xuan-dark) 100%)",
         }}
       >
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-12 md:flex-row md:justify-between">
-          {[
-            { value: 24, suffix: "h", label: "最大離線累積時長" },
-            { value: 9, suffix: "階", label: "練體突破境界" },
-            { value: 3, suffix: "s", label: "每次採集間隔" },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center text-center"
-              style={{
-                transform: proofReveal.revealed ? "translateY(0) scale(1)" : "translateY(16px) scale(0.95)",
-                transition: `transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${0.1 + i * 0.15}s`,
-              }}
-            >
-              <span className="font-heading text-5xl font-bold text-spirit-gold text-glow-gold md:text-6xl">
-                <AnimatedCounter end={stat.value} suffix={stat.suffix} revealed={proofReveal.revealed} />
-              </span>
-              <span className="mt-2 text-sm text-ink-3">{stat.label}</span>
-            </div>
-          ))}
-        </div>
+        {/* Decorative top/bottom gold lines */}
+        <div className="absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent 10%, var(--spirit-gold-dim) 50%, transparent 90%)" }} />
+        <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: "linear-gradient(90deg, transparent 10%, var(--spirit-gold-dim) 50%, transparent 90%)" }} />
 
-        {/* Proof line */}
-        <p className="mx-auto mt-12 max-w-md text-center text-sm text-ink-3">
-          {variant.proof}
-        </p>
+        {/* Background radial glow */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true" style={{ background: "radial-gradient(ellipse 50% 60% at 50% 50%, var(--spirit-gold-dim), transparent 70%)" }} />
+
+        <div className="relative mx-auto max-w-5xl">
+          <div className="flex flex-col items-center gap-10 md:flex-row md:justify-between">
+            {[
+              { value: 24, suffix: "h", label: "最大離線累積時長" },
+              { value: 9, suffix: "階", label: "練體突破境界" },
+              { value: 3, suffix: "s", label: "每次採集間隔" },
+            ].map((stat, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center text-center">
+                {/* Stat with gold glow pulse animation */}
+                <div
+                  className="rounded-lg px-6 py-3"
+                  style={{
+                    animation: proofReveal.revealed ? `gold-breakthrough 2s ease-in-out ${0.3 + i * 0.4}s both` : "none",
+                  }}
+                >
+                  <span className="font-heading text-5xl font-bold text-spirit-gold text-glow-gold md:text-6xl lg:text-7xl">
+                    <AnimatedCounter end={stat.value} suffix={stat.suffix} revealed={proofReveal.revealed} />
+                  </span>
+                </div>
+                <span className="mt-3 text-sm font-medium tracking-wide text-ink-3 uppercase">{stat.label}</span>
+                {/* Divider dot between stats (desktop) */}
+                {i < 2 && (
+                  <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 md:block" style={{ left: `${(i + 1) * 33.3}%` }}>
+                    <div className="size-1.5 rounded-full bg-spirit-gold/30" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Proof line with decorative brackets */}
+          <div className="mt-14 flex items-center justify-center gap-3">
+            <div className="h-px w-8 bg-spirit-gold/20" />
+            <p className="text-center text-sm text-ink-3">
+              {variant.proof}
+            </p>
+            <div className="h-px w-8 bg-spirit-gold/20" />
+          </div>
+        </div>
       </section>
 
       {/* ================================================================
           SECTION 5: HOW IT WORKS (mini journey)
           Layout: Vertical timeline with alternating left/right on desktop
-          Depth: gradient connecting line + numbered steps
+          Depth: gradient connecting line + numbered steps + scroll reveal
+          Animation: horizontal slide-in from alternating sides (unique)
           ================================================================ */}
-      <section className="relative px-6 py-24 md:px-12 md:py-32 lg:px-16">
-        <div className="mx-auto max-w-4xl">
+      <section ref={stepsReveal.ref} className="relative px-6 py-24 md:px-12 md:py-32 lg:px-16">
+        {/* Subtle mist background */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true" style={{ background: "radial-gradient(ellipse 80% 40% at 30% 60%, var(--jade-dim), transparent 60%)" }} />
+
+        <div className="relative mx-auto max-w-4xl">
           <h2 className="mb-16 text-center font-heading text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
             三步開始修仙
           </h2>
 
           <div className="relative">
-            {/* Vertical connecting line */}
+            {/* Vertical connecting line with scroll-driven height */}
             <div
-              className="absolute left-6 top-0 h-full w-px md:left-1/2 md:-translate-x-1/2"
+              className="absolute left-6 top-0 w-px md:left-1/2 md:-translate-x-1/2"
               style={{
                 background: "linear-gradient(180deg, var(--cinnabar-dim), var(--jade-dim), var(--spirit-gold-dim))",
+                height: stepsReveal.revealed ? "100%" : "0%",
+                transition: "height 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.2s",
               }}
               aria-hidden="true"
             />
@@ -512,24 +555,34 @@ export default function LandingContent({
                 className={`relative mb-12 flex items-start gap-6 last:mb-0 md:gap-12 ${
                   i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
                 }`}
+                style={{
+                  transform: stepsReveal.revealed
+                    ? "translateX(0)"
+                    : i % 2 === 0 ? "translateX(-40px)" : "translateX(40px)",
+                  opacity: stepsReveal.revealed ? 1 : 0.5,
+                  transition: `transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${0.3 + i * 0.2}s, opacity 0.8s ease ${0.3 + i * 0.2}s`,
+                }}
               >
-                {/* Step number */}
+                {/* Step number with qi-pulse animation */}
                 <div
-                  className={`relative z-10 flex size-12 shrink-0 items-center justify-center rounded-full border-2 font-heading text-lg font-bold md:absolute md:left-1/2 md:-translate-x-1/2 ${
+                  className={`relative z-10 flex size-14 shrink-0 items-center justify-center rounded-full border-2 font-heading text-xl font-bold md:absolute md:left-1/2 md:-translate-x-1/2 ${
                     item.color === "cinnabar"
                       ? "border-cinnabar bg-cinnabar-dim text-cinnabar text-glow-cinnabar"
                       : item.color === "jade"
                       ? "border-jade bg-jade-dim text-jade text-glow-jade"
                       : "border-spirit-gold bg-spirit-gold-dim text-spirit-gold text-glow-gold"
                   }`}
+                  style={{
+                    animation: stepsReveal.revealed ? `qi-pulse 3s ease-in-out ${1 + i * 0.5}s infinite` : "none",
+                  }}
                 >
                   {item.step}
                 </div>
 
-                {/* Content */}
+                {/* Content card */}
                 <div
-                  className={`flex-1 ${
-                    i % 2 === 0 ? "md:pr-[calc(50%+2rem)] md:text-right" : "md:pl-[calc(50%+2rem)]"
+                  className={`flex-1 rounded-lg border border-border/30 bg-card/40 p-5 backdrop-blur-sm ${
+                    i % 2 === 0 ? "md:mr-[calc(50%+2rem)] md:text-right" : "md:ml-[calc(50%+2rem)]"
                   }`}
                 >
                   <h3 className="font-heading text-xl font-bold text-foreground">
@@ -547,17 +600,36 @@ export default function LandingContent({
 
       {/* ================================================================
           SECTION 6: FINAL CTA
-          Layout: Centered cinematic block, cinnabar glow CTA
-          Depth: mist gradient + seal stamp animation on CTA
+          Layout: Cinematic block with layered radial glows
+          Depth: double radial (cinnabar + jade), seal stamp CTA
+          Animation: seal-stamp keyframe on button (unique to this section)
           ================================================================ */}
       <section
         ref={ctaReveal.ref}
         className="ink-noise relative px-6 py-32 md:px-12 md:py-40 lg:px-16"
         style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% 50%, var(--cinnabar-dim), transparent 60%), var(--background)",
+          background: [
+            "radial-gradient(ellipse 60% 40% at 50% 30%, var(--cinnabar-dim), transparent 60%)",
+            "radial-gradient(ellipse 40% 50% at 30% 70%, var(--jade-dim), transparent 50%)",
+            "radial-gradient(ellipse 40% 50% at 70% 70%, var(--spirit-gold-dim), transparent 50%)",
+            "var(--background)",
+          ].join(", "),
         }}
       >
+        {/* Decorative floating seal mark */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          aria-hidden="true"
+          style={{
+            width: "300px",
+            height: "300px",
+            border: "1px solid var(--cinnabar-dim)",
+            borderRadius: "50%",
+            opacity: 0.15,
+            animation: ctaReveal.revealed ? "qi-pulse 4s ease-in-out infinite" : "none",
+          }}
+        />
+
         <div
           className="relative z-10 mx-auto flex max-w-2xl flex-col items-center text-center"
           style={{
@@ -569,7 +641,7 @@ export default function LandingContent({
             {variant.urgency}
           </h2>
           <p className="mt-4 max-w-md text-lg text-ink-3">
-            {variant.subheadline}
+            掛機一晚，明早突破。你的修仙旅程，只差一步。
           </p>
 
           <Link href="/signup" className="mt-10">
@@ -577,8 +649,7 @@ export default function LandingContent({
               className="seal-glow h-14 px-10 text-lg font-bold transition-all duration-200 hover:scale-[1.04] hover:brightness-110"
               size="lg"
               style={{
-                transform: ctaReveal.revealed ? "scale(1) rotate(0deg)" : "scale(1.15) rotate(-3deg)",
-                transition: "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s",
+                animation: ctaReveal.revealed ? "seal-stamp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" : "none",
               }}
             >
               {variant.cta}
@@ -593,12 +664,21 @@ export default function LandingContent({
 
       {/* ================================================================
           FOOTER
-          Minimal: brand + links
+          Brand identity + decorative brush stroke
           ================================================================ */}
-      <footer className="border-t border-border/50 px-6 py-8 text-center">
-        <p className="font-heading text-sm text-ink-4">
-          仙途放置 &copy; {new Date().getFullYear()}
-        </p>
+      <footer className="relative border-t border-border/50 px-6 py-12 text-center">
+        <div className="mx-auto max-w-md">
+          <p className="font-heading text-lg font-bold text-cinnabar/60">
+            仙途放置
+          </p>
+          <div
+            className="mx-auto my-3 h-px w-16"
+            style={{ background: "linear-gradient(90deg, transparent, var(--ink-4), transparent)" }}
+          />
+          <p className="text-xs text-ink-4">
+            &copy; {new Date().getFullYear()} Xian Idle. 修仙放置 RPG.
+          </p>
+        </div>
       </footer>
     </div>
   );

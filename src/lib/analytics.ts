@@ -2,8 +2,8 @@ import posthog from "posthog-js";
 
 const PROJECT_NAME = "xian-idle";
 const PROJECT_OWNER = "Chester0426";
-const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
-const POSTHOG_HOST = "/ingest";
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "/ingest";
 
 let initialized = false;
 

@@ -27,6 +27,24 @@ export async function POST(request: Request) {
 
   const { mine_id } = parsed.data;
 
+  // Server-side cooldown: check last mine action timestamp (3s minimum interval)
+  const { data: lastSession } = await supabase
+    .from("idle_sessions")
+    .select("started_at")
+    .eq("user_id", user.id)
+    .eq("type", "mining")
+    .single();
+
+  if (lastSession?.started_at) {
+    const elapsed = Date.now() - new Date(lastSession.started_at).getTime();
+    if (elapsed < 3000) {
+      return NextResponse.json(
+        { error: "Mining cooldown active", retry_after_ms: 3000 - elapsed },
+        { status: 429 }
+      );
+    }
+  }
+
   // Fetch mine definition
   const { data: mine, error: mineError } = await supabase
     .from("mines")
@@ -127,7 +145,6 @@ export async function POST(request: Request) {
   // Add item to inventory (upsert: increment quantity if exists)
   if (existingSlot) {
     const { error: updateError } = await supabase.rpc("increment_item_quantity", {
-      p_user_id: user.id,
       p_item_type: droppedItem,
       p_quantity: dropQuantity,
     });
@@ -151,7 +168,7 @@ export async function POST(request: Request) {
   const xpBody = mine.xp_body as number;
 
   // Update mining skill XP and level
-  let newMiningXp = miningSkill.xp + xpMining;
+  const newMiningXp = miningSkill.xp + xpMining;
   let newMiningLevel = miningSkill.level;
   while (newMiningLevel < 99 && newMiningXp >= melvorXpForLevel(newMiningLevel + 1)) {
     newMiningLevel++;
@@ -163,7 +180,7 @@ export async function POST(request: Request) {
     .eq("user_id", user.id);
 
   // Update mastery XP and level
-  let newMasteryXp = mastery.xp + xpMastery;
+  const newMasteryXp = mastery.xp + xpMastery;
   let newMasteryLevel = mastery.level;
   while (newMasteryLevel < 99 && newMasteryXp >= melvorXpForLevel(newMasteryLevel + 1)) {
     newMasteryLevel++;
@@ -177,7 +194,7 @@ export async function POST(request: Request) {
 
   // Update 練體 XP (body tempering)
   let newBodyXp = profile.body_xp + xpBody;
-  let newCultivationStage = profile.cultivation_stage;
+  const newCultivationStage = profile.cultivation_stage;
   let newBodySkillXp = profile.body_skill_xp;
   let newBodySkillLevel = profile.body_skill_level;
 
