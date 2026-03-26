@@ -15,16 +15,16 @@ import { Separator } from "@/components/ui/separator";
 
 // Item display name mapping
 const ITEM_NAMES: Record<string, string> = {
-  "\u7164": "Coal",
-  "\u9285\u7926": "Copper Ore",
-  "\u9748\u77F3\u7897\u7247": "Spirit Stone Fragment",
+  "煤": "Coal",
+  "銅礦": "Copper Ore",
+  "靈石碗片": "Spirit Stone Fragment",
 };
 
 // Item icon mapping (ink-wash style descriptors)
 const ITEM_ICONS: Record<string, string> = {
-  "\u7164": "\u25C6",
-  "\u9285\u7926": "\u25C7",
-  "\u9748\u77F3\u7897\u7247": "\u2726",
+  "煤": "◆",
+  "銅礦": "◇",
+  "靈石碗片": "✦",
 };
 
 interface OfflineRewards {
@@ -44,11 +44,11 @@ interface OfflineRewardsDialogProps {
 }
 
 function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} \u5206\u9418`;
+  if (minutes < 60) return `${minutes} 分鐘`;
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  if (mins === 0) return `${hours} \u5C0F\u6642`;
-  return `${hours} \u5C0F\u6642 ${mins} \u5206\u9418`;
+  if (mins === 0) return `${hours} 小時`;
+  return `${hours} 小時 ${mins} 分鐘`;
 }
 
 function formatNumber(n: number): string {
@@ -89,14 +89,14 @@ export function OfflineRewardsDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg text-spirit-gold text-glow-gold">
-            \u96E2\u7DDA\u4FEE\u7149\u6210\u679C
+            離線修煉成果
           </DialogTitle>
           <DialogDescription>
-            \u4F60\u96E2\u958B\u4E86{" "}
+            你離開了{" "}
             <span className="font-medium text-foreground">
               {formatDuration(rewards.minutesAway)}
             </span>
-            \uFF0C\u4FEE\u7149\u5F9E\u672A\u505C\u6B47\u3002
+            ，修煉從未停歇。
           </DialogDescription>
         </DialogHeader>
 
@@ -104,7 +104,7 @@ export function OfflineRewardsDialog({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              \u7372\u5F97\u7269\u54C1
+              獲得物品
             </span>
             <Separator className="flex-1" />
           </div>
@@ -116,7 +116,7 @@ export function OfflineRewardsDialog({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg leading-none text-jade">
-                    {ITEM_ICONS[drop.item_type] ?? "\u25CB"}
+                    {ITEM_ICONS[drop.item_type] ?? "○"}
                   </span>
                   <span className="text-sm font-medium">
                     {drop.item_type}
@@ -132,7 +132,7 @@ export function OfflineRewardsDialog({
             ))}
             {rewards.drops.length === 0 && (
               <div className="py-4 text-center text-sm text-muted-foreground">
-                \u7121\u7269\u54C1\u6536\u7372
+                無物品收獲
               </div>
             )}
           </div>
@@ -142,25 +142,25 @@ export function OfflineRewardsDialog({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              \u7D93\u9A57\u7372\u5F97
+              經驗獲得
             </span>
             <Separator className="flex-1" />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-center">
-              <div className="text-xs text-muted-foreground">\u63A1\u7926\u6280\u80FD</div>
+              <div className="text-xs text-muted-foreground">採礦技能</div>
               <div className="mt-1 font-heading text-sm font-bold text-jade tabular-nums">
                 +{formatNumber(rewards.xpGained.mining)}
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-center">
-              <div className="text-xs text-muted-foreground">\u7CBE\u901A\u5EA6</div>
+              <div className="text-xs text-muted-foreground">精通度</div>
               <div className="mt-1 font-heading text-sm font-bold text-jade tabular-nums">
                 +{formatNumber(rewards.xpGained.mastery)}
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-center">
-              <div className="text-xs text-muted-foreground">\u7DF4\u9AD4</div>
+              <div className="text-xs text-muted-foreground">練體</div>
               <div className="mt-1 font-heading text-sm font-bold text-cinnabar tabular-nums">
                 +{formatNumber(rewards.xpGained.body)}
               </div>
@@ -179,7 +179,7 @@ export function OfflineRewardsDialog({
             }`}
             size="lg"
           >
-            {collected ? "\u2713 \u5DF2\u6536\u53D6" : collecting ? "\u6536\u53D6\u4E2D..." : "\u6536\u53D6\u4FEE\u7149\u6210\u679C"}
+            {collected ? "✓ 已收取" : collecting ? "收取中..." : "收取修煉成果"}
           </Button>
         </DialogFooter>
       </DialogContent>

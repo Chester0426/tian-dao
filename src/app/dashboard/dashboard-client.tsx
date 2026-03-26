@@ -19,9 +19,9 @@ import { BreakthroughDialog } from "./breakthrough-dialog";
 
 // -- Item display data --
 const ITEM_DISPLAY: Record<string, { name: string; icon: string; color: string }> = {
-  "\u7164": { name: "Coal", icon: "\u25C6", color: "text-ink-2" },
-  "\u9285\u7926": { name: "Copper Ore", icon: "\u25C7", color: "text-spirit-gold" },
-  "\u9748\u77F3\u7897\u7247": { name: "Spirit Stone", icon: "\u2726", color: "text-jade" },
+  "煤": { name: "Coal", icon: "◆", color: "text-ink-2" },
+  "銅礦": { name: "Copper Ore", icon: "◇", color: "text-spirit-gold" },
+  "靈石碗片": { name: "Spirit Stone", icon: "✦", color: "text-jade" },
 };
 
 /** Hook: observe element entering viewport for scroll-triggered reveals */
@@ -187,10 +187,10 @@ export function DashboardClient({
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-                  \u4FEE\u7149\u7E3D\u89BD
+                  修煉總覽
                 </h1>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  \u4FEE\u7149\u4E4B\u8DEF\uFF0C\u6C38\u4E0D\u505C\u6B47
+                  修煉之路，永不停歇
                 </p>
               </div>
               <Badge variant="outline" className="font-heading text-jade border-jade/30 bg-jade/5 px-3 py-1.5 text-sm">
@@ -225,7 +225,7 @@ export function DashboardClient({
                     <CardTitle className="font-heading text-xl">
                       {isPostBodyTempering ? (
                         <>
-                          \u7DF4\u9AD4\u6280\u80FD <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span>
+                          練體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span>
                         </>
                       ) : (
                         <span className="text-glow-cinnabar">{stageName}</span>
@@ -233,8 +233,8 @@ export function DashboardClient({
                     </CardTitle>
                     <CardDescription>
                       {isPostBodyTempering
-                        ? "\u7DF4\u9AD4\u5DF2\u5713\u6EFF\uFF0C\u6280\u80FD\u6A39\u6301\u7E8C\u6DF1\u5316\u4E2D"
-                        : "\u8EAB\u9AD4\u6DF1\u5316 \u2014 \u900F\u904E\u63A1\u7926\u8207\u4FEE\u7149\u7372\u5F97\u7D93\u9A57"}
+                        ? "練體已圓滿，技能樹持續深化中"
+                        : "身體深化 — 透過採礦與修煉獲得經驗"}
                     </CardDescription>
                   </div>
                   {isBreakthroughReady && (
@@ -243,7 +243,7 @@ export function DashboardClient({
                       className="seal-glow animate-pulse hover:animate-none hover:scale-[1.02] transition-transform font-heading"
                       size="lg"
                     >
-                      \u7A81\u7834
+                      突破
                     </Button>
                   )}
                 </div>
@@ -252,7 +252,7 @@ export function DashboardClient({
                 {/* XP Progress — custom themed bar */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">\u7DF4\u9AD4\u7D93\u9A57</span>
+                    <span className="text-muted-foreground">練體經驗</span>
                     <span className="font-heading tabular-nums text-foreground">
                       {formatNumber(xpCurrent)} / {formatNumber(xpRequired)}
                     </span>
@@ -280,7 +280,7 @@ export function DashboardClient({
                     </span>
                     {isBreakthroughReady && (
                       <span className="text-xs font-medium text-spirit-gold animate-pulse text-glow-gold">
-                        \u53EF\u4EE5\u7A81\u7834\u4E86\uFF01
+                        可以突破了！
                       </span>
                     )}
                   </div>
@@ -304,16 +304,16 @@ export function DashboardClient({
                                   : "bg-muted/20 text-muted-foreground border border-border/30 hover:bg-muted/30"
                             }`}
                           >
-                            {isCompleted ? "\u2713" : stage}
+                            {isCompleted ? "✓" : stage}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          \u7DF4\u9AD4{stage}\u968E{" "}
+                          練體{stage}階{" "}
                           {isActive
-                            ? "(\u7576\u524D)"
+                            ? "(當前)"
                             : isCompleted
-                              ? "(\u5DF2\u901A\u904E)"
-                              : "(\u672A\u9054\u6210)"}
+                              ? "(已通過)"
+                              : "(未達成)"}
                         </TooltipContent>
                       </Tooltip>
                     );
@@ -325,14 +325,14 @@ export function DashboardClient({
             {/* === Mining Skill Card — slide from right === */}
             <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" style={slideFromRight(2)}>
               <CardHeader>
-                <CardTitle className="font-heading text-lg">\u63A1\u7926\u6280\u80FD</CardTitle>
-                <CardDescription>\u63A1\u7926\u7B49\u7D1A\u8207\u7CBE\u901A\u5EA6</CardDescription>
+                <CardTitle className="font-heading text-lg">採礦技能</CardTitle>
+                <CardDescription>採礦等級與精通度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Mining level — large centered display */}
                 <div className="flex flex-col items-center gap-1 rounded-lg border border-jade/15 bg-jade/5 py-4">
                   <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                    \u6280\u80FD\u7B49\u7D1A
+                    技能等級
                   </span>
                   <span className="font-heading text-4xl font-bold text-jade text-glow-jade tabular-nums">
                     {miningSkill.level}
@@ -356,7 +356,7 @@ export function DashboardClient({
                 {/* Mastery for depleted vein */}
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">\u67AF\u7AED\u7926\u8108 \u7CBE\u901A</span>
+                    <span className="text-sm text-muted-foreground">枯竭礦脈 精通</span>
                     <span className="font-heading text-lg font-bold tabular-nums">
                       {depletedMastery?.level ?? 1}
                     </span>
@@ -371,7 +371,7 @@ export function DashboardClient({
                   )}
                   {!depletedMastery && (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      \u958B\u59CB\u63A1\u7926\u4EE5\u7372\u5F97\u7CBE\u901A\u5EA6
+                      開始採礦以獲得精通度
                     </p>
                   )}
                 </div>
@@ -384,7 +384,7 @@ export function DashboardClient({
                     className: "w-full seal-glow hover:scale-[1.02] transition-transform font-heading mt-2",
                   })}
                 >
-                  \u524D\u5F80\u7926\u5834
+                  前往礦場
                 </Link>
               </CardContent>
             </Card>
@@ -407,9 +407,9 @@ export function DashboardClient({
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="font-heading text-lg">\u80CC\u5305</CardTitle>
+                      <CardTitle className="font-heading text-lg">背包</CardTitle>
                       <CardDescription>
-                        {slotsUsed} / {totalSlots} \u683C\u5DF2\u4F7F\u7528
+                        {slotsUsed} / {totalSlots} 格已使用
                       </CardDescription>
                     </div>
                     <Tooltip>
@@ -423,8 +423,8 @@ export function DashboardClient({
                       </TooltipTrigger>
                       <TooltipContent>
                         {inventoryNearFull
-                          ? "\u80CC\u5305\u5373\u5C07\u6EFF\u4E86\uFF01\u8ACB\u6E05\u7406\u6216\u64F4\u5145\u3002"
-                          : `\u5269\u9918 ${totalSlots - slotsUsed} \u683C\u53EF\u7528`}
+                          ? "背包即將滿了！請清理或擴充。"
+                          : `剩餘 ${totalSlots - slotsUsed} 格可用`}
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -463,7 +463,7 @@ export function DashboardClient({
                                 <span
                                   className={`text-xl leading-none transition-transform duration-200 group-hover:scale-125 ${display?.color ?? "text-foreground"}`}
                                 >
-                                  {display?.icon ?? "\u25CB"}
+                                  {display?.icon ?? "○"}
                                 </span>
                                 <div className="min-w-0 flex-1">
                                   <div className="truncate text-sm font-medium">
@@ -477,8 +477,8 @@ export function DashboardClient({
                             </TooltipTrigger>
                             <TooltipContent>
                               {item.item_type}{" "}
-                              {display?.name ? `(${display.name})` : ""} \u2014{" "}
-                              {formatNumber(item.quantity)} \u500B
+                              {display?.name ? `(${display.name})` : ""} —{" "}
+                              {formatNumber(item.quantity)} 個
                             </TooltipContent>
                           </Tooltip>
                         );
@@ -487,13 +487,13 @@ export function DashboardClient({
                   ) : (
                     <div className="flex flex-col items-center justify-center py-10 text-center">
                       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted/20 border border-border/30">
-                        <span className="text-3xl text-muted-foreground/60">\u5305</span>
+                        <span className="text-3xl text-muted-foreground/60">包</span>
                       </div>
                       <p className="text-sm font-heading font-medium text-muted-foreground">
-                        \u80CC\u5305\u7A7A\u7A7A\u5982\u4E5F
+                        背包空空如也
                       </p>
                       <p className="mt-1.5 text-xs text-muted-foreground/70">
-                        \u524D\u5F80\u7926\u5834\u958B\u59CB\u63A1\u96C6\u8CC7\u6E90
+                        前往礦場開始採集資源
                       </p>
                       <Link
                         href="/mining"
@@ -503,7 +503,7 @@ export function DashboardClient({
                           className: "mt-5 font-heading hover:border-jade/30 hover:text-jade",
                         })}
                       >
-                        \u524D\u5F80\u63A1\u7926
+                        前往採礦
                       </Link>
                     </div>
                   )}
@@ -522,8 +522,8 @@ export function DashboardClient({
             >
               <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
                 <CardHeader>
-                  <CardTitle className="font-heading text-lg">\u5FEB\u901F\u64CD\u4F5C</CardTitle>
-                  <CardDescription>\u5E38\u7528\u529F\u80FD</CardDescription>
+                  <CardTitle className="font-heading text-lg">快速操作</CardTitle>
+                  <CardDescription>常用功能</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Link
@@ -533,8 +533,8 @@ export function DashboardClient({
                       className: "w-full justify-start gap-3 font-heading hover:bg-jade/10 hover:border-jade/30 hover:text-jade transition-colors",
                     })}
                   >
-                    <span className="text-jade">\u26CF</span>
-                    \u63A1\u7926 \u2014 \u67AF\u7AED\u7926\u8108
+                    <span className="text-jade">⛏</span>
+                    採礦 — 枯竭礦脈
                   </Link>
 
                   {isBreakthroughReady && (
@@ -543,21 +543,21 @@ export function DashboardClient({
                       className="w-full justify-start gap-3 font-heading hover:bg-spirit-gold/10 hover:border-spirit-gold/30 hover:text-spirit-gold transition-colors animate-pulse hover:animate-none"
                       onClick={() => setShowBreakthrough(true)}
                     >
-                      <span className="text-spirit-gold">\u2728</span>
-                      \u7A81\u7834\u4FEE\u7149
+                      <span className="text-spirit-gold">✨</span>
+                      突破修煉
                     </Button>
                   )}
 
                   {isPostBodyTempering && (
                     <div className="rounded-lg border border-jade/20 bg-jade/5 p-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-jade">\u2713</span>
+                        <span className="text-jade">✓</span>
                         <span className="text-sm font-heading text-jade">
-                          \u7DF4\u9AD4\u6280\u80FD\u6A39\u5DF2\u89E3\u9396
+                          練體技能樹已解鎖
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        \u7E7C\u7E8C\u63A1\u7926\u4EE5\u63D0\u5347\u7DF4\u9AD4\u6280\u80FD\u7B49\u7D1A (1-99)
+                        繼續採礦以提升練體技能等級 (1-99)
                       </p>
                     </div>
                   )}
@@ -566,7 +566,7 @@ export function DashboardClient({
                   <div className="mt-4 rounded-lg bg-muted/15 border border-border/30 p-3 relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cinnabar/40 via-cinnabar/20 to-transparent" />
                     <p className="pl-2 text-xs text-muted-foreground italic leading-relaxed">
-                      \u300C\u4FEE\u4ED9\u4E4B\u9053\uFF0C\u975E\u4E00\u65E5\u4E4B\u529F\u3002\u300D\u2014 \u96E2\u7DDA\u6642\u4FEE\u7149\u4ECD\u5728\u9032\u884C\uFF0C\u6700\u591A\u7D2F\u7A4D 24 \u5C0F\u6642\u3002
+                      「修仙之道，非一日之功。」— 離線時修煉仍在進行，最多累積 24 小時。
                     </p>
                   </div>
                 </CardContent>

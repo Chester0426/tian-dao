@@ -18,15 +18,15 @@ interface BreakthroughDialogProps {
 }
 
 const STAGE_NAMES: Record<number, string> = {
-  1: "\u7DF4\u9AD4\u4E00\u968E",
-  2: "\u7DF4\u9AD4\u4E8C\u968E",
-  3: "\u7DF4\u9AD4\u4E09\u968E",
-  4: "\u7DF4\u9AD4\u56DB\u968E",
-  5: "\u7DF4\u9AD4\u4E94\u968E",
-  6: "\u7DF4\u9AD4\u516D\u968E",
-  7: "\u7DF4\u9AD4\u4E03\u968E",
-  8: "\u7DF4\u9AD4\u516B\u968E",
-  9: "\u7DF4\u9AD4\u4E5D\u968E",
+  1: "練體一階",
+  2: "練體二階",
+  3: "練體三階",
+  4: "練體四階",
+  5: "練體五階",
+  6: "練體六階",
+  7: "練體七階",
+  8: "練體八階",
+  9: "練體九階",
 };
 
 export function BreakthroughDialog({
@@ -40,11 +40,11 @@ export function BreakthroughDialog({
   const [open, setOpen] = useState(true);
 
   const nextStage = currentStage + 1;
-  const currentName = STAGE_NAMES[currentStage] ?? `\u7DF4\u9AD4${currentStage}\u968E`;
+  const currentName = STAGE_NAMES[currentStage] ?? `練體${currentStage}階`;
   const nextName =
     nextStage > 9
-      ? "\u7DF4\u9AD4\u6280\u80FD (1-99)"
-      : STAGE_NAMES[nextStage] ?? `\u7DF4\u9AD4${nextStage}\u968E`;
+      ? "練體技能 (1-99)"
+      : STAGE_NAMES[nextStage] ?? `練體${nextStage}階`;
 
   const isUnlockingSkillTrack = currentStage === 9;
 
@@ -90,12 +90,12 @@ export function BreakthroughDialog({
           <>
             <DialogHeader>
               <DialogTitle className="font-heading text-lg text-spirit-gold text-glow-gold">
-                \u7A81\u7834\u4FEE\u7149
+                突破修煉
               </DialogTitle>
               <DialogDescription>
                 {isUnlockingSkillTrack
-                  ? "\u7DF4\u9AD4\u4E5D\u968E\u5DF2\u5713\u6EFF\uFF0C\u7A81\u7834\u5F8C\u5C07\u89E3\u9396\u7DF4\u9AD4\u6280\u80FD\u6A39 (1-99)\uFF0C\u7E7C\u7E8C\u6DF1\u5316\u4FEE\u7149\u3002"
-                  : `\u7D93\u9A57\u5DF2\u6EFF\uFF0C\u53EF\u5F9E ${currentName} \u7A81\u7834\u81F3 ${nextName}\u3002\u7DF4\u9AD4 1-9 \u968E\u7A81\u7834\u6210\u529F\u7387 100%\u3002`}
+                  ? "練體九階已圓滿，突破後將解鎖練體技能樹 (1-99)，繼續深化修煉。"
+                  : `經驗已滿，可從 ${currentName} 突破至 ${nextName}。練體 1-9 階突破成功率 100%。`}
               </DialogDescription>
             </DialogHeader>
 
@@ -106,7 +106,7 @@ export function BreakthroughDialog({
                 </div>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="text-spirit-gold text-lg">\u2192</span>
+                <span className="text-spirit-gold text-lg">→</span>
               </div>
               <div className="text-center">
                 <div className="font-heading text-2xl text-spirit-gold text-glow-gold">
@@ -123,13 +123,13 @@ export function BreakthroughDialog({
                   onCancel();
                 }}
               >
-                \u7A0D\u5F8C\u518D\u8AAA
+                稍後再說
               </Button>
               <Button
                 onClick={handleBreakthrough}
                 className="seal-glow hover:scale-[1.02] transition-transform"
               >
-                \u958B\u59CB\u7A81\u7834
+                開始突破
               </Button>
             </DialogFooter>
           </>
@@ -140,11 +140,11 @@ export function BreakthroughDialog({
             <div className="relative">
               <div className="h-16 w-16 rounded-full border-2 border-spirit-gold animate-spin gold-shimmer" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-heading text-xl text-spirit-gold">\u7A81</span>
+                <span className="font-heading text-xl text-spirit-gold">突</span>
               </div>
             </div>
             <p className="mt-4 font-heading text-sm text-muted-foreground animate-pulse">
-              \u7A81\u7834\u4E2D...
+              突破中...
             </p>
           </div>
         )}
@@ -152,15 +152,15 @@ export function BreakthroughDialog({
         {phase === "success" && (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-spirit-gold/20 gold-shimmer">
-              <span className="font-heading text-2xl text-spirit-gold">\u2713</span>
+              <span className="font-heading text-2xl text-spirit-gold">✓</span>
             </div>
             <p className="mt-4 font-heading text-lg text-spirit-gold text-glow-gold">
-              \u7A81\u7834\u6210\u529F\uFF01
+              突破成功！
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {isUnlockingSkillTrack
-                ? "\u7DF4\u9AD4\u6280\u80FD\u6A39\u5DF2\u89E3\u9396"
-                : `\u5DF2\u9054 ${nextName}`}
+                ? "練體技能樹已解鎖"
+                : `已達 ${nextName}`}
             </p>
           </div>
         )}
