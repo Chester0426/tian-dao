@@ -1,3 +1,3 @@
 # Scaffold Init Agent Memory
 
-- [project_design_system.md](project_design_system.md) - Assayer "Crucible" design system: warm obsidian dark palette, molten gold accents, Instrument Serif + DM Sans fonts
+- [project_design_system.md](project_design_system.md) - Xian Idle "Ink Wash Cultivation" design system: warm ink-black dark palette, cinnabar/jade/gold accents, Noto Serif SC + Noto Sans SC fonts

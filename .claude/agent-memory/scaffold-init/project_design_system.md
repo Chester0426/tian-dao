@@ -1,18 +1,19 @@
 ---
-name: Crucible Design System
-description: Assayer uses a "Crucible" design system -- warm obsidian dark-first palette with molten gold accents, Instrument Serif + DM Sans typography, noise/gradient/glass depth techniques
+name: Ink Wash Cultivation Design System
+description: Xian Idle uses a 水墨仙風 (ink wash cultivation) design system -- warm ink-black dark palette with cinnabar red primary, jade green accent, spirit gold highlights, Noto Serif SC + Noto Sans SC fonts
 type: project
 ---
 
-Assayer's visual identity is the "Crucible" design system, derived from the metallurgical assaying metaphor (testing ore for gold).
+Xian Idle's visual identity is the "Ink Wash Cultivation" (水墨仙風) design system, derived from traditional Chinese ink painting materials and cultivation novel aesthetics.
 
-**Why:** The product delivers high-stakes SCALE/REFINE/PIVOT/KILL verdicts for startup ideas. The visual language must carry that gravity -- warm, rich, precise, not clinical or playful.
+**Why:** The product is a 修仙-themed idle RPG targeting Chinese-literate web3 gamers. The visual language must be culturally authentic (ink wash painting style), atmospheric (mountain/cave cultivation feel), and distinctive from typical web3 game aesthetics (no neon cyberpunk, no pixel art).
 
 **How to apply:**
-- Dark-first with warm hue angle (~55-80 oklch) running through all surfaces
-- Molten gold (`oklch(0.78 0.155 75)`) is the signature accent color
-- Display font: Instrument Serif (editorial authority), Body: DM Sans (geometric clarity)
-- Depth via noise overlay + radial gradient mesh + glassmorphism
-- Verdict colors are semantic: viridian (SCALE), amber (REFINE), copper (PIVOT), cinnabar (KILL)
-- Custom Tailwind tokens: gold, ember, copper, mineral, obsidian, charcoal, ash, parchment, verdict-*
-- All design tokens live in `src/app/globals.css`, visual brief at `.claude/current-visual-brief.md`
+- Dark-first with warm brown hue angle (~55 oklch) through all surfaces -- never cold blue-grey
+- Cinnabar red (`oklch(0.62 0.20 25)` dark / `oklch(0.52 0.19 25)` light) is the primary action color
+- Jade green (`oklch(0.65 0.15 160)`) for qi/cultivation energy states
+- Spirit gold (`oklch(0.78 0.155 80)`) for breakthroughs and rare drops
+- Display font: Noto Serif SC (calligraphic), Body: Noto Sans SC (functional)
+- Depth via rice paper noise overlay + ink wash gradient mesh + semantic glow effects
+- Custom semantic tokens: cinnabar, jade, spirit-gold, ink-1 through ink-5, xuan, xuan-dark
+- All design tokens in `src/app/globals.css`, visual brief at `.claude/current-visual-brief.md`

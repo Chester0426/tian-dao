@@ -1,0 +1,22 @@
+/* Mining page custom keyframe animations */
+
+@keyframes rock-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px) rotate(-1deg); }
+  75% { transform: translateX(3px) rotate(1deg); }
+}
+
+@keyframes xp-float {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-24px); }
+}
+
+@keyframes ink-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes mining-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--jade-dim); }
+  50% { box-shadow: 0 0 20px 4px var(--jade-dim); }
+}
