@@ -17,54 +17,35 @@ import {
 import { trackActivate } from "@/lib/events";
 import {
   type LootEntry,
+  type Mine,
   type InventoryItem,
   getMasteryDoubleDropChance,
   melvorXpForLevel,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// Scroll-reveal hook using IntersectionObserver
-// ---------------------------------------------------------------------------
-
-function useScrollReveal(options?: { threshold?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    // Check if already in viewport (above-the-fold elements)
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      setIsVisible(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: options?.threshold ?? 0.15 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [options?.threshold]);
-  return { ref, isVisible };
-}
-
-// ---------------------------------------------------------------------------
 // Constants & Game Data
 // ---------------------------------------------------------------------------
 
-const MINE_ACTION_INTERVAL_MS = 3000;
-const ROCK_RESPAWN_MS = 5000;
-
-const DEPLETED_VEIN_LOOT: LootEntry[] = [
-  { item_type: "coal", probability: 0.5, xp_mining: 5, xp_mastery: 3, xp_body: 5 },
-  { item_type: "copper_ore", probability: 0.35, xp_mining: 8, xp_mastery: 5, xp_body: 8 },
-  { item_type: "spirit_stone_fragment", probability: 0.15, xp_mining: 15, xp_mastery: 10, xp_body: 15 },
-];
+// Mine data — single source of truth for 枯竭礦脈
+const DEPLETED_VEIN: Mine = {
+  id: "depleted-vein",
+  name: "枯竭礦脈",
+  slug: "depleted_vein",
+  required_level: 1,
+  action_interval_ms: 3000,
+  loot_table: [
+    { item_type: "coal", probability: 0.5, xp_mining: 5, xp_mastery: 3, xp_body: 5 },
+    { item_type: "copper_ore", probability: 0.35, xp_mining: 8, xp_mastery: 5, xp_body: 8 },
+    { item_type: "spirit_stone_fragment", probability: 0.15, xp_mining: 15, xp_mastery: 10, xp_body: 15 },
+  ],
+  rock_base_hp: 1,
+  respawn_seconds: 5,
+  xp_mining: 5,
+  xp_mastery: 3,
+  xp_body: 5,
+  created_at: "",
+};
 
 const ITEM_DISPLAY: Record<string, { name: string; icon: string; rarity: "common" | "uncommon" | "rare" }> = {
   coal: { name: "煤", icon: "ite", rarity: "common" },
@@ -218,7 +199,7 @@ function RockDisplay({
               ? "border-jade/30 bg-gradient-to-b from-card to-card/80"
               : "border-border/60 bg-gradient-to-b from-card to-card/80"
         }`}
-        style={isMining && !isRespawning ? { animation: "mining-pulse 2.5s ease-in-out infinite" } : undefined}
+        style={isMining && !isRespawning ? { animation: `mining-pulse ${DEPLETED_VEIN.action_interval_ms}ms ease-in-out infinite` } : undefined}
       >
         {/* Ink noise overlay on rock */}
         <div className="ink-noise pointer-events-none absolute inset-0 rounded-2xl" />
@@ -282,7 +263,7 @@ function RockDisplay({
 
         {/* Mining action ring */}
         {isMining && !isRespawning && (
-          <svg className="absolute inset-0 h-full w-full -rotate-90 animate-[ring-glow_2s_ease-in-out_infinite]" viewBox="0 0 144 144">
+          <svg className="absolute inset-0 h-full w-full -rotate-90" style={{ animation: `ring-glow ${DEPLETED_VEIN.action_interval_ms}ms ease-in-out infinite` }} viewBox="0 0 144 144">
             {/* Track ring */}
             <circle cx="72" cy="72" r="65" fill="none" stroke="var(--jade)" strokeWidth="1.5" opacity="0.1" />
             {/* Progress ring */}
@@ -324,7 +305,7 @@ function RockDisplay({
         </div>
         {isRespawning && (
           <p className="text-center text-xs text-muted-foreground">
-            <span className="animate-pulse">重生中...</span> <span className="tabular-nums">{(respawnTimeLeft / 1000).toFixed(1)}s</span>
+            <span className="animate-pulse">搜尋中...</span> <span className="tabular-nums">{(respawnTimeLeft / 1000).toFixed(1)}s</span>
           </p>
         )}
       </div>
@@ -609,6 +590,9 @@ export default function MiningPage() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastTickRef = useRef<number>(0);
   const firedActivateRef = useRef(false);
+  const accumulatedRef = useRef(0);
+  const stateRef = useRef(state);
+  stateRef.current = state; // keep ref in sync with latest state
 
   // Simulate initial data load
   useEffect(() => {
@@ -645,7 +629,7 @@ export default function MiningPage() {
       if (prev.isRespawning) return prev;
 
       // Roll loot
-      const lootEntry = rollLoot(DEPLETED_VEIN_LOOT);
+      const lootEntry = rollLoot(DEPLETED_VEIN.loot_table);
       const doubleChance = getMasteryDoubleDropChance(prev.masteryLevel);
       const isDouble = Math.random() < doubleChance;
       const dropQuantity = isDouble ? 2 : 1;
@@ -715,7 +699,7 @@ export default function MiningPage() {
         rockHp: isNowRespawning ? 0 : newRockHp,
         rockMaxHp: newRockMaxHp,
         isRespawning: isNowRespawning,
-        respawnTimeLeft: isNowRespawning ? ROCK_RESPAWN_MS : 0,
+        respawnTimeLeft: isNowRespawning ? DEPLETED_VEIN.respawn_seconds * 1000 : 0,
         miningSkillLevel: miningLevel,
         miningSkillXp: remainingMiningXp,
         masteryLevel,
@@ -728,7 +712,7 @@ export default function MiningPage() {
     });
   }, []);
 
-  // Main mining tick (60fps for smooth progress, action every 3s)
+  // Main mining tick — all timing via refs, setState only for rendering
   useEffect(() => {
     if (!state.isMining) {
       if (tickRef.current) {
@@ -739,59 +723,46 @@ export default function MiningPage() {
     }
 
     lastTickRef.current = Date.now();
-    let accumulatedAction = 0;
+    accumulatedRef.current = 0;
 
     tickRef.current = setInterval(() => {
       const now = Date.now();
       const delta = now - lastTickRef.current;
       lastTickRef.current = now;
 
-      setState((prev) => {
-        if (!prev.isMining) return prev;
+      const cur = stateRef.current;
+      if (!cur.isMining) return;
 
-        if (prev.isRespawning) {
-          accumulatedAction = 0;
+      if (cur.isRespawning) {
+        accumulatedRef.current = 0;
+        setState((prev) => {
           const newRespawnLeft = Math.max(0, prev.respawnTimeLeft - delta);
           if (newRespawnLeft <= 0) {
             const newMaxHp = 1 + prev.masteryLevel;
-            return {
-              ...prev,
-              isRespawning: false,
-              respawnTimeLeft: 0,
-              rockHp: newMaxHp,
-              rockMaxHp: newMaxHp,
-            };
+            return { ...prev, isRespawning: false, respawnTimeLeft: 0, rockHp: newMaxHp, rockMaxHp: newMaxHp };
           }
           return { ...prev, respawnTimeLeft: newRespawnLeft };
-        }
+        });
+        return;
+      }
 
-        // Normal mining
-        accumulatedAction += delta;
-        const progress = Math.min((accumulatedAction / MINE_ACTION_INTERVAL_MS) * 100, 100);
+      // Accumulate time via ref (not inside setState)
+      accumulatedRef.current += delta;
 
-        if (accumulatedAction >= MINE_ACTION_INTERVAL_MS) {
-          accumulatedAction -= MINE_ACTION_INTERVAL_MS;
-          // Action will be performed in the next cycle via performMineAction
-          return { ...prev, actionProgress: 0 };
-        }
+      if (accumulatedRef.current >= DEPLETED_VEIN.action_interval_ms) {
+        accumulatedRef.current -= DEPLETED_VEIN.action_interval_ms;
 
-        return { ...prev, actionProgress: progress };
-      });
-
-      // Check if action should fire
-      if (accumulatedAction >= MINE_ACTION_INTERVAL_MS || accumulatedAction < 0) {
-        // handled in setState
+        // Reset progress and fire action
+        setState((prev) => ({ ...prev, actionProgress: 0 }));
+        performMineAction();
+      } else {
+        const progress = (accumulatedRef.current / DEPLETED_VEIN.action_interval_ms) * 100;
+        setState((prev) => ({ ...prev, actionProgress: progress }));
       }
     }, 50);
 
-    // Action timer (every 3s)
-    const actionTimer = setInterval(() => {
-      performMineAction();
-    }, MINE_ACTION_INTERVAL_MS);
-
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
-      clearInterval(actionTimer);
     };
   }, [state.isMining, performMineAction]);
 
@@ -799,7 +770,7 @@ export default function MiningPage() {
   useEffect(() => {
     if (state.totalActions === 0) return;
     // Show xp floats based on last action
-    const loot = DEPLETED_VEIN_LOOT[0]; // approximate - just show XP range
+    const loot = DEPLETED_VEIN.loot_table[0]; // approximate - just show XP range
     addXpFloat("mining", loot.xp_mining);
     addXpFloat("mastery", loot.xp_mastery);
     addXpFloat("body", loot.xp_body);
@@ -843,12 +814,6 @@ export default function MiningPage() {
     state.inventory.find((i) => i.item_type === "spirit_stone_fragment")?.quantity ?? 0;
   const slotsUsed = state.inventory.length;
 
-  // Scroll-reveal hooks for each section
-  const dropsReveal = useScrollReveal();
-  const inventoryReveal = useScrollReveal();
-  const xpReveal = useScrollReveal();
-  const infoReveal = useScrollReveal();
-  const masteryReveal = useScrollReveal();
 
   // ---------------------------------------------------------------------------
   // Render
@@ -856,10 +821,10 @@ export default function MiningPage() {
 
   if (isLoading) {
     return (
-      <div className="ink-wash-bg ink-noise min-h-screen">
-        <div className="mx-auto max-w-5xl px-6 py-12 sm:px-12 lg:px-16">
+      <div className="min-h-screen">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <InkShimmerSkeleton className="mb-8 h-10 w-48" />
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-6">
               <InkShimmerSkeleton className="h-64" />
               <InkShimmerSkeleton className="h-32" />
@@ -875,15 +840,15 @@ export default function MiningPage() {
   }
 
   return (
-    <div className="ink-wash-bg ink-noise relative min-h-screen">
+    <div className="relative min-h-screen">
       {/* Page-level custom animations defined in mining-animations.css */}
 
-      <div className="mx-auto max-w-5xl px-6 py-8 sm:px-12 sm:py-12 lg:px-16">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* Header — with decorative brush stroke */}
-        <header className="relative mb-10 animate-[ink-fade-in_0.6s_ease-out]">
+        <header className="relative mb-6 animate-[ink-fade-in_0.6s_ease-out]">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
-              <h1 className="font-heading text-3xl font-bold sm:text-4xl lg:text-[2.75rem] tracking-tight">
+              <h1 className="font-heading text-2xl font-bold sm:text-3xl tracking-tight">
                 枯竭礦脈
               </h1>
               {/* Brush stroke underline accent */}
@@ -897,7 +862,7 @@ export default function MiningPage() {
             </Badge>
           </div>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。每次采掘消耗 <span className="text-foreground tabular-nums font-medium">3</span> 秒，可獲得煤、銅礦或靈石碎片。
+            最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。每次采掘消耗 <span className="text-foreground tabular-nums font-medium">{(DEPLETED_VEIN.action_interval_ms / 1000).toFixed(1)}</span> 秒，可獲得煤、銅礦或靈石碎片。
           </p>
           {/* Decorative corner mark (seal-like) */}
           <div className="absolute -right-2 -top-2 hidden h-10 w-10 items-center justify-center rounded-sm border border-cinnabar/20 text-cinnabar/30 font-heading text-xs sm:flex"
@@ -907,259 +872,235 @@ export default function MiningPage() {
           </div>
         </header>
 
-        {/* Main grid — 2-column, flat children for row alignment */}
-        <div className="grid gap-6 lg:grid-cols-2 items-start">
-            {/* Mining core */}
-            <Card className="scroll-surface relative overflow-hidden animate-[ink-fade-in_0.6s_ease-out_100ms_both] hover:shadow-lg transition-shadow duration-300">
-              <CardContent className="flex flex-col items-center gap-6 py-8 sm:flex-row sm:items-start sm:gap-10">
-                {/* Rock */}
-                <RockDisplay
-                  hp={state.rockHp}
-                  maxHp={state.rockMaxHp}
-                  isRespawning={state.isRespawning}
-                  respawnTimeLeft={state.respawnTimeLeft}
-                  isMining={state.isMining}
-                  actionProgress={state.actionProgress}
-                />
-
-                {/* Controls + info */}
-                <div className="flex flex-1 flex-col items-center gap-4 sm:items-start">
-                  {/* Start/Stop button */}
-                  {!state.isMining ? (
-                    <Button
-                      size="lg"
-                      onClick={handleStartMining}
-                      className="w-full max-w-xs bg-cinnabar text-primary-foreground hover:bg-cinnabar/90 seal-glow transition-all sm:w-auto"
-                      style={state.isMining ? {} : { animation: state.hasStartedOnce ? "none" : "qi-pulse 2.5s ease-in-out infinite" }}
-                    >
-                      {state.hasStartedOnce ? "繼續采掘" : "開始采掘"}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      onClick={handleStopMining}
-                      className="w-full max-w-xs sm:w-auto"
-                    >
-                      暫停采掘
-                    </Button>
-                  )}
-
-                  {/* Mining stats row */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span>間隔: <span className="text-foreground tabular-nums">3.0s</span></span>
-                    <Separator orientation="vertical" className="h-3" />
-                    <span>已采掘: <span className="text-foreground tabular-nums">{state.totalActions}</span></span>
-                    <Separator orientation="vertical" className="h-3" />
-                    <MasteryIndicator masteryLevel={state.masteryLevel} />
-                  </div>
-
-                  {/* Loot table preview */}
-                  <div className="w-full rounded-lg bg-muted/30 p-3 space-y-2">
-                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">掉落表</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {DEPLETED_VEIN_LOOT.map((entry) => {
-                        const info = ITEM_DISPLAY[entry.item_type];
-                        return (
-                          <div key={entry.item_type} className="flex items-center gap-1.5 text-xs">
-                            <ItemIcon itemType={entry.item_type} size="sm" />
-                            <div>
-                              <span className={
-                                info?.rarity === "rare"
-                                  ? "text-spirit-gold"
-                                  : info?.rarity === "uncommon"
-                                    ? "text-jade"
-                                    : "text-foreground"
-                              }>
-                                {info?.name}
-                              </span>
-                              <span className="ml-1 text-muted-foreground tabular-nums">
-                                {(entry.probability * 100).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+        {/* Main grid — same 2-col pattern as dashboard */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* === Mining Action Card === */}
+          <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-heading text-lg">采掘</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    間隔 <span className="text-foreground tabular-nums">{(DEPLETED_VEIN.action_interval_ms / 1000).toFixed(1)}s</span> · 已采掘 <span className="text-foreground tabular-nums">{state.totalActions}</span>
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+                <MasteryIndicator masteryLevel={state.masteryLevel} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Rock display */}
+              <RockDisplay
+                hp={state.rockHp}
+                maxHp={state.rockMaxHp}
+                isRespawning={state.isRespawning}
+                respawnTimeLeft={state.respawnTimeLeft}
+                isMining={state.isMining}
+                actionProgress={state.actionProgress}
+              />
 
-            {/* XP Bars — Row 1 right */}
-            <Card className="scroll-surface relative" ref={xpReveal.ref}
-              style={{
-                animation: xpReveal.isVisible ? "scroll-reveal-right 0.5s ease-out both" : "none",
-                transform: xpReveal.isVisible ? undefined : "translateX(20px)",
-              }}
-            >
-              <XpFloater gains={xpFloats} />
-              <CardHeader className="pb-3">
-                <CardTitle className="font-heading text-lg">修煉進度</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Mining skill */}
-                <XpBar
-                  label="采掘"
-                  level={state.miningSkillLevel}
-                  currentXp={state.miningSkillXp}
-                  maxXp={xpForNextLevel(state.miningSkillLevel)}
-                  color="bg-jade"
-                  glowClass="text-jade text-glow-jade"
-                />
+              {/* Start/Stop button */}
+              {!state.isMining ? (
+                <Button
+                  size="lg"
+                  onClick={handleStartMining}
+                  className="w-full bg-cinnabar text-primary-foreground hover:bg-cinnabar/90 seal-glow transition-all font-heading"
+                  style={state.isMining ? {} : { animation: state.hasStartedOnce ? "none" : "qi-pulse 2.5s ease-in-out infinite" }}
+                >
+                  {state.hasStartedOnce ? "繼續采掘" : "開始采掘"}
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleStopMining}
+                  className="w-full"
+                >
+                  暫停采掘
+                </Button>
+              )}
 
-                <Separator />
-
-                {/* Mine mastery */}
-                <XpBar
-                  label="礦脈精通"
-                  level={state.masteryLevel}
-                  currentXp={state.masteryXp}
-                  maxXp={xpForNextLevel(state.masteryLevel)}
-                  color="bg-cinnabar"
-                  glowClass="text-cinnabar text-glow-cinnabar"
-                />
-
-                <Separator />
-
-                {/* Body tempering */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-heading font-bold text-spirit-gold text-glow-gold">
-                      練體 <span className="text-foreground">{state.bodyStage}階</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {state.bodyXp.toLocaleString()} / {xpForNextLevel(state.bodyStage).toLocaleString()} XP
-                    </span>
-                  </div>
-                  <div className="relative h-3 overflow-hidden rounded-full bg-muted/60">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-ink-4/5 to-transparent" />
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-spirit-gold transition-all duration-500 ease-out"
-                      style={{
-                        width: `${Math.min(
-                          (state.bodyXp / xpForNextLevel(state.bodyStage)) * 100,
-                          100
-                        )}%`,
-                        backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent drops — Row 2 left */}
-            <Card className="scroll-surface" ref={dropsReveal.ref}
-              style={{
-                animation: dropsReveal.isVisible ? "scroll-reveal-left 0.5s ease-out both" : "none",
-                transform: dropsReveal.isVisible ? undefined : "translateX(-20px)",
-              }}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="font-heading text-lg">最近掉落</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DropFeed drops={state.recentDrops} />
-              </CardContent>
-            </Card>
-
-            {/* Mine info — Row 2 right */}
-            <Card className="scroll-surface" ref={infoReveal.ref}
-              style={{
-                animation: infoReveal.isVisible ? "scroll-reveal-up 0.5s ease-out 0.1s both" : "none",
-                transform: infoReveal.isVisible ? undefined : "translateY(24px)",
-              }}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="font-heading text-lg">礦場資訊</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">名稱</span>
-                    <p className="font-heading font-bold">枯竭礦脈</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">等級需求</span>
-                    <p className="font-medium tabular-nums">Lv.1</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">岩石 HP</span>
-                    <p className="font-medium tabular-nums">{state.rockMaxHp}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">重生時間</span>
-                    <p className="font-medium tabular-nums">5.0s</p>
-                  </div>
-                </div>
-
-                <Separator />
-
+              {/* Loot table — vertical list */}
+              <div className="rounded-lg bg-muted/30 p-3 space-y-2">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">掉落表</h3>
                 <div className="space-y-1.5">
-                  <span className="text-xs text-muted-foreground">每次采掘 XP</span>
-                  <div className="flex gap-2 text-xs">
-                    <Badge variant="secondary" className="gap-1 bg-jade-dim text-jade">
-                      采掘 5~15
-                    </Badge>
-                    <Badge variant="secondary" className="gap-1 bg-cinnabar-dim text-cinnabar">
-                      精通 3~10
-                    </Badge>
-                    <Badge variant="secondary" className="gap-1 bg-spirit-gold-dim text-spirit-gold">
-                      練體 5~15
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Mastery bonuses — full width */}
-            <Card className="lg:col-span-2 scroll-surface" ref={masteryReveal.ref}
-              style={{
-                animation: masteryReveal.isVisible ? "scroll-reveal-right 0.5s ease-out both" : "none",
-                transform: masteryReveal.isVisible ? undefined : "translateX(20px)",
-              }}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="font-heading text-lg">精通獎勵</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-                  {[10, 20, 30, 40, 50, 60, 70, 80, 90, 99].map((tier, idx) => {
-                    const chance = getMasteryDoubleDropChance(tier);
-                    const unlocked = state.masteryLevel >= tier;
-                    const nextUnlock = !unlocked && (idx === 0 || state.masteryLevel >= [10, 20, 30, 40, 50, 60, 70, 80, 90, 99][idx - 1]);
+                  {DEPLETED_VEIN.loot_table.map((entry) => {
+                    const info = ITEM_DISPLAY[entry.item_type];
                     return (
-                      <div
-                        key={tier}
-                        className={`group relative flex items-center justify-between overflow-hidden rounded-lg px-3 py-2 text-xs transition-all duration-300 ${
-                          unlocked
-                            ? "bg-spirit-gold-dim/40 text-spirit-gold border border-spirit-gold/15"
-                            : nextUnlock
-                              ? "bg-muted/40 text-muted-foreground border border-jade/10"
-                              : "text-muted-foreground/60"
-                        }`}
-                      >
-                        {/* Progress bar fill for next unlock */}
-                        {nextUnlock && (
-                          <div
-                            className="absolute inset-y-0 left-0 bg-jade-dim/20 transition-all duration-500"
-                            style={{ width: `${Math.min((state.masteryLevel / tier) * 100, 100)}%` }}
-                          />
-                        )}
-                        <span className="relative z-10 tabular-nums font-heading font-bold">Lv.{tier}</span>
-                        <span className="relative z-10 tabular-nums">
-                          雙倍 {(chance * 100).toFixed(0)}%
+                      <div key={entry.item_type} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <ItemIcon itemType={entry.item_type} size="sm" />
+                          <span className={
+                            info?.rarity === "rare"
+                              ? "text-spirit-gold"
+                              : info?.rarity === "uncommon"
+                                ? "text-jade"
+                                : "text-foreground"
+                          }>
+                            {info?.name}
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground tabular-nums text-xs">
+                          {(entry.probability * 100).toFixed(0)}%
                         </span>
-                        {unlocked && (
-                          <span className="relative z-10 text-spirit-gold font-bold text-glow-gold">&#10003;</span>
-                        )}
                       </div>
                     );
                   })}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === XP Progression Card === */}
+          <Card className="scroll-surface relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+            <XpFloater gains={xpFloats} />
+            <CardHeader>
+              <CardTitle className="font-heading text-lg">修煉進度</CardTitle>
+              <p className="text-sm text-muted-foreground">采掘、精通與練體經驗</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <XpBar
+                label="采掘"
+                level={state.miningSkillLevel}
+                currentXp={state.miningSkillXp}
+                maxXp={xpForNextLevel(state.miningSkillLevel)}
+                color="bg-jade"
+                glowClass="text-jade text-glow-jade"
+              />
+
+              <Separator />
+
+              <XpBar
+                label="礦脈精通"
+                level={state.masteryLevel}
+                currentXp={state.masteryXp}
+                maxXp={xpForNextLevel(state.masteryLevel)}
+                color="bg-cinnabar"
+                glowClass="text-cinnabar text-glow-cinnabar"
+              />
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-heading font-bold text-spirit-gold text-glow-gold">
+                    練體 <span className="text-foreground">{state.bodyStage}階</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {state.bodyXp.toLocaleString()} / {xpForNextLevel(state.bodyStage).toLocaleString()} XP
+                  </span>
+                </div>
+                <div className="relative h-3 overflow-hidden rounded-full bg-muted/60">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-ink-4/5 to-transparent" />
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-spirit-gold transition-all duration-500 ease-out"
+                    style={{
+                      width: `${Math.min(
+                        (state.bodyXp / xpForNextLevel(state.bodyStage)) * 100,
+                        100
+                      )}%`,
+                      backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
+                    }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === Recent Drops Card === */}
+          <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader>
+              <CardTitle className="font-heading text-lg">最近掉落</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DropFeed drops={state.recentDrops} />
+            </CardContent>
+          </Card>
+
+          {/* === Mine Info Card === */}
+          <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader>
+              <CardTitle className="font-heading text-lg">礦場資訊</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">名稱</span>
+                  <p className="font-heading font-bold">枯竭礦脈</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">等級需求</span>
+                  <p className="font-medium tabular-nums">Lv.1</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">岩石 HP</span>
+                  <p className="font-medium tabular-nums">{state.rockMaxHp}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">重生時間</span>
+                  <p className="font-medium tabular-nums">{DEPLETED_VEIN.respawn_seconds}.0s</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1.5">
+                <span className="text-xs text-muted-foreground">每次采掘 XP</span>
+                <div className="flex gap-2 text-xs">
+                  <Badge variant="secondary" className="gap-1 bg-jade-dim text-jade">
+                    采掘 5~15
+                  </Badge>
+                  <Badge variant="secondary" className="gap-1 bg-cinnabar-dim text-cinnabar">
+                    精通 3~10
+                  </Badge>
+                  <Badge variant="secondary" className="gap-1 bg-spirit-gold-dim text-spirit-gold">
+                    練體 5~15
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === Mastery Bonuses — full width === */}
+          <Card className="md:col-span-2 scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader>
+              <CardTitle className="font-heading text-lg">精通獎勵</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+                {[10, 20, 30, 40, 50, 60, 70, 80, 90, 99].map((tier, idx) => {
+                  const chance = getMasteryDoubleDropChance(tier);
+                  const unlocked = state.masteryLevel >= tier;
+                  const nextUnlock = !unlocked && (idx === 0 || state.masteryLevel >= [10, 20, 30, 40, 50, 60, 70, 80, 90, 99][idx - 1]);
+                  return (
+                    <div
+                      key={tier}
+                      className={`group relative flex items-center justify-between overflow-hidden rounded-lg px-3 py-2 text-xs transition-all duration-300 ${
+                        unlocked
+                          ? "bg-spirit-gold-dim/40 text-spirit-gold border border-spirit-gold/15"
+                          : nextUnlock
+                            ? "bg-muted/40 text-muted-foreground border border-jade/10"
+                            : "text-muted-foreground/60"
+                      }`}
+                    >
+                      {nextUnlock && (
+                        <div
+                          className="absolute inset-y-0 left-0 bg-jade-dim/20 transition-all duration-500"
+                          style={{ width: `${Math.min((state.masteryLevel / tier) * 100, 100)}%` }}
+                        />
+                      )}
+                      <span className="relative z-10 tabular-nums font-heading font-bold">Lv.{tier}</span>
+                      <span className="relative z-10 tabular-nums">
+                        雙倍 {(chance * 100).toFixed(0)}%
+                      </span>
+                      {unlocked && (
+                        <span className="relative z-10 text-spirit-gold font-bold text-glow-gold">&#10003;</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

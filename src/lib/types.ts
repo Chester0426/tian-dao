@@ -63,6 +63,7 @@ export interface Mine {
   name: string; // e.g. "枯竭礦脈"
   slug: string; // e.g. "depleted_vein"
   required_level: number; // minimum mining skill level to access
+  action_interval_ms: number; // ms per mining action (e.g. 3000 = 3s)
   loot_table: LootEntry[]; // JSONB — probability table for drops
   rock_base_hp: number; // base rock HP (actual = base + mastery_level)
   respawn_seconds: number; // seconds until rock respawns after HP = 0

@@ -26,11 +26,21 @@ const NAV_SECTIONS = [
   },
 ];
 
-export function GameSidebar() {
+export function GameSidebar({
+  open,
+  onCloseAction,
+}: {
+  open: boolean;
+  onCloseAction: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r border-border/30 bg-card/80 backdrop-blur-sm lg:w-60">
+    <aside
+      className={`fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r border-border/30 bg-card/80 backdrop-blur-sm lg:w-60 transition-transform duration-200 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}
+    >
       {/* Brand */}
       <div className="flex h-14 items-center gap-2 border-b border-border/30 px-4">
         <span className="flex h-8 w-8 items-center justify-center rounded-md border border-cinnabar/30 bg-cinnabar-dim font-heading text-sm font-bold text-cinnabar">
@@ -59,6 +69,7 @@ export function GameSidebar() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    onClick={onCloseAction}
                     className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                       isActive
                         ? "bg-cinnabar-dim/50 text-cinnabar border border-cinnabar/20"

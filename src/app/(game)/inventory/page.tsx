@@ -21,13 +21,13 @@ export default function InventoryPage() {
   const slotsUsed = new Set(inventory.map((i) => i.item_type)).size;
 
   return (
-    <div className="ink-wash-bg ink-noise min-h-screen">
-      <div className="mx-auto max-w-4xl px-6 py-8 sm:px-12 lg:px-16">
-        <header className="mb-8 animate-[ink-fade-in_0.6s_ease-out]">
-          <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <header className="mb-6 animate-[ink-fade-in_0.6s_ease-out]">
+          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
             背包
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             管理你的物資與資源
           </p>
         </header>

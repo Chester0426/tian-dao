@@ -167,23 +167,16 @@ export function DashboardClient({
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen ink-wash-bg ink-noise">
-        {/* Atmospheric background layers */}
-        <div className="pointer-events-none fixed inset-0 z-0">
-          <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-jade-dim blur-[120px] animate-[mist-drift_12s_ease-in-out_infinite]" />
-          <div className="absolute right-1/3 bottom-1/3 h-64 w-64 rounded-full bg-cinnabar-dim blur-[100px] animate-[mist-drift_15s_ease-in-out_infinite_reverse]" />
-          <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-spirit-gold-dim blur-[140px] animate-[mist-drift_18s_ease-in-out_infinite]" />
-        </div>
-
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="min-h-screen">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {/* Header — brush-stroke reveal + decorative line */}
-          <header className="mb-8" style={fadeSlide(0)}>
+          <header className="mb-6" style={fadeSlide(0)}>
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
                   修煉總覽
                 </h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground">
                   修煉之路，永不停歇
                 </p>
               </div>
@@ -216,7 +209,7 @@ export function DashboardClient({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="font-heading text-xl">
+                    <CardTitle className="font-heading text-lg">
                       {isPostBodyTempering ? (
                         <>
                           練體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span>
