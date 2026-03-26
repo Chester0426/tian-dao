@@ -859,8 +859,8 @@ export default function MiningPage() {
       <div className="ink-wash-bg ink-noise min-h-screen">
         <div className="mx-auto max-w-5xl px-6 py-12 sm:px-12 lg:px-16">
           <InkShimmerSkeleton className="mb-8 h-10 w-48" />
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-6">
               <InkShimmerSkeleton className="h-64" />
               <InkShimmerSkeleton className="h-32" />
             </div>
@@ -907,10 +907,8 @@ export default function MiningPage() {
           </div>
         </header>
 
-        {/* Main grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* LEFT COLUMN -- Mining area + drops */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main grid — 2-column, flat children for row alignment */}
+        <div className="grid gap-6 lg:grid-cols-2 items-start">
             {/* Mining core */}
             <Card className="scroll-surface relative overflow-hidden animate-[ink-fade-in_0.6s_ease-out_100ms_both] hover:shadow-lg transition-shadow duration-300">
               <CardContent className="flex flex-col items-center gap-6 py-8 sm:flex-row sm:items-start sm:gap-10">
@@ -988,51 +986,7 @@ export default function MiningPage() {
               </CardContent>
             </Card>
 
-            {/* Recent drops */}
-            <Card className="scroll-surface" ref={dropsReveal.ref}
-              style={{
-                animation: dropsReveal.isVisible ? "scroll-reveal-left 0.5s ease-out both" : "none",
-                transform: dropsReveal.isVisible ? undefined : "translateX(-20px)",
-              }}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="font-heading text-lg">最近掉落</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DropFeed drops={state.recentDrops} />
-              </CardContent>
-            </Card>
-
-            {/* Inventory */}
-            <Card className="scroll-surface" ref={inventoryReveal.ref}
-              style={{
-                animation: inventoryReveal.isVisible ? "scroll-reveal-up 0.5s ease-out 0.1s both" : "none",
-                transform: inventoryReveal.isVisible ? undefined : "translateY(24px)",
-              }}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="font-heading text-lg">背包</CardTitle>
-                  <SlotShopDialog
-                    spiritStones={spiritStoneCount}
-                    currentSlots={state.inventorySlots}
-                    onPurchase={handlePurchaseSlot}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <InventoryPanel
-                  inventory={state.inventory}
-                  slots={state.inventorySlots}
-                  slotsUsed={slotsUsed}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* RIGHT COLUMN -- Stats & XP */}
-          <div className="space-y-6">
-            {/* XP Bars */}
+            {/* XP Bars — Row 1 right */}
             <Card className="scroll-surface relative" ref={xpReveal.ref}
               style={{
                 animation: xpReveal.isVisible ? "scroll-reveal-right 0.5s ease-out both" : "none",
@@ -1095,7 +1049,22 @@ export default function MiningPage() {
               </CardContent>
             </Card>
 
-            {/* Mine info */}
+            {/* Recent drops — Row 2 left */}
+            <Card className="scroll-surface" ref={dropsReveal.ref}
+              style={{
+                animation: dropsReveal.isVisible ? "scroll-reveal-left 0.5s ease-out both" : "none",
+                transform: dropsReveal.isVisible ? undefined : "translateX(-20px)",
+              }}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="font-heading text-lg">最近掉落</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DropFeed drops={state.recentDrops} />
+              </CardContent>
+            </Card>
+
+            {/* Mine info — Row 2 right */}
             <Card className="scroll-surface" ref={infoReveal.ref}
               style={{
                 animation: infoReveal.isVisible ? "scroll-reveal-up 0.5s ease-out 0.1s both" : "none",
@@ -1144,8 +1113,8 @@ export default function MiningPage() {
               </CardContent>
             </Card>
 
-            {/* Mastery bonuses */}
-            <Card className="scroll-surface" ref={masteryReveal.ref}
+            {/* Mastery bonuses — full width */}
+            <Card className="lg:col-span-2 scroll-surface" ref={masteryReveal.ref}
               style={{
                 animation: masteryReveal.isVisible ? "scroll-reveal-right 0.5s ease-out both" : "none",
                 transform: masteryReveal.isVisible ? undefined : "translateX(20px)",
@@ -1155,7 +1124,7 @@ export default function MiningPage() {
                 <CardTitle className="font-heading text-lg">精通獎勵</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
                   {[10, 20, 30, 40, 50, 60, 70, 80, 90, 99].map((tier, idx) => {
                     const chance = getMasteryDoubleDropChance(tier);
                     const unlocked = state.masteryLevel >= tier;
@@ -1191,7 +1160,6 @@ export default function MiningPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
     </div>

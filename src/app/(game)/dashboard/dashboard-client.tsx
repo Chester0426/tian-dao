@@ -18,11 +18,6 @@ import { OfflineRewardsDialog } from "./offline-rewards-dialog";
 import { BreakthroughDialog } from "./breakthrough-dialog";
 
 // -- Item display data --
-const ITEM_DISPLAY: Record<string, { name: string; icon: string; color: string }> = {
-  "煤": { name: "Coal", icon: "◆", color: "text-ink-2" },
-  "銅礦": { name: "Copper Ore", icon: "◇", color: "text-spirit-gold" },
-  "靈石碗片": { name: "Spirit Stone", icon: "✦", color: "text-jade" },
-};
 
 /** Hook: observe element entering viewport for scroll-triggered reveals */
 function useScrollReveal(threshold = 0.15) {
@@ -164,7 +159,6 @@ export function DashboardClient({
   });
 
   // Scroll reveal hooks for below-fold cards
-  const inventoryReveal = useScrollReveal(0.1);
   const quickActionsReveal = useScrollReveal(0.1);
 
   const depletedMastery = masteries.find((m) => m.mine_id !== null) ?? null;
@@ -211,10 +205,10 @@ export function DashboardClient({
           </header>
 
           {/* Main Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             {/* === Cultivation Status Card === */}
             <Card
-              className={`md:col-span-2 lg:col-span-2 scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
+              className={`md:col-span-1 scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
                 isBreakthroughReady ? "qi-glow" : ""
               }`}
               style={scaleReveal(1)}
@@ -389,127 +383,40 @@ export function DashboardClient({
               </CardContent>
             </Card>
 
-            {/* === Inventory Card — scroll-triggered reveal === */}
-            <div
-              ref={inventoryReveal.ref}
-              className="md:col-span-2 lg:col-span-2"
-              style={{
-                opacity: inventoryReveal.visible ? 1 : 0,
-                transform: inventoryReveal.visible ? "translateY(0)" : "translateY(16px)",
-                transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)",
-              }}
-            >
-              <Card
-                className={`scroll-surface transition-all duration-300 hover:shadow-lg ${
-                  inventoryNearFull ? "border-destructive/30" : ""
-                }`}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="font-heading text-lg">背包</CardTitle>
-                      <CardDescription>
-                        {slotsUsed} / {totalSlots} 格已使用
-                      </CardDescription>
-                    </div>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Badge
-                          variant={inventoryNearFull ? "destructive" : "outline"}
-                          className={`tabular-nums ${inventoryNearFull ? "" : "border-spirit-gold/30 text-spirit-gold bg-spirit-gold/5"}`}
-                        >
-                          {slotsUsed}/{totalSlots}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {inventoryNearFull
-                          ? "背包即將滿了！請清理或擴充。"
-                          : `剩餘 ${totalSlots - slotsUsed} 格可用`}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Slot usage bar — themed */}
-                  <div className="mb-4 space-y-1">
-                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted/40">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          inventoryNearFull
-                            ? "bg-destructive"
-                            : "bg-gradient-to-r from-jade/60 to-jade"
-                        }`}
-                        style={{ width: `${inventorySlotPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Item grid */}
-                  {inventory.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                      {inventory.map((item, idx) => {
-                        const display = ITEM_DISPLAY[item.item_type];
-                        return (
-                          <Tooltip key={item.id || item.item_type}>
-                            <TooltipTrigger>
-                              <div
-                                className="group flex items-center gap-3 rounded-lg border border-border/50 bg-secondary/20 px-3 py-3 transition-all duration-200 hover:bg-secondary/40 hover:shadow-md hover:-translate-y-1 hover:border-jade/20 cursor-default"
-                                style={{
-                                  opacity: inventoryReveal.visible ? 1 : 0,
-                                  transform: inventoryReveal.visible ? "scale(1)" : "scale(0.9)",
-                                  transition: `all 0.35s ease-out ${idx * 60 + 200}ms`,
-                                }}
-                              >
-                                <span
-                                  className={`text-xl leading-none transition-transform duration-200 group-hover:scale-125 ${display?.color ?? "text-foreground"}`}
-                                >
-                                  {display?.icon ?? "○"}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <div className="truncate text-sm font-medium">
-                                    {item.item_type}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground tabular-nums">
-                                    x{formatNumber(item.quantity)}
-                                  </div>
-                                </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {item.item_type}{" "}
-                              {display?.name ? `(${display.name})` : ""} —{" "}
-                              {formatNumber(item.quantity)} 個
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted/20 border border-border/30">
-                        <span className="text-3xl text-muted-foreground/60">包</span>
-                      </div>
-                      <p className="text-sm font-heading font-medium text-muted-foreground">
-                        背包空空如也
-                      </p>
-                      <p className="mt-1.5 text-xs text-muted-foreground/70">
-                        前往礦場開始採集資源
-                      </p>
-                      <Link
-                        href="/mining"
-                        className={buttonVariants({
-                          variant: "outline",
-                          size: "sm",
-                          className: "mt-5 font-heading hover:border-jade/30 hover:text-jade",
-                        })}
-                      >
-                        前往採礦
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            {/* === Inventory Summary Card === */}
+            <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-heading text-lg">背包</CardTitle>
+                  <Badge
+                    variant={inventoryNearFull ? "destructive" : "outline"}
+                    className={`tabular-nums ${inventoryNearFull ? "" : "border-spirit-gold/30 text-spirit-gold bg-spirit-gold/5"}`}
+                  >
+                    {slotsUsed}/{totalSlots}
+                  </Badge>
+                </div>
+                <CardDescription>{slotsUsed} / {totalSlots} 格已使用</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      inventoryNearFull ? "bg-destructive" : "bg-gradient-to-r from-jade/60 to-jade"
+                    }`}
+                    style={{ width: `${inventorySlotPercent}%` }}
+                  />
+                </div>
+                <Link
+                  href="/inventory"
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "w-full font-heading hover:border-jade/30 hover:text-jade",
+                  })}
+                >
+                  查看背包
+                </Link>
+              </CardContent>
+            </Card>
 
             {/* === Quick Actions Card — scroll-triggered, slide from right === */}
             <div
