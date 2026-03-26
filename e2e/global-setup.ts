@@ -8,6 +8,10 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const AUTH_FILE = path.join(__dirname, ".auth.json");
 
 export default async function globalSetup() {
+  if (process.env.DEMO_MODE === "true" || process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+    writeFileSync(AUTH_FILE, JSON.stringify({ email: "demo@example.com", password: "demo-password", userId: "demo-user-id" }));
+    return;
+  }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const email = `e2e-${Date.now()}@test.example`;
   const password = "test-password-e2e-123";

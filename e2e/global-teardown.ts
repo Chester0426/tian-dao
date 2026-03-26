@@ -9,6 +9,10 @@ const AUTH_FILE = path.join(__dirname, ".auth.json");
 
 export default async function globalTeardown() {
   try {
+    if (process.env.DEMO_MODE === "true" || process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+      unlinkSync(AUTH_FILE);
+      return;
+    }
     const { userId } = JSON.parse(readFileSync(AUTH_FILE, "utf-8"));
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     await supabase.auth.admin.deleteUser(userId);

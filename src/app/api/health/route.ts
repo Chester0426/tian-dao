@@ -28,15 +28,19 @@ export async function GET() {
 
   // Analytics reachability check
   try {
-    const POSTHOG_HOST = "https://us.i.posthog.com";
-    const POSTHOG_KEY = "phc_9pSomMlHylLB9GXolTGMZ9jZJnITRwNaJacJLkKA8rY";
-    const res = await fetch(`${POSTHOG_HOST}/decide?v=3`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: POSTHOG_KEY, distinct_id: "healthcheck" }),
-    });
-    checks.analytics = res.ok ? "ok" : "error";
-    if (!res.ok) console.error("Health check analytics error: HTTP", res.status);
+    const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+    const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    if (!posthogHost || !posthogKey) {
+      checks.analytics = "skip";
+    } else {
+      const res = await fetch(`${posthogHost}/decide?v=3`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ api_key: posthogKey, distinct_id: "healthcheck" }),
+      });
+      checks.analytics = res.ok ? "ok" : "error";
+      if (!res.ok) console.error("Health check analytics error: HTTP", res.status);
+    }
   } catch (e) {
     checks.analytics = "error";
     console.error("Health check analytics error:", (e as Error).message);

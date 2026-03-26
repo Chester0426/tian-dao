@@ -128,18 +128,57 @@ DROP POLICY IF EXISTS "Users can update own sessions" ON idle_sessions;
 CREATE POLICY "Users can update own sessions" ON idle_sessions
   FOR UPDATE USING (auth.uid() = user_id);
 
--- Helper RPC: increment item quantity atomically
+-- Helper RPC: increment item quantity atomically (uses auth.uid(), not caller-supplied user_id)
 CREATE OR REPLACE FUNCTION increment_item_quantity(
-  p_user_id uuid,
   p_item_type text,
   p_quantity integer
 ) RETURNS void AS $$
 BEGIN
   UPDATE inventory_items
   SET quantity = quantity + p_quantity
-  WHERE user_id = p_user_id AND item_type = p_item_type;
+  WHERE user_id = auth.uid() AND item_type = p_item_type;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
+-- Atomic buy-slot RPC: check balance + deduct + increment slots in one transaction
+CREATE OR REPLACE FUNCTION buy_inventory_slot(p_price integer)
+RETURNS jsonb AS $$
+DECLARE
+  v_quantity integer;
+  v_new_quantity integer;
+  v_current_slots integer;
+  v_new_slots integer;
+BEGIN
+  -- Lock and read the spirit stone row
+  SELECT quantity INTO v_quantity
+  FROM inventory_items
+  WHERE user_id = auth.uid() AND item_type = 'spirit_stone_fragment'
+  FOR UPDATE;
+
+  IF v_quantity IS NULL OR v_quantity < p_price THEN
+    RETURN jsonb_build_object('error', 'insufficient_balance', 'available', COALESCE(v_quantity, 0));
+  END IF;
+
+  v_new_quantity := v_quantity - p_price;
+
+  IF v_new_quantity <= 0 THEN
+    DELETE FROM inventory_items WHERE user_id = auth.uid() AND item_type = 'spirit_stone_fragment';
+    v_new_quantity := 0;
+  ELSE
+    UPDATE inventory_items SET quantity = v_new_quantity
+    WHERE user_id = auth.uid() AND item_type = 'spirit_stone_fragment';
+  END IF;
+
+  -- Lock and update profile slots
+  SELECT inventory_slots INTO v_current_slots
+  FROM profiles WHERE user_id = auth.uid() FOR UPDATE;
+
+  v_new_slots := v_current_slots + 1;
+  UPDATE profiles SET inventory_slots = v_new_slots WHERE user_id = auth.uid();
+
+  RETURN jsonb_build_object('new_slots', v_new_slots, 'spent', p_price, 'spirit_stone_remaining', v_new_quantity);
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
 
 -- Seed data: 枯竭礦脈 (Depleted Vein) — the first mine
 INSERT INTO mines (name, slug, required_level, loot_table, rock_base_hp, respawn_seconds, xp_mining, xp_mastery, xp_body)

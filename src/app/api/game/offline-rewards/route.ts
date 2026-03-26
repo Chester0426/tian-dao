@@ -115,7 +115,6 @@ export async function POST() {
 
     if (existingItem) {
       await supabase.rpc("increment_item_quantity", {
-        p_user_id: user.id,
         p_item_type: itemType,
         p_quantity: quantity,
       });
@@ -127,7 +126,7 @@ export async function POST() {
   }
 
   // Apply mining XP
-  let newMiningXp = miningSkill.xp + xpMiningTotal;
+  const newMiningXp = miningSkill.xp + xpMiningTotal;
   let newMiningLevel = miningSkill.level;
   while (newMiningLevel < 99 && newMiningXp >= melvorXpForLevel(newMiningLevel + 1)) {
     newMiningLevel++;
@@ -139,7 +138,7 @@ export async function POST() {
 
   // Apply mastery XP
   if (mastery) {
-    let newMasteryXp = mastery.xp + xpMasteryTotal;
+    const newMasteryXp = mastery.xp + xpMasteryTotal;
     let newMasteryLevel = mastery.level;
     while (newMasteryLevel < 99 && newMasteryXp >= melvorXpForLevel(newMasteryLevel + 1)) {
       newMasteryLevel++;

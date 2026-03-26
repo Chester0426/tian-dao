@@ -61,6 +61,8 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: supabase.url,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: supabase.anonKey,
       SUPABASE_SERVICE_ROLE_KEY: supabase.serviceRoleKey,
+      DEMO_MODE: process.env.DEMO_MODE || "",
+      NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE || "",
     },
   },
 });

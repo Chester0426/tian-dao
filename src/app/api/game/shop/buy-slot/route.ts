@@ -1,4 +1,4 @@
-// POST /api/game/shop/buy-slot — Purchase inventory slot with 靈石碎片 (b-10)
+// POST /api/game/shop/buy-slot — Purchase inventory slot with spirit stones (b-10)
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
@@ -14,10 +14,10 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Fetch profile
+  // Fetch profile to compute price
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("*")
+    .select("inventory_slots")
     .eq("user_id", user.id)
     .single();
 
@@ -27,51 +27,30 @@ export async function POST() {
 
   const price = slotPrice(profile.inventory_slots);
 
-  // Check if player has enough 靈石碎片
-  const { data: spiritStone } = await supabase
-    .from("inventory_items")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("item_type", "spirit_stone_fragment")
-    .single();
+  // Atomic buy: check balance, deduct, and increment slots in one transaction
+  const { data: result, error: rpcError } = await supabase.rpc("buy_inventory_slot", {
+    p_price: price,
+  });
 
-  if (!spiritStone || spiritStone.quantity < price) {
+  if (rpcError) {
+    console.error("buy_inventory_slot RPC error:", rpcError.message);
+    return NextResponse.json({ error: "Purchase failed" }, { status: 500 });
+  }
+
+  if (result?.error === "insufficient_balance") {
     return NextResponse.json({
-      error: "Insufficient 靈石碎片",
+      error: "Insufficient spirit stones",
       required: price,
-      available: spiritStone?.quantity ?? 0,
+      available: result.available,
     }, { status: 400 });
   }
 
-  // Deduct spirit stone fragments
-  const newQuantity = spiritStone.quantity - price;
-  if (newQuantity <= 0) {
-    await supabase
-      .from("inventory_items")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("item_type", "spirit_stone_fragment");
-  } else {
-    await supabase
-      .from("inventory_items")
-      .update({ quantity: newQuantity })
-      .eq("user_id", user.id)
-      .eq("item_type", "spirit_stone_fragment");
-  }
-
-  // Increase inventory slots
-  const newSlots = profile.inventory_slots + 1;
-  await supabase
-    .from("profiles")
-    .update({ inventory_slots: newSlots })
-    .eq("user_id", user.id);
-
-  const nextPrice = slotPrice(newSlots);
+  const nextPrice = slotPrice(result.new_slots);
 
   return NextResponse.json({
-    new_slots: newSlots,
-    spent: price,
+    new_slots: result.new_slots,
+    spent: result.spent,
     next_price: nextPrice,
-    spirit_stone_remaining: newQuantity > 0 ? newQuantity : 0,
+    spirit_stone_remaining: result.spirit_stone_remaining,
   });
 }
