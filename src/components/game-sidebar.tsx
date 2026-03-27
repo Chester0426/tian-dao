@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 
 const NAV_SECTIONS = [
   {
@@ -34,6 +35,7 @@ export function GameSidebar({
   onCloseAction: () => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <aside
@@ -91,9 +93,33 @@ export function GameSidebar({
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-border/30 px-4 py-3">
-        <p className="text-[10px] text-muted-foreground/40">
+      {/* Footer — switch character + logout */}
+      <div className="border-t border-border/30 px-3 py-3 space-y-1">
+        <Link
+          href="/characters"
+          onClick={() => {
+            // Clear slot cookie so middleware redirects properly
+            document.cookie = "x-slot=; path=/; max-age=0";
+            onCloseAction();
+          }}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+        >
+          <span className="text-base leading-none">🔄</span>
+          <span>切換角色</span>
+        </Link>
+        <button
+          onClick={async () => {
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            document.cookie = "x-slot=; path=/; max-age=0";
+            router.push("/login");
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+        >
+          <span className="text-base leading-none">🚪</span>
+          <span>登出</span>
+        </button>
+        <p className="px-3 text-[10px] text-muted-foreground/40">
           天道 v0.1
         </p>
       </div>
