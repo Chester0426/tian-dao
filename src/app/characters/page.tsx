@@ -30,7 +30,7 @@ export default async function CharactersPage() {
         profile: {
           id: "demo", user_id: "demo", slot: 1,
           cultivation_stage: 1, body_xp: 0, body_skill_level: 1, body_skill_xp: 0,
-          inventory_slots: 20, created_at: new Date().toISOString(),
+          inventory_slots: 20, dao_points: 0, created_at: new Date().toISOString(),
         },
         miningLevel: 1,
         lastPlayed: new Date().toISOString(),

@@ -18,6 +18,7 @@ export interface Profile {
   body_skill_level: number; // 1-99 post-練體9 skill track (starts at 9)
   body_skill_xp: number; // XP for post-練體9 skill track
   inventory_slots: number; // base 20, expandable via shop
+  dao_points: number; // 天道值, earned by sacrificing items
   created_at: string; // timestamptz
 }
 
