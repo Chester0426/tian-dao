@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ export function DashboardClient({
   isPostBodyTempering,
   bodySkillLevel,
 }: DashboardClientProps) {
+  const router = useRouter();
   const [showOfflineRewards, setShowOfflineRewards] = useState(false);
   const [showBreakthrough, setShowBreakthrough] = useState(false);
   const [hasTrackedActivate, setHasTrackedActivate] = useState(false);
@@ -127,16 +129,19 @@ export function DashboardClient({
   }, [offlineRewards]);
 
   const handleBreakthroughConfirm = useCallback(async () => {
-    // Call breakthrough API
     try {
-      await fetch("/api/game/breakthrough", {
+      const res = await fetch("/api/game/breakthrough", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
+      if (res.ok) {
+        // Refresh page to show new stage
+        router.refresh();
+      }
     } catch {
       // Handle error silently for now
     }
-  }, []);
+  }, [router]);
 
   // Diverse animation styles to avoid monotony
   const fadeSlide = (index: number) => ({
