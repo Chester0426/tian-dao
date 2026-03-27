@@ -36,11 +36,10 @@ export function CharactersClient({
   const [deleteTarget, setDeleteTarget] = useState<SlotData | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const handleSelectSlot = async (slot: number, hasProfile: boolean) => {
+  const handleSelectSlot = async (slot: number, hasProfile: boolean, lastActivity: string | null) => {
     setLoading(slot);
     try {
       if (!hasProfile) {
-        // Create new character
         await fetch("/api/game/init-profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -48,14 +47,18 @@ export function CharactersClient({
         });
       }
 
-      // Set the slot cookie
       await fetch("/api/game/select-slot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slot }),
       });
 
-      router.push("/dashboard");
+      // Redirect based on last activity
+      if (hasProfile && lastActivity === "mining") {
+        router.push("/mining");
+      } else {
+        router.push("/dashboard");
+      }
     } catch {
       setLoading(null);
     }
@@ -121,7 +124,7 @@ export function CharactersClient({
                       </div>
                       <p className="text-sm text-muted-foreground">空存檔</p>
                       <Button
-                        onClick={() => handleSelectSlot(slot, false)}
+                        onClick={() => handleSelectSlot(slot, false, null)}
                         disabled={isLoading}
                         className="w-full seal-glow font-heading"
                       >
@@ -155,7 +158,7 @@ export function CharactersClient({
 
                       <div className="flex w-full gap-2">
                         <Button
-                          onClick={() => handleSelectSlot(slot, true)}
+                          onClick={() => handleSelectSlot(slot, true, slotData.lastActivity)}
                           disabled={isLoading}
                           className="flex-1 seal-glow font-heading"
                         >

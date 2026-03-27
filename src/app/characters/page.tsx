@@ -16,6 +16,7 @@ export interface SlotData {
   profile: Profile | null;
   miningLevel: number;
   lastPlayed: string | null;
+  lastActivity: string | null; // "mining" or null — determines where to redirect on load
 }
 
 export default async function CharactersPage() {
@@ -33,9 +34,10 @@ export default async function CharactersPage() {
         },
         miningLevel: 1,
         lastPlayed: new Date().toISOString(),
+        lastActivity: null,
       },
-      { slot: 2, profile: null, miningLevel: 0, lastPlayed: null },
-      { slot: 3, profile: null, miningLevel: 0, lastPlayed: null },
+      { slot: 2, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null },
+      { slot: 3, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null },
     ];
     return <CharactersClient slots={demoSlots} stageNames={STAGE_NAMES} />;
   }
@@ -63,7 +65,7 @@ export default async function CharactersPage() {
   // Fetch latest session timestamps for each slot
   const { data: sessions } = await supabase
     .from("idle_sessions")
-    .select("slot, started_at, ended_at")
+    .select("slot, type, started_at, ended_at")
     .eq("user_id", user.id);
 
   // Build slot data for all 3 slots
@@ -80,6 +82,7 @@ export default async function CharactersPage() {
       profile,
       miningLevel: skill?.level ?? 0,
       lastPlayed,
+      lastActivity: session ? (session as { type: string }).type : null,
     };
   });
 
