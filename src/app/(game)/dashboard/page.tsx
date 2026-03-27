@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       body_xp: 0,
       body_skill_level: 1,
       body_skill_xp: 0,
-      inventory_slots: 20,
+      inventory_slots: 20, dao_points: 0,
       created_at: new Date().toISOString(),
     };
     miningSkill = {
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
       body_xp: 0,
       body_skill_level: 1,
       body_skill_xp: 0,
-      inventory_slots: 20,
+      inventory_slots: 20, dao_points: 0,
       created_at: new Date().toISOString(),
     };
 

@@ -24,7 +24,7 @@ export default async function MiningPage() {
           rock_base_hp: 1, respawn_seconds: 5,
           xp_mining: 5, xp_mastery: 3, xp_body: 5, created_at: "",
         }}
-        initialProfile={{ id: "demo", user_id: "demo", slot: 1, cultivation_stage: 1, body_xp: 0, body_skill_level: 1, body_skill_xp: 0, inventory_slots: 20, created_at: "" }}
+        initialProfile={{ id: "demo", user_id: "demo", slot: 1, cultivation_stage: 1, body_xp: 0, body_skill_level: 1, body_skill_xp: 0, inventory_slots: 20, dao_points: 0, created_at: "" }}
         initialMiningLevel={1}
         initialMasteryLevel={1}
         initialInventory={[]}
@@ -100,7 +100,7 @@ export default async function MiningPage() {
     <MiningClient
       mineId={mine.id}
       mineData={mineWithInterval}
-      initialProfile={profile ?? { id: "", user_id: user.id, slot, cultivation_stage: 1, body_xp: 0, body_skill_level: 1, body_skill_xp: 0, inventory_slots: 20, created_at: "" }}
+      initialProfile={profile ?? { id: "", user_id: user.id, slot, cultivation_stage: 1, body_xp: 0, body_skill_level: 1, body_skill_xp: 0, inventory_slots: 20, dao_points: 0, created_at: "" }}
       initialMiningLevel={miningSkill?.level ?? 1}
       initialMasteryLevel={depletedMastery?.level ?? 1}
       initialInventory={inventory}

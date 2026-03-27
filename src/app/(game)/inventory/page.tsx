@@ -10,7 +10,7 @@ export default async function InventoryPage() {
   const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
 
   if (isDemo) {
-    return <InventoryClient inventory={[]} totalSlots={20} />;
+    return <InventoryClient inventory={[]} totalSlots={20} daoPoints={0} />;
   }
 
   const supabase = await createServerSupabaseClient();
@@ -21,12 +21,14 @@ export default async function InventoryPage() {
   const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
 
   const [profileRes, inventoryRes] = await Promise.all([
-    supabase.from("profiles").select("inventory_slots").eq("user_id", user.id).eq("slot", slot).single(),
+    supabase.from("profiles").select("inventory_slots, dao_points").eq("user_id", user.id).eq("slot", slot).single(),
     supabase.from("inventory_items").select("*").eq("user_id", user.id).eq("slot", slot),
   ]);
 
-  const totalSlots = (profileRes.data as { inventory_slots: number } | null)?.inventory_slots ?? 20;
+  const profileData = profileRes.data as { inventory_slots: number; dao_points: number } | null;
+  const totalSlots = profileData?.inventory_slots ?? 20;
+  const daoPoints = profileData?.dao_points ?? 0;
   const inventory = (inventoryRes.data as InventoryItem[]) ?? [];
 
-  return <InventoryClient inventory={inventory} totalSlots={totalSlots} />;
+  return <InventoryClient inventory={inventory} totalSlots={totalSlots} daoPoints={daoPoints} />;
 }
