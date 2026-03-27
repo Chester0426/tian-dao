@@ -608,6 +608,37 @@ export function MiningClient({
   stateRef.current = state; // keep ref in sync with latest state
 
   const [showOfflineRewards, setShowOfflineRewards] = useState(!!offlineRewards);
+  const [claimingRewards, setClaimingRewards] = useState(false);
+
+  const handleClaimOfflineRewards = async () => {
+    if (isDemo) {
+      setShowOfflineRewards(false);
+      return;
+    }
+    setClaimingRewards(true);
+    try {
+      const res = await fetch("/api/game/offline-rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Update local state with server response
+        if (data.levels) {
+          setState((prev) => ({
+            ...prev,
+            miningSkillLevel: data.levels.mining ?? prev.miningSkillLevel,
+            masteryLevel: data.levels.mastery ?? prev.masteryLevel,
+          }));
+        }
+      }
+    } catch {
+      // ignore — rewards are best-effort
+    } finally {
+      setClaimingRewards(false);
+      setShowOfflineRewards(false);
+    }
+  };
 
   // Data loaded from server — mark as ready, auto-start if returning
   useEffect(() => {
@@ -1166,9 +1197,10 @@ export function MiningClient({
 
               <Button
                 className="w-full seal-glow font-heading"
-                onClick={() => setShowOfflineRewards(false)}
+                onClick={handleClaimOfflineRewards}
+                disabled={claimingRewards}
               >
-                繼續修煉
+                {claimingRewards ? "領取中..." : "領取並繼續修煉"}
               </Button>
             </div>
           </DialogContent>
