@@ -51,12 +51,12 @@ export function BreakthroughDialog({
   useEffect(() => {
     if (phase === "success") {
       const timer = setTimeout(() => {
-        setOpen(false);
-        onCancel();
+        // Full reload to show new stage, reset XP, etc.
+        window.location.reload();
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [phase, onCancel]);
+  }, [phase]);
 
   const handleBreakthrough = async () => {
     setPhase("breaking");
