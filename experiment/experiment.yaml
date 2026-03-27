@@ -1,154 +1,310 @@
-# experiment.yaml — Describe your MVP experiment
-#
-# RECOMMENDED: Run `/spec 'your idea'` in Claude Code — it fills this file
-# automatically with hypotheses, behaviors, variants, and stack choices.
-#
-# ALTERNATIVE: Fill in manually. Replace every "TODO" value with your content.
-# See idea/experiment.example.yaml for a complete worked example.
-#
-# When you're done (either way), run: make validate → /bootstrap
+# experiment.yaml — 仙途放置 (Xian Idle)
 
 # --- 1. Identity ---
-name: TODO                  # Lowercase slug, hyphens only (e.g., "quick-bill"). Used in analytics.
-# type: web-app               # Product archetype (default: web-app). See .claude/archetypes/
-# level: 2                    # Experiment scope: 1 (Pitch), 2 (Prototype), 3 (Product).
-                               # /spec sets this automatically. Manual: omit to let /bootstrap infer from stack.
+name: xian-idle
+owner: Chester0426
+type: web-app
+level: 3                       # L3: Full MVP — auth + complete features
 status: draft
-# quality: production          # Uncomment for TDD, per-task implementer, spec review.
-                               # Default (absent): MVP mode — smoke tests, fast iteration.
-                               # Use /harden to analyze existing code before upgrading.
 
 # --- 2. Intent ---
 description: |
-  TODO: Describe the problem and your proposed solution in 2-3 sentences.
-  Who has this problem? What does the user get that they don't have today?
+  Web3 gamers lack idle games with meaningful on-chain ownership. Existing chain games
+  require constant attention or are pure DeFi with game skins. Xian Idle is a
+  cultivation-themed (修仙) idle RPG where players mine resources, cultivate body strength,
+  and progress through realms — all running while AFK. One idle action at a time.
+  Core game state stays off-chain (Supabase) for speed and zero gas cost.
+  Tradeable resources can be bridged on-chain as ERC-1155 tokens later (L3).
 
-thesis: "TODO: If [action], then [outcome], as measured by [metric]"
-target_user: "TODO: Be specific (e.g., freelance designers billing <5 clients/month)"
+thesis: "If idle RPG players can progress meaningfully while AFK via mining and cultivation, then 50+ users will reach 練體 5階 within 2 weeks, as measured by database progression records"
+target_user: "Web3 gamers and idle/incremental game fans who want Melvor-like gameplay with cultivation theme and future on-chain asset ownership"
 
 distribution: |
-  TODO: How will you get this in front of target users?
-  e.g., Post in r/freelance, Indie Hackers, LinkedIn outreach
+  Post in r/incremental_games, r/ethereum, r/web3gaming.
+  Twitter/X threads in Web3 gaming communities.
+  Discord servers for idle game enthusiasts (Melvor, Idle Slayer communities).
+  Farcaster gaming channels.
 
-# hypotheses:
-#   - id: h-01
-#     category: demand          # demand | reach | feasibility | monetize | retain
-#     statement: "TODO: Testable prediction with specific numbers"
-#     success_metric: "TODO: What to measure"
-#     threshold: "TODO: Pass/fail number (e.g., > 5% CTR)"
-#     priority_score: 90        # 0-100, higher = test first
-#     experiment_level: 1       # Minimum level needed to test this
-#     depends_on: []
-#     status: pending           # pending | resolved
+hypotheses:
+  - id: h-01
+    category: demand
+    statement: ">5% of visitors who see the landing page click 'Start Cultivating'"
+    metric:
+      formula: "cta_click / visit_landing"
+      threshold: 0.05
+      operator: gte
+    priority_score: 90
+    experiment_level: 1
+    depends_on: []
+    status: pending
+  - id: h-02
+    category: activate
+    statement: ">30% of signed-up players start mining within 5 minutes"
+    metric:
+      formula: "activate / signup_complete"
+      threshold: 0.30
+      operator: gte
+    priority_score: 80
+    experiment_level: 2
+    depends_on: [h-01]
+    status: pending
+  - id: h-03
+    category: retain
+    statement: ">40% of players who mine return after 24 hours to collect idle rewards"
+    metric:
+      formula: "retain_return / activate"
+      threshold: 0.40
+      operator: gte
+    priority_score: 70
+    experiment_level: 2
+    depends_on: [h-02]
+    status: pending
+  # h-04 (monetize — on-chain bridging) deferred to L3
 
 # --- 3. Behaviors ---
-# Given/when/then specifications derived from hypotheses.
-# Each behavior IS a feature requirement — they replace the features list.
-# behaviors:
-#   - id: b-01
-#     hypothesis_id: h-01
-#     given: "TODO: Initial condition"
-#     when: "TODO: User action or trigger"
-#     then: "TODO: Observable, measurable outcome"
-#     tests:
-#       - "TODO: Verification assertion"
-#     level: 1
-#   # System behavior example:
-#   - id: b-05
-#     actor: system             # system | cron (default: user)
-#     trigger: "TODO: What starts this (e.g., stripe webhook checkout.session.completed)"
-#     hypothesis_id: h-03
-#     given: "TODO: Initial condition"
-#     when: "TODO: System event"
-#     then: "TODO: Observable outcome"
-#     tests:
-#       - "TODO: Verification assertion"
-#     level: 3
+behaviors:
+  - id: b-01
+    hypothesis_id: h-01
+    given: "A visitor lands on the Xian Idle landing page"
+    when: "They see the cultivation-themed ink wash UI and idle gameplay pitch"
+    then: "They click 'Start Cultivating' CTA (>5% of visitors)"
+    tests:
+      - "Landing page renders with ink wash cultivation theme"
+      - "CTA button is visible and clickable"
+    level: 1
+  - id: b-02
+    hypothesis_id: h-01
+    given: "A visitor clicks the CTA"
+    when: "They sign up with email"
+    then: "Account is created with initial state: 練體1階, 20 inventory slots, empty inventory"
+    tests:
+      - "Signup form validates email input"
+      - "User is redirected to dashboard after signup"
+      - "Player record created with correct initial state"
+    level: 2
+  - id: b-03
+    hypothesis_id: h-02
+    given: "A new player is on the dashboard"
+    when: "They navigate to 枯竭礦脈 and click 'Begin Mining'"
+    then: "Idle mining starts: every 3s one rock HP is consumed, random drop from loot table (煤 50%, 銅礦 35%, 靈石碎片 15%), player gains mining skill XP + mastery XP + 練體 XP"
+    tests:
+      - "Mining action fires every 3 seconds with correct drop probabilities"
+      - "All three XP types (mining skill, mastery, 練體) are awarded per action"
+      - "Items added to inventory (stackable, one slot per item type)"
+    level: 2
+  - id: b-04
+    hypothesis_id: h-02
+    given: "A player is actively mining"
+    when: "Rock HP reaches 0"
+    then: "Rock enters 5-second respawn cooldown, then reappears with full HP (1 + mastery level)"
+    tests:
+      - "Mining pauses when rock HP = 0"
+      - "Rock respawns after 5 seconds with correct HP"
+      - "Mining auto-resumes after respawn"
+    level: 2
+  - id: b-05
+    hypothesis_id: h-02
+    given: "A player has mining mastery >= 10 in 枯竭礦脈"
+    when: "They mine a rock"
+    then: "There is a (mastery_tier)% chance to receive double drops (10→1%, 20→2%, ... 90→9%, 99→15%)"
+    tests:
+      - "Double drop chance matches mastery tier table"
+      - "Both drops follow the same loot table"
+    level: 2
+  - id: b-06
+    hypothesis_id: h-02
+    given: "A player has accumulated enough 練體 XP"
+    when: "XP bar is full and they click 'Breakthrough'"
+    then: "練體 advances to next stage (100% success for 練體 1-9), stats updated"
+    tests:
+      - "Breakthrough button only appears when XP is full"
+      - "練體 stage increments by 1"
+      - "XP resets for next stage"
+    level: 2
+  - id: b-07
+    hypothesis_id: h-02
+    given: "A player reaches 練體 9階 and breaks through"
+    when: "Breakthrough to post-練體 phase"
+    then: "練體 skill track (1-99, starting from 9) is unlocked, mining continues to feed 練體 skill XP"
+    tests:
+      - "練體 skill track visible after 練體9 breakthrough"
+      - "Mining XP continues to contribute to 練體 skill"
+    level: 2
+  - id: b-08
+    hypothesis_id: h-03
+    given: "A player closes the browser while mining"
+    when: "They return within 24 hours"
+    then: "Offline progress is calculated: drops, XP (mining skill + mastery + 練體), rock HP cycles, capped at 24h"
+    tests:
+      - "Offline rewards match simulated time * action rate with rock respawn cycles"
+      - "Progress capped at 24 hours"
+      - "Summary screen shows all gains (drops, XP, 練體 progress)"
+    level: 2
+  - id: b-09
+    hypothesis_id: h-02
+    given: "A player's inventory is full (all slots occupied by different item types)"
+    when: "They mine and get a new item type"
+    then: "Item is lost or mining pauses (player must free a slot)"
+    tests:
+      - "Inventory respects slot limit"
+      - "Player is notified when inventory is full"
+    level: 2
+  - id: b-10
+    hypothesis_id: h-02
+    given: "A player wants more inventory space"
+    when: "They open the shop and purchase an extra slot with 靈石碎片"
+    then: "Inventory capacity increases by 1, price increases for next slot"
+    tests:
+      - "Shop displays current slot price"
+      - "Purchase deducts 靈石碎片 and adds 1 slot"
+      - "Next slot price is higher"
+    level: 2
+  - id: b-11
+    hypothesis_id: h-02
+    given: "A logged-in player enters the game"
+    when: "They reach the character selection screen"
+    then: "They see 3 save slots — each empty or showing character summary (stage, mining level, last played)"
+    tests:
+      - "Character selection page shows 3 slots"
+      - "Empty slots show 'Create' button"
+      - "Occupied slots show character info and 'Load' button"
+    level: 2
+  - id: b-12
+    hypothesis_id: h-03
+    given: "A player selects an existing character"
+    when: "They load the character after being offline"
+    then: "Offline rewards are calculated (capped at 12 hours) and shown in a summary dialog before entering the game"
+    tests:
+      - "Offline rewards dialog shows time away, drops, and XP gained"
+      - "Rewards capped at 12 hours"
+      - "Player can dismiss dialog to enter dashboard"
+    level: 2
 
 # --- 4. Journey ---
-# The user journey from landing to value delivery.
-# Drives ux-journeyer, funnel tests, and plan reviews.
 golden_path:
-  - step: "TODO: What happens first (e.g., Visit landing page)"
+  - step: "Visit landing page — see cultivation world and pitch"
     event: visit_landing
     page: landing
-  - step: "TODO: What action delivers value?"
+  - step: "Click 'Start Cultivating' and sign up with email"
+    event: signup_complete
+    page: signup
+  - step: "Select or create a character from 3 save slots"
     event: activate
-    page: TODO
-target_clicks: 3
+    page: characters
+  - step: "Enter dashboard — see cultivation status and mining area"
+    event: activate
+    page: dashboard
+  - step: "Navigate to 枯竭礦脈 and click 'Begin Mining'"
+    event: mining_started
+    page: mining
+  - step: "Return later — collect offline rewards, breakthrough 練體"
+    event: breakthrough_complete
+    page: dashboard
+target_clicks: 5
 
-# --- 5. Variants (optional) ---
-# Test different messaging for the same product. Each variant gets its own
-# landing page URL (/v/<slug>) and its own ad group in the distribution channel.
-# Omit this section for a single-variant experiment (the default).
-# variants:
-#   - slug: TODO
-#     headline: "TODO: Value proposition variant A"
-#     subheadline: "TODO: How it works, variant A"
-#     cta: "TODO: Action verb + outcome"
-#     promise: "TODO: Core benefit in one phrase"         # generated by /spec
-#     proof: "TODO: Evidence or credibility signal"       # generated by /spec
-#     urgency: "TODO: Why act now"                        # generated by /spec
-#     pain_points:
-#       - "TODO: Pain point 1"
-#       - "TODO: Pain point 2"
-#       - "TODO: Pain point 3"
-#   - slug: TODO
-#     headline: "TODO: Value proposition variant B"
-#     subheadline: "TODO: How it works, variant B"
-#     cta: "TODO: Action verb + outcome"
-#     promise: "TODO: Core benefit in one phrase"         # generated by /spec
-#     proof: "TODO: Evidence or credibility signal"       # generated by /spec
-#     urgency: "TODO: Why act now"                        # generated by /spec
-#     pain_points:
-#       - "TODO: Pain point 1"
-#       - "TODO: Pain point 2"
-#       - "TODO: Pain point 3"
+# --- 5. Variants ---
+variants:
+  - slug: cultivation
+    headline: "修仙放置 — 掛機也能登仙"
+    subheadline: "挖礦、修煉、突破境界，24 小時不停歇。你的資源，未來可上鏈交易。"
+    cta: "開始修煉"
+    promise: "掛機即修煉，離線也成長"
+    proof: "基於 EVM — 你的物資真正屬於你"
+    urgency: "修仙之路，始於今日"
+    pain_points:
+      - "鏈遊要一直盯著螢幕"
+      - "放置遊戲裡的物品不屬於你"
+      - "Web3 遊戲只是 DeFi 換皮"
+  - slug: earn
+    headline: "挖礦。修煉。鏈上交易。"
+    subheadline: "修仙主題放置 RPG，你的努力化為鏈上資產。"
+    cta: "踏入修仙界"
+    promise: "時間投入轉化為鏈上資產"
+    proof: "ERC-1155 物品可在任何 NFT 市場交易"
+    urgency: "早期修士獲得最稀有的礦脈"
+    pain_points:
+      - "肝了半天什麼都帶不走"
+      - "NFT 遊戲根本沒有遊戲性"
+      - "Play-to-earn 像上班不像玩遊戲"
 
 # --- 6. Funnel ---
-# funnel:
-#   reach:
-#     metric: "TODO: Top-of-funnel metric (e.g., Ad CTR)"
-#     threshold: "TODO: Pass/fail (e.g., > 2%)"
-#     available_from: L1
-#   demand:
-#     metric: "TODO: Signup/interest metric"
-#     threshold: "TODO: Pass/fail (e.g., > 5%)"
-#     available_from: L1
-#   monetize:
-#     metric: "TODO: Revenue/pricing metric"
-#     threshold: "TODO: Pass/fail (e.g., > 7%)"
-#     available_from: L2
-#   retain:
-#     metric: "TODO: Retention metric"
-#     threshold: "TODO: Pass/fail (e.g., > 30%)"
-#     available_from: L3
-# decision_framework:
-#   scale: "TODO: When to scale (e.g., All tested dimensions >= threshold)"
-#   refine: "TODO: When to refine (e.g., Bottleneck ratio >= 0.7)"
-#   pivot: "TODO: When to pivot (e.g., Bottleneck ratio < 0.7)"
-#   kill: "TODO: When to kill (e.g., Top-funnel < 0.5)"
+funnel:
+  available_from:
+    reach: L1
+    demand: L1
+    activate: L2
+    monetize: L3
+    retain: L2
+  decision_framework:
+    scale: "All tested dimensions >= 1.0"
+    kill: "Any top-funnel (REACH or DEMAND) < 0.5"
+    pivot: "2+ dimensions < 0.8"
+    refine: "1+ dimensions < 1.0 but fewer than 2 below 0.8"
 
 # --- 7. Stack + Deploy ---
-# Per-service values (runtime, hosting, ui, testing) live under services[].
-# Shared values (database, auth, analytics, payment) live directly under stack.
-# Each value maps to a stack file at .claude/stacks/<category>/<value>.md
 stack:
   services:
     - name: app
-      runtime: nextjs          # Web framework — leave default
-      hosting: vercel           # Where the app is deployed — leave default
-      ui: shadcn               # UI component library — leave default
-      testing: playwright      # Page-load smoke tests — created by bootstrap
-  database: supabase           # Database and backend — leave default
-  auth: supabase               # Login/signup system — leave default
-  # auth_providers:            # OAuth providers (e.g., [google, github]). Omit for email-only auth.
-  #   - google
-  #   - github
-  analytics: posthog           # Usage tracking — leave default
-  # payment: stripe            # Uncomment if your experiment involves payments
-  # email: resend              # Uncomment for welcome email + activation nudge
+      runtime: nextjs
+      hosting: vercel
+      ui: shadcn
+      testing: playwright
+  database: supabase
+  auth: supabase
+  analytics: posthog
+  # payment: stripe            # L3: marketplace fees when on-chain trading is live
 
 deploy:
   url: null
-  repo: null
+  repo: Chester0426/melvor-chain
+
+# --- 8. Game Design (non-standard, reference for development) ---
+# This section is not part of the mvp-template spec but documents game mechanics.
+#
+# == Cultivation System ==
+# 練體 (Body Tempering): 9 stages
+#   - XP sources: mining, future life skills
+#   - Breakthrough: manual, 100% success rate
+#   - After stage 9: unlocks 練體 skill track (levels 1-99, starting at 9)
+# 練氣 (Qi Refining): 9 stages (future — not in MVP)
+#   - Breakthrough: manual, has failure rate
+#   - XP sources: TBD (different from life skills)
+# 築基 (Foundation Building): (future — not in MVP)
+#   - Requires 築基丹 (Foundation Pill)
+#
+# == Mining System ==
+# Action interval: 3 seconds
+# Drop mechanic: per-mine random loot from probability table
+# Rock HP: base 1 + mastery level; when 0, 5s respawn
+# Dual XP tracks:
+#   - Mining skill level (1-99): unlocks new mines, XP varies per mine
+#   - Mine mastery (1-99 per mine): improves efficiency, XP varies per mine
+# Also grants: 練體 XP (same value as mining skill XP)
+# XP curve: Melvor exponential — floor(1/4 * (L-1 + 300 * 2^((L-1)/7)))
+# Mastery bonuses: 10→1%, 20→2%, 30→3%, 40→4%, 50→5%, 60→6%, 70→7%, 80→8%, 90→9%, 99→15% double drop
+#
+# First mine — 枯竭礦脈 (Depleted Vein):
+#   煤 (Coal): 50%
+#   銅礦 (Copper Ore): 35%
+#   靈石碎片 (Spirit Stone Fragment): 15%
+#   Skill XP / Mastery XP / 練體 XP: TBD per mine
+#
+# == Inventory System ==
+# Initial slots: 20 (fixed, cannot be removed)
+# Stacking: unlimited per slot, one item type per slot
+# Expansion: shop purchase with 靈石碎片, 1 slot at a time, escalating price
+# Future: bag items that add slots (potential on-chain NFT)
+#
+# == Save System ==
+# 3 save slots per account (like Melvor Idle)
+# Character selection screen after login
+# Each slot is fully independent (separate inventory, skills, progress)
+#
+# == Idle / Offline ==
+# Only one system active at a time
+# Max offline accumulation: 12 hours
+# On return: summary screen with all gains
+#
+# == UI ==
+# Theme: ink wash (水墨風) cultivation aesthetic
+# Auth: email login (Supabase)
