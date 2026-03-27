@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { trackActivate } from "@/lib/events";
+import { useMining } from "@/components/mining-provider";
 import {
   type LootEntry,
   type Mine,
@@ -818,17 +819,21 @@ export function MiningClient({
 
   // XP floats now triggered inside performMineAction (server response or demo mode)
 
+  const { startMining: globalStartMining, stopMining: globalStopMining } = useMining();
+
   const handleStartMining = useCallback(() => {
     setState((prev) => ({ ...prev, isMining: true, hasStartedOnce: true }));
+    globalStartMining(mineId); // Start background mining in layout
     if (!firedActivateRef.current) {
       trackActivate({ action: "started_mining" });
       firedActivateRef.current = true;
     }
-  }, []);
+  }, [mineId, globalStartMining]);
 
   const handleStopMining = useCallback(() => {
     setState((prev) => ({ ...prev, isMining: false, actionProgress: 0 }));
-  }, []);
+    globalStopMining(); // Stop background mining
+  }, [globalStopMining]);
 
   const handlePurchaseSlot = useCallback(() => {
     setState((prev) => {
