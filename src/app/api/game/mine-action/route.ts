@@ -202,8 +202,12 @@ export async function POST(request: NextRequest) {
   let newBodySkillXp = profile.body_skill_xp;
   let newBodySkillLevel = profile.body_skill_level;
 
-  // If still in 練體 stages 1-9, apply body XP to stage
-  // (Breakthrough is manual, so just accumulate XP here)
+  // Cap body XP at breakthrough threshold (can't exceed, must manually breakthrough)
+  if (profile.cultivation_stage <= 9) {
+    const xpForBreakthrough = melvorXpForLevel(profile.cultivation_stage + 1) - melvorXpForLevel(profile.cultivation_stage);
+    newBodyXp = Math.min(newBodyXp, xpForBreakthrough);
+  }
+
   // If post-練體9, apply to skill track
   if (profile.cultivation_stage > 9) {
     newBodySkillXp = profile.body_skill_xp + xpBody;
