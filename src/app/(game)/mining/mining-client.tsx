@@ -547,6 +547,13 @@ function MasteryIndicator({ masteryLevel }: { masteryLevel: number }) {
 // Main Component
 // ---------------------------------------------------------------------------
 
+interface OfflineRewardsData {
+  minutes_away: number;
+  total_actions: number;
+  drops: { item_type: string; quantity: number }[];
+  xp_gained: { mining: number; mastery: number; body: number };
+}
+
 interface MiningClientProps {
   mineId: string;
   mineData: Mine;
@@ -555,6 +562,8 @@ interface MiningClientProps {
   initialMasteryLevel: number;
   initialInventory: InventoryItem[];
   isDemo: boolean;
+  autoStart?: boolean;
+  offlineRewards?: OfflineRewardsData | null;
 }
 
 export function MiningClient({
@@ -565,6 +574,8 @@ export function MiningClient({
   initialMasteryLevel,
   initialInventory,
   isDemo,
+  autoStart = false,
+  offlineRewards = null,
 }: MiningClientProps) {
   const [state, setState] = useState<MiningState>({
     isMining: false,
@@ -596,10 +607,19 @@ export function MiningClient({
   const stateRef = useRef(state);
   stateRef.current = state; // keep ref in sync with latest state
 
-  // Data loaded from server — mark as ready immediately
+  const [showOfflineRewards, setShowOfflineRewards] = useState(!!offlineRewards);
+
+  // Data loaded from server — mark as ready, auto-start if returning
   useEffect(() => {
     setIsLoading(false);
-  }, []);
+    if (autoStart) {
+      setState((prev) => ({ ...prev, isMining: true, hasStartedOnce: true }));
+      if (!firedActivateRef.current) {
+        trackActivate({ action: "auto_resumed_mining" });
+        firedActivateRef.current = true;
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // XP float cleanup
   useEffect(() => {
@@ -1095,6 +1115,65 @@ export function MiningClient({
           </Card>
         </div>
       </div>
+
+      {/* Offline rewards dialog */}
+      {showOfflineRewards && offlineRewards && (
+        <Dialog open={showOfflineRewards} onOpenChange={setShowOfflineRewards}>
+          <DialogContent className="scroll-surface sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-heading text-xl">離線收益</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                你離開了 <span className="text-foreground font-medium">{offlineRewards.minutes_away >= 60 ? `${Math.floor(offlineRewards.minutes_away / 60)} 小時 ${offlineRewards.minutes_away % 60} 分鐘` : `${offlineRewards.minutes_away} 分鐘`}</span>，期間共采掘 <span className="text-foreground font-medium tabular-nums">{offlineRewards.total_actions}</span> 次
+              </p>
+
+              {offlineRewards.drops.length > 0 && (
+                <div className="rounded-lg bg-muted/30 p-3 space-y-2">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">獲得物品</h3>
+                  <div className="space-y-1.5">
+                    {offlineRewards.drops.map((drop) => {
+                      const info = ITEM_DISPLAY[drop.item_type];
+                      return (
+                        <div key={drop.item_type} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <ItemIcon itemType={drop.item_type} size="sm" />
+                            <span>{info?.name ?? drop.item_type}</span>
+                          </div>
+                          <span className="tabular-nums text-muted-foreground">x{drop.quantity.toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">經驗獲得</h3>
+                <div className="flex justify-between text-sm">
+                  <span className="text-jade">采掘</span>
+                  <span className="tabular-nums">+{offlineRewards.xp_gained.mining.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-cinnabar">精通</span>
+                  <span className="tabular-nums">+{offlineRewards.xp_gained.mastery.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-spirit-gold">練體</span>
+                  <span className="tabular-nums">+{offlineRewards.xp_gained.body.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <Button
+                className="w-full seal-glow font-heading"
+                onClick={() => setShowOfflineRewards(false)}
+              >
+                繼續修煉
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
