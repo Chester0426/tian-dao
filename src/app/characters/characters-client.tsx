@@ -35,6 +35,7 @@ export function CharactersClient({
   const [loading, setLoading] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SlotData | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const handleSelectSlot = async (slot: number, hasProfile: boolean, lastActivity: string | null) => {
     setLoading(slot);
@@ -185,7 +186,7 @@ export function CharactersClient({
       </div>
 
       {/* Delete confirmation dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+      <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}>
         <DialogContent className="scroll-surface sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-heading text-lg">刪除角色</DialogTitle>
@@ -203,11 +204,24 @@ export function CharactersClient({
                   此操作無法復原，所有進度將永久刪除。
                 </p>
               </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  請輸入 <span className="font-bold text-destructive">Delete</span> 確認刪除
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="輸入 Delete"
+                  className="w-full rounded-md border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/30 focus:border-destructive/40"
+                  autoComplete="off"
+                />
+              </div>
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setDeleteTarget(null)}
+                  onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}
                 >
                   取消
                 </Button>
@@ -215,7 +229,7 @@ export function CharactersClient({
                   variant="destructive"
                   className="flex-1"
                   onClick={handleDelete}
-                  disabled={deleting}
+                  disabled={deleting || deleteConfirmText !== "Delete"}
                 >
                   {deleting ? "刪除中..." : "確認刪除"}
                 </Button>
