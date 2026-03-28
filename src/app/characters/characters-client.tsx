@@ -37,7 +37,7 @@ export function CharactersClient({
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  const handleSelectSlot = async (slot: number, hasProfile: boolean, lastActivity: string | null) => {
+  const handleSelectSlot = async (slot: number, hasProfile: boolean, lastActivity: string | null, lastMineSlug: string | null) => {
     setLoading(slot);
     try {
       if (!hasProfile) {
@@ -55,8 +55,8 @@ export function CharactersClient({
       });
 
       // Redirect based on last activity
-      if (hasProfile && lastActivity === "mining") {
-        router.push("/mining");
+      if (hasProfile && lastActivity === "mining" && lastMineSlug) {
+        router.push(`/mining/${lastMineSlug}`);
       } else {
         router.push("/dashboard");
       }
@@ -125,7 +125,7 @@ export function CharactersClient({
                       </div>
                       <p className="text-sm text-muted-foreground">空存檔</p>
                       <Button
-                        onClick={() => handleSelectSlot(slot, false, null)}
+                        onClick={() => handleSelectSlot(slot, false, null, null)}
                         disabled={isLoading}
                         className="w-full seal-glow font-heading"
                       >
@@ -159,7 +159,7 @@ export function CharactersClient({
 
                       <div className="flex w-full gap-2">
                         <Button
-                          onClick={() => handleSelectSlot(slot, true, slotData.lastActivity)}
+                          onClick={() => handleSelectSlot(slot, true, slotData.lastActivity, slotData.lastMineSlug)}
                           disabled={isLoading}
                           className="flex-1 seal-glow font-heading"
                         >

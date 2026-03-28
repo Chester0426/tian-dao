@@ -278,12 +278,12 @@ export function DashboardClient({
                   </div>
                 </div>
 
-                {/* Stage progression visualization — larger touch targets */}
+                {/* Stage progression — only show current and upcoming */}
                 <div className="flex items-center gap-1.5 py-2 flex-wrap">
                   {Array.from({ length: 9 }, (_, i) => {
                     const stage = i + 1;
                     const isActive = stage === profile.cultivation_stage;
-                    const isCompleted = stage < profile.cultivation_stage;
+                    if (stage < profile.cultivation_stage) return null;
                     return (
                       <Tooltip key={stage}>
                         <TooltipTrigger>
@@ -291,21 +291,14 @@ export function DashboardClient({
                             className={`flex h-11 w-11 items-center justify-center rounded-lg text-sm font-heading transition-all duration-200 cursor-default ${
                               isActive
                                 ? "bg-cinnabar text-primary-foreground seal-glow scale-105 shadow-lg"
-                                : isCompleted
-                                  ? "bg-jade/15 text-jade border border-jade/30 hover:bg-jade/25"
-                                  : "bg-muted/20 text-muted-foreground border border-border/30 hover:bg-muted/30"
+                                : "bg-muted/20 text-muted-foreground border border-border/30"
                             }`}
                           >
-                            {isCompleted ? "✓" : stage}
+                            {stage}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          練體{stage}階{" "}
-                          {isActive
-                            ? "(當前)"
-                            : isCompleted
-                              ? "(已通過)"
-                              : "(未達成)"}
+                          練體{stage}階 {isActive ? "(當前)" : "(未達成)"}
                         </TooltipContent>
                       </Tooltip>
                     );

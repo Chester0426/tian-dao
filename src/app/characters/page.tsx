@@ -17,6 +17,7 @@ export interface SlotData {
   miningLevel: number;
   lastPlayed: string | null;
   lastActivity: string | null; // "mining" or null — determines where to redirect on load
+  lastMineSlug: string | null; // slug of the mine being mined
 }
 
 export default async function CharactersPage() {
@@ -35,9 +36,10 @@ export default async function CharactersPage() {
         miningLevel: 1,
         lastPlayed: new Date().toISOString(),
         lastActivity: null,
+        lastMineSlug: null,
       },
-      { slot: 2, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null },
-      { slot: 3, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null },
+      { slot: 2, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null, lastMineSlug: null },
+      { slot: 3, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null, lastMineSlug: null },
     ];
     return <CharactersClient slots={demoSlots} stageNames={STAGE_NAMES} />;
   }
@@ -62,11 +64,13 @@ export default async function CharactersPage() {
     .select("slot, level")
     .eq("user_id", user.id);
 
-  // Fetch latest session timestamps for each slot
-  const { data: sessions } = await supabase
-    .from("idle_sessions")
-    .select("slot, type, started_at, ended_at")
-    .eq("user_id", user.id);
+  // Fetch latest session timestamps and mines
+  const [sessionsRes, minesRes] = await Promise.all([
+    supabase.from("idle_sessions").select("slot, type, mine_id, started_at, ended_at").eq("user_id", user.id),
+    supabase.from("mines").select("id, slug"),
+  ]);
+  const sessions = sessionsRes.data;
+  const minesData = minesRes.data as { id: string; slug: string }[] | null;
 
   // Build slot data for all 3 slots
   const slots: SlotData[] = [1, 2, 3].map((slot) => {
@@ -83,6 +87,7 @@ export default async function CharactersPage() {
       miningLevel: skill?.level ?? 0,
       lastPlayed,
       lastActivity: session ? (session as { type: string }).type : null,
+      lastMineSlug: session ? minesData?.find((m) => m.id === (session as { mine_id: string }).mine_id)?.slug ?? null : null,
     };
   });
 
