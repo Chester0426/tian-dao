@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { GameLayout } from "@/components/game-layout";
 import { MiningProvider } from "@/components/mining-provider";
+import { SingleTabGuard } from "@/components/single-tab-guard";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 
@@ -40,8 +41,10 @@ export default async function GameGroupLayout({
   }
 
   return (
-    <MiningProvider initialStatus={miningStatus}>
-      <GameLayout>{children}</GameLayout>
-    </MiningProvider>
+    <SingleTabGuard>
+      <MiningProvider initialStatus={miningStatus}>
+        <GameLayout>{children}</GameLayout>
+      </MiningProvider>
+    </SingleTabGuard>
   );
 }
