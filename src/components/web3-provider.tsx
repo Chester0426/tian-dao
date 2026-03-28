@@ -1,26 +1,24 @@
 "use client";
 
-import { WagmiProvider, createConfig, http } from "wagmi";
-import { mainnet } from "wagmi/chains";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { injected } from "wagmi/connectors";
+import { useMemo } from "react";
+import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
+import { clusterApiUrl } from "@solana/web3.js";
 
-const config = createConfig({
-  chains: [mainnet],
-  connectors: [injected()],
-  transports: {
-    [mainnet.id]: http(),
-  },
-});
-
-const queryClient = new QueryClient();
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
+  const endpoint = useMemo(() => clusterApiUrl("mainnet-beta"), []);
+  const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
+
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          {children}
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useConnect, useSignMessage, useDisconnect } from "wagmi";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import bs58 from "bs58";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,10 +37,7 @@ export function CharactersClient({
   walletAddress: string | null;
 }) {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
-  const { signMessageAsync } = useSignMessage();
+  const { publicKey, connected, signMessage } = useWallet();
   const [walletAddress, setWalletAddress] = useState(initialWalletAddress);
   const [bindingWallet, setBindingWallet] = useState(false);
   const [loading, setLoading] = useState<number | null>(null);
@@ -142,9 +141,9 @@ export function CharactersClient({
           <div className="mt-4">
             {walletAddress ? (
               <Badge variant="outline" className="border-jade/30 text-jade font-mono text-xs px-3 py-1.5">
-                🔗 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                🔗 {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
               </Badge>
-            ) : isConnected && address ? (
+            ) : connected && publicKey && signMessage ? (
               <Button
                 size="sm"
                 variant="outline"
@@ -153,12 +152,15 @@ export function CharactersClient({
                 onClick={async () => {
                   setBindingWallet(true);
                   try {
-                    const message = `天道 — 綁定錢包\n\n地址: ${address}\n時間: ${new Date().toISOString()}`;
-                    const signature = await signMessageAsync({ message });
+                    const addr = publicKey.toBase58();
+                    const message = `天道 — 綁定錢包\n\n地址: ${addr}\n時間: ${new Date().toISOString()}`;
+                    const encodedMessage = new TextEncoder().encode(message);
+                    const signatureBytes = await signMessage(encodedMessage);
+                    const signature = bs58.encode(signatureBytes);
                     const res = await fetch("/api/game/bind-wallet", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ address, signature, message }),
+                      body: JSON.stringify({ address: addr, signature, message }),
                     });
                     if (res.ok) {
                       const data = await res.json();
@@ -174,14 +176,7 @@ export function CharactersClient({
                 {bindingWallet ? "簽名中..." : "簽名綁定此錢包"}
               </Button>
             ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-muted-foreground/30 text-muted-foreground"
-                onClick={() => connect({ connector: connectors[0] })}
-              >
-                連接錢包
-              </Button>
+              <WalletMultiButton style={{ height: "32px", fontSize: "14px" }} />
             )}
           </div>
         </div>

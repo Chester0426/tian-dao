@@ -1,12 +1,13 @@
-// POST /api/game/bind-wallet — Verify wallet signature and bind to account
+// POST /api/game/bind-wallet — Verify Solana wallet signature and bind to account
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { z } from "zod";
-import { verifyMessage } from "viem";
+import nacl from "tweetnacl";
+import bs58 from "bs58";
 
 const schema = z.object({
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  signature: z.string(),
+  address: z.string().min(32).max(44), // Solana base58 address
+  signature: z.string(), // base58 encoded signature
   message: z.string(),
 });
 
@@ -26,13 +27,13 @@ export async function POST(req: NextRequest) {
 
   const { address, signature, message } = body;
 
-  // Verify the signature matches the address
+  // Verify the Solana signature
   try {
-    const isValid = await verifyMessage({
-      address: address as `0x${string}`,
-      message,
-      signature: signature as `0x${string}`,
-    });
+    const messageBytes = new TextEncoder().encode(message);
+    const signatureBytes = bs58.decode(signature);
+    const publicKeyBytes = bs58.decode(address);
+
+    const isValid = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
     if (!isValid) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
@@ -62,14 +63,14 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("wallet_bindings")
       .update({
-        wallet_address: address.toLowerCase(),
+        wallet_address: address,
         bound_at: new Date().toISOString(),
         cooldown_until: cooldownUntil,
       })
       .eq("user_id", user.id);
 
     return NextResponse.json({
-      wallet_address: address.toLowerCase(),
+      wallet_address: address,
       changed: true,
       cooldown_until: cooldownUntil,
     });
@@ -80,11 +81,11 @@ export async function POST(req: NextRequest) {
     .from("wallet_bindings")
     .insert({
       user_id: user.id,
-      wallet_address: address.toLowerCase(),
+      wallet_address: address,
     });
 
   return NextResponse.json({
-    wallet_address: address.toLowerCase(),
+    wallet_address: address,
     changed: false,
   });
 }
