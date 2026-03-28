@@ -36,6 +36,17 @@ export function CharactersClient({
   const [deleteTarget, setDeleteTarget] = useState<SlotData | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [offlineRewards, setOfflineRewards] = useState<{
+    minutes_away: number;
+    total_actions: number;
+    drops: { item_type: string; quantity: number }[];
+    xp_gained: { mining: number; mastery: number; body: number };
+    redirectTo: string;
+  } | null>(null);
+
+  const ITEM_NAMES: Record<string, string> = {
+    coal: "煤", copper_ore: "銅礦", spirit_stone_fragment: "靈石碎片",
+  };
 
   const handleSelectSlot = async (slot: number, hasProfile: boolean, lastActivity: string | null, lastMineSlug: string | null) => {
     setLoading(slot);
@@ -54,15 +65,40 @@ export function CharactersClient({
         body: JSON.stringify({ slot }),
       });
 
-      // Redirect based on last activity
-      if (hasProfile && lastActivity === "mining" && lastMineSlug) {
-        router.push(`/mining/${lastMineSlug}`);
-      } else {
-        router.push("/dashboard");
+      const redirectTo = hasProfile && lastActivity === "mining" && lastMineSlug
+        ? `/mining/${lastMineSlug}`
+        : "/dashboard";
+
+      // Try to claim offline rewards before entering game
+      if (hasProfile && lastActivity === "mining") {
+        try {
+          const res = await fetch("/api/game/offline-rewards", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.total_actions > 0) {
+              setOfflineRewards({ ...data, redirectTo });
+              setLoading(null);
+              return; // Show dialog instead of redirecting
+            }
+          }
+        } catch {
+          // ignore — enter game without rewards
+        }
       }
+
+      router.push(redirectTo);
     } catch {
       setLoading(null);
     }
+  };
+
+  const handleDismissRewards = () => {
+    const redirectTo = offlineRewards?.redirectTo ?? "/dashboard";
+    setOfflineRewards(null);
+    router.push(redirectTo);
   };
 
   const handleDelete = async () => {
@@ -184,6 +220,61 @@ export function CharactersClient({
           })}
         </div>
       </div>
+
+      {/* Offline rewards dialog */}
+      <Dialog open={!!offlineRewards} onOpenChange={() => handleDismissRewards()}>
+        <DialogContent className="scroll-surface sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl">離線收益</DialogTitle>
+          </DialogHeader>
+          {offlineRewards && (
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                你離開了{" "}
+                <span className="text-foreground font-medium">
+                  {offlineRewards.minutes_away >= 60
+                    ? `${Math.floor(offlineRewards.minutes_away / 60)} 小時 ${offlineRewards.minutes_away % 60} 分鐘`
+                    : `${offlineRewards.minutes_away} 分鐘`}
+                </span>
+                ，期間共采掘{" "}
+                <span className="text-foreground font-medium tabular-nums">{offlineRewards.total_actions.toLocaleString()}</span> 次
+              </p>
+
+              {offlineRewards.drops.length > 0 && (
+                <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">獲得物品</h3>
+                  {offlineRewards.drops.map((drop) => (
+                    <div key={drop.item_type} className="flex items-center justify-between text-sm">
+                      <span>{ITEM_NAMES[drop.item_type] ?? drop.item_type}</span>
+                      <span className="tabular-nums text-muted-foreground">x{drop.quantity.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">經驗獲得</h3>
+                <div className="flex justify-between text-sm">
+                  <span>采掘</span>
+                  <span className="tabular-nums">+{offlineRewards.xp_gained.mining.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>精通</span>
+                  <span className="tabular-nums">+{offlineRewards.xp_gained.mastery.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>練體</span>
+                  <span className="tabular-nums">+{offlineRewards.xp_gained.body.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <Button className="w-full seal-glow font-heading" onClick={handleDismissRewards}>
+                領取並進入遊戲
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}>
