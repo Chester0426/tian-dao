@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Serif_SC, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { RetainTracker } from "@/components/RetainTracker";
+import { Web3Provider } from "@/components/web3-provider";
 
 const notoSerifSC = Noto_Serif_SC({
   subsets: ["latin"],
@@ -36,7 +37,9 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <RetainTracker />
-        {children}
+        <Web3Provider>
+          {children}
+        </Web3Provider>
       </body>
     </html>
   );

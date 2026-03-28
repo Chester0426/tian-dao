@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAccount, useConnect, useSignMessage, useDisconnect } from "wagmi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,11 +28,19 @@ function formatTimeAgo(dateStr: string): string {
 export function CharactersClient({
   slots,
   stageNames,
+  walletAddress: initialWalletAddress,
 }: {
   slots: SlotData[];
   stageNames: Record<number, string>;
+  walletAddress: string | null;
 }) {
   const router = useRouter();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { signMessageAsync } = useSignMessage();
+  const [walletAddress, setWalletAddress] = useState(initialWalletAddress);
+  const [bindingWallet, setBindingWallet] = useState(false);
   const [loading, setLoading] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SlotData | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -128,6 +137,53 @@ export function CharactersClient({
             天道
           </h1>
           <p className="mt-2 text-muted-foreground">選擇存檔開始修煉</p>
+
+          {/* Wallet binding */}
+          <div className="mt-4">
+            {walletAddress ? (
+              <Badge variant="outline" className="border-jade/30 text-jade font-mono text-xs px-3 py-1.5">
+                🔗 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </Badge>
+            ) : isConnected && address ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={bindingWallet}
+                className="border-cinnabar/30 text-cinnabar hover:bg-cinnabar-dim"
+                onClick={async () => {
+                  setBindingWallet(true);
+                  try {
+                    const message = `天道 — 綁定錢包\n\n地址: ${address}\n時間: ${new Date().toISOString()}`;
+                    const signature = await signMessageAsync({ message });
+                    const res = await fetch("/api/game/bind-wallet", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ address, signature, message }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setWalletAddress(data.wallet_address);
+                    }
+                  } catch {
+                    // User rejected or error
+                  } finally {
+                    setBindingWallet(false);
+                  }
+                }}
+              >
+                {bindingWallet ? "簽名中..." : "簽名綁定此錢包"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-muted-foreground/30 text-muted-foreground"
+                onClick={() => connect({ connector: connectors[0] })}
+              >
+                連接錢包
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* 3 Slot Grid */}
@@ -153,9 +209,24 @@ export function CharactersClient({
                     存檔 {slot}
                   </Badge>
 
-                  {isEmpty ? (
+                  {isEmpty && slot > 1 ? (
                     <>
-                      {/* Empty slot */}
+                      {/* Locked slot */}
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/10 border border-dashed border-border/20">
+                        <span className="text-3xl text-muted-foreground/20">🔒</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground/60">未解鎖</p>
+                      <Button
+                        disabled
+                        variant="outline"
+                        className="w-full opacity-50"
+                      >
+                        即將開放
+                      </Button>
+                    </>
+                  ) : isEmpty ? (
+                    <>
+                      {/* Empty slot — free (slot 1 only) */}
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/20 border border-dashed border-border/40">
                         <span className="text-3xl text-muted-foreground/30">+</span>
                       </div>
