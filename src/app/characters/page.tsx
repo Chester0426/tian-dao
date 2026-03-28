@@ -41,7 +41,7 @@ export default async function CharactersPage() {
       { slot: 2, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null, lastMineSlug: null },
       { slot: 3, profile: null, miningLevel: 0, lastPlayed: null, lastActivity: null, lastMineSlug: null },
     ];
-    return <CharactersClient slots={demoSlots} stageNames={STAGE_NAMES} />;
+    return <CharactersClient slots={demoSlots} stageNames={STAGE_NAMES} walletAddress={null} />;
   }
 
   const supabase = await createServerSupabaseClient();
@@ -91,5 +91,12 @@ export default async function CharactersPage() {
     };
   });
 
-  return <CharactersClient slots={slots} stageNames={STAGE_NAMES} />;
+  // Fetch wallet binding
+  const { data: walletBinding } = await supabase
+    .from("wallet_bindings")
+    .select("wallet_address")
+    .eq("user_id", user.id)
+    .single();
+
+  return <CharactersClient slots={slots} stageNames={STAGE_NAMES} walletAddress={walletBinding?.wallet_address ?? null} />;
 }
