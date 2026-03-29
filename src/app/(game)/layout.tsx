@@ -33,7 +33,7 @@ export default async function GameGroupLayout({
           supabase.from("mining_skills").select("*").eq("user_id", user.id).eq("slot", slot).single(),
           supabase.from("mine_masteries").select("*").eq("user_id", user.id).eq("slot", slot),
           supabase.from("inventory_items").select("*").eq("user_id", user.id).eq("slot", slot),
-          supabase.from("mines").select("id, slug").limit(10),
+          supabase.from("mines").select("id, slug, xp_mining, xp_mastery, xp_body").limit(10),
         ]);
 
         if (sessionRes.data?.mine_id) {
@@ -44,7 +44,7 @@ export default async function GameGroupLayout({
         const skill = skillRes.data as MiningSkill | null;
         const masteries = (masteryRes.data as MineMastery[]) ?? [];
         const inventory = (inventoryRes.data as InventoryItem[]) ?? [];
-        const minesData = (mineRes.data as { id: string; slug: string }[]) ?? [];
+        const minesData = (mineRes.data as { id: string; slug: string; xp_mining: number; xp_mastery: number; xp_body: number }[]) ?? [];
 
         const level = skill?.level ?? 1;
         const totalXp = skill?.xp ?? 0;
@@ -58,8 +58,8 @@ export default async function GameGroupLayout({
           masteryXpMaxs[m.mine_id] = melvorXpForLevel(m.level + 1) - melvorXpForLevel(m.level);
         }
 
-        // Find active mine slug for the provider
-        const activeMineSlug = minesData.find((m) => m.id === sessionRes.data?.mine_id)?.slug;
+        // Find active mine data for the provider
+        const activeMineData = minesData.find((m) => m.id === sessionRes.data?.mine_id);
 
         initialState = {
           miningLevel: level,
@@ -71,7 +71,13 @@ export default async function GameGroupLayout({
           bodyStage: profile?.cultivation_stage ?? 1,
           bodyXp: profile?.body_xp ?? 0,
           inventory,
-          activeMineSlug,
+          activeMine: activeMineData ? {
+            id: activeMineData.id,
+            slug: activeMineData.slug,
+            xp_mining: activeMineData.xp_mining,
+            xp_mastery: activeMineData.xp_mastery,
+            xp_body: activeMineData.xp_body,
+          } : undefined,
         };
       }
     } catch {
