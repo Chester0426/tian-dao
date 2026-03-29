@@ -92,6 +92,14 @@ interface XpGainFloat {
   timestamp: number;
 }
 
+interface DropNotification {
+  id: number;
+  item: string;
+  quantity: number;
+  isDouble: boolean;
+  timestamp: number;
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -298,54 +306,36 @@ function RockDisplay({
   );
 }
 
-function DropFeed({ drops }: { drops: MiningState["recentDrops"] }) {
-  if (drops.length === 0) {
-    return (
-      <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/20">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-muted-foreground/30">
-          <path d="M16 4L26 12L22 28H10L6 12L16 4Z" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="16" cy="16" r="2" fill="currentColor" opacity="0.3" />
-        </svg>
-        <p className="text-sm text-muted-foreground/60">尚無掉落物</p>
-      </div>
-    );
-  }
-
+function FloatingDrops({ drops }: { drops: DropNotification[] }) {
   return (
-    <div className="space-y-1.5 overflow-hidden">
-      {drops.map((drop, idx) => {
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex flex-col-reverse items-center gap-2 pointer-events-none">
+      {drops.map((drop) => {
         const info = ITEM_DISPLAY[drop.item];
         const rarityColor =
           info?.rarity === "rare"
-            ? "text-spirit-gold text-glow-gold"
+            ? "text-spirit-gold"
             : info?.rarity === "uncommon"
-              ? "text-jade text-glow-jade"
+              ? "text-jade"
               : "text-foreground";
-        const rarityBg =
+        const bgColor =
           info?.rarity === "rare"
-            ? "bg-spirit-gold-dim/30 border-spirit-gold/10"
+            ? "bg-spirit-gold-dim/80 border-spirit-gold/30"
             : info?.rarity === "uncommon"
-              ? "bg-jade-dim/30 border-jade/10"
-              : "bg-card/60 border-transparent";
+              ? "bg-jade-dim/80 border-jade/30"
+              : "bg-card/90 border-border/40";
         return (
           <div
-            key={drop.timestamp + drop.item}
-            className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all hover:brightness-110 ${rarityBg}`}
+            key={drop.id}
+            className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium backdrop-blur-sm shadow-lg ${bgColor}`}
             style={{
-              animation: idx === 0 ? "loot-pop-in 0.35s ease-out" : undefined,
-              opacity: Math.max(0.4, 1 - idx * 0.1),
+              animation: "drop-float-up 2.5s ease-out forwards",
             }}
           >
-            <div className="flex items-center gap-2.5">
-              <ItemIcon itemType={drop.item} size="sm" />
-              <span className={`font-medium ${rarityColor}`}>{info?.name ?? drop.item}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`tabular-nums ${drop.isDouble ? "text-spirit-gold font-bold" : "text-muted-foreground"}`}>x{drop.quantity}</span>
-              <span className="text-[10px] tabular-nums text-muted-foreground/50">
-                {new Date(drop.timestamp).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </span>
-            </div>
+            <ItemIcon itemType={drop.item} size="sm" />
+            <span className={rarityColor}>{info?.name ?? drop.item}</span>
+            <span className={`tabular-nums ${drop.isDouble ? "text-spirit-gold font-bold" : "text-muted-foreground"}`}>
+              x{drop.quantity}
+            </span>
           </div>
         );
       })}
@@ -608,6 +598,17 @@ export function MiningClient({
 
   const [showOfflineRewards, setShowOfflineRewards] = useState(!!offlineRewards);
   const [claimingRewards, setClaimingRewards] = useState(false);
+  const [dropNotifications, setDropNotifications] = useState<DropNotification[]>([]);
+  const dropIdRef = useRef(0);
+
+  // Clean up old drop notifications
+  useEffect(() => {
+    if (dropNotifications.length === 0) return;
+    const timer = setTimeout(() => {
+      setDropNotifications((prev) => prev.filter((d) => Date.now() - d.timestamp < 2500));
+    }, 2600);
+    return () => clearTimeout(timer);
+  }, [dropNotifications]);
 
   const handleClaimOfflineRewards = async () => {
     if (isDemo) {
@@ -747,10 +748,17 @@ export function MiningClient({
           bodyStage: levels.cultivation_stage,
           bodyXp: totals.body_xp,
           inventory: newInventory,
-          recentDrops: [{ item: drop.item_type, quantity: drop.quantity, isDouble: drop.is_double, timestamp: Date.now() }, ...prev.recentDrops].slice(0, 6),
+          recentDrops: prev.recentDrops, // no longer updated here
           totalActions: prev.totalActions + 1,
         };
       });
+
+      // Show floating drop notification
+      dropIdRef.current += 1;
+      setDropNotifications((prev) => [
+        ...prev.slice(-4),
+        { id: dropIdRef.current, item: drop.item_type, quantity: drop.quantity, isDouble: drop.is_double, timestamp: Date.now() },
+      ]);
 
       // Show XP floats
       addXpFloat("mining", xp.mining);
@@ -1064,15 +1072,8 @@ export function MiningClient({
             </CardContent>
           </Card>
 
-          {/* === Recent Drops Card === */}
-          <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-            <CardHeader>
-              <CardTitle className="font-heading text-lg">最近掉落</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DropFeed drops={state.recentDrops} />
-            </CardContent>
-          </Card>
+          {/* Spacer for removed drop feed card */}
+          <div />
 
           {/* === Mine Info Card === */}
           <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
@@ -1161,6 +1162,9 @@ export function MiningClient({
           </Card>
         </div>
       </div>
+
+      {/* Floating drop notifications */}
+      <FloatingDrops drops={dropNotifications} />
 
       {/* Offline rewards dialog */}
       {showOfflineRewards && offlineRewards && (
