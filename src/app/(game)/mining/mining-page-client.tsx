@@ -250,65 +250,89 @@ export function MiningPageClient({
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* Header — skill info bar */}
-        <div className="mb-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-              挖礦
-            </h1>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-heading px-3 py-1">
-                Lv.{miningLevel}
-              </Badge>
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()} XP
-              </span>
+
+        {/* === Header Bar === */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <span className="text-xl">⛏</span>
+            </div>
+            <div>
+              <h1 className="font-heading text-xl font-bold sm:text-2xl">挖礦</h1>
             </div>
           </div>
-
-          {/* Skill XP bar */}
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
-            <div
-              className="h-full rounded-full bg-blue-500 transition-all duration-300"
-              style={{ width: `${xpPercent}%` }}
-            />
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-heading px-3 py-1 text-sm">
+              技能等級 {miningLevel}
+            </Badge>
+            <Badge variant="outline" className="border-border/40 text-muted-foreground tabular-nums px-3 py-1 text-sm">
+              技能經驗 {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
+            </Badge>
           </div>
         </div>
 
-        {/* Progress bar — always visible */}
-        <div className="mb-6 space-y-2">
-          <div className="h-6 w-full overflow-hidden rounded-lg bg-muted/30 border border-border/30">
-            {isMining && activeMine && (
-              <div
-                className="h-full rounded-lg bg-gradient-to-r from-jade/80 to-jade transition-all duration-75 ease-linear"
-                style={{ width: `${actionProgress}%` }}
-              />
+        {/* Skill XP bar */}
+        <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted/30">
+          <div
+            className="h-full rounded-full bg-blue-500 transition-all duration-300"
+            style={{ width: `${xpPercent}%` }}
+          />
+        </div>
+
+        {/* === Action Info Panel === */}
+        <Card className="mb-6 scroll-surface">
+          <CardContent className="py-4">
+            {/* Progress bar */}
+            <div className="h-7 w-full overflow-hidden rounded-lg bg-muted/20 border border-border/20">
+              {isMining && activeMine && (
+                <div
+                  className="h-full rounded-lg bg-gradient-to-r from-jade/70 to-jade transition-all duration-75 ease-linear"
+                  style={{ width: `${actionProgress}%` }}
+                />
+              )}
+            </div>
+
+            {/* Stats or idle message */}
+            {isMining && activeMine ? (
+              <div className="mt-3 flex items-center justify-center gap-5 text-sm">
+                {(() => {
+                  const mine = mines.find((m) => m.id === activeMine);
+                  if (!mine) return null;
+                  return (
+                    <>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-blue-400">⛏</span>
+                        <span className="text-muted-foreground">XP</span>
+                        <span className="font-bold tabular-nums text-blue-400">{mine.xp_mining}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-cinnabar">🏆</span>
+                        <span className="text-muted-foreground">精通</span>
+                        <span className="font-bold tabular-nums text-cinnabar">{mine.xp_mastery}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-spirit-gold">✨</span>
+                        <span className="text-muted-foreground">練體</span>
+                        <span className="font-bold tabular-nums text-spirit-gold">{mine.xp_body}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span>⏱</span>
+                        <span className="font-bold tabular-nums text-foreground">3.00 秒</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <p className="mt-3 text-center text-sm text-muted-foreground/50">
+                你的挖礦行動資訊會顯示在此。
+              </p>
             )}
-          </div>
-          {isMining && activeMine ? (
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-              {(() => {
-                const mine = mines.find((m) => m.id === activeMine);
-                if (!mine) return null;
-                return (
-                  <>
-                    <span>⛏ XP <span className="text-jade tabular-nums">{mine.xp_mining}</span></span>
-                    <span>🏆 精通 <span className="text-cinnabar tabular-nums">{mine.xp_mastery}</span></span>
-                    <span>✨ 練體 <span className="text-spirit-gold tabular-nums">{mine.xp_body}</span></span>
-                    <span>⏱ <span className="text-foreground tabular-nums">3.00</span> 秒</span>
-                  </>
-                );
-              })()}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground/60">
-              你的挖礦行動資訊會顯示在此。
-            </p>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Mine grid */}
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+        {/* === Mine Grid === */}
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
           {mines.map((mine) => {
             const isLocked = miningLevel < mine.required_level;
             const isActive = activeMine === mine.id && isMining;
@@ -319,64 +343,86 @@ export function MiningPageClient({
                 key={mine.id}
                 onClick={() => !isLocked && handleSelectMine(mine)}
                 disabled={isLocked}
-                className="text-left"
+                className="text-left w-full"
               >
-                <Card className={`scroll-surface transition-all duration-200 h-full ${
+                <Card className={`transition-all duration-200 h-full overflow-hidden ${
                   isActive
-                    ? "border-jade ring-2 ring-jade/30 shadow-lg"
+                    ? "border-jade shadow-lg shadow-jade/10"
                     : isLocked
-                      ? "opacity-40 border-dashed cursor-not-allowed"
-                      : "hover:shadow-lg hover:-translate-y-0.5 cursor-pointer border-border/50"
+                      ? "opacity-40 cursor-not-allowed"
+                      : "hover:shadow-md hover:-translate-y-0.5 cursor-pointer border-border/40"
                 }`}>
-                  <CardContent className="flex flex-col items-center gap-2 py-5">
+                  {/* Top color strip */}
+                  <div className={`h-1 ${isActive ? "bg-jade" : isLocked ? "bg-destructive/50" : "bg-border/30"}`} />
+
+                  <CardContent className="flex flex-col items-center gap-3 py-5 px-3">
                     {/* Mine name */}
                     <p className="font-heading text-sm font-bold text-center">
                       {isLocked ? "未解鎖" : mine.name}
                     </p>
 
-                    {/* Stats */}
-                    {!isLocked && (
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span>XP <span className="text-jade">{mine.xp_mining}</span></span>
-                        <span>·</span>
-                        <span>⏱ 3s</span>
-                      </div>
-                    )}
-
-                    {/* Mine icon / rock */}
-                    <div className={`flex h-16 w-16 items-center justify-center rounded-xl ${
-                      isActive ? "bg-jade-dim border border-jade/30" : "bg-muted/20 border border-border/30"
+                    {/* Mine icon */}
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors ${
+                      isActive
+                        ? "bg-jade-dim/50 border border-jade/30"
+                        : isLocked
+                          ? "bg-muted/10 border border-border/20"
+                          : "bg-muted/15 border border-border/30 group-hover:bg-muted/25"
                     }`}>
-                      <span className="text-3xl">⛏</span>
+                      <span className={`text-2xl ${isLocked ? "opacity-30 grayscale" : ""}`}>⛏</span>
                     </div>
 
-                    {/* Level requirement or mastery */}
-                    {isLocked ? (
-                      <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">
-                        Lv.{mine.required_level}
-                      </Badge>
-                    ) : mastery > 0 ? (
-                      <div className="w-full space-y-1">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-muted-foreground">🏆 {mastery}</span>
+                    {/* Stats row */}
+                    {!isLocked && (
+                      <div className="flex items-center gap-3 text-[11px]">
+                        <div className="flex items-center gap-1">
+                          <span className="text-blue-400 font-bold">XP</span>
+                          <span className="tabular-nums text-muted-foreground">{mine.xp_mining}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-cinnabar">🏆</span>
+                          <span className="tabular-nums text-muted-foreground">{mine.xp_mastery}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-spirit-gold">✨</span>
+                          <span className="tabular-nums text-muted-foreground">{mine.xp_body}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span>⏱</span>
+                          <span className="tabular-nums text-muted-foreground">3s</span>
                         </div>
                       </div>
-                    ) : null}
+                    )}
 
-                    {/* Active indicator */}
-                    {isActive && (
-                      <Badge className="bg-jade text-primary-foreground text-[10px]">
+                    {/* Mastery */}
+                    {!isLocked && mastery > 0 && (
+                      <div className="w-full">
+                        <div className="flex items-center justify-between text-[10px] mb-1">
+                          <span className="text-muted-foreground">🏆 精通</span>
+                          <span className="tabular-nums text-cinnabar font-bold">{mastery}</span>
+                        </div>
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-muted/30">
+                          <div className="h-full rounded-full bg-cinnabar/60" style={{ width: "35%" }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lock badge or active indicator */}
+                    {isLocked ? (
+                      <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">
+                        需要 Lv.{mine.required_level}
+                      </Badge>
+                    ) : isActive ? (
+                      <Badge className="bg-jade text-primary-foreground text-[10px] animate-pulse">
                         挖礦中
                       </Badge>
-                    )}
+                    ) : null}
                   </CardContent>
                 </Card>
               </button>
             );
           })}
         </div>
-
-        {/* Inventory summary removed — use sidebar/inventory page */}
       </div>
 
       {/* Floating notifications */}
