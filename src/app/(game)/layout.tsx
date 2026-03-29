@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { GameLayout } from "@/components/game-layout";
 import { MiningProvider } from "@/components/mining-provider";
 import { SingleTabGuard } from "@/components/single-tab-guard";
+import { OfflineRewardsChecker } from "@/components/offline-rewards-checker";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 
@@ -43,6 +44,7 @@ export default async function GameGroupLayout({
   return (
     <SingleTabGuard>
       <MiningProvider initialStatus={miningStatus}>
+        <OfflineRewardsChecker hasActiveSession={miningStatus.isMining} />
         <GameLayout>{children}</GameLayout>
       </MiningProvider>
     </SingleTabGuard>
