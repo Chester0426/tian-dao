@@ -306,9 +306,25 @@ function RockDisplay({
   );
 }
 
-function FloatingDrops({ drops }: { drops: DropNotification[] }) {
+function FloatingNotifications({ drops, xpGains }: { drops: DropNotification[]; xpGains: XpGainFloat[] }) {
   return (
-    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex flex-col-reverse items-center gap-2 pointer-events-none">
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex flex-col-reverse items-center gap-1.5 pointer-events-none">
+      {/* XP gains — smaller pills above drops */}
+      {xpGains.map((g) => {
+        const color = g.type === "mining" ? "text-jade" : g.type === "mastery" ? "text-cinnabar" : "text-spirit-gold";
+        const bg = g.type === "mining" ? "bg-jade-dim/60 border-jade/20" : g.type === "mastery" ? "bg-cinnabar-dim/60 border-cinnabar/20" : "bg-spirit-gold-dim/60 border-spirit-gold/20";
+        const label = g.type === "mining" ? "采掘" : g.type === "mastery" ? "精通" : "練體";
+        return (
+          <div
+            key={g.id}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-heading font-bold backdrop-blur-sm ${bg} ${color}`}
+            style={{ animation: "drop-float-up 2s ease-out forwards" }}
+          >
+            +{g.amount} {label}
+          </div>
+        );
+      })}
+      {/* Item drops — larger pills */}
       {drops.map((drop) => {
         const info = ITEM_DISPLAY[drop.item];
         const rarityColor =
@@ -327,9 +343,7 @@ function FloatingDrops({ drops }: { drops: DropNotification[] }) {
           <div
             key={drop.id}
             className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium backdrop-blur-sm shadow-lg ${bgColor}`}
-            style={{
-              animation: "drop-float-up 2.5s ease-out forwards",
-            }}
+            style={{ animation: "drop-float-up 2.5s ease-out forwards" }}
           >
             <ItemIcon itemType={drop.item} size="sm" />
             <span className={rarityColor}>{info?.name ?? drop.item}</span>
@@ -1018,7 +1032,6 @@ export function MiningClient({
 
           {/* === XP Progression Card === */}
           <Card className="scroll-surface relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-            <XpFloater gains={xpFloats} />
             <CardHeader>
               <CardTitle className="font-heading text-lg">修煉進度</CardTitle>
               <p className="text-sm text-muted-foreground">采掘、精通與練體經驗</p>
@@ -1163,8 +1176,8 @@ export function MiningClient({
         </div>
       </div>
 
-      {/* Floating drop notifications */}
-      <FloatingDrops drops={dropNotifications} />
+      {/* Floating notifications — drops + XP */}
+      <FloatingNotifications drops={dropNotifications} xpGains={xpFloats} />
 
       {/* Offline rewards dialog */}
       {showOfflineRewards && offlineRewards && (
