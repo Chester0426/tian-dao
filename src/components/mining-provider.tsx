@@ -98,11 +98,13 @@ interface ProviderProps {
     bodyStage?: number;
     bodyXp?: number;
     inventory?: InventoryItem[];
-    activeMineSlug?: string;
+    activeMine?: MineData;
   };
 }
 
 export function MiningProvider({ children, initialStatus, initialState }: ProviderProps) {
+  // If resuming mining, set the active mine ref immediately
+  const initialMineRef = initialState?.activeMine && initialStatus.isMining ? initialState.activeMine : null;
   const [isMining, setIsMining] = useState(initialStatus.isMining);
   const [activeMineId, setActiveMineId] = useState<string | null>(initialStatus.mineId);
   const [actionProgress, setActionProgress] = useState(0);
@@ -121,7 +123,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const lastTickRef = useRef(Date.now());
   const accumulatedRef = useRef(0);
   const pausedRef = useRef(false);
-  const activeMineRef = useRef<MineData | null>(null);
+  const activeMineRef = useRef<MineData | null>(initialMineRef);
   const isMiningRef = useRef(isMining);
   isMiningRef.current = isMining;
 

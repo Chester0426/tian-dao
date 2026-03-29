@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trackActivate } from "@/lib/events";
-import { useMining } from "@/components/mining-provider";
+import { useGameState } from "@/components/mining-provider";
+import type { MineData } from "@/components/mining-provider";
 import type { InventoryItem } from "@/lib/types";
 import type { MineInfo } from "./page";
 
@@ -114,38 +115,18 @@ export function MiningPageClient({
   activeMineId,
   isDemo,
 }: MiningPageClientProps) {
-  const { startMining: globalStart, stopMining: globalStop, pauseBackground, resumeBackground } = useMining();
+  // Read all state from global provider — single source of truth
+  const gameState = useGameState();
+  const {
+    isMining, activeMineId: activeMine, actionProgress,
+    miningLevel, miningXp, miningXpMax,
+    masteryLevels, masteryXps, masteryXpMaxs,
+    inventory, startMining: globalStartMine, stopMining: globalStop,
+  } = gameState;
 
-  // State
-  const [activeMine, setActiveMine] = useState<string | null>(activeMineId);
-  const [isMining, setIsMining] = useState(!!activeMineId);
-  const [miningLevel, setMiningLevel] = useState(initialLevel);
-  const [miningXp, setMiningXp] = useState(initialXp);
-  const [miningXpMax, setMiningXpMax] = useState(initialXpMax);
-  const [masteryLevels, setMasteryLevels] = useState(initialMasteryLevels);
-  const [masteryXps, setMasteryXps] = useState(initialMasteryXps);
-  const [masteryXpMaxs, setMasteryXpMaxs] = useState(initialMasteryXpMaxs);
-  const [inventory, setInventory] = useState(initialInventory);
-  const [actionProgress, setActionProgress] = useState(0);
   const [notifications, setNotifications] = useState<DropNotification[]>([]);
 
-  const notifIdRef = useRef(0);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastTickRef = useRef(Date.now());
-  const accumulatedRef = useRef(0);
-  const inFlightRef = useRef(false);
   const firedActivateRef = useRef(false);
-  const isMiningRef = useRef(isMining);
-  const activeMineRef = useRef(activeMine);
-
-  isMiningRef.current = isMining;
-  activeMineRef.current = activeMine;
-
-  // Pause background mining provider (this page handles its own)
-  useEffect(() => {
-    pauseBackground();
-    return () => resumeBackground();
-  }, [pauseBackground, resumeBackground]);
 
   // Clean old notifications
   useEffect(() => {
@@ -156,185 +137,41 @@ export function MiningPageClient({
     return () => clearTimeout(timer);
   }, [notifications]);
 
-  // Pending sync data (accumulated since last sync)
-  const pendingRef = useRef({ actions: 0, elapsed_ms: 0, drops: {} as Record<string, number>, xp: { mining: 0, mastery: 0, body: 0 } });
-  const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastSyncRef = useRef(Date.now());
-
-  // Sync to server every 30 seconds
-  const syncToServer = useCallback(async () => {
-    const mineId = activeMineRef.current;
-    const pending = pendingRef.current;
-    if (!mineId || pending.actions === 0 || isDemo) return;
-
-    // Snapshot and reset pending
-    const toSync = { ...pending, drops: { ...pending.drops }, xp: { ...pending.xp } };
-    pendingRef.current = { actions: 0, elapsed_ms: 0, drops: {}, xp: { mining: 0, mastery: 0, body: 0 } };
-
-    try {
-      await fetch("/api/game/sync-mining", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mine_id: mineId, ...toSync }),
-      });
-    } catch {
-      // Network error — add back to pending for next sync
-      pendingRef.current.actions += toSync.actions;
-      pendingRef.current.elapsed_ms += toSync.elapsed_ms;
-      for (const [k, v] of Object.entries(toSync.drops)) {
-        pendingRef.current.drops[k] = (pendingRef.current.drops[k] ?? 0) + v;
-      }
-      pendingRef.current.xp.mining += toSync.xp.mining;
-      pendingRef.current.xp.mastery += toSync.xp.mastery;
-      pendingRef.current.xp.body += toSync.xp.body;
-    }
-  }, [isDemo]);
-
-  // Start/stop sync timer
+  // Watch inventory changes from provider → show notifications on mining page
+  const prevInventoryRef = useRef(inventory);
   useEffect(() => {
-    if (isMining) {
-      lastSyncRef.current = Date.now();
-      syncTimerRef.current = setInterval(syncToServer, 30000);
-      return () => { if (syncTimerRef.current) clearInterval(syncTimerRef.current); };
-    } else {
-      // Sync remaining data when stopping
-      syncToServer();
-      if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null; }
+    if (!isMining || !activeMine) return;
+    const prev = prevInventoryRef.current;
+    // Detect new drops by comparing inventory changes
+    for (const item of inventory) {
+      const prevItem = prev.find((i) => i.item_type === item.item_type);
+      const prevQty = prevItem?.quantity ?? 0;
+      if (item.quantity > prevQty) {
+        const added = item.quantity - prevQty;
+        const info = ITEM_DISPLAY[item.item_type];
+        const mine = mines.find((m) => m.id === activeMine);
+        setNotifications((n) => [...n.slice(-8),
+          { id: Date.now() + Math.random(), type: "drop" as const, icon: info?.icon ?? "○", label: info?.name ?? item.item_type, amount: added, total: item.quantity, color: info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground", timestamp: Date.now() },
+          ...(mine ? [
+            { id: Date.now() + Math.random() + 1, type: "xp" as const, icon: "⛏", label: "挖礦經驗", amount: mine.xp_mining, color: "text-blue-400", timestamp: Date.now() },
+            { id: Date.now() + Math.random() + 2, type: "xp" as const, icon: "🏆", label: "精通經驗", amount: mine.xp_mastery, color: "text-cinnabar", timestamp: Date.now() },
+            { id: Date.now() + Math.random() + 3, type: "xp" as const, icon: "💪", label: "練體經驗", amount: mine.xp_body, color: "text-spirit-gold", timestamp: Date.now() },
+          ] : []),
+        ]);
+        break; // One notification per tick
+      }
     }
-  }, [isMining, syncToServer]);
-
-  // Sync on page unload
-  useEffect(() => {
-    const handleUnload = () => {
-      const mineId = activeMineRef.current;
-      const pending = pendingRef.current;
-      if (!mineId || pending.actions === 0) return;
-      navigator.sendBeacon("/api/game/sync-mining", JSON.stringify({ mine_id: mineId, ...pending }));
-    };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, []);
-
-  // Local mine action — instant, no API call
-  const performLocalMineAction = useCallback(() => {
-    const mineId = activeMineRef.current;
-    if (!mineId) return;
-
-    const mine = mines.find((m) => m.id === mineId);
-    if (!mine) return;
-
-    const droppedItem = rollLoot(mine.slug);
-    const mastery = masteryLevels[mineId] ?? 0;
-    const doubleChance = getMasteryDoubleDropChance(mastery);
-    const isDouble = Math.random() < doubleChance;
-    const qty = isDouble ? 2 : 1;
-
-    // Update local inventory
-    setInventory((prev) => {
-      const existing = prev.find((i) => i.item_type === droppedItem);
-      if (existing) {
-        return prev.map((i) => i.item_type === droppedItem ? { ...i, quantity: i.quantity + qty } : i);
-      }
-      return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: droppedItem, quantity: qty, created_at: "" }];
-    });
-
-    // Update local XP
-    const xpMining = mine.xp_mining;
-    const xpMastery = mine.xp_mastery;
-    const xpBody = mine.xp_body;
-
-    setMiningXp((prev) => {
-      const newXp = prev + xpMining;
-      if (newXp >= miningXpMax) {
-        setMiningLevel((l) => Math.min(l + 1, 99));
-        const nextMax = melvorXpForLevel(miningLevel + 2) - melvorXpForLevel(miningLevel + 1);
-        setMiningXpMax(nextMax);
-        return newXp - miningXpMax;
-      }
-      return newXp;
-    });
-
-    // Update local mastery XP
-    setMasteryXps((prev) => {
-      const currentXp = (prev[mineId] ?? 0) + xpMastery;
-      const currentMax = masteryXpMaxs[mineId] ?? 83;
-      if (currentXp >= currentMax) {
-        setMasteryLevels((ml) => ({ ...ml, [mineId]: (ml[mineId] ?? 1) + 1 }));
-        const newLevel = (masteryLevels[mineId] ?? 1) + 1;
-        setMasteryXpMaxs((mx) => ({ ...mx, [mineId]: melvorXpForLevel(newLevel + 1) - melvorXpForLevel(newLevel) }));
-        return { ...prev, [mineId]: currentXp - currentMax };
-      }
-      return { ...prev, [mineId]: currentXp };
-    });
-
-    // Accumulate pending sync data
-    pendingRef.current.actions += 1;
-    pendingRef.current.elapsed_ms += 3000;
-    pendingRef.current.drops[droppedItem] = (pendingRef.current.drops[droppedItem] ?? 0) + qty;
-    pendingRef.current.xp.mining += xpMining;
-    pendingRef.current.xp.mastery += xpMastery;
-    pendingRef.current.xp.body += xpBody;
-
-    // Show notifications
-    notifIdRef.current += 1;
-    const dropInfo = ITEM_DISPLAY[droppedItem];
-    const currentQty = (inventory.find((i) => i.item_type === droppedItem)?.quantity ?? 0) + qty;
-
-    setNotifications((prev) => [...prev.slice(-8),
-      { id: notifIdRef.current, type: "drop", icon: dropInfo?.icon ?? "○", label: dropInfo?.name ?? droppedItem, amount: qty, total: currentQty, color: dropInfo?.rarity === "rare" ? "text-spirit-gold" : dropInfo?.rarity === "uncommon" ? "text-jade" : "text-foreground", timestamp: Date.now() },
-      { id: ++notifIdRef.current, type: "xp", icon: "⛏", label: "挖礦經驗", amount: xpMining, color: "text-blue-400", timestamp: Date.now() },
-      { id: ++notifIdRef.current, type: "xp", icon: "🏆", label: "精通經驗", amount: xpMastery, color: "text-cinnabar", timestamp: Date.now() },
-      { id: ++notifIdRef.current, type: "xp", icon: "💪", label: "練體經驗", amount: xpBody, color: "text-spirit-gold", timestamp: Date.now() },
-    ]);
-  }, [mines, masteryLevels, miningLevel, miningXpMax, inventory, isDemo]);
-
-  // Mining tick — 3 second local cycle, zero latency
-  useEffect(() => {
-    if (!isMining || !activeMine) {
-      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-      return;
-    }
-
-    const intervalMs = 3000;
-    lastTickRef.current = Date.now();
-    accumulatedRef.current = 0;
-
-    tickRef.current = setInterval(() => {
-      if (!isMiningRef.current) return;
-      const now = Date.now();
-      const delta = now - lastTickRef.current;
-      lastTickRef.current = now;
-
-      accumulatedRef.current += delta;
-
-      if (accumulatedRef.current >= intervalMs) {
-        accumulatedRef.current -= intervalMs;
-        setActionProgress(0);
-        performLocalMineAction();
-      } else {
-        setActionProgress((accumulatedRef.current / intervalMs) * 100);
-      }
-    }, 50);
-
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
-  }, [isMining, activeMine, performLocalMineAction]);
+    prevInventoryRef.current = inventory;
+  }, [inventory, isMining, activeMine, mines]);
 
   // Select mine and start mining
   const handleSelectMine = (mine: MineInfo) => {
     if (activeMine === mine.id && isMining) {
-      // Click active mine → stop
-      setIsMining(false);
-      setActiveMine(null);
-      setActionProgress(0);
       globalStop();
       return;
     }
 
-    setActiveMine(mine.id);
-    setIsMining(true);
-    setActionProgress(0);
-    accumulatedRef.current = 0;
-    globalStart(mine.id);
+    globalStartMine({ id: mine.id, slug: mine.slug, xp_mining: mine.xp_mining, xp_mastery: mine.xp_mastery, xp_body: mine.xp_body });
 
     if (!firedActivateRef.current) {
       trackActivate({ action: "started_mining" });
