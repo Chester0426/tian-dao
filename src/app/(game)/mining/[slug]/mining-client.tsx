@@ -773,7 +773,7 @@ export function MiningClient({
 
     lastTickRef.current = Date.now();
     accumulatedRef.current = 0;
-    const actionInFlightRef = { current: false };
+    const inFlightRef = { current: false };
 
     tickRef.current = setInterval(() => {
       const now = Date.now();
@@ -796,22 +796,20 @@ export function MiningClient({
         return;
       }
 
-      // Don't accumulate time while an API call is in flight
-      if (actionInFlightRef.current) return;
-
+      // Timer always runs at precise 3s — never paused by API
       accumulatedRef.current += delta;
 
       if (accumulatedRef.current >= mineData.action_interval_ms) {
-        accumulatedRef.current = 0;
-
-        // Reset progress and fire action — wait for completion before next cycle
+        accumulatedRef.current -= mineData.action_interval_ms;
         setState((prev) => ({ ...prev, actionProgress: 0 }));
-        actionInFlightRef.current = true;
-        performMineAction().finally(() => {
-          actionInFlightRef.current = false;
-          accumulatedRef.current = 0;
-          lastTickRef.current = Date.now();
-        });
+
+        // Fire API in background, skip if previous call still in flight
+        if (!inFlightRef.current) {
+          inFlightRef.current = true;
+          performMineAction().finally(() => {
+            inFlightRef.current = false;
+          });
+        }
       } else {
         const progress = (accumulatedRef.current / mineData.action_interval_ms) * 100;
         setState((prev) => ({ ...prev, actionProgress: progress }));
