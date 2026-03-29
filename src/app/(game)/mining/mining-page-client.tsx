@@ -357,147 +357,135 @@ export function MiningPageClient({
           />
         </div>
 
-        {/* === Action Info Panel === */}
-        <Card className="mb-6 scroll-surface">
-          <CardContent className="py-4">
-            {/* Progress bar */}
-            <div className="h-7 w-full overflow-hidden rounded-lg bg-muted/20 border border-border/20">
-              {isMining && activeMine && (
-                <div
-                  className="h-full rounded-lg bg-gradient-to-r from-jade/70 to-jade transition-all duration-75 ease-linear"
-                  style={{ width: `${actionProgress}%` }}
-                />
-              )}
-            </div>
-
-            {/* Stats or idle message */}
-            {isMining && activeMine ? (
-              <div className="mt-3 flex items-center justify-center gap-5 text-sm">
-                {(() => {
-                  const mine = mines.find((m) => m.id === activeMine);
-                  if (!mine) return null;
-                  return (
-                    <>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-blue-400">⛏</span>
-                        <span className="text-muted-foreground">XP</span>
-                        <span className="font-bold tabular-nums text-blue-400">{mine.xp_mining}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-cinnabar">🏆</span>
-                        <span className="text-muted-foreground">精通</span>
-                        <span className="font-bold tabular-nums text-cinnabar">{mine.xp_mastery}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-spirit-gold">✨</span>
-                        <span className="text-muted-foreground">練體</span>
-                        <span className="font-bold tabular-nums text-spirit-gold">{mine.xp_body}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span>⏱</span>
-                        <span className="font-bold tabular-nums text-foreground">3.00 秒</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            ) : (
-              <p className="mt-3 text-center text-sm text-muted-foreground/50">
-                你的挖礦行動資訊會顯示在此。
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
         {/* === Mine Grid === */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {mines.map((mine) => {
             const isLocked = miningLevel < mine.required_level;
             const isActive = activeMine === mine.id && isMining;
             const mastery = masteryLevels[mine.id] ?? 0;
+            const lootTable = LOOT_TABLES[mine.slug] ?? LOOT_TABLES["depleted_vein"];
+            const circumference = 2 * Math.PI * 38; // SVG circle r=38
 
             return (
-              <button
-                key={mine.id}
-                onClick={() => !isLocked && handleSelectMine(mine)}
-                disabled={isLocked}
-                className="text-left w-full"
-              >
-                <Card className={`transition-all duration-200 h-full overflow-hidden ${
-                  isActive
-                    ? "border-jade shadow-lg shadow-jade/10"
-                    : isLocked
-                      ? "opacity-40 cursor-not-allowed"
-                      : "hover:shadow-md hover:-translate-y-0.5 cursor-pointer border-border/40"
-                }`}>
-                  {/* Top color strip */}
-                  <div className={`h-1 ${isActive ? "bg-jade" : isLocked ? "bg-destructive/50" : "bg-border/30"}`} />
+              <Card key={mine.id} className={`transition-all duration-200 overflow-hidden ${
+                isActive
+                  ? "border-jade shadow-lg shadow-jade/10"
+                  : isLocked
+                    ? "opacity-40"
+                    : "border-border/40"
+              }`}>
+                {/* Top color strip */}
+                <div className={`h-1 ${isActive ? "bg-jade" : isLocked ? "bg-destructive/50" : "bg-border/20"}`} />
 
-                  <CardContent className="flex flex-col items-center gap-3 py-5 px-3">
-                    {/* Mine name */}
-                    <p className="font-heading text-sm font-bold text-center">
-                      {isLocked ? "未解鎖" : mine.name}
-                    </p>
-
-                    {/* Mine icon */}
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors ${
-                      isActive
-                        ? "bg-jade-dim/50 border border-jade/30"
-                        : isLocked
-                          ? "bg-muted/10 border border-border/20"
-                          : "bg-muted/15 border border-border/30 group-hover:bg-muted/25"
-                    }`}>
-                      <span className={`text-2xl ${isLocked ? "opacity-30 grayscale" : ""}`}>⛏</span>
+                <CardContent className="p-4 space-y-4">
+                  {/* Mine header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-heading text-base font-bold">
+                        {isLocked ? "未解鎖" : mine.name}
+                      </p>
+                      {!isLocked && (
+                        <p className="text-xs text-muted-foreground">
+                          ⏱ {(3).toFixed(2)} 秒 · XP {mine.xp_mining}
+                        </p>
+                      )}
                     </div>
-
-                    {/* Stats row */}
-                    {!isLocked && (
-                      <div className="flex items-center gap-3 text-[11px]">
-                        <div className="flex items-center gap-1">
-                          <span className="text-blue-400 font-bold">XP</span>
-                          <span className="tabular-nums text-muted-foreground">{mine.xp_mining}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-cinnabar">🏆</span>
-                          <span className="tabular-nums text-muted-foreground">{mine.xp_mastery}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-spirit-gold">✨</span>
-                          <span className="tabular-nums text-muted-foreground">{mine.xp_body}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>⏱</span>
-                          <span className="tabular-nums text-muted-foreground">3s</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mastery */}
-                    {!isLocked && mastery > 0 && (
-                      <div className="w-full">
-                        <div className="flex items-center justify-between text-[10px] mb-1">
-                          <span className="text-muted-foreground">🏆 精通</span>
-                          <span className="tabular-nums text-cinnabar font-bold">{mastery}</span>
-                        </div>
-                        <div className="h-1 w-full overflow-hidden rounded-full bg-muted/30">
-                          <div className="h-full rounded-full bg-cinnabar/60" style={{ width: "35%" }} />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Lock badge or active indicator */}
                     {isLocked ? (
-                      <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">
+                      <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
                         需要 Lv.{mine.required_level}
                       </Badge>
-                    ) : isActive ? (
-                      <Badge className="bg-jade text-primary-foreground text-[10px] animate-pulse">
-                        挖礦中
-                      </Badge>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </button>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs">
+                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 gap-1">
+                          XP {mine.xp_mining}
+                        </Badge>
+                        <Badge variant="secondary" className="bg-cinnabar-dim text-cinnabar gap-1">
+                          🏆 {mine.xp_mastery}
+                        </Badge>
+                        <Badge variant="secondary" className="bg-spirit-gold-dim text-spirit-gold gap-1">
+                          ✨ {mine.xp_body}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Drop rates + Progress circle row */}
+                  {!isLocked && (
+                    <div className="flex items-center gap-4">
+                      {/* Drop rates */}
+                      <div className="flex-1 space-y-1.5">
+                        {lootTable.map((entry) => {
+                          const info = ITEM_DISPLAY[entry.item_type];
+                          return (
+                            <div key={entry.item_type} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className={info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground"}>
+                                  {info?.icon ?? "○"}
+                                </span>
+                                <span className="text-muted-foreground">{info?.name ?? entry.item_type}</span>
+                              </div>
+                              <span className="tabular-nums text-muted-foreground text-xs">{(entry.probability * 100).toFixed(0)}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Circular progress */}
+                      <div className="relative flex-shrink-0">
+                        <svg width="88" height="88" viewBox="0 0 88 88" className="-rotate-90">
+                          {/* Track */}
+                          <circle cx="44" cy="44" r="38" fill="none" stroke="currentColor" strokeWidth="4"
+                            className="text-muted/20" />
+                          {/* Progress */}
+                          {isActive && (
+                            <circle cx="44" cy="44" r="38" fill="none" stroke="currentColor" strokeWidth="4"
+                              strokeDasharray={`${(actionProgress / 100) * circumference} ${circumference}`}
+                              strokeLinecap="round"
+                              className="text-jade transition-all duration-75 ease-linear" />
+                          )}
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-2xl">⛏</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mastery */}
+                  {!isLocked && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">🏆 專精</span>
+                        <span className="tabular-nums font-bold text-cinnabar">{mastery}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/20">
+                        <div className="h-full rounded-full bg-cinnabar/60 transition-all duration-300"
+                          style={{ width: `${Math.min(mastery, 99)}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action button */}
+                  {!isLocked && (
+                    <button
+                      onClick={() => handleSelectMine(mine)}
+                      className={`w-full rounded-lg py-2 text-sm font-heading font-bold transition-all duration-200 ${
+                        isActive
+                          ? "bg-destructive/80 text-destructive-foreground hover:bg-destructive"
+                          : "bg-jade/80 text-primary-foreground hover:bg-jade"
+                      }`}
+                    >
+                      {isActive ? "停止挖礦" : "開始挖礦"}
+                    </button>
+                  )}
+
+                  {isLocked && (
+                    <p className="text-center text-xs text-muted-foreground/50">
+                      提升挖礦等級至 Lv.{mine.required_level} 解鎖
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>
