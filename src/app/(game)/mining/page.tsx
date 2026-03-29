@@ -33,6 +33,8 @@ export default async function MiningPage() {
         miningXp={0}
         miningXpMax={83}
         masteryLevels={{}}
+        masteryXps={{}}
+        masteryXpMaxs={{}}
         inventory={[]}
         inventorySlots={20}
         bodyStage={1}
@@ -71,10 +73,15 @@ export default async function MiningPage() {
   const xpInLevel = totalXp - melvorXpForLevel(level);
   const xpForNext = melvorXpForLevel(level + 1) - melvorXpForLevel(level);
 
-  // Build mastery level map: mine_id → level
+  // Build mastery maps: mine_id → { level, xp, xpMax }
   const masteryLevels: Record<string, number> = {};
+  const masteryXps: Record<string, number> = {};
+  const masteryXpMaxs: Record<string, number> = {};
   for (const m of masteries) {
     masteryLevels[m.mine_id] = m.level;
+    const totalXpM = m.xp;
+    masteryXps[m.mine_id] = totalXpM - melvorXpForLevel(m.level);
+    masteryXpMaxs[m.mine_id] = melvorXpForLevel(m.level + 1) - melvorXpForLevel(m.level);
   }
 
   return (
@@ -84,6 +91,8 @@ export default async function MiningPage() {
       miningXp={xpInLevel}
       miningXpMax={xpForNext}
       masteryLevels={masteryLevels}
+      masteryXps={masteryXps}
+      masteryXpMaxs={masteryXpMaxs}
       inventory={inventory}
       inventorySlots={profile?.inventory_slots ?? 20}
       bodyStage={profile?.cultivation_stage ?? 1}
