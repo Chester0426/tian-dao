@@ -722,14 +722,14 @@ export function MiningClient({
       if (!res.ok) return;
 
       const data = await res.json();
-      const { drop, xp, levels } = data;
+      const { drop, xp, levels, totals } = data;
 
       setState((prev) => {
-        // Update inventory from drop
+        // Update inventory from server truth
         const existingItem = prev.inventory.find((i) => i.item_type === drop.item_type);
         const newInventory = existingItem
-          ? prev.inventory.map((i) => i.item_type === drop.item_type ? { ...i, quantity: i.quantity + drop.quantity } : i)
-          : [...prev.inventory, { id: crypto.randomUUID(), user_id: "server", slot: 1, item_type: drop.item_type, quantity: drop.quantity, created_at: new Date().toISOString() }];
+          ? prev.inventory.map((i) => i.item_type === drop.item_type ? { ...i, quantity: drop.total_quantity } : i)
+          : [...prev.inventory, { id: crypto.randomUUID(), user_id: "server", slot: 1, item_type: drop.item_type, quantity: drop.total_quantity, created_at: new Date().toISOString() }];
 
         // Rock HP (client-side tracking for animation)
         const newRockHp = prev.rockHp - 1;
@@ -743,11 +743,11 @@ export function MiningClient({
           isRespawning: isNowRespawning,
           respawnTimeLeft: isNowRespawning ? mineData.respawn_seconds * 1000 : 0,
           miningSkillLevel: levels.mining,
-          miningSkillXp: prev.miningSkillXp + xp.mining,
+          miningSkillXp: totals.mining_xp,
           masteryLevel: levels.mastery,
-          masteryXp: prev.masteryXp + xp.mastery,
+          masteryXp: totals.mastery_xp,
           bodyStage: levels.cultivation_stage,
-          bodyXp: prev.bodyXp + xp.body,
+          bodyXp: totals.body_xp,
           inventory: newInventory,
           recentDrops: [{ item: drop.item_type, quantity: drop.quantity, isDouble: drop.is_double, timestamp: Date.now() }, ...prev.recentDrops].slice(0, 6),
           totalActions: prev.totalActions + 1,
@@ -819,7 +819,13 @@ export function MiningClient({
 
   // XP floats now triggered inside performMineAction (server response or demo mode)
 
-  const { startMining: globalStartMining, stopMining: globalStopMining } = useMining();
+  const { startMining: globalStartMining, stopMining: globalStopMining, pauseBackground, resumeBackground } = useMining();
+
+  // Pause background mining when on mining page (this page handles its own API calls)
+  useEffect(() => {
+    pauseBackground();
+    return () => resumeBackground();
+  }, [pauseBackground, resumeBackground]);
 
   const handleStartMining = useCallback(() => {
     setState((prev) => ({ ...prev, isMining: true, hasStartedOnce: true }));
