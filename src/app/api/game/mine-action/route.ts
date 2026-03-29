@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
   const { mine_id } = parsed.data;
 
   // Server-side cooldown: check last mine action timestamp (3s minimum interval)
+  const now = new Date().toISOString();
   const { data: lastSession } = await supabase
     .from("idle_sessions")
     .select("started_at")
@@ -40,13 +41,25 @@ export async function POST(request: NextRequest) {
 
   if (lastSession?.started_at) {
     const elapsed = Date.now() - new Date(lastSession.started_at).getTime();
-    if (elapsed < 3000) {
+    if (elapsed < 2800) { // 2.8s tolerance to account for network/processing jitter
       return NextResponse.json(
         { error: "Mining cooldown active", retry_after_ms: 3000 - elapsed },
         { status: 429 }
       );
     }
   }
+
+  // Immediately update session timestamp to prevent concurrent requests
+  await supabase
+    .from("idle_sessions")
+    .upsert({
+      user_id: user.id,
+      slot,
+      type: "mining",
+      mine_id,
+      started_at: now,
+      ended_at: null,
+    }, { onConflict: "user_id,slot,type" });
 
   // Fetch mine definition
   const { data: mine, error: mineError } = await supabase
@@ -227,17 +240,7 @@ export async function POST(request: NextRequest) {
     })
     .eq("user_id", user.id).eq("slot", slot);
 
-  // Update idle session (mark as active mining)
-  await supabase
-    .from("idle_sessions")
-    .upsert({
-      user_id: user.id,
-      slot,
-      type: "mining",
-      mine_id,
-      started_at: new Date().toISOString(),
-      ended_at: null,
-    }, { onConflict: "user_id,slot,type" });
+  // Session already updated at the start of this request (cooldown check)
 
   // Fetch updated inventory for this item to return current quantity
   const { data: updatedItem } = await supabase
