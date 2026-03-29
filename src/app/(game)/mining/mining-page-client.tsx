@@ -175,7 +175,7 @@ export function MiningPageClient({
       };
 
       const xpNotifs: DropNotification[] = [
-        { id: ++notifIdRef.current, type: "xp", icon: "⛏", label: "采掘經驗", amount: xp.mining, color: "text-jade", timestamp: Date.now() },
+        { id: ++notifIdRef.current, type: "xp", icon: "⛏", label: "挖礦經驗", amount: xp.mining, color: "text-jade", timestamp: Date.now() },
         { id: ++notifIdRef.current, type: "xp", icon: "🏆", label: "精通經驗", amount: xp.mastery, color: "text-cinnabar", timestamp: Date.now() },
         { id: ++notifIdRef.current, type: "xp", icon: "✨", label: "練體經驗", amount: xp.body, color: "text-spirit-gold", timestamp: Date.now() },
       ];
@@ -254,10 +254,10 @@ export function MiningPageClient({
         <div className="mb-6 space-y-3">
           <div className="flex items-center justify-between">
             <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-              采掘
+              挖礦
             </h1>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="border-jade/30 text-jade font-heading px-3 py-1">
+              <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-heading px-3 py-1">
                 Lv.{miningLevel}
               </Badge>
               <span className="text-xs tabular-nums text-muted-foreground">
@@ -269,7 +269,7 @@ export function MiningPageClient({
           {/* Skill XP bar */}
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
             <div
-              className="h-full rounded-full bg-jade transition-all duration-300"
+              className="h-full rounded-full bg-blue-500 transition-all duration-300"
               style={{ width: `${xpPercent}%` }}
             />
           </div>
@@ -360,7 +360,7 @@ export function MiningPageClient({
                     {/* Active indicator */}
                     {isActive && (
                       <Badge className="bg-jade text-primary-foreground text-[10px]">
-                        采掘中
+                        挖礦中
                       </Badge>
                     )}
                   </CardContent>
@@ -370,25 +370,7 @@ export function MiningPageClient({
           })}
         </div>
 
-        {/* Inventory summary */}
-        {inventory.length > 0 && (
-          <div className="mt-6 rounded-lg bg-card/60 border border-border/30 p-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              {inventory.map((item) => {
-                const info = ITEM_DISPLAY[item.item_type];
-                return (
-                  <div key={item.item_type} className="flex items-center gap-1.5 text-sm">
-                    <span className={info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground"}>
-                      {info?.icon ?? "○"}
-                    </span>
-                    <span className="text-muted-foreground">{info?.name}</span>
-                    <span className="tabular-nums font-medium">{item.quantity.toLocaleString()}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Inventory summary removed — use sidebar/inventory page */}
       </div>
 
       {/* Floating notifications */}

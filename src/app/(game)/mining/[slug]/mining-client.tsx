@@ -313,7 +313,7 @@ function FloatingNotifications({ drops, xpGains }: { drops: DropNotification[]; 
       {xpGains.map((g) => {
         const color = g.type === "mining" ? "text-jade" : g.type === "mastery" ? "text-cinnabar" : "text-spirit-gold";
         const bg = g.type === "mining" ? "bg-jade-dim/60 border-jade/20" : g.type === "mastery" ? "bg-cinnabar-dim/60 border-cinnabar/20" : "bg-spirit-gold-dim/60 border-spirit-gold/20";
-        const label = g.type === "mining" ? "采掘" : g.type === "mastery" ? "精通" : "練體";
+        const label = g.type === "mining" ? "挖礦" : g.type === "mastery" ? "精通" : "練體";
         return (
           <div
             key={g.id}
@@ -941,7 +941,7 @@ export function MiningClient({
             </Badge>
           </div>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。每次采掘消耗 <span className="text-foreground tabular-nums font-medium">{(mineData.action_interval_ms / 1000).toFixed(1)}</span> 秒，可獲得煤、銅礦或靈石碎片。
+            最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。每次挖礦消耗 <span className="text-foreground tabular-nums font-medium">{(mineData.action_interval_ms / 1000).toFixed(1)}</span> 秒，可獲得煤、銅礦或靈石碎片。
           </p>
           {/* Decorative corner mark (seal-like) */}
           <div className="absolute -right-2 -top-2 hidden h-10 w-10 items-center justify-center rounded-sm border border-cinnabar/20 text-cinnabar/30 font-heading text-xs sm:flex"
@@ -958,9 +958,9 @@ export function MiningClient({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="font-heading text-lg">采掘</CardTitle>
+                  <CardTitle className="font-heading text-lg">挖礦</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    間隔 <span className="text-foreground tabular-nums">{(mineData.action_interval_ms / 1000).toFixed(1)}s</span> · 已采掘 <span className="text-foreground tabular-nums">{state.totalActions}</span>
+                    間隔 <span className="text-foreground tabular-nums">{(mineData.action_interval_ms / 1000).toFixed(1)}s</span> · 已挖礦 <span className="text-foreground tabular-nums">{state.totalActions}</span>
                   </p>
                 </div>
                 <MasteryIndicator masteryLevel={state.masteryLevel} />
@@ -986,7 +986,7 @@ export function MiningClient({
                   className="w-full bg-cinnabar text-primary-foreground hover:bg-cinnabar/90 seal-glow transition-all font-heading"
                   style={state.isMining ? {} : { animation: state.hasStartedOnce ? "none" : "qi-pulse 2.5s ease-in-out infinite" }}
                 >
-                  {state.hasStartedOnce ? "繼續采掘" : "開始采掘"}
+                  {state.hasStartedOnce ? "繼續挖礦" : "開始挖礦"}
                 </Button>
               ) : (
                 <Button
@@ -995,7 +995,7 @@ export function MiningClient({
                   onClick={handleStopMining}
                   className="w-full"
                 >
-                  暫停采掘
+                  暫停挖礦
                 </Button>
               )}
 
@@ -1034,11 +1034,11 @@ export function MiningClient({
           <Card className="scroll-surface relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
             <CardHeader>
               <CardTitle className="font-heading text-lg">修煉進度</CardTitle>
-              <p className="text-sm text-muted-foreground">采掘、精通與練體經驗</p>
+              <p className="text-sm text-muted-foreground">挖礦、精通與練體經驗</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <XpBar
-                label="采掘"
+                label="挖礦"
                 level={state.miningSkillLevel}
                 currentXp={state.miningSkillXp}
                 maxXp={xpForNextLevel(state.miningSkillLevel)}
@@ -1116,10 +1116,10 @@ export function MiningClient({
               <Separator />
 
               <div className="space-y-1.5">
-                <span className="text-xs text-muted-foreground">每次采掘 XP</span>
+                <span className="text-xs text-muted-foreground">每次挖礦 XP</span>
                 <div className="flex gap-2 text-xs">
                   <Badge variant="secondary" className="gap-1 bg-jade-dim text-jade">
-                    采掘 5~15
+                    挖礦 5~15
                   </Badge>
                   <Badge variant="secondary" className="gap-1 bg-cinnabar-dim text-cinnabar">
                     精通 3~10
@@ -1188,7 +1188,7 @@ export function MiningClient({
             </DialogHeader>
             <div className="space-y-4 py-2">
               <p className="text-sm text-muted-foreground">
-                你離開了 <span className="text-foreground font-medium">{offlineRewards.minutes_away >= 60 ? `${Math.floor(offlineRewards.minutes_away / 60)} 小時 ${offlineRewards.minutes_away % 60} 分鐘` : `${offlineRewards.minutes_away} 分鐘`}</span>，期間共采掘 <span className="text-foreground font-medium tabular-nums">{offlineRewards.total_actions}</span> 次
+                你離開了 <span className="text-foreground font-medium">{offlineRewards.minutes_away >= 60 ? `${Math.floor(offlineRewards.minutes_away / 60)} 小時 ${offlineRewards.minutes_away % 60} 分鐘` : `${offlineRewards.minutes_away} 分鐘`}</span>，期間共挖礦 <span className="text-foreground font-medium tabular-nums">{offlineRewards.total_actions}</span> 次
               </p>
 
               {offlineRewards.drops.length > 0 && (
@@ -1214,7 +1214,7 @@ export function MiningClient({
               <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">經驗獲得</h3>
                 <div className="flex justify-between text-sm">
-                  <span className="text-jade">采掘</span>
+                  <span className="text-jade">挖礦</span>
                   <span className="tabular-nums">+{offlineRewards.xp_gained.mining.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">

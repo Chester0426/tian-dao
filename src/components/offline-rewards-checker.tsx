@@ -74,7 +74,7 @@ export function OfflineRewardsChecker({ hasActiveSession }: { hasActiveSession: 
                 ? `${Math.floor(rewards.minutes_away / 60)} 小時 ${rewards.minutes_away % 60} 分鐘`
                 : `${rewards.minutes_away} 分鐘`}
             </span>
-            ，期間共采掘{" "}
+            ，期間共挖礦{" "}
             <span className="text-foreground font-medium tabular-nums">
               {rewards.total_actions.toLocaleString()}
             </span>{" "}
@@ -102,7 +102,7 @@ export function OfflineRewardsChecker({ hasActiveSession }: { hasActiveSession: 
               經驗獲得
             </h3>
             <div className="flex justify-between text-sm">
-              <span>采掘</span>
+              <span>挖礦</span>
               <span className="tabular-nums">+{rewards.xp_gained.mining.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
