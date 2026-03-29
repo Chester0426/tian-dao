@@ -239,14 +239,27 @@ export async function POST(request: NextRequest) {
       ended_at: null,
     }, { onConflict: "user_id,slot,type" });
 
+  // Fetch updated inventory for this item to return current quantity
+  const { data: updatedItem } = await supabase
+    .from("inventory_items")
+    .select("quantity")
+    .eq("user_id", user.id).eq("slot", slot)
+    .eq("item_type", droppedItem)
+    .single();
+
   return NextResponse.json({
-    drop: { item_type: droppedItem, quantity: dropQuantity, is_double: isDoubleDrop },
+    drop: { item_type: droppedItem, quantity: dropQuantity, is_double: isDoubleDrop, total_quantity: updatedItem?.quantity ?? dropQuantity },
     xp: { mining: xpMining, mastery: xpMastery, body: xpBody },
     levels: {
       mining: newMiningLevel,
       mastery: newMasteryLevel,
       cultivation_stage: newCultivationStage,
       body_skill_level: newBodySkillLevel,
+    },
+    totals: {
+      mining_xp: newMiningXp,
+      mastery_xp: newMasteryXp,
+      body_xp: newBodyXp,
     },
   });
 }
