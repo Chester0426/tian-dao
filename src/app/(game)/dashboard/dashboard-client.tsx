@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useGameState } from "@/components/mining-provider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +85,13 @@ export function DashboardClient({
   bodySkillLevel,
 }: DashboardClientProps) {
   const router = useRouter();
+  const gameState = useGameState();
+
+  // Use global real-time values for body XP (updates while mining on other pages)
+  const liveBodyXp = gameState.bodyXp ?? xpCurrent;
+  const liveXpProgress = xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress;
+  const liveBreakthroughReady = liveXpProgress >= 100 && profile.cultivation_stage <= 9;
+
   const [showOfflineRewards, setShowOfflineRewards] = useState(false);
   const [showBreakthrough, setShowBreakthrough] = useState(false);
   const [hasTrackedActivate, setHasTrackedActivate] = useState(false);
@@ -207,7 +215,7 @@ export function DashboardClient({
             {/* === Cultivation Status Card === */}
             <Card
               className={`md:col-span-1 scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
-                isBreakthroughReady ? "qi-glow" : ""
+                liveBreakthroughReady ? "qi-glow" : ""
               }`}
               style={scaleReveal(1)}
             >
@@ -229,7 +237,7 @@ export function DashboardClient({
                         : "身體深化 — 透過採礦與修煉獲得經驗"}
                     </CardDescription>
                   </div>
-                  {isBreakthroughReady && (
+                  {liveBreakthroughReady && (
                     <Button
                       onClick={() => setShowBreakthrough(true)}
                       className="seal-glow animate-pulse hover:animate-none hover:scale-[1.02] transition-transform font-heading"
@@ -246,20 +254,20 @@ export function DashboardClient({
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">練體經驗</span>
                     <span className="font-heading tabular-nums text-foreground">
-                      {formatNumber(xpCurrent)} / {formatNumber(xpRequired)}
+                      {formatNumber(liveBodyXp)} / {formatNumber(xpRequired)}
                     </span>
                   </div>
                   <div className="relative">
                     <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted/40">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-cinnabar to-spirit-gold transition-all duration-700 ease-out"
-                        style={{ width: `${xpProgress}%` }}
+                        style={{ width: `${liveXpProgress}%` }}
                       />
-                      {xpProgress > 5 && (
+                      {liveXpProgress > 5 && (
                         <div
                           className="absolute inset-y-0 left-0 rounded-full opacity-40"
                           style={{
-                            width: `${xpProgress}%`,
+                            width: `${liveXpProgress}%`,
                             background: "linear-gradient(90deg, transparent 60%, oklch(1 0 0 / 20%) 100%)",
                           }}
                         />
@@ -268,9 +276,9 @@ export function DashboardClient({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground tabular-nums">
-                      {Math.round(xpProgress)}%
+                      {Math.round(liveXpProgress)}%
                     </span>
-                    {isBreakthroughReady && (
+                    {liveBreakthroughReady && (
                       <span className="text-xs font-medium text-spirit-gold animate-pulse text-glow-gold">
                         可以突破了！
                       </span>
@@ -435,7 +443,7 @@ export function DashboardClient({
                     採礦 — 枯竭礦脈
                   </Link>
 
-                  {isBreakthroughReady && (
+                  {liveBreakthroughReady && (
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-3 font-heading hover:bg-spirit-gold/10 hover:border-spirit-gold/30 hover:text-spirit-gold transition-colors animate-pulse hover:animate-none"
