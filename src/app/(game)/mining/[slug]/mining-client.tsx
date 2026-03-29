@@ -347,6 +347,9 @@ function DropFeed({ drops }: { drops: MiningState["recentDrops"] }) {
                   雙倍
                 </Badge>
               )}
+              <span className="text-[10px] tabular-nums text-muted-foreground/50">
+                {new Date(drop.timestamp).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
             </div>
           </div>
         );
