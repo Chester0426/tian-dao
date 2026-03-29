@@ -819,7 +819,13 @@ export function MiningClient({
 
   // XP floats now triggered inside performMineAction (server response or demo mode)
 
-  const { startMining: globalStartMining, stopMining: globalStopMining } = useMining();
+  const { startMining: globalStartMining, stopMining: globalStopMining, pauseBackground, resumeBackground } = useMining();
+
+  // Pause background mining when on mining page (this page handles its own API calls)
+  useEffect(() => {
+    pauseBackground();
+    return () => resumeBackground();
+  }, [pauseBackground, resumeBackground]);
 
   const handleStartMining = useCallback(() => {
     setState((prev) => ({ ...prev, isMining: true, hasStartedOnce: true }));
