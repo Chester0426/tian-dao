@@ -249,7 +249,7 @@ export function CharactersClient({
                         </p>
                         {miningLevel > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            采掘 Lv.{miningLevel}
+                            挖礦 Lv.{miningLevel}
                           </p>
                         )}
                         {lastPlayed && (
@@ -302,7 +302,7 @@ export function CharactersClient({
                     ? `${Math.floor(offlineRewards.minutes_away / 60)} 小時 ${offlineRewards.minutes_away % 60} 分鐘`
                     : `${offlineRewards.minutes_away} 分鐘`}
                 </span>
-                ，期間共采掘{" "}
+                ，期間共挖礦{" "}
                 <span className="text-foreground font-medium tabular-nums">{offlineRewards.total_actions.toLocaleString()}</span> 次
               </p>
 
@@ -321,7 +321,7 @@ export function CharactersClient({
               <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">經驗獲得</h3>
                 <div className="flex justify-between text-sm">
-                  <span>采掘</span>
+                  <span>挖礦</span>
                   <span className="tabular-nums">+{offlineRewards.xp_gained.mining.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
