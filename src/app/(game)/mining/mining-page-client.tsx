@@ -91,6 +91,8 @@ interface MiningPageClientProps {
   miningXp: number;
   miningXpMax: number;
   masteryLevels: Record<string, number>;
+  masteryXps: Record<string, number>;
+  masteryXpMaxs: Record<string, number>;
   inventory: InventoryItem[];
   inventorySlots: number;
   bodyStage: number;
@@ -105,6 +107,8 @@ export function MiningPageClient({
   miningXp: initialXp,
   miningXpMax: initialXpMax,
   masteryLevels: initialMasteryLevels,
+  masteryXps: initialMasteryXps,
+  masteryXpMaxs: initialMasteryXpMaxs,
   inventory: initialInventory,
   inventorySlots,
   activeMineId,
@@ -119,6 +123,8 @@ export function MiningPageClient({
   const [miningXp, setMiningXp] = useState(initialXp);
   const [miningXpMax, setMiningXpMax] = useState(initialXpMax);
   const [masteryLevels, setMasteryLevels] = useState(initialMasteryLevels);
+  const [masteryXps, setMasteryXps] = useState(initialMasteryXps);
+  const [masteryXpMaxs, setMasteryXpMaxs] = useState(initialMasteryXpMaxs);
   const [inventory, setInventory] = useState(initialInventory);
   const [actionProgress, setActionProgress] = useState(0);
   const [notifications, setNotifications] = useState<DropNotification[]>([]);
@@ -248,6 +254,19 @@ export function MiningPageClient({
       return newXp;
     });
 
+    // Update local mastery XP
+    setMasteryXps((prev) => {
+      const currentXp = (prev[mineId] ?? 0) + xpMastery;
+      const currentMax = masteryXpMaxs[mineId] ?? 83;
+      if (currentXp >= currentMax) {
+        setMasteryLevels((ml) => ({ ...ml, [mineId]: (ml[mineId] ?? 1) + 1 }));
+        const newLevel = (masteryLevels[mineId] ?? 1) + 1;
+        setMasteryXpMaxs((mx) => ({ ...mx, [mineId]: melvorXpForLevel(newLevel + 1) - melvorXpForLevel(newLevel) }));
+        return { ...prev, [mineId]: currentXp - currentMax };
+      }
+      return { ...prev, [mineId]: currentXp };
+    });
+
     // Accumulate pending sync data
     pendingRef.current.actions += 1;
     pendingRef.current.elapsed_ms += 3000;
@@ -265,7 +284,7 @@ export function MiningPageClient({
       { id: notifIdRef.current, type: "drop", icon: dropInfo?.icon ?? "○", label: dropInfo?.name ?? droppedItem, amount: qty, total: currentQty, color: dropInfo?.rarity === "rare" ? "text-spirit-gold" : dropInfo?.rarity === "uncommon" ? "text-jade" : "text-foreground", timestamp: Date.now() },
       { id: ++notifIdRef.current, type: "xp", icon: "⛏", label: "挖礦經驗", amount: xpMining, color: "text-blue-400", timestamp: Date.now() },
       { id: ++notifIdRef.current, type: "xp", icon: "🏆", label: "精通經驗", amount: xpMastery, color: "text-cinnabar", timestamp: Date.now() },
-      { id: ++notifIdRef.current, type: "xp", icon: "✨", label: "練體經驗", amount: xpBody, color: "text-spirit-gold", timestamp: Date.now() },
+      { id: ++notifIdRef.current, type: "xp", icon: "💪", label: "練體經驗", amount: xpBody, color: "text-spirit-gold", timestamp: Date.now() },
     ]);
   }, [mines, masteryLevels, miningLevel, miningXpMax, inventory, isDemo]);
 
@@ -403,7 +422,7 @@ export function MiningPageClient({
                           🏆 {mine.xp_mastery}
                         </Badge>
                         <Badge variant="secondary" className="bg-spirit-gold-dim text-spirit-gold gap-1">
-                          ✨ {mine.xp_body}
+                          💪 {mine.xp_body}
                         </Badge>
                       </div>
                     )}
@@ -451,16 +470,20 @@ export function MiningPageClient({
                     </div>
                   )}
 
-                  {/* Mastery */}
+                  {/* Mastery with XP */}
                   {!isLocked && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">🏆 專精</span>
-                        <span className="tabular-nums font-bold text-cinnabar">{mastery}</span>
+                        <span className="text-muted-foreground">
+                          🏆 專精 <span className="font-bold text-cinnabar">{mastery}</span>
+                        </span>
+                        <span className="tabular-nums text-muted-foreground/70">
+                          {(masteryXps[mine.id] ?? 0).toLocaleString()} / {(masteryXpMaxs[mine.id] ?? 83).toLocaleString()}
+                        </span>
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/20">
                         <div className="h-full rounded-full bg-cinnabar/60 transition-all duration-300"
-                          style={{ width: `${Math.min(mastery, 99)}%` }} />
+                          style={{ width: `${masteryXpMaxs[mine.id] ? Math.min((masteryXps[mine.id] ?? 0) / masteryXpMaxs[mine.id] * 100, 100) : 0}%` }} />
                       </div>
                     </div>
                   )}
