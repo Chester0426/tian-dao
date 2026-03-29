@@ -19,6 +19,28 @@ const ITEM_DISPLAY: Record<string, { name: string; icon: string; rarity: "common
   spirit_stone_fragment: { name: "靈石碎片", icon: "✦", rarity: "rare" },
 };
 
+// Loot table per mine (TODO: fetch from DB)
+const LOOT_TABLES: Record<string, { item_type: string; probability: number }[]> = {
+  depleted_vein: [
+    { item_type: "coal", probability: 0.5 },
+    { item_type: "copper_ore", probability: 0.35 },
+    { item_type: "spirit_stone_fragment", probability: 0.15 },
+  ],
+};
+
+function rollLoot(mineSlug: string): string {
+  const table = LOOT_TABLES[mineSlug] ?? LOOT_TABLES["depleted_vein"];
+  const roll = Math.random();
+  let cumulative = 0;
+  for (const entry of table) {
+    cumulative += entry.probability;
+    if (roll <= cumulative) return entry.item_type;
+  }
+  return table[table.length - 1].item_type;
+}
+
+import { getMasteryDoubleDropChance, melvorXpForLevel } from "@/lib/types";
+
 // ---------------------------------------------------------------------------
 // Notification types
 // ---------------------------------------------------------------------------
@@ -128,74 +150,133 @@ export function MiningPageClient({
     return () => clearTimeout(timer);
   }, [notifications]);
 
-  // Mine action
-  const performMineAction = useCallback(async () => {
+  // Pending sync data (accumulated since last sync)
+  const pendingRef = useRef({ actions: 0, elapsed_ms: 0, drops: {} as Record<string, number>, xp: { mining: 0, mastery: 0, body: 0 } });
+  const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastSyncRef = useRef(Date.now());
+
+  // Sync to server every 30 seconds
+  const syncToServer = useCallback(async () => {
     const mineId = activeMineRef.current;
-    if (!mineId || isDemo) return;
+    const pending = pendingRef.current;
+    if (!mineId || pending.actions === 0 || isDemo) return;
+
+    // Snapshot and reset pending
+    const toSync = { ...pending, drops: { ...pending.drops }, xp: { ...pending.xp } };
+    pendingRef.current = { actions: 0, elapsed_ms: 0, drops: {}, xp: { mining: 0, mastery: 0, body: 0 } };
 
     try {
-      const res = await fetch("/api/game/mine-action", {
+      await fetch("/api/game/sync-mining", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mine_id: mineId }),
+        body: JSON.stringify({ mine_id: mineId, ...toSync }),
       });
-
-      if (res.status === 429 || res.status === 409 || !res.ok) return;
-
-      const data = await res.json();
-      const { drop, xp, levels, totals } = data;
-
-      // Update state from server
-      setMiningLevel(levels.mining);
-      setMiningXp(totals.mining_xp);
-      setMiningXpMax(totals.mining_xp_max);
-      setMasteryLevels((prev) => ({ ...prev, [mineId]: levels.mastery }));
-
-      // Update inventory
-      setInventory((prev) => {
-        const existing = prev.find((i) => i.item_type === drop.item_type);
-        if (existing) {
-          return prev.map((i) => i.item_type === drop.item_type ? { ...i, quantity: drop.total_quantity } : i);
-        }
-        return [...prev, { id: crypto.randomUUID(), user_id: "s", slot: 1, item_type: drop.item_type, quantity: drop.total_quantity, created_at: "" }];
-      });
-
-      // Notifications
-      notifIdRef.current += 1;
-      const dropInfo = ITEM_DISPLAY[drop.item_type];
-      const dropNotif: DropNotification = {
-        id: notifIdRef.current,
-        type: "drop",
-        icon: dropInfo?.icon ?? "○",
-        label: dropInfo?.name ?? drop.item_type,
-        amount: drop.quantity,
-        total: drop.total_quantity,
-        color: dropInfo?.rarity === "rare" ? "text-spirit-gold" : dropInfo?.rarity === "uncommon" ? "text-jade" : "text-foreground",
-        timestamp: Date.now(),
-      };
-
-      const xpNotifs: DropNotification[] = [
-        { id: ++notifIdRef.current, type: "xp", icon: "⛏", label: "挖礦經驗", amount: xp.mining, color: "text-jade", timestamp: Date.now() },
-        { id: ++notifIdRef.current, type: "xp", icon: "🏆", label: "精通經驗", amount: xp.mastery, color: "text-cinnabar", timestamp: Date.now() },
-        { id: ++notifIdRef.current, type: "xp", icon: "✨", label: "練體經驗", amount: xp.body, color: "text-spirit-gold", timestamp: Date.now() },
-      ];
-
-      setNotifications((prev) => [...prev.slice(-8), dropNotif, ...xpNotifs]);
     } catch {
-      // Network error
+      // Network error — add back to pending for next sync
+      pendingRef.current.actions += toSync.actions;
+      pendingRef.current.elapsed_ms += toSync.elapsed_ms;
+      for (const [k, v] of Object.entries(toSync.drops)) {
+        pendingRef.current.drops[k] = (pendingRef.current.drops[k] ?? 0) + v;
+      }
+      pendingRef.current.xp.mining += toSync.xp.mining;
+      pendingRef.current.xp.mastery += toSync.xp.mastery;
+      pendingRef.current.xp.body += toSync.xp.body;
     }
   }, [isDemo]);
 
-  // Mining tick
+  // Start/stop sync timer
+  useEffect(() => {
+    if (isMining) {
+      lastSyncRef.current = Date.now();
+      syncTimerRef.current = setInterval(syncToServer, 30000);
+      return () => { if (syncTimerRef.current) clearInterval(syncTimerRef.current); };
+    } else {
+      // Sync remaining data when stopping
+      syncToServer();
+      if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null; }
+    }
+  }, [isMining, syncToServer]);
+
+  // Sync on page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      const mineId = activeMineRef.current;
+      const pending = pendingRef.current;
+      if (!mineId || pending.actions === 0) return;
+      navigator.sendBeacon("/api/game/sync-mining", JSON.stringify({ mine_id: mineId, ...pending }));
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, []);
+
+  // Local mine action — instant, no API call
+  const performLocalMineAction = useCallback(() => {
+    const mineId = activeMineRef.current;
+    if (!mineId) return;
+
+    const mine = mines.find((m) => m.id === mineId);
+    if (!mine) return;
+
+    const droppedItem = rollLoot(mine.slug);
+    const mastery = masteryLevels[mineId] ?? 0;
+    const doubleChance = getMasteryDoubleDropChance(mastery);
+    const isDouble = Math.random() < doubleChance;
+    const qty = isDouble ? 2 : 1;
+
+    // Update local inventory
+    setInventory((prev) => {
+      const existing = prev.find((i) => i.item_type === droppedItem);
+      if (existing) {
+        return prev.map((i) => i.item_type === droppedItem ? { ...i, quantity: i.quantity + qty } : i);
+      }
+      return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: droppedItem, quantity: qty, created_at: "" }];
+    });
+
+    // Update local XP
+    const xpMining = mine.xp_mining;
+    const xpMastery = mine.xp_mastery;
+    const xpBody = mine.xp_body;
+
+    setMiningXp((prev) => {
+      const newXp = prev + xpMining;
+      if (newXp >= miningXpMax) {
+        setMiningLevel((l) => Math.min(l + 1, 99));
+        const nextMax = melvorXpForLevel(miningLevel + 2) - melvorXpForLevel(miningLevel + 1);
+        setMiningXpMax(nextMax);
+        return newXp - miningXpMax;
+      }
+      return newXp;
+    });
+
+    // Accumulate pending sync data
+    pendingRef.current.actions += 1;
+    pendingRef.current.elapsed_ms += 3000;
+    pendingRef.current.drops[droppedItem] = (pendingRef.current.drops[droppedItem] ?? 0) + qty;
+    pendingRef.current.xp.mining += xpMining;
+    pendingRef.current.xp.mastery += xpMastery;
+    pendingRef.current.xp.body += xpBody;
+
+    // Show notifications
+    notifIdRef.current += 1;
+    const dropInfo = ITEM_DISPLAY[droppedItem];
+    const currentQty = (inventory.find((i) => i.item_type === droppedItem)?.quantity ?? 0) + qty;
+
+    setNotifications((prev) => [...prev.slice(-8),
+      { id: notifIdRef.current, type: "drop", icon: dropInfo?.icon ?? "○", label: dropInfo?.name ?? droppedItem, amount: qty, total: currentQty, color: dropInfo?.rarity === "rare" ? "text-spirit-gold" : dropInfo?.rarity === "uncommon" ? "text-jade" : "text-foreground", timestamp: Date.now() },
+      { id: ++notifIdRef.current, type: "xp", icon: "⛏", label: "挖礦經驗", amount: xpMining, color: "text-blue-400", timestamp: Date.now() },
+      { id: ++notifIdRef.current, type: "xp", icon: "🏆", label: "精通經驗", amount: xpMastery, color: "text-cinnabar", timestamp: Date.now() },
+      { id: ++notifIdRef.current, type: "xp", icon: "✨", label: "練體經驗", amount: xpBody, color: "text-spirit-gold", timestamp: Date.now() },
+    ]);
+  }, [mines, masteryLevels, miningLevel, miningXpMax, inventory, isDemo]);
+
+  // Mining tick — 3 second local cycle, zero latency
   useEffect(() => {
     if (!isMining || !activeMine) {
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
       return;
     }
 
-    const mine = mines.find((m) => m.id === activeMine);
-    const intervalMs = 3000; // TODO: use mine-specific interval
-
+    const intervalMs = 3000;
     lastTickRef.current = Date.now();
     accumulatedRef.current = 0;
 
@@ -210,17 +291,14 @@ export function MiningPageClient({
       if (accumulatedRef.current >= intervalMs) {
         accumulatedRef.current -= intervalMs;
         setActionProgress(0);
-        if (!inFlightRef.current) {
-          inFlightRef.current = true;
-          performMineAction().finally(() => { inFlightRef.current = false; });
-        }
+        performLocalMineAction();
       } else {
         setActionProgress((accumulatedRef.current / intervalMs) * 100);
       }
     }, 50);
 
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
-  }, [isMining, activeMine, mines, performMineAction]);
+  }, [isMining, activeMine, performLocalMineAction]);
 
   // Select mine and start mining
   const handleSelectMine = (mine: MineInfo) => {
