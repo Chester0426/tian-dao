@@ -341,12 +341,7 @@ function DropFeed({ drops }: { drops: MiningState["recentDrops"] }) {
               <span className={`font-medium ${rarityColor}`}>{info?.name ?? drop.item}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="tabular-nums text-muted-foreground">x{drop.quantity}</span>
-              {drop.isDouble && (
-                <Badge variant="outline" className="border-spirit-gold/40 bg-spirit-gold-dim/30 text-spirit-gold text-[10px] px-1.5 py-0 font-heading">
-                  雙倍
-                </Badge>
-              )}
+              <span className={`tabular-nums ${drop.isDouble ? "text-spirit-gold font-bold" : "text-muted-foreground"}`}>x{drop.quantity}</span>
               <span className="text-[10px] tabular-nums text-muted-foreground/50">
                 {new Date(drop.timestamp).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </span>
@@ -778,6 +773,7 @@ export function MiningClient({
 
     lastTickRef.current = Date.now();
     accumulatedRef.current = 0;
+    const actionInFlightRef = { current: false };
 
     tickRef.current = setInterval(() => {
       const now = Date.now();
@@ -800,15 +796,22 @@ export function MiningClient({
         return;
       }
 
-      // Accumulate time via ref (not inside setState)
+      // Don't accumulate time while an API call is in flight
+      if (actionInFlightRef.current) return;
+
       accumulatedRef.current += delta;
 
       if (accumulatedRef.current >= mineData.action_interval_ms) {
-        accumulatedRef.current -= mineData.action_interval_ms;
+        accumulatedRef.current = 0;
 
-        // Reset progress and fire action
+        // Reset progress and fire action — wait for completion before next cycle
         setState((prev) => ({ ...prev, actionProgress: 0 }));
-        performMineAction();
+        actionInFlightRef.current = true;
+        performMineAction().finally(() => {
+          actionInFlightRef.current = false;
+          accumulatedRef.current = 0;
+          lastTickRef.current = Date.now();
+        });
       } else {
         const progress = (accumulatedRef.current / mineData.action_interval_ms) * 100;
         setState((prev) => ({ ...prev, actionProgress: progress }));
