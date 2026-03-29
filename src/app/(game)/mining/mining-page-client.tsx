@@ -275,15 +275,17 @@ export function MiningPageClient({
           </div>
         </div>
 
-        {/* Progress bar — only when mining */}
-        {isMining && activeMine && (
-          <div className="mb-6 space-y-2">
-            <div className="h-6 w-full overflow-hidden rounded-lg bg-muted/30 border border-border/30">
+        {/* Progress bar — always visible */}
+        <div className="mb-6 space-y-2">
+          <div className="h-6 w-full overflow-hidden rounded-lg bg-muted/30 border border-border/30">
+            {isMining && activeMine && (
               <div
                 className="h-full rounded-lg bg-gradient-to-r from-jade/80 to-jade transition-all duration-75 ease-linear"
                 style={{ width: `${actionProgress}%` }}
               />
-            </div>
+            )}
+          </div>
+          {isMining && activeMine ? (
             <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
               {(() => {
                 const mine = mines.find((m) => m.id === activeMine);
@@ -298,8 +300,12 @@ export function MiningPageClient({
                 );
               })()}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-center text-sm text-muted-foreground/60">
+              你的挖礦行動資訊會顯示在此。
+            </p>
+          )}
+        </div>
 
         {/* Mine grid */}
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
