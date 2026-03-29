@@ -257,8 +257,10 @@ export async function POST(request: NextRequest) {
       body_skill_level: newBodySkillLevel,
     },
     totals: {
-      mining_xp: newMiningXp,
-      mastery_xp: newMasteryXp,
+      mining_xp: newMiningXp - melvorXpForLevel(newMiningLevel),
+      mining_xp_max: melvorXpForLevel(newMiningLevel + 1) - melvorXpForLevel(newMiningLevel),
+      mastery_xp: newMasteryXp - melvorXpForLevel(newMasteryLevel),
+      mastery_xp_max: melvorXpForLevel(newMasteryLevel + 1) - melvorXpForLevel(newMasteryLevel),
       body_xp: newBodyXp,
     },
   });
