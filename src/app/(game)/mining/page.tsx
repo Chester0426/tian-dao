@@ -3,49 +3,10 @@ export const dynamic = "force-dynamic";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import type { Profile, MiningSkill, MineMastery, InventoryItem } from "@/lib/types";
+import { MiningPageClient } from "./mining-page-client";
 
-const MINE_DISPLAY: Record<string, { description: string; icon: string }> = {
-  depleted_vein: {
-    description: "最基礎的礦脈，蘊含微量靈氣。初入修途者的起點。",
-    icon: "⛏",
-  },
-};
-
-export default async function MiningListPage() {
-  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
-
-  if (isDemo) {
-    return (
-      <MineList mines={[{
-        id: "demo", name: "枯竭礦脈", slug: "depleted_vein",
-        required_level: 1, rock_base_hp: 1, respawn_seconds: 5,
-        xp_mining: 5, xp_mastery: 3, xp_body: 5,
-      }]} playerLevel={1} />
-    );
-  }
-
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const cookieStore = await cookies();
-  const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
-
-  const [minesRes, skillRes] = await Promise.all([
-    supabase.from("mines").select("id, name, slug, required_level, rock_base_hp, respawn_seconds, xp_mining, xp_mastery, xp_body").order("required_level", { ascending: true }),
-    supabase.from("mining_skills").select("level").eq("user_id", user.id).eq("slot", slot).single(),
-  ]);
-
-  const mines = minesRes.data ?? [];
-  const playerLevel = (skillRes.data as { level: number } | null)?.level ?? 1;
-
-  return <MineList mines={mines} playerLevel={playerLevel} />;
-}
-
-interface MineInfo {
+export interface MineInfo {
   id: string;
   name: string;
   slug: string;
@@ -57,80 +18,78 @@ interface MineInfo {
   xp_body: number;
 }
 
-function MineList({ mines, playerLevel }: { mines: MineInfo[]; playerLevel: number }) {
+export default async function MiningPage() {
+  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
+
+  if (isDemo) {
+    return (
+      <MiningPageClient
+        mines={[{
+          id: "demo", name: "枯竭礦脈", slug: "depleted_vein",
+          required_level: 1, rock_base_hp: 1, respawn_seconds: 5,
+          xp_mining: 5, xp_mastery: 3, xp_body: 5,
+        }]}
+        miningLevel={1}
+        miningXp={0}
+        miningXpMax={83}
+        masteryLevels={{}}
+        inventory={[]}
+        inventorySlots={20}
+        bodyStage={1}
+        bodyXp={0}
+        activeMineId={null}
+        isDemo={true}
+      />
+    );
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const cookieStore = await cookies();
+  const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
+
+  const [minesRes, profileRes, skillRes, masteryRes, inventoryRes, sessionRes] = await Promise.all([
+    supabase.from("mines").select("*").order("required_level", { ascending: true }),
+    supabase.from("profiles").select("*").eq("user_id", user.id).eq("slot", slot).single(),
+    supabase.from("mining_skills").select("*").eq("user_id", user.id).eq("slot", slot).single(),
+    supabase.from("mine_masteries").select("*").eq("user_id", user.id).eq("slot", slot),
+    supabase.from("inventory_items").select("*").eq("user_id", user.id).eq("slot", slot),
+    supabase.from("idle_sessions").select("mine_id").eq("user_id", user.id).eq("slot", slot).eq("type", "mining").single(),
+  ]);
+
+  const mines = (minesRes.data ?? []) as MineInfo[];
+  const profile = profileRes.data as Profile | null;
+  const skill = skillRes.data as MiningSkill | null;
+  const masteries = (masteryRes.data as MineMastery[]) ?? [];
+  const inventory = (inventoryRes.data as InventoryItem[]) ?? [];
+
+  const { melvorXpForLevel } = await import("@/lib/types");
+  const level = skill?.level ?? 1;
+  const totalXp = skill?.xp ?? 0;
+  const xpInLevel = totalXp - melvorXpForLevel(level);
+  const xpForNext = melvorXpForLevel(level + 1) - melvorXpForLevel(level);
+
+  // Build mastery level map: mine_id → level
+  const masteryLevels: Record<string, number> = {};
+  for (const m of masteries) {
+    masteryLevels[m.mine_id] = m.level;
+  }
+
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <header className="mb-6">
-          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-            礦場
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            選擇礦場開始采掘
-          </p>
-        </header>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {mines.map((mine) => {
-            const display = MINE_DISPLAY[mine.slug];
-            const isLocked = playerLevel < mine.required_level;
-
-            return (
-              <Link
-                key={mine.id}
-                href={isLocked ? "#" : `/mining/${mine.slug}`}
-                className={isLocked ? "pointer-events-none" : ""}
-              >
-                <Card className={`scroll-surface transition-all duration-300 h-full ${
-                  isLocked
-                    ? "opacity-50 border-dashed"
-                    : "hover:shadow-lg hover:-translate-y-1 cursor-pointer"
-                }`}>
-                  <CardContent className="flex flex-col gap-3 py-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-3xl">{display?.icon ?? "⛏"}</span>
-                      {isLocked ? (
-                        <Badge variant="outline" className="text-muted-foreground border-border/40">
-                          需要 Lv.{mine.required_level}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-jade/30 text-jade">
-                          Lv.{mine.required_level}+
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div>
-                      <h2 className="font-heading text-lg font-bold">{mine.name}</h2>
-                      <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                        {display?.description ?? "未知礦脈"}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2 text-xs">
-                      <Badge variant="secondary" className="gap-1 bg-jade-dim text-jade">
-                        采掘 {mine.xp_mining}
-                      </Badge>
-                      <Badge variant="secondary" className="gap-1 bg-cinnabar-dim text-cinnabar">
-                        精通 {mine.xp_mastery}
-                      </Badge>
-                      <Badge variant="secondary" className="gap-1 bg-spirit-gold-dim text-spirit-gold">
-                        練體 {mine.xp_body}
-                      </Badge>
-                    </div>
-
-                    {isLocked && (
-                      <p className="text-xs text-muted-foreground/60">
-                        提升采掘等級至 Lv.{mine.required_level} 解鎖
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <MiningPageClient
+      mines={mines}
+      miningLevel={level}
+      miningXp={xpInLevel}
+      miningXpMax={xpForNext}
+      masteryLevels={masteryLevels}
+      inventory={inventory}
+      inventorySlots={profile?.inventory_slots ?? 20}
+      bodyStage={profile?.cultivation_stage ?? 1}
+      bodyXp={profile?.body_xp ?? 0}
+      activeMineId={sessionRes.data?.mine_id ?? null}
+      isDemo={false}
+    />
   );
 }
