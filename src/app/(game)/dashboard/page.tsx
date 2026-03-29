@@ -6,7 +6,7 @@ import type { Profile, MiningSkill, MineMastery, InventoryItem, IdleSession } fr
 import { melvorXpForLevel } from "@/lib/types";
 import { DashboardClient } from "./dashboard-client";
 
-// Cultivation stage names for 練體 1-9
+// Cultivation stage names
 const STAGE_NAMES: Record<number, string> = {
   1: "練體一階",
   2: "練體二階",
@@ -17,10 +17,11 @@ const STAGE_NAMES: Record<number, string> = {
   7: "練體七階",
   8: "練體八階",
   9: "練體九階",
+  10: "練氣一階",
 };
 
 function getStageName(stage: number): string {
-  return STAGE_NAMES[stage] ?? `練體${stage}階`;
+  return STAGE_NAMES[stage] ?? (stage > 9 ? `練氣${stage - 9}階` : `練體${stage}階`);
 }
 
 function getXpForNextStage(stage: number): number {
@@ -198,7 +199,8 @@ export default async function DashboardPage() {
   // Calculate XP progress
   const xpForNext = getXpForNextStage(profile.cultivation_stage);
   const xpProgress = xpForNext > 0 ? Math.min((profile.body_xp / xpForNext) * 100, 100) : 0;
-  const isBreakthroughReady = xpProgress >= 100 && profile.cultivation_stage <= 9;
+  // Allow breakthrough for stages 1-9 (練體) and show demo end for stage 10 (練氣一階)
+  const isBreakthroughReady = (xpProgress >= 100 && profile.cultivation_stage <= 9) || profile.cultivation_stage === 10;
 
   // Calculate inventory usage
   const slotsUsed = inventory.length;

@@ -27,7 +27,12 @@ const STAGE_NAMES: Record<number, string> = {
   7: "練體七階",
   8: "練體八階",
   9: "練體九階",
+  10: "練氣一階",
 };
+
+function getStageName(stage: number): string {
+  return STAGE_NAMES[stage] ?? (stage > 9 ? `練氣${stage - 9}階` : `練體${stage}階`);
+}
 
 export function BreakthroughDialog({
   currentStage,
@@ -35,18 +40,15 @@ export function BreakthroughDialog({
   onCancel,
 }: BreakthroughDialogProps) {
   const [phase, setPhase] = useState<
-    "confirm" | "breaking" | "success"
+    "confirm" | "breaking" | "success" | "demo_ended"
   >("confirm");
   const [open, setOpen] = useState(true);
 
   const nextStage = currentStage + 1;
-  const currentName = STAGE_NAMES[currentStage] ?? `練體${currentStage}階`;
-  const nextName =
-    nextStage > 9
-      ? "練體技能 (1-99)"
-      : STAGE_NAMES[nextStage] ?? `練體${nextStage}階`;
+  const currentName = getStageName(currentStage);
+  const nextName = getStageName(nextStage);
 
-  const isUnlockingSkillTrack = currentStage === 9;
+  const isEnteringQiRefining = currentStage === 9;
 
   useEffect(() => {
     if (phase === "success") {
@@ -60,8 +62,23 @@ export function BreakthroughDialog({
 
   const handleBreakthrough = async () => {
     setPhase("breaking");
-    await onConfirm();
-    // Brief delay for the animation
+    try {
+      const res = await fetch("/api/game/breakthrough", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.error === "demo_ended") {
+          await new Promise((r) => setTimeout(r, 800));
+          setPhase("demo_ended");
+          return;
+        }
+      }
+      await onConfirm();
+    } catch {
+      // ignore
+    }
     await new Promise((r) => setTimeout(r, 1200));
     setPhase("success");
   };
@@ -93,9 +110,9 @@ export function BreakthroughDialog({
                 突破修煉
               </DialogTitle>
               <DialogDescription>
-                {isUnlockingSkillTrack
-                  ? "練體九階已圓滿，突破後將解鎖練體技能樹 (1-99)，繼續深化修煉。"
-                  : `經驗已滿，可從 ${currentName} 突破至 ${nextName}。練體 1-9 階突破成功率 100%。`}
+                {isEnteringQiRefining
+                  ? "練體九階已圓滿，突破後將進入練氣境界。"
+                  : `經驗已滿，可從 ${currentName} 突破至 ${nextName}。突破成功率 100%。`}
               </DialogDescription>
             </DialogHeader>
 
@@ -158,10 +175,35 @@ export function BreakthroughDialog({
               突破成功！
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isUnlockingSkillTrack
-                ? "練體技能樹已解鎖"
+              {isEnteringQiRefining
+                ? "進入練氣境界"
                 : `已達 ${nextName}`}
             </p>
+          </div>
+        )}
+
+        {phase === "demo_ended" && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cinnabar/20">
+              <span className="font-heading text-2xl text-cinnabar">封</span>
+            </div>
+            <p className="mt-4 font-heading text-lg text-foreground">
+              Demo 版本已結束
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground text-center leading-relaxed">
+              恭喜你已達到 Demo 版本的修煉上限。<br />
+              正式版即將推出，開通需支付 20 USDT。
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setOpen(false);
+                onCancel();
+              }}
+            >
+              我知道了
+            </Button>
           </div>
         )}
       </DialogContent>

@@ -26,9 +26,17 @@ export async function POST(request: NextRequest) {
 
   const currentStage = profile.cultivation_stage;
 
-  // Must be in 練體 stages 1-9 to break through
-  if (currentStage > 9) {
-    return NextResponse.json({ error: "Already past 練體 stages. Use skill track." }, { status: 400 });
+  // Demo cap: cannot go past 練氣一階 (stage 10)
+  if (currentStage >= 10) {
+    return NextResponse.json({
+      error: "demo_ended",
+      message: "Demo 版本已結束。正式版即將推出，敬請期待！",
+    }, { status: 403 });
+  }
+
+  // Must be in valid stage range (1-9 練體, 10 練氣一階)
+  if (currentStage > 10) {
+    return NextResponse.json({ error: "Invalid stage" }, { status: 400 });
   }
 
   // Check if XP is sufficient for breakthrough
