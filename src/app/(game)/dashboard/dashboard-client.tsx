@@ -87,10 +87,18 @@ export function DashboardClient({
   const router = useRouter();
   const gameState = useGameState();
 
-  // Use global real-time values for body XP (updates while mining on other pages)
+  // Use global real-time values (updates while mining on other pages)
   const liveBodyXp = gameState.bodyXp ?? xpCurrent;
-  const liveXpProgress = xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress;
-  const liveBreakthroughReady = liveXpProgress >= 100 && profile.cultivation_stage <= 9;
+  const liveMiningLevel = gameState.miningLevel ?? miningSkill.level;
+  const liveMiningXp = gameState.miningXp ?? 0;
+  const liveMiningXpMax = gameState.miningXpMax ?? 100;
+  const liveInventory = gameState.inventory.length > 0 ? gameState.inventory : inventory;
+  const liveSlotsUsed = new Set(liveInventory.map((i) => i.item_type)).size;
+
+  // For stage 10 (demo cap), don't show breakthrough
+  const isDemoCap = profile.cultivation_stage >= 10;
+  const liveXpProgress = isDemoCap ? 100 : (xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress);
+  const liveBreakthroughReady = !isDemoCap && liveXpProgress >= 100 && profile.cultivation_stage <= 9;
 
   const [showOfflineRewards, setShowOfflineRewards] = useState(false);
   const [showBreakthrough, setShowBreakthrough] = useState(false);
@@ -175,7 +183,7 @@ export function DashboardClient({
   const quickActionsReveal = useScrollReveal(0.1);
 
   const depletedMastery = masteries.find((m) => m.mine_id !== null) ?? null;
-  const inventorySlotPercent = totalSlots > 0 ? (slotsUsed / totalSlots) * 100 : 0;
+  const inventorySlotPercent = totalSlots > 0 ? (liveSlotsUsed / totalSlots) * 100 : 0;
   const inventoryNearFull = inventorySlotPercent >= 80;
 
   return (
@@ -328,18 +336,18 @@ export function DashboardClient({
                     技能等級
                   </span>
                   <span className="font-heading text-4xl font-bold text-jade text-glow-jade tabular-nums">
-                    {miningSkill.level}
+                    {liveMiningLevel}
                   </span>
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>XP</span>
-                    <span className="tabular-nums">{formatNumber(miningSkill.xp)}</span>
+                    <span className="tabular-nums">{formatNumber(liveMiningXp)}</span>
                   </div>
                   <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted/40">
                     <div
                       className="h-full rounded-full bg-jade/80 transition-all duration-500"
-                      style={{ width: "35%" }}
+                      style={{ width: `${liveMiningXpMax > 0 ? Math.min((liveMiningXp / liveMiningXpMax) * 100, 100) : 0}%` }}
                     />
                   </div>
                 </div>
@@ -391,10 +399,10 @@ export function DashboardClient({
                     variant={inventoryNearFull ? "destructive" : "outline"}
                     className={`tabular-nums ${inventoryNearFull ? "" : "border-spirit-gold/30 text-spirit-gold bg-spirit-gold/5"}`}
                   >
-                    {slotsUsed}/{totalSlots}
+                    {liveSlotsUsed}/{totalSlots}
                   </Badge>
                 </div>
-                <CardDescription>{slotsUsed} / {totalSlots} 格已使用</CardDescription>
+                <CardDescription>{liveSlotsUsed} / {totalSlots} 格已使用</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
