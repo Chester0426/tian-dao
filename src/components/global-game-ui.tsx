@@ -20,7 +20,7 @@ export function GlobalGameUI() {
     <>
       {/* === System 1: Global floating notifications === */}
       {notifications.length > 0 && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col-reverse items-center gap-1 pointer-events-none">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col-reverse items-center gap-1.5 pointer-events-none">
           {notifications.map((n) => (
             <div
               key={n.id}
