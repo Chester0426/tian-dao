@@ -54,6 +54,13 @@ export interface GameState {
   inventory: InventoryItem[];
 }
 
+export interface PendingOfflineRewards {
+  minutes_away: number;
+  total_actions: number;
+  drops: Record<string, number>;
+  xp_gained: { mining: number; mastery: number; body: number };
+}
+
 interface GameContextValue extends GameState {
   startMining: (mine: MineData) => void;
   stopMining: () => void;
@@ -61,6 +68,8 @@ interface GameContextValue extends GameState {
   resumeLocalMining: () => void;
   updateInventory: (updater: (prev: InventoryItem[]) => InventoryItem[]) => void;
   resumeAfterOfflineRewards: () => void;
+  pendingVisibilityRewards: PendingOfflineRewards | null;
+  dismissVisibilityRewards: () => void;
 }
 
 const GameContext = createContext<GameContextValue>(null!);
@@ -280,69 +289,81 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
   }, [isMining, doLocalMineAction]);
 
-  // Visibility change — pause when hidden, calc offline rewards when visible
+  // Visibility change — pause when hidden, show rewards dialog when visible
   const hiddenAtRef = useRef<number | null>(null);
+  const [pendingVisibilityRewards, setPendingVisibilityRewards] = useState<PendingOfflineRewards | null>(null);
+
+  const dismissVisibilityRewards = useCallback(() => {
+    if (!pendingVisibilityRewards) return;
+    const rewards = pendingVisibilityRewards;
+    const mine = activeMineRef.current;
+
+    // Apply rewards locally
+    for (const [itemType, qty] of Object.entries(rewards.drops)) {
+      setInventory((prev) => {
+        const existing = prev.find((it) => it.item_type === itemType);
+        if (existing) return prev.map((it) => it.item_type === itemType ? { ...it, quantity: it.quantity + qty } : it);
+        return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: itemType, quantity: qty, created_at: "" }];
+      });
+    }
+
+    setMiningXp((prev) => prev + rewards.xp_gained.mining);
+    setBodyXp((prev) => prev + rewards.xp_gained.body);
+
+    // Sync to server
+    if (mine) {
+      const p = pendingRef.current;
+      p.actions += rewards.total_actions;
+      p.elapsed_ms += rewards.minutes_away * 60_000;
+      for (const [k, v] of Object.entries(rewards.drops)) p.drops[k] = (p.drops[k] ?? 0) + v;
+      p.xp.mining += rewards.xp_gained.mining;
+      p.xp.mastery += rewards.xp_gained.mastery;
+      p.xp.body += rewards.xp_gained.body;
+      syncToServer();
+    }
+
+    setPendingVisibilityRewards(null);
+    pausedRef.current = false;
+    accumulatedRef.current = 0;
+    lastTickRef.current = Date.now();
+  }, [pendingVisibilityRewards, syncToServer]);
 
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
-        // User left the tab — record time and sync current progress
         hiddenAtRef.current = Date.now();
-        if (isMiningRef.current) {
-          syncToServer();
-        }
+        if (isMiningRef.current) syncToServer();
       } else if (hiddenAtRef.current && isMiningRef.current && activeMineRef.current) {
-        // User returned — calculate offline rewards for time away
         const awayMs = Date.now() - hiddenAtRef.current;
         const awayMinutes = Math.floor(awayMs / 60_000);
         hiddenAtRef.current = null;
 
         if (awayMinutes >= 1) {
-          // Pause local mining, show offline rewards
           pausedRef.current = true;
           setActionProgress(0);
 
-          // Cap at 12 hours
           const effectiveMinutes = Math.min(awayMinutes, 720);
-          const totalActions = effectiveMinutes * 20; // 1 per 3s = 20/min
+          const totalActions = effectiveMinutes * 20;
           const mine = activeMineRef.current;
 
-          // Apply rewards locally
           const drops: Record<string, number> = {};
           for (let i = 0; i < totalActions; i++) {
             const item = rollLoot(mine.slug);
             drops[item] = (drops[item] ?? 0) + 1;
           }
 
-          for (const [itemType, qty] of Object.entries(drops)) {
-            setInventory((prev) => {
-              const existing = prev.find((it) => it.item_type === itemType);
-              if (existing) return prev.map((it) => it.item_type === itemType ? { ...it, quantity: it.quantity + qty } : it);
-              return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: itemType, quantity: qty, created_at: "" }];
-            });
-          }
-
-          const xpMining = totalActions * mine.xp_mining;
-          const xpMastery = totalActions * mine.xp_mastery;
-          const xpBody = totalActions * mine.xp_body;
-
-          setMiningXp((prev) => prev + xpMining);
-          setBodyXp((prev) => prev + xpBody);
-
-          // Sync to server
-          const p = pendingRef.current;
-          p.actions += totalActions;
-          p.elapsed_ms += effectiveMinutes * 60_000;
-          for (const [k, v] of Object.entries(drops)) p.drops[k] = (p.drops[k] ?? 0) + v;
-          p.xp.mining += xpMining;
-          p.xp.mastery += xpMastery;
-          p.xp.body += xpBody;
-          syncToServer();
-
-          // Resume after a short delay to let UI update
-          setTimeout(() => { pausedRef.current = false; }, 500);
+          // Show dialog — don't apply yet
+          setPendingVisibilityRewards({
+            minutes_away: effectiveMinutes,
+            total_actions: totalActions,
+            drops,
+            xp_gained: {
+              mining: totalActions * mine.xp_mining,
+              mastery: totalActions * mine.xp_mastery,
+              body: totalActions * mine.xp_body,
+            },
+          });
         } else {
-          // Less than 1 minute — just resume normally
           accumulatedRef.current = 0;
           lastTickRef.current = Date.now();
         }
@@ -377,6 +398,8 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
     bodyStage, bodyXp, inventory,
     startMining, stopMining, pauseLocalMining, resumeLocalMining,
     updateInventory: setInventory,
+    pendingVisibilityRewards,
+    dismissVisibilityRewards,
     resumeAfterOfflineRewards: () => {
       if (initialStatus.isMining && activeMineRef.current) {
         setIsMining(true);
