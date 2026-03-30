@@ -401,8 +401,17 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
     pendingVisibilityRewards,
     dismissVisibilityRewards,
     resumeAfterOfflineRewards: () => {
+      console.log("[Provider] resumeAfterOfflineRewards called", { initialIsMining: initialStatus.isMining, activeMine: activeMineRef.current?.id ?? "null" });
       if (initialStatus.isMining && activeMineRef.current) {
         setIsMining(true);
+      } else if (initialStatus.isMining) {
+        // activeMineRef might not be set yet — try from initialState
+        if (initialState?.activeMine) {
+          activeMineRef.current = initialState.activeMine;
+          setActiveMineId(initialState.activeMine.id);
+          setIsMining(true);
+          console.log("[Provider] recovered mine from initialState", initialState.activeMine.id);
+        }
       }
     },
   };
