@@ -129,6 +129,7 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
   const [masteryXps, setMasteryXps] = useState(initialState?.masteryXps ?? {});
   const [masteryXpMaxs, setMasteryXpMaxs] = useState(initialState?.masteryXpMaxs ?? {});
   const [bodyStage] = useState(initialState?.bodyStage ?? 1);
+  const bodyStageRef = useRef(bodyStage);
   const [bodyXp, setBodyXp] = useState(initialState?.bodyXp ?? 0);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialState?.inventory ?? []);
 
@@ -247,7 +248,13 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
     });
 
     // Update body XP
-    setBodyXp((prev) => prev + mine.xp_body);
+    // Cap body XP at breakthrough threshold for stages 1-10
+    setBodyXp((prev) => {
+      const stage = bodyStageRef.current;
+      if (stage >= 10) return prev; // Demo cap — no more body XP
+      const maxXp = melvorXpForLevel(stage + 1) - melvorXpForLevel(stage);
+      return Math.min(prev + mine.xp_body, maxXp);
+    });
 
     // Accumulate sync data
     const p = pendingRef.current;
