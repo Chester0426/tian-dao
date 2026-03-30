@@ -60,6 +60,7 @@ interface GameContextValue extends GameState {
   pauseLocalMining: () => void;
   resumeLocalMining: () => void;
   updateInventory: (updater: (prev: InventoryItem[]) => InventoryItem[]) => void;
+  resumeAfterOfflineRewards: () => void;
 }
 
 const GameContext = createContext<GameContextValue>(null!);
@@ -88,6 +89,7 @@ export function useMining() {
 interface ProviderProps {
   children: React.ReactNode;
   initialStatus: { isMining: boolean; mineId: string | null };
+  waitForOfflineRewards?: boolean; // If true, don't auto-start mining until released
   initialState?: {
     miningLevel?: number;
     miningXp?: number;
@@ -102,10 +104,12 @@ interface ProviderProps {
   };
 }
 
-export function MiningProvider({ children, initialStatus, initialState }: ProviderProps) {
+export function MiningProvider({ children, initialStatus, initialState, waitForOfflineRewards }: ProviderProps) {
   // If resuming mining, set the active mine ref immediately
   const initialMineRef = initialState?.activeMine && initialStatus.isMining ? initialState.activeMine : null;
-  const [isMining, setIsMining] = useState(initialStatus.isMining);
+  // Don't auto-start if waiting for offline rewards
+  const shouldAutoStart = initialStatus.isMining && !waitForOfflineRewards;
+  const [isMining, setIsMining] = useState(shouldAutoStart);
   const [activeMineId, setActiveMineId] = useState<string | null>(initialStatus.mineId);
   const [actionProgress, setActionProgress] = useState(0);
 
@@ -300,6 +304,11 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     bodyStage, bodyXp, inventory,
     startMining, stopMining, pauseLocalMining, resumeLocalMining,
     updateInventory: setInventory,
+    resumeAfterOfflineRewards: () => {
+      if (initialStatus.isMining && activeMineRef.current) {
+        setIsMining(true);
+      }
+    },
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
