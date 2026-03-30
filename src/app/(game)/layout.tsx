@@ -87,7 +87,7 @@ export default async function GameGroupLayout({
 
   return (
     <SingleTabGuard>
-      <MiningProvider initialStatus={miningStatus} initialState={initialState}>
+      <MiningProvider initialStatus={miningStatus} initialState={initialState} waitForOfflineRewards={miningStatus.isMining}>
         <OfflineRewardsChecker hasActiveSession={miningStatus.isMining} />
         <GameLayout>{children}</GameLayout>
       </MiningProvider>

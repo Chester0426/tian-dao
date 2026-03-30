@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useGameState } from "@/components/mining-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +24,7 @@ interface OfflineRewardsData {
 }
 
 export function OfflineRewardsChecker({ hasActiveSession }: { hasActiveSession: boolean }) {
+  const { resumeAfterOfflineRewards } = useGameState();
   const [rewards, setRewards] = useState<OfflineRewardsData | null>(null);
   const [checked, setChecked] = useState(false);
 
@@ -33,6 +35,7 @@ export function OfflineRewardsChecker({ hasActiveSession }: { hasActiveSession: 
     const lastCheck = sessionStorage.getItem("offline-rewards-checked");
     if (lastCheck) {
       setChecked(true);
+      resumeAfterOfflineRewards(); // Already checked this session, resume mining
       return;
     }
 
@@ -48,8 +51,11 @@ export function OfflineRewardsChecker({ hasActiveSession }: { hasActiveSession: 
       .then((data) => {
         if (data && data.total_actions > 0) {
           setRewards(data);
+          // Don't resume yet — user must click "領取完畢"
+        } else {
+          // No offline rewards — resume mining immediately
+          resumeAfterOfflineRewards();
         }
-        // Mark as checked for this browser session
         sessionStorage.setItem("offline-rewards-checked", Date.now().toString());
         setChecked(true);
       })
@@ -115,7 +121,7 @@ export function OfflineRewardsChecker({ hasActiveSession }: { hasActiveSession: 
             </div>
           </div>
 
-          <Button className="w-full seal-glow font-heading" onClick={() => setRewards(null)}>
+          <Button className="w-full seal-glow font-heading" onClick={() => { setRewards(null); resumeAfterOfflineRewards(); }}>
             領取完畢
           </Button>
         </div>
