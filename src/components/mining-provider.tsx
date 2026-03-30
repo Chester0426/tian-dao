@@ -280,6 +280,79 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
   }, [isMining, doLocalMineAction]);
 
+  // Visibility change — pause when hidden, calc offline rewards when visible
+  const hiddenAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        // User left the tab — record time and sync current progress
+        hiddenAtRef.current = Date.now();
+        if (isMiningRef.current) {
+          syncToServer();
+        }
+      } else if (hiddenAtRef.current && isMiningRef.current && activeMineRef.current) {
+        // User returned — calculate offline rewards for time away
+        const awayMs = Date.now() - hiddenAtRef.current;
+        const awayMinutes = Math.floor(awayMs / 60_000);
+        hiddenAtRef.current = null;
+
+        if (awayMinutes >= 1) {
+          // Pause local mining, show offline rewards
+          pausedRef.current = true;
+          setActionProgress(0);
+
+          // Cap at 12 hours
+          const effectiveMinutes = Math.min(awayMinutes, 720);
+          const totalActions = effectiveMinutes * 20; // 1 per 3s = 20/min
+          const mine = activeMineRef.current;
+
+          // Apply rewards locally
+          const drops: Record<string, number> = {};
+          for (let i = 0; i < totalActions; i++) {
+            const item = rollLoot(mine.slug);
+            drops[item] = (drops[item] ?? 0) + 1;
+          }
+
+          for (const [itemType, qty] of Object.entries(drops)) {
+            setInventory((prev) => {
+              const existing = prev.find((it) => it.item_type === itemType);
+              if (existing) return prev.map((it) => it.item_type === itemType ? { ...it, quantity: it.quantity + qty } : it);
+              return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: itemType, quantity: qty, created_at: "" }];
+            });
+          }
+
+          const xpMining = totalActions * mine.xp_mining;
+          const xpMastery = totalActions * mine.xp_mastery;
+          const xpBody = totalActions * mine.xp_body;
+
+          setMiningXp((prev) => prev + xpMining);
+          setBodyXp((prev) => prev + xpBody);
+
+          // Sync to server
+          const p = pendingRef.current;
+          p.actions += totalActions;
+          p.elapsed_ms += effectiveMinutes * 60_000;
+          for (const [k, v] of Object.entries(drops)) p.drops[k] = (p.drops[k] ?? 0) + v;
+          p.xp.mining += xpMining;
+          p.xp.mastery += xpMastery;
+          p.xp.body += xpBody;
+          syncToServer();
+
+          // Resume after a short delay to let UI update
+          setTimeout(() => { pausedRef.current = false; }, 500);
+        } else {
+          // Less than 1 minute — just resume normally
+          accumulatedRef.current = 0;
+          lastTickRef.current = Date.now();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [syncToServer]);
+
   const startMining = useCallback((mine: MineData) => {
     activeMineRef.current = mine;
     setActiveMineId(mine.id);
