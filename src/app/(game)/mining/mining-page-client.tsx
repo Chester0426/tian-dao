@@ -124,45 +124,7 @@ export function MiningPageClient({
     inventory, startMining: globalStartMine, stopMining: globalStop,
   } = gameState;
 
-  const [notifications, setNotifications] = useState<DropNotification[]>([]);
-
   const firedActivateRef = useRef(false);
-
-  // Clean old notifications
-  useEffect(() => {
-    if (notifications.length === 0) return;
-    const timer = setTimeout(() => {
-      setNotifications((prev) => prev.filter((n) => Date.now() - n.timestamp < 2500));
-    }, 2600);
-    return () => clearTimeout(timer);
-  }, [notifications]);
-
-  // Watch inventory changes from provider → show notifications on mining page
-  const prevInventoryRef = useRef(inventory);
-  useEffect(() => {
-    if (!isMining || !activeMine) return;
-    const prev = prevInventoryRef.current;
-    // Detect new drops by comparing inventory changes
-    for (const item of inventory) {
-      const prevItem = prev.find((i) => i.item_type === item.item_type);
-      const prevQty = prevItem?.quantity ?? 0;
-      if (item.quantity > prevQty) {
-        const added = item.quantity - prevQty;
-        const info = ITEM_DISPLAY[item.item_type];
-        const mine = mines.find((m) => m.id === activeMine);
-        setNotifications((n) => [...n.slice(-8),
-          { id: Date.now() + Math.random(), type: "drop" as const, icon: info?.icon ?? "○", label: info?.name ?? item.item_type, amount: added, total: item.quantity, color: info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground", timestamp: Date.now() },
-          ...(mine ? [
-            { id: Date.now() + Math.random() + 1, type: "xp" as const, icon: "⛏", label: "挖礦經驗", amount: mine.xp_mining, color: "text-blue-400", timestamp: Date.now() },
-            { id: Date.now() + Math.random() + 2, type: "xp" as const, icon: "🏆", label: "精通經驗", amount: mine.xp_mastery, color: "text-cinnabar", timestamp: Date.now() },
-            { id: Date.now() + Math.random() + 3, type: "xp" as const, icon: "💪", label: "練體經驗", amount: mine.xp_body, color: "text-spirit-gold", timestamp: Date.now() },
-          ] : []),
-        ]);
-        break; // One notification per tick
-      }
-    }
-    prevInventoryRef.current = inventory;
-  }, [inventory, isMining, activeMine, mines]);
 
   // Select mine and start mining
   const handleSelectMine = (mine: MineInfo) => {
@@ -351,8 +313,7 @@ export function MiningPageClient({
         </div>
       </div>
 
-      {/* Floating notifications */}
-      <FloatingNotifications items={notifications} />
+      {/* Notifications handled globally by GlobalGameUI in layout */}
     </div>
   );
 }

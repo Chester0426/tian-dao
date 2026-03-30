@@ -3,8 +3,7 @@ export const dynamic = "force-dynamic";
 import { GameLayout } from "@/components/game-layout";
 import { MiningProvider } from "@/components/mining-provider";
 import { SingleTabGuard } from "@/components/single-tab-guard";
-import { OfflineRewardsChecker } from "@/components/offline-rewards-checker";
-import { VisibilityRewardsDialog } from "@/components/visibility-rewards-dialog";
+import { GlobalGameUI } from "@/components/global-game-ui";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 import type { MiningSkill, MineMastery, InventoryItem, Profile } from "@/lib/types";
@@ -89,8 +88,7 @@ export default async function GameGroupLayout({
   return (
     <SingleTabGuard>
       <MiningProvider initialStatus={miningStatus} initialState={initialState}>
-        <OfflineRewardsChecker hasActiveSession={miningStatus.isMining} />
-        <VisibilityRewardsDialog />
+        <GlobalGameUI />
         <GameLayout>{children}</GameLayout>
       </MiningProvider>
     </SingleTabGuard>
