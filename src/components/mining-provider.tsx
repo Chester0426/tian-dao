@@ -98,7 +98,6 @@ export function useMining() {
 interface ProviderProps {
   children: React.ReactNode;
   initialStatus: { isMining: boolean; mineId: string | null };
-  waitForOfflineRewards?: boolean; // If true, don't auto-start mining until released
   initialState?: {
     miningLevel?: number;
     miningXp?: number;
@@ -113,12 +112,11 @@ interface ProviderProps {
   };
 }
 
-export function MiningProvider({ children, initialStatus, initialState, waitForOfflineRewards }: ProviderProps) {
+export function MiningProvider({ children, initialStatus, initialState }: ProviderProps) {
   // If resuming mining, set the active mine ref immediately
   const initialMineRef = initialState?.activeMine && initialStatus.isMining ? initialState.activeMine : null;
-  // Don't auto-start if waiting for offline rewards
-  const shouldAutoStart = initialStatus.isMining && !waitForOfflineRewards;
-  const [isMining, setIsMining] = useState(shouldAutoStart);
+  // Auto-start if there was an active session
+  const [isMining, setIsMining] = useState(initialStatus.isMining && !!initialMineRef);
   const [activeMineId, setActiveMineId] = useState<string | null>(initialStatus.mineId);
   const [actionProgress, setActionProgress] = useState(0);
 
@@ -408,18 +406,7 @@ export function MiningProvider({ children, initialStatus, initialState, waitForO
     pendingVisibilityRewards,
     dismissVisibilityRewards,
     resumeAfterOfflineRewards: () => {
-      console.log("[Provider] resumeAfterOfflineRewards called", { initialIsMining: initialStatus.isMining, activeMine: activeMineRef.current?.id ?? "null" });
-      if (initialStatus.isMining && activeMineRef.current) {
-        setIsMining(true);
-      } else if (initialStatus.isMining) {
-        // activeMineRef might not be set yet — try from initialState
-        if (initialState?.activeMine) {
-          activeMineRef.current = initialState.activeMine;
-          setActiveMineId(initialState.activeMine.id);
-          setIsMining(true);
-          console.log("[Provider] recovered mine from initialState", initialState.activeMine.id);
-        }
-      }
+      // No-op: mining auto-starts from initialStatus now
     },
   };
 
