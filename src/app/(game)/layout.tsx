@@ -4,6 +4,7 @@ import { GameLayout } from "@/components/game-layout";
 import { MiningProvider } from "@/components/mining-provider";
 import { SingleTabGuard } from "@/components/single-tab-guard";
 import { OfflineRewardsChecker } from "@/components/offline-rewards-checker";
+import { VisibilityRewardsDialog } from "@/components/visibility-rewards-dialog";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 import type { MiningSkill, MineMastery, InventoryItem, Profile } from "@/lib/types";
@@ -89,6 +90,7 @@ export default async function GameGroupLayout({
     <SingleTabGuard>
       <MiningProvider initialStatus={miningStatus} initialState={initialState} waitForOfflineRewards={miningStatus.isMining}>
         <OfflineRewardsChecker hasActiveSession={miningStatus.isMining} />
+        <VisibilityRewardsDialog />
         <GameLayout>{children}</GameLayout>
       </MiningProvider>
     </SingleTabGuard>
