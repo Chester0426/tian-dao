@@ -242,7 +242,7 @@ export function DashboardClient({
                     <CardDescription>
                       {isPostBodyTempering
                         ? "練體已圓滿，技能樹持續深化中"
-                        : "身體深化 — 透過採礦與修煉獲得經驗"}
+                        : "身體深化 — 透過挖礦與修煉獲得經驗"}
                     </CardDescription>
                   </div>
                   {liveBreakthroughReady && (
@@ -326,8 +326,8 @@ export function DashboardClient({
             {/* === Mining Skill Card — slide from right === */}
             <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" style={slideFromRight(2)}>
               <CardHeader>
-                <CardTitle className="font-heading text-lg">採礦技能</CardTitle>
-                <CardDescription>採礦等級與精通度</CardDescription>
+                <CardTitle className="font-heading text-lg">挖礦技能</CardTitle>
+                <CardDescription>挖礦等級與精通度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Mining level — large centered display */}
@@ -372,7 +372,7 @@ export function DashboardClient({
                   )}
                   {!depletedMastery && (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      開始採礦以獲得精通度
+                      開始挖礦以獲得精通度
                     </p>
                   )}
                 </div>
@@ -448,7 +448,7 @@ export function DashboardClient({
                     })}
                   >
                     <span className="text-jade">⛏</span>
-                    採礦 — 枯竭礦脈
+                    挖礦 — 枯竭礦脈
                   </Link>
 
                   {liveBreakthroughReady && (
@@ -471,7 +471,7 @@ export function DashboardClient({
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        繼續採礦以提升練體技能等級 (1-99)
+                        繼續挖礦以提升練體技能等級 (1-99)
                       </p>
                     </div>
                   )}

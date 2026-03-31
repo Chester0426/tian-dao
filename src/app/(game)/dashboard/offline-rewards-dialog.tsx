@@ -148,7 +148,7 @@ export function OfflineRewardsDialog({
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-center">
-              <div className="text-xs text-muted-foreground">採礦技能</div>
+              <div className="text-xs text-muted-foreground">挖礦技能</div>
               <div className="mt-1 font-heading text-sm font-bold text-jade tabular-nums">
                 +{formatNumber(rewards.xpGained.mining)}
               </div>

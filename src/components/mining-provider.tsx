@@ -303,12 +303,14 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     p.xp.mastery += mine.xp_mastery;
     p.xp.body += mine.xp_body;
 
-    // === SYSTEM 1: Global notifications (staggered 0.5s apart) ===
-    const itemInfo = ITEM_NAMES[droppedItem];
-    addNotification(itemInfo?.icon ?? "○", itemInfo?.name ?? droppedItem, qty, itemInfo?.color ?? "text-foreground", newTotal);
-    setTimeout(() => addNotification("⛏", "挖礦經驗", mine.xp_mining, "text-blue-400"), 500);
-    setTimeout(() => addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar"), 1000);
-    setTimeout(() => addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold"), 1500);
+    // === SYSTEM 1: Global notifications (only when tab is visible) ===
+    if (!document.hidden) {
+      const itemInfo = ITEM_NAMES[droppedItem];
+      addNotification(itemInfo?.icon ?? "○", itemInfo?.name ?? droppedItem, qty, itemInfo?.color ?? "text-foreground", newTotal);
+      setTimeout(() => { if (!document.hidden) addNotification("⛏", "挖礦經驗", mine.xp_mining, "text-blue-400"); }, 500);
+      setTimeout(() => { if (!document.hidden) addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar"); }, 1000);
+      setTimeout(() => { if (!document.hidden) addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold"); }, 1500);
+    }
   }, [addNotification]);
 
   // --- Mining tick ---
@@ -419,6 +421,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         const awayMs = Date.now() - hiddenAtRef.current;
         const awayMinutes = Math.floor(awayMs / 60_000);
         hiddenAtRef.current = null;
+        // Clear any stale notifications from before tab was hidden
+        setNotifications([]);
 
         if (awayMinutes >= 1) {
           const rewards = calculateOfflineRewards(awayMinutes, activeMineRef.current);
