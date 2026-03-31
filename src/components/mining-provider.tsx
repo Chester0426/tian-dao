@@ -349,6 +349,14 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       const now = Date.now();
       const delta = now - lastTickRef.current;
       lastTickRef.current = now;
+
+      // If delta > 200ms, tab was in background (throttled).
+      // Reset instead of processing accumulated time — prevents burst of actions.
+      if (delta > 200) {
+        accumulatedRef.current = 0;
+        return;
+      }
+
       accumulatedRef.current += delta;
 
       if (accumulatedRef.current >= 3000) {
