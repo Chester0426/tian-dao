@@ -39,8 +39,8 @@ export function GlobalGameUI() {
       )}
 
       {/* === System 2: Unified offline rewards dialog === */}
-      <Dialog open={!!pendingOfflineRewards} onOpenChange={() => dismissOfflineRewards()}>
-        <DialogContent className="scroll-surface sm:max-w-md">
+      <Dialog open={!!pendingOfflineRewards} onOpenChange={() => {}}>
+        <DialogContent className="scroll-surface sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle className="font-heading text-xl">離線收益</DialogTitle>
           </DialogHeader>
