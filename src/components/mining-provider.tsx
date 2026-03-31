@@ -317,7 +317,6 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       // XP notifications
       addNotification("⛏", "挖礦經驗", mine.xp_mining, "text-blue-400");
       if (mine.xp_mastery > 0) {
-        addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar");
       }
       if (bodyGainedXp && mine.xp_body > 0) {
         addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold");
