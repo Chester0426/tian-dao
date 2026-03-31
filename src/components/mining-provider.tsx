@@ -261,10 +261,16 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: droppedItem, quantity: qty, created_at: "" }];
     });
 
+    // Track level-ups for notifications
+    let miningLeveledUp = false;
+    let masteryLeveledUp = false;
+    const bodyGainedXp = bodyStageRef.current < 10;
+
     // Update mining XP
     setMiningXp((prev) => {
       const newXp = prev + mine.xp_mining;
       if (newXp >= miningXpMaxRef.current) {
+        miningLeveledUp = true;
         setMiningLevel((l) => Math.min(l + 1, 99));
         const nextLevel = miningLevelRef.current + 1;
         setMiningXpMax(melvorXpForLevel(nextLevel + 1) - melvorXpForLevel(nextLevel));
@@ -278,6 +284,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       const cur = (prev[mine.id] ?? 0) + mine.xp_mastery;
       const max = masteryXpMaxsRef.current[mine.id] ?? 83;
       if (cur >= max) {
+        masteryLeveledUp = true;
         setMasteryLevels((ml) => ({ ...ml, [mine.id]: (ml[mine.id] ?? 1) + 1 }));
         const newLvl = (masteryLevelsRef.current[mine.id] ?? 1) + 1;
         setMasteryXpMaxs((mx) => ({ ...mx, [mine.id]: melvorXpForLevel(newLvl + 1) - melvorXpForLevel(newLvl) }));
@@ -303,13 +310,26 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     p.xp.mastery += mine.xp_mastery;
     p.xp.body += mine.xp_body;
 
-    // === SYSTEM 1: Global notifications (only when tab is visible, all at once) ===
+    // === SYSTEM 1: Dynamic notifications (only meaningful ones) ===
     if (!document.hidden) {
       const itemInfo = ITEM_NAMES[droppedItem];
+      // Always show drop
       addNotification(itemInfo?.icon ?? "○", itemInfo?.name ?? droppedItem, qty, itemInfo?.color ?? "text-foreground", newTotal);
+      // XP notifications
       addNotification("⛏", "挖礦經驗", mine.xp_mining, "text-blue-400");
-      addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar");
-      addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold");
+      if (mine.xp_mastery > 0) {
+        addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar");
+      }
+      if (bodyGainedXp && mine.xp_body > 0) {
+        addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold");
+      }
+      // Level-up notifications
+      if (miningLeveledUp) {
+        addNotification("🎉", `挖礦升級 Lv.${miningLevelRef.current + 1}`, 1, "text-blue-400");
+      }
+      if (masteryLeveledUp) {
+        addNotification("🎉", `精通升級 Lv.${(masteryLevelsRef.current[mine.id] ?? 1) + 1}`, 1, "text-cinnabar");
+      }
     }
   }, [addNotification]);
 
