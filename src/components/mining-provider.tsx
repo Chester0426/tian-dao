@@ -234,10 +234,9 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
   // --- Add notification helper ---
   const addNotification = useCallback((icon: string, label: string, amount: number, color: string, total?: number) => {
-    notifIdRef.current += 1;
-    setNotifications((prev) => [...prev.slice(-10), {
-      id: notifIdRef.current, icon, label, amount, total, color, timestamp: Date.now(),
-    }]);
+    const id = ++notifIdRef.current * 1000 + Math.floor(Math.random() * 1000);
+    const timestamp = Date.now();
+    setNotifications((prev) => [...prev.slice(-10), { id, icon, label, amount, total, color, timestamp }]);
   }, []);
 
   // --- Local mine action (system 1: produces notifications) ---
