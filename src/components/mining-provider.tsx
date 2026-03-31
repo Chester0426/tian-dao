@@ -303,13 +303,13 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     p.xp.mastery += mine.xp_mastery;
     p.xp.body += mine.xp_body;
 
-    // === SYSTEM 1: Global notifications (only when tab is visible) ===
+    // === SYSTEM 1: Global notifications (only when tab is visible, all at once) ===
     if (!document.hidden) {
       const itemInfo = ITEM_NAMES[droppedItem];
       addNotification(itemInfo?.icon ?? "○", itemInfo?.name ?? droppedItem, qty, itemInfo?.color ?? "text-foreground", newTotal);
-      setTimeout(() => { if (!document.hidden) addNotification("⛏", "挖礦經驗", mine.xp_mining, "text-blue-400"); }, 500);
-      setTimeout(() => { if (!document.hidden) addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar"); }, 1000);
-      setTimeout(() => { if (!document.hidden) addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold"); }, 1500);
+      addNotification("⛏", "挖礦經驗", mine.xp_mining, "text-blue-400");
+      addNotification("🏆", "精通經驗", mine.xp_mastery, "text-cinnabar");
+      addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold");
     }
   }, [addNotification]);
 
