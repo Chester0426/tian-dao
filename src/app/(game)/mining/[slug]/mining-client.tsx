@@ -610,8 +610,6 @@ export function MiningClient({
   const stateRef = useRef(state);
   stateRef.current = state; // keep ref in sync with latest state
 
-  const [showOfflineRewards, setShowOfflineRewards] = useState(!!offlineRewards);
-  const [claimingRewards, setClaimingRewards] = useState(false);
   const [dropNotifications, setDropNotifications] = useState<DropNotification[]>([]);
   const dropIdRef = useRef(0);
 
@@ -624,35 +622,7 @@ export function MiningClient({
     return () => clearTimeout(timer);
   }, [dropNotifications]);
 
-  const handleClaimOfflineRewards = async () => {
-    if (isDemo) {
-      setShowOfflineRewards(false);
-      return;
-    }
-    setClaimingRewards(true);
-    try {
-      const res = await fetch("/api/game/offline-rewards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Update local state with server response
-        if (data.levels) {
-          setState((prev) => ({
-            ...prev,
-            miningSkillLevel: data.levels.mining ?? prev.miningSkillLevel,
-            masteryLevel: data.levels.mastery ?? prev.masteryLevel,
-          }));
-        }
-      }
-    } catch {
-      // ignore — rewards are best-effort
-    } finally {
-      setClaimingRewards(false);
-      setShowOfflineRewards(false);
-    }
-  };
+  // Offline rewards handled globally by GlobalGameUI
 
   // Data loaded from server — mark as ready, auto-start if returning
   useEffect(() => {
@@ -1179,65 +1149,7 @@ export function MiningClient({
       {/* Floating notifications — drops + XP */}
       <FloatingNotifications drops={dropNotifications} xpGains={xpFloats} />
 
-      {/* Offline rewards dialog */}
-      {showOfflineRewards && offlineRewards && (
-        <Dialog open={showOfflineRewards} onOpenChange={setShowOfflineRewards}>
-          <DialogContent className="scroll-surface sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-heading text-xl">離線收益</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <p className="text-sm text-muted-foreground">
-                你離開了 <span className="text-foreground font-medium">{offlineRewards.minutes_away >= 60 ? `${Math.floor(offlineRewards.minutes_away / 60)} 小時 ${offlineRewards.minutes_away % 60} 分鐘` : `${offlineRewards.minutes_away} 分鐘`}</span>，期間共挖礦 <span className="text-foreground font-medium tabular-nums">{offlineRewards.total_actions}</span> 次
-              </p>
-
-              {offlineRewards.drops.length > 0 && (
-                <div className="rounded-lg bg-muted/30 p-3 space-y-2">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">獲得物品</h3>
-                  <div className="space-y-1.5">
-                    {offlineRewards.drops.map((drop) => {
-                      const info = ITEM_DISPLAY[drop.item_type];
-                      return (
-                        <div key={drop.item_type} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <ItemIcon itemType={drop.item_type} size="sm" />
-                            <span>{info?.name ?? drop.item_type}</span>
-                          </div>
-                          <span className="tabular-nums text-muted-foreground">x{drop.quantity.toLocaleString()}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">經驗獲得</h3>
-                <div className="flex justify-between text-sm">
-                  <span className="text-jade">挖礦</span>
-                  <span className="tabular-nums">+{offlineRewards.xp_gained.mining.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-cinnabar">精通</span>
-                  <span className="tabular-nums">+{offlineRewards.xp_gained.mastery.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-spirit-gold">練體</span>
-                  <span className="tabular-nums">+{offlineRewards.xp_gained.body.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <Button
-                className="w-full seal-glow font-heading"
-                onClick={handleClaimOfflineRewards}
-                disabled={claimingRewards}
-              >
-                {claimingRewards ? "領取中..." : "領取並繼續修煉"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Offline rewards handled globally by GlobalGameUI */}
     </div>
   );
 }
