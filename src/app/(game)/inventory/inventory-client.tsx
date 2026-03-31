@@ -179,18 +179,16 @@ export function InventoryClient({
 
                       return (
                         <Tooltip key={item.item_type}>
-                          <TooltipTrigger>
-                            <button
-                              onClick={sacrificeMode ? () => toggleItem(item) : undefined}
-                              disabled={!sacrificeMode}
-                              className={`flex w-full flex-col items-center gap-1 rounded-lg border p-3 transition-all ${
-                                sacrificeMode
-                                  ? isSelected
-                                    ? "border-cinnabar bg-cinnabar-dim/40 scale-105 shadow-md"
-                                    : "border-border/50 bg-card/60 hover:border-cinnabar/40 hover:bg-card cursor-pointer"
-                                  : "border-border/50 bg-card/60"
-                              }`}
-                            >
+                          <TooltipTrigger
+                            onClick={sacrificeMode ? () => toggleItem(item) : undefined}
+                            className={`flex w-full flex-col items-center gap-1 rounded-lg border p-3 transition-all ${
+                              sacrificeMode
+                                ? isSelected
+                                  ? "border-cinnabar bg-cinnabar-dim/40 scale-105 shadow-md"
+                                  : "border-border/50 bg-card/60 hover:border-cinnabar/40 hover:bg-card cursor-pointer"
+                                : "border-border/50 bg-card/60"
+                            }`}
+                          >
                               <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
                                 {display?.icon ?? "○"}
                               </span>
@@ -200,7 +198,6 @@ export function InventoryClient({
                               {isSelected && (
                                 <span className="text-[9px] text-cinnabar font-heading">已選</span>
                               )}
-                            </button>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="font-heading">{display?.name ?? item.item_type}</p>
