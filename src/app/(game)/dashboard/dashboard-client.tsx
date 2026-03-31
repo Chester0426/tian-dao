@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/tooltip";
 import { trackActivate, trackRetainReturn } from "@/lib/events";
 import type { Profile, MiningSkill, MineMastery, InventoryItem } from "@/lib/types";
-import { OfflineRewardsDialog } from "./offline-rewards-dialog";
 import { BreakthroughDialog } from "./breakthrough-dialog";
 
 // -- Item display data --
@@ -100,7 +99,6 @@ export function DashboardClient({
   const liveXpProgress = isDemoCap ? 100 : (xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress);
   const liveBreakthroughReady = !isDemoCap && liveXpProgress >= 100 && profile.cultivation_stage <= 9;
 
-  const [showOfflineRewards, setShowOfflineRewards] = useState(false);
   const [showBreakthrough, setShowBreakthrough] = useState(false);
   const [hasTrackedActivate, setHasTrackedActivate] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -135,14 +133,10 @@ export function DashboardClient({
     }
   }, []);
 
-  // Show offline rewards dialog after mount
+  // Mount animation
   useEffect(() => {
     setMounted(true);
-    if (offlineRewards) {
-      const timer = setTimeout(() => setShowOfflineRewards(true), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [offlineRewards]);
+  }, []);
 
   const handleBreakthroughConfirm = useCallback(async () => {
     try {
@@ -489,13 +483,7 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* Offline Rewards Dialog */}
-        {showOfflineRewards && offlineRewards && (
-          <OfflineRewardsDialog
-            rewards={offlineRewards}
-            onDismiss={() => setShowOfflineRewards(false)}
-          />
-        )}
+        {/* Offline rewards handled globally by GlobalGameUI */}
 
         {/* Breakthrough Dialog */}
         {showBreakthrough && (
