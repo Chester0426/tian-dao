@@ -9,8 +9,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const ITEM_NAMES: Record<string, string> = {
-  coal: "煤", copper_ore: "銅礦", spirit_stone_fragment: "靈石碎片",
+const ITEM_INFO: Record<string, { name: string; icon: string; color: string }> = {
+  coal: { name: "煤", icon: "◆", color: "text-foreground" },
+  copper_ore: { name: "銅礦", icon: "◇", color: "text-jade" },
+  spirit_stone_fragment: { name: "靈石碎片", icon: "✦", color: "text-spirit-gold" },
 };
 
 export function GlobalGameUI() {
@@ -65,12 +67,18 @@ export function GlobalGameUI() {
                   <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     獲得物品
                   </h3>
-                  {Object.entries(pendingOfflineRewards.drops).map(([itemType, qty]) => (
+                  {Object.entries(pendingOfflineRewards.drops).map(([itemType, qty]) => {
+                    const info = ITEM_INFO[itemType];
+                    return (
                     <div key={itemType} className="flex items-center justify-between text-sm">
-                      <span>{ITEM_NAMES[itemType] ?? itemType}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={info?.color ?? ""}>{info?.icon ?? "○"}</span>
+                        <span>{info?.name ?? itemType}</span>
+                      </div>
                       <span className="tabular-nums text-muted-foreground">x{qty.toLocaleString()}</span>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
