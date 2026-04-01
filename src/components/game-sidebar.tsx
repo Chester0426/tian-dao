@@ -16,7 +16,7 @@ const NAV_SECTIONS = [
   {
     title: "境界",
     items: [
-      { name: "練體", href: "/dashboard", icon: "⚡" },
+      { name: "練體", href: "/dashboard", icon: "💪" },
     ],
   },
   {
