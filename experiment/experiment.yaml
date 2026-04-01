@@ -1,7 +1,7 @@
-# experiment.yaml — 仙途放置 (Xian Idle)
+# experiment.yaml — 仙途放置 (Tian Dao)
 
 # --- 1. Identity ---
-name: xian-idle
+name: tian-dao
 owner: Chester0426
 type: web-app
 level: 3                       # L3: Full MVP — auth + complete features
@@ -10,7 +10,7 @@ status: draft
 # --- 2. Intent ---
 description: |
   Web3 gamers lack idle games with meaningful on-chain ownership. Existing chain games
-  require constant attention or are pure DeFi with game skins. Xian Idle is a
+  require constant attention or are pure DeFi with game skins. Tian Dao is a
   cultivation-themed (修仙) idle RPG where players mine resources, cultivate body strength,
   and progress through realms — all running while AFK. One idle action at a time.
   Core game state stays off-chain (Supabase) for speed and zero gas cost.
@@ -65,7 +65,7 @@ hypotheses:
 behaviors:
   - id: b-01
     hypothesis_id: h-01
-    given: "A visitor lands on the Xian Idle landing page"
+    given: "A visitor lands on the Tian Dao landing page"
     when: "They see the cultivation-themed ink wash UI and idle gameplay pitch"
     then: "They click 'Start Cultivating' CTA (>5% of visitors)"
     tests:

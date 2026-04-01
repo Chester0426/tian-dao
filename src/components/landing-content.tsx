@@ -190,7 +190,7 @@ export default function LandingContent({
             style={{ background: "linear-gradient(90deg, transparent, var(--ink-4), transparent)" }}
           />
           <p className="text-xs text-ink-4">
-            &copy; {new Date().getFullYear()} Xian Idle. 修仙放置 RPG.
+            &copy; {new Date().getFullYear()} Tian Dao. 修仙放置 RPG.
           </p>
         </div>
       </footer>
