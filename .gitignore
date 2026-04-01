@@ -76,3 +76,4 @@ coverage/
 pnpm-lock.yaml
 yarn.lock
 .github/workflows/
+.vercel
