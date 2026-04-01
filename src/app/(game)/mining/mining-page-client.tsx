@@ -9,15 +9,27 @@ import { useGameState } from "@/components/mining-provider";
 import type { MineData } from "@/components/mining-provider";
 import type { InventoryItem } from "@/lib/types";
 import type { MineInfo } from "./page";
+import { useI18n } from "@/lib/i18n";
 
 // ---------------------------------------------------------------------------
-// Item display
+// Item display (icon + rarity are language-independent, name uses i18n)
 // ---------------------------------------------------------------------------
 
-const ITEM_DISPLAY: Record<string, { name: string; icon: string; rarity: "common" | "uncommon" | "rare" }> = {
-  coal: { name: "煤", icon: "◆", rarity: "common" },
-  copper_ore: { name: "銅礦", icon: "◇", rarity: "uncommon" },
-  spirit_stone_fragment: { name: "靈石碎片", icon: "✦", rarity: "rare" },
+const ITEM_META: Record<string, { icon: string; rarity: "common" | "uncommon" | "rare"; zhName: string; enName: string }> = {
+  coal: { icon: "◆", rarity: "common", zhName: "煤", enName: "Coal" },
+  copper_ore: { icon: "◇", rarity: "uncommon", zhName: "銅礦", enName: "Copper Ore" },
+  spirit_stone_fragment: { icon: "✦", rarity: "rare", zhName: "靈石碎片", enName: "Spirit Stone" },
+};
+
+function getItemName(itemType: string, locale: string): string {
+  const meta = ITEM_META[itemType];
+  if (!meta) return itemType;
+  return locale === "en" ? meta.enName : meta.zhName;
+}
+
+// Mine names
+const MINE_NAMES: Record<string, { zh: string; en: string }> = {
+  depleted_vein: { zh: "枯竭礦脈", en: "Depleted Vein" },
 };
 
 // Loot table per mine (TODO: fetch from DB)
@@ -124,6 +136,7 @@ export function MiningPageClient({
     inventory, startMining: globalStartMine, stopMining: globalStop,
   } = gameState;
 
+  const { locale, t } = useI18n();
   const firedActivateRef = useRef(false);
 
   // Select mine and start mining
@@ -154,15 +167,15 @@ export function MiningPageClient({
               <span className="text-xl">⛏</span>
             </div>
             <div>
-              <h1 className="font-heading text-xl font-bold sm:text-2xl">挖礦</h1>
+              <h1 className="font-heading text-xl font-bold sm:text-2xl">{t("mining_title")}</h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-heading px-3 py-1 text-sm">
-              技能等級 {miningLevel}
+              {t("mining_skillLevel")} {miningLevel}
             </Badge>
             <Badge variant="outline" className="border-border/40 text-muted-foreground tabular-nums px-3 py-1 text-sm">
-              技能經驗 {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
+              {t("mining_skillXp")} {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
             </Badge>
           </div>
         </div>
@@ -200,17 +213,17 @@ export function MiningPageClient({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-heading text-base font-bold">
-                        {isLocked ? "未解鎖" : mine.name}
+                        {isLocked ? t("mining_locked") : (MINE_NAMES[mine.slug]?.[locale] ?? mine.name)}
                       </p>
                       {!isLocked && (
                         <p className="text-xs text-muted-foreground">
-                          ⏱ {(3).toFixed(2)} 秒 · XP {mine.xp_mining}
+                          ⏱ {(3).toFixed(2)} s · XP {mine.xp_mining}
                         </p>
                       )}
                     </div>
                     {isLocked ? (
                       <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
-                        需要 Lv.{mine.required_level}
+                        {t("mining_needLevel", { n: mine.required_level })}
                       </Badge>
                     ) : (
                       <div className="flex items-center gap-2 text-xs">
@@ -233,14 +246,14 @@ export function MiningPageClient({
                       {/* Drop rates */}
                       <div className="flex-1 space-y-1.5">
                         {lootTable.map((entry) => {
-                          const info = ITEM_DISPLAY[entry.item_type];
+                          const info = ITEM_META[entry.item_type];
                           return (
                             <div key={entry.item_type} className="flex items-center justify-between text-sm">
                               <div className="flex items-center gap-2">
                                 <span className={info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground"}>
                                   {info?.icon ?? "○"}
                                 </span>
-                                <span className="text-muted-foreground">{info?.name ?? entry.item_type}</span>
+                                <span className="text-muted-foreground">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
                               </div>
                               <span className="tabular-nums text-muted-foreground text-xs">{(entry.probability * 100).toFixed(0)}%</span>
                             </div>
@@ -274,7 +287,7 @@ export function MiningPageClient({
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">
-                          🏆 專精 <span className="font-bold text-cinnabar">{mastery}</span>
+                          🏆 {t("mining_mastery")} <span className="font-bold text-cinnabar">{mastery}</span>
                         </span>
                         <span className="tabular-nums text-muted-foreground/70">
                           {(masteryXps[mine.id] ?? 0).toLocaleString()} / {(masteryXpMaxs[mine.id] ?? 83).toLocaleString()}
@@ -297,13 +310,13 @@ export function MiningPageClient({
                           : "bg-jade/80 text-primary-foreground hover:bg-jade"
                       }`}
                     >
-                      {isActive ? "停止挖礦" : "開始挖礦"}
+                      {isActive ? t("mining_stopMining") : t("mining_startMining")}
                     </button>
                   )}
 
                   {isLocked && (
                     <p className="text-center text-xs text-muted-foreground/50">
-                      提升挖礦等級至 Lv.{mine.required_level} 解鎖
+                      {t("mining_levelUp", { n: mine.required_level })}
                     </p>
                   )}
                 </CardContent>
