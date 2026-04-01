@@ -48,12 +48,12 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
             商店
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            使用靈石碎片購買升級
+            使用天道碎片（GDAO）購買升級
           </p>
         </header>
 
         <div className="mb-6 flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">持有靈石碎片:</span>
+          <span className="text-sm text-muted-foreground">持有天道碎片:</span>
           <Badge variant="outline" className="border-jade/30 text-jade font-heading text-base px-3 py-1">
             ✦ {spiritStones.toLocaleString()}
           </Badge>
@@ -92,7 +92,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
                 {buying
                   ? "購買中..."
                   : spiritStones < nextSlotPrice
-                    ? `需要 ${nextSlotPrice - spiritStones} 靈石碎片`
+                    ? `需要 ${nextSlotPrice - spiritStones} 天道碎片`
                     : `購買 (✦ ${nextSlotPrice})`}
               </Button>
             </CardContent>
