@@ -121,17 +121,16 @@ export function GameSidebar({
           <span className="text-base leading-none">🚪</span>
           <span>{t("sidebar_logout")}</span>
         </button>
-        <div className="flex items-center justify-between px-3 pt-1">
-          <p className="text-[10px] text-muted-foreground/40">
-            Tian Dao v0.1
-          </p>
-          <button
-            onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-            className="text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {locale === "zh" ? "EN" : "CN"}
-          </button>
-        </div>
+        <button
+          onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+        >
+          <span className="text-base leading-none">🌐</span>
+          <span>{locale === "zh" ? "English" : "中文"}</span>
+        </button>
+        <p className="px-3 pt-1 text-[10px] text-muted-foreground/40">
+          Tian Dao v0.1
+        </p>
       </div>
     </aside>
   );
