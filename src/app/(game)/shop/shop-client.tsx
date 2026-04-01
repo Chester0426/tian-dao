@@ -85,15 +85,10 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
               </div>
 
               <Button
-                className="w-full seal-glow"
-                disabled={spiritStones < nextSlotPrice || buying}
-                onClick={handleBuy}
+                className="w-full"
+                disabled={true}
               >
-                {buying
-                  ? "購買中..."
-                  : spiritStones < nextSlotPrice
-                    ? `需要 ${nextSlotPrice - spiritStones} 天道碎片`
-                    : `購買 (🪙 ${nextSlotPrice})`}
+                即將開放
               </Button>
             </CardContent>
           </Card>
