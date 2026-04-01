@@ -174,20 +174,7 @@ export default function SignupPage() {
               transition: "opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s",
             }}
           >
-            <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-md border-2 border-cinnabar/40 bg-cinnabar-dim shadow-[inset_0_0_20px_var(--cinnabar-dim)]">
-              {/* Inner border for authentic seal look */}
-              <div className="absolute inset-1.5 rounded-sm border border-cinnabar/20" />
-              <span className="font-heading text-3xl font-bold text-cinnabar text-glow-cinnabar drop-shadow-[0_0_8px_var(--cinnabar-dim)]">
-                仙
-              </span>
-            </div>
-            {/* Seal ink bleed effect */}
-            <div
-              className="absolute -inset-2 rounded-lg opacity-30"
-              style={{
-                background: "radial-gradient(circle at center, var(--cinnabar-dim) 0%, transparent 70%)",
-              }}
-            />
+            <img src="/images/logo-dao.png" alt="天道" className="relative mx-auto h-20 w-20 rounded-xl" />
           </div>
 
           <h1
