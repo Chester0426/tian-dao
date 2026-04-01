@@ -19,13 +19,13 @@ export default async function ShopPage() {
   const cookieStore = await cookies();
   const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
 
-  const [profileRes, spiritRes] = await Promise.all([
+  const [profileRes] = await Promise.all([
     supabase.from("profiles").select("inventory_slots").eq("user_id", user.id).eq("slot", slot).single(),
-    supabase.from("inventory_items").select("quantity").eq("user_id", user.id).eq("slot", slot).eq("item_type", "spirit_stone_fragment").single(),
   ]);
 
   const currentSlots = (profileRes.data as { inventory_slots: number } | null)?.inventory_slots ?? 20;
-  const spiritStones = (spiritRes.data as { quantity: number } | null)?.quantity ?? 0;
+  // 天道碎片 (GDAO) — not yet available, always 0
+  const gdaoBalance = 0;
 
-  return <ShopClient spiritStones={spiritStones} currentSlots={currentSlots} />;
+  return <ShopClient spiritStones={gdaoBalance} currentSlots={currentSlots} />;
 }
