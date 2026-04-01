@@ -51,7 +51,7 @@ export function GameSidebar({
       <div className="flex flex-col items-center gap-1 border-b border-border/30 py-4 px-4">
         <img src="/images/logo-dao.png" alt="天道" className="h-20 w-20 rounded-xl object-cover" />
         <span className="font-heading text-sm font-bold text-foreground tracking-widest">
-          天道
+          TIAN DAO
         </span>
       </div>
 
