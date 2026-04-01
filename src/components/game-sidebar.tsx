@@ -49,9 +49,7 @@ export function GameSidebar({
     >
       {/* Brand */}
       <div className="flex h-14 items-center gap-2 border-b border-border/30 px-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-md border border-cinnabar/30 bg-cinnabar-dim font-heading text-sm font-bold text-cinnabar">
-          仙
-        </span>
+        <img src="/images/logo-dao.png" alt="天道" className="h-8 w-8 rounded-md object-cover" />
         <span className="font-heading text-base font-bold text-foreground">
           天道
         </span>

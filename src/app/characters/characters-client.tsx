@@ -98,6 +98,7 @@ export function CharactersClient({
       <div className="w-full max-w-3xl px-4 py-8">
         {/* Header */}
         <div className="text-center mb-10">
+          <img src="/images/logo-dao.png" alt="天道" className="mx-auto h-24 w-24 mb-4 rounded-xl" />
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
             天道
           </h1>

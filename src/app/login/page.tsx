@@ -153,8 +153,10 @@ export default function LoginPage() {
       >
         <div className="mb-10 text-center">
           {/* Enlarged seal icon with animated qi-pulse border */}
-          <div
-            className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-xl border border-cinnabar/30 bg-cinnabar-dim"
+          <img
+            src="/images/logo-dao.png"
+            alt="天道"
+            className="mx-auto mb-6 h-20 w-20 rounded-xl"
             style={{
               opacity: mounted ? 1 : 0,
               transform: mounted
@@ -162,15 +164,8 @@ export default function LoginPage() {
                 : "scale(1.4) rotate(-8deg)",
               transition:
                 "opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s",
-              boxShadow: mounted
-                ? "0 0 24px var(--cinnabar-dim), 0 0 48px oklch(0.62 0.20 25 / 6%), inset 0 1px 0 oklch(1 0 0 / 5%)"
-                : "none",
             }}
-          >
-            <span className="font-heading text-3xl font-bold text-cinnabar text-glow-cinnabar">
-              仙
-            </span>
-          </div>
+          />
 
           <h1
             className="font-heading text-3xl font-bold tracking-tight text-foreground md:text-4xl"

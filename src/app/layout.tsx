@@ -19,9 +19,12 @@ const notoSansSC = Noto_Sans_SC({
 });
 
 export const metadata: Metadata = {
-  title: "天道 — 掛機也能登仙 | Xian Idle",
+  title: "天道 — 掛機也能登仙 | Great Dao",
   description:
     "修仙主題放置 RPG：挖礦、修煉、突破境界，24 小時不停歇。你的資源，未來可上鏈交易。",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
