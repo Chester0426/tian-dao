@@ -55,7 +55,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
         <div className="mb-6 flex items-center gap-3">
           <span className="text-sm text-muted-foreground">持有天道碎片:</span>
           <Badge variant="outline" className="border-jade/30 text-jade font-heading text-base px-3 py-1">
-            ✦ {spiritStones.toLocaleString()}
+            🪙 {spiritStones.toLocaleString()}
           </Badge>
         </div>
 
@@ -79,7 +79,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">價格</span>
                   <span className="font-heading font-bold text-spirit-gold">
-                    ✦ {nextSlotPrice}
+                    🪙 {nextSlotPrice}
                   </span>
                 </div>
               </div>
@@ -93,7 +93,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
                   ? "購買中..."
                   : spiritStones < nextSlotPrice
                     ? `需要 ${nextSlotPrice - spiritStones} 天道碎片`
-                    : `購買 (✦ ${nextSlotPrice})`}
+                    : `購買 (🪙 ${nextSlotPrice})`}
               </Button>
             </CardContent>
           </Card>
