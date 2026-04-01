@@ -212,7 +212,7 @@ export function CharactersClient({
 
                       <div className="text-center space-y-1">
                         <p className="font-heading font-bold text-sm">
-                          {stageNames[profile.cultivation_stage] ?? `練體${profile.cultivation_stage}階`}
+                          {stageNames[profile.cultivation_stage] ?? `煉體${profile.cultivation_stage}階`}
                         </p>
                         {miningLevel > 0 && (
                           <p className="text-xs text-muted-foreground">
@@ -269,7 +269,7 @@ export function CharactersClient({
               </p>
               <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 text-sm">
                 <p className="font-heading font-bold text-destructive">
-                  {stageNames[deleteTarget.profile.cultivation_stage] ?? `練體${deleteTarget.profile.cultivation_stage}階`}
+                  {stageNames[deleteTarget.profile.cultivation_stage] ?? `煉體${deleteTarget.profile.cultivation_stage}階`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   此操作無法復原，所有進度將永久刪除。

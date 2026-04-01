@@ -160,7 +160,7 @@ export function OfflineRewardsDialog({
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-center">
-              <div className="text-xs text-muted-foreground">練體</div>
+              <div className="text-xs text-muted-foreground">煉體</div>
               <div className="mt-1 font-heading text-sm font-bold text-cinnabar tabular-nums">
                 +{formatNumber(rewards.xpGained.body)}
               </div>

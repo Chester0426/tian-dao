@@ -12,7 +12,7 @@ const translations = {
     sidebar_skills: "技能",
     sidebar_shop: "商店",
     sidebar_inventory: "儲物袋",
-    sidebar_bodyTempering: "練體",
+    sidebar_bodyTempering: "煉體",
     sidebar_mining: "挖礦",
     sidebar_switchChar: "切換角色",
     sidebar_logout: "登出",
@@ -68,7 +68,7 @@ const translations = {
     // Dashboard
     dash_title: "修煉總覽",
     dash_subtitle: "修煉之路，永不停歇",
-    dash_bodyXp: "練體經驗",
+    dash_bodyXp: "煉體經驗",
     dash_canBreak: "可以突破了！",
     dash_breakthrough: "突破",
     dash_current: "當前",
@@ -80,7 +80,7 @@ const translations = {
 
     // Notifications
     notif_miningXp: "挖礦經驗",
-    notif_bodyXp: "練體經驗",
+    notif_bodyXp: "煉體經驗",
     notif_miningLevelUp: "挖礦升級 Lv.{n}",
     notif_masteryLevelUp: "精通升級 Lv.{n}",
 

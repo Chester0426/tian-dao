@@ -91,7 +91,7 @@ export function GlobalGameUI() {
                   <span className="tabular-nums">+{pendingOfflineRewards.xp_gained.mining.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>💪 練體</span>
+                  <span>💪 煉體</span>
                   <span className="tabular-nums">+{pendingOfflineRewards.xp_gained.body.toLocaleString()}</span>
                 </div>
               </div>

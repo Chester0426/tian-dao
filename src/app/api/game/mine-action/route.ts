@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Award XP (mining skill, mastery, 練體)
+  // Award XP (mining skill, mastery, 煉體)
   const xpMining = mine.xp_mining as number;
   const xpMastery = mine.xp_mastery as number;
   const xpBody = mine.xp_body as number;
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id).eq("slot", slot)
     .eq("mine_id", mine_id);
 
-  // Update 練體 XP (body tempering)
+  // Update 煉體 XP (body tempering)
   let newBodyXp = profile.body_xp + xpBody;
   const newCultivationStage = profile.cultivation_stage;
   let newBodySkillXp = profile.body_skill_xp;
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     newBodyXp = Math.min(newBodyXp, xpForBreakthrough);
   }
 
-  // If post-練體9, apply to skill track
+  // If post-煉體9, apply to skill track
   if (profile.cultivation_stage > 9) {
     newBodySkillXp = profile.body_skill_xp + xpBody;
     while (newBodySkillLevel < 99 && newBodySkillXp >= melvorXpForLevel(newBodySkillLevel + 1)) {

@@ -18,20 +18,20 @@ interface BreakthroughDialogProps {
 }
 
 const STAGE_NAMES: Record<number, string> = {
-  1: "練體一階",
-  2: "練體二階",
-  3: "練體三階",
-  4: "練體四階",
-  5: "練體五階",
-  6: "練體六階",
-  7: "練體七階",
-  8: "練體八階",
-  9: "練體九階",
+  1: "煉體一階",
+  2: "煉體二階",
+  3: "煉體三階",
+  4: "煉體四階",
+  5: "煉體五階",
+  6: "煉體六階",
+  7: "煉體七階",
+  8: "煉體八階",
+  9: "煉體九階",
   10: "練氣一階",
 };
 
 function getStageName(stage: number): string {
-  return STAGE_NAMES[stage] ?? (stage > 9 ? `練氣${stage - 9}階` : `練體${stage}階`);
+  return STAGE_NAMES[stage] ?? (stage > 9 ? `練氣${stage - 9}階` : `煉體${stage}階`);
 }
 
 export function BreakthroughDialog({
@@ -111,7 +111,7 @@ export function BreakthroughDialog({
               </DialogTitle>
               <DialogDescription>
                 {isEnteringQiRefining
-                  ? "練體九階已圓滿，突破後將進入練氣境界。"
+                  ? "煉體九階已圓滿，突破後將進入練氣境界。"
                   : `經驗已滿，可從 ${currentName} 突破至 ${nextName}。突破成功率 100%。`}
               </DialogDescription>
             </DialogHeader>

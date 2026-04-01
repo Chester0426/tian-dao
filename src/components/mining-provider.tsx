@@ -319,7 +319,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       if (mine.xp_mastery > 0) {
       }
       if (bodyGainedXp && mine.xp_body > 0) {
-        addNotification("💪", "練體經驗", mine.xp_body, "text-spirit-gold");
+        addNotification("💪", "煉體經驗", mine.xp_body, "text-spirit-gold");
       }
       // Level-up notifications
       if (miningLeveledUp) {

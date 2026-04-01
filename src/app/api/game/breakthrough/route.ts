@@ -1,4 +1,4 @@
-// POST /api/game/breakthrough — Advance 練體 stage (b-06, b-07)
+// POST /api/game/breakthrough — Advance 煉體 stage (b-06, b-07)
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { melvorXpForLevel } from "@/lib/types";
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }, { status: 403 });
   }
 
-  // Must be in valid stage range (1-9 練體, 10 練氣一階)
+  // Must be in valid stage range (1-9 煉體, 10 練氣一階)
   if (currentStage > 10) {
     return NextResponse.json({ error: "Invalid stage" }, { status: 400 });
   }
@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  // 100% success rate for 練體 1-9
+  // 100% success rate for 煉體 1-9
   const newStage = currentStage + 1;
   const leftoverXp = profile.body_xp - xpRequired;
 
-  // If reaching stage 10 (past 練體9), unlock skill track (b-07)
+  // If reaching stage 10 (past 煉體9), unlock skill track (b-07)
   const isPostBodyTempering = newStage > 9;
 
   const { error: updateError } = await supabase

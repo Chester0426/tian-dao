@@ -13,10 +13,10 @@ export interface Profile {
   id: string; // uuid, references auth.users
   user_id: string; // uuid, references auth.users
   slot: number; // 1-3, save slot
-  cultivation_stage: number; // 1-9 for 練體 stages
-  body_xp: number; // current 練體 XP within stage
-  body_skill_level: number; // 1-99 post-練體9 skill track (starts at 9)
-  body_skill_xp: number; // XP for post-練體9 skill track
+  cultivation_stage: number; // 1-9 for 煉體 stages
+  body_xp: number; // current 煉體 XP within stage
+  body_skill_level: number; // 1-99 post-煉體9 skill track (starts at 9)
+  body_skill_xp: number; // XP for post-煉體9 skill track
   inventory_slots: number; // base 20, expandable via shop
   dao_points: number; // 天道值, earned by sacrificing items
   created_at: string; // timestamptz
@@ -59,7 +59,7 @@ export interface LootEntry {
   probability: number; // 0-1, sum of all entries must equal 1
   xp_mining: number; // mining skill XP awarded per action
   xp_mastery: number; // mine mastery XP awarded per action
-  xp_body: number; // 練體 XP awarded per action
+  xp_body: number; // 煉體 XP awarded per action
 }
 
 // mines — mine definitions with loot tables and rock mechanics
@@ -74,7 +74,7 @@ export interface Mine {
   respawn_seconds: number; // seconds until rock respawns after HP = 0
   xp_mining: number; // mining skill XP per action for this mine
   xp_mastery: number; // mastery XP per action for this mine
-  xp_body: number; // 練體 XP per action for this mine
+  xp_body: number; // 煉體 XP per action for this mine
   created_at: string; // timestamptz
 }
 

@@ -189,7 +189,7 @@ export function DashboardClient({
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                  練體
+                  煉體
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   透過挖礦與修煉突破境界
@@ -227,7 +227,7 @@ export function DashboardClient({
                     <CardTitle className="font-heading text-lg">
                       {isPostBodyTempering ? (
                         <>
-                          練體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span>
+                          煉體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span>
                         </>
                       ) : (
                         <span className="text-glow-cinnabar">{stageName}</span>
@@ -235,7 +235,7 @@ export function DashboardClient({
                     </CardTitle>
                     <CardDescription>
                       {isPostBodyTempering
-                        ? "練體已圓滿，技能樹持續深化中"
+                        ? "煉體已圓滿，技能樹持續深化中"
                         : "身體深化 — 透過挖礦與修煉獲得經驗"}
                     </CardDescription>
                   </div>
@@ -254,7 +254,7 @@ export function DashboardClient({
                 {/* XP Progress — custom themed bar */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">練體經驗</span>
+                    <span className="text-muted-foreground">煉體經驗</span>
                     <span className="font-heading tabular-nums text-foreground">
                       {formatNumber(liveBodyXp)} / {formatNumber(xpRequired)}
                     </span>
@@ -308,7 +308,7 @@ export function DashboardClient({
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          練體{stage}階 {isActive ? "(當前)" : "(未達成)"}
+                          煉體{stage}階 {isActive ? "(當前)" : "(未達成)"}
                         </TooltipContent>
                       </Tooltip>
                     );

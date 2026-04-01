@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Maximum 3 characters per account" }, { status: 400 });
   }
 
-  // Create profile with initial state: 練體1階, 20 inventory slots
+  // Create profile with initial state: 煉體1階, 20 inventory slots
   const { error: profileError } = await supabase
     .from("profiles")
     .insert({
