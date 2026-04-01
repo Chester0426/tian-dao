@@ -48,7 +48,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
             商店
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            使用天道碎片（GDAO）購買升級
+            使用天道碎片（TTAO）購買升級
           </p>
         </header>
 

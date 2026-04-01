@@ -24,7 +24,7 @@ export default async function ShopPage() {
   ]);
 
   const currentSlots = (profileRes.data as { inventory_slots: number } | null)?.inventory_slots ?? 20;
-  // 天道碎片 (GDAO) — not yet available, always 0
+  // 天道碎片 (TTAO) — not yet available, always 0
   const gdaoBalance = 0;
 
   return <ShopClient spiritStones={gdaoBalance} currentSlots={currentSlots} />;
