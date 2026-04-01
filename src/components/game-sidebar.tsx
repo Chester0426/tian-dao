@@ -47,10 +47,10 @@ export function GameSidebar({
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
     >
-      {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-border/30 px-4">
-        <img src="/images/logo-dao.png" alt="天道" className="h-8 w-8 rounded-md object-cover" />
-        <span className="font-heading text-base font-bold text-foreground">
+      {/* Brand — large centered logo */}
+      <div className="flex flex-col items-center gap-1 border-b border-border/30 py-4 px-4">
+        <img src="/images/logo-dao.png" alt="天道" className="h-20 w-20 rounded-xl object-cover" />
+        <span className="font-heading text-sm font-bold text-foreground tracking-widest">
           天道
         </span>
       </div>
