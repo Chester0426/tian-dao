@@ -411,8 +411,37 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       });
     }
 
-    // Apply XP
-    setMiningXp((prev) => prev + rewards.xp_gained.mining);
+    // Apply mining XP with proper level-up calculation
+    setMiningXp((prevXpInLevel) => {
+      let totalXp = melvorXpForLevel(miningLevelRef.current) + prevXpInLevel + rewards.xp_gained.mining;
+      let newLevel = miningLevelRef.current;
+      while (newLevel < 99 && totalXp >= melvorXpForLevel(newLevel + 1)) {
+        newLevel++;
+      }
+      const newXpInLevel = totalXp - melvorXpForLevel(newLevel);
+      const newXpMax = melvorXpForLevel(newLevel + 1) - melvorXpForLevel(newLevel);
+      setMiningLevel(newLevel);
+      setMiningXpMax(newXpMax);
+      return newXpInLevel;
+    });
+
+    // Apply mastery XP with level-up
+    if (activeMineRef.current) {
+      const mineId = activeMineRef.current.id;
+      setMasteryXps((prev) => {
+        const currentLevel = masteryLevelsRef.current[mineId] ?? 1;
+        let totalXp = melvorXpForLevel(currentLevel) + (prev[mineId] ?? 0) + rewards.xp_gained.mastery;
+        let newLevel = currentLevel;
+        while (newLevel < 99 && totalXp >= melvorXpForLevel(newLevel + 1)) {
+          newLevel++;
+        }
+        setMasteryLevels((ml) => ({ ...ml, [mineId]: newLevel }));
+        setMasteryXpMaxs((mx) => ({ ...mx, [mineId]: melvorXpForLevel(newLevel + 1) - melvorXpForLevel(newLevel) }));
+        return { ...prev, [mineId]: totalXp - melvorXpForLevel(newLevel) };
+      });
+    }
+
+    // Apply body XP (with cap)
     setBodyXp((prev) => {
       if (bodyStageRef.current >= 10) return prev;
       const maxXp = melvorXpForLevel(bodyStageRef.current + 1) - melvorXpForLevel(bodyStageRef.current);
