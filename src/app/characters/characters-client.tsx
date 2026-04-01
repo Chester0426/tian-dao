@@ -64,8 +64,8 @@ export function CharactersClient({
       });
 
       // Redirect to game — offline rewards handled by GlobalGameUI in game layout
-      const redirectTo = hasProfile && lastActivity === "mining" && lastMineSlug
-        ? `/mining/${lastMineSlug}`
+      const redirectTo = hasProfile && lastActivity === "mining"
+        ? "/mining"
         : "/dashboard";
 
       router.push(redirectTo);
