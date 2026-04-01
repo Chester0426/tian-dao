@@ -8,8 +8,8 @@ const NAV_SECTIONS = [
   {
     title: "物品",
     items: [
-      { name: "背包", href: "/inventory", icon: "🎒" },
       { name: "商店", href: "/shop", icon: "🏪" },
+      { name: "儲物袋", href: "/inventory", icon: "🎒" },
     ],
   },
   {

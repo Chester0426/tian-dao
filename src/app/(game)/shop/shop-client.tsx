@@ -62,8 +62,8 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="scroll-surface">
             <CardHeader>
-              <CardTitle className="font-heading text-lg">背包擴充</CardTitle>
-              <CardDescription>增加 1 格背包空間</CardDescription>
+              <CardTitle className="font-heading text-lg">儲物袋擴充</CardTitle>
+              <CardDescription>增加 1 格儲物袋空間</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/30 p-4 space-y-3">

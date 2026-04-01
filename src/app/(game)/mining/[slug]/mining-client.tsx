@@ -395,7 +395,7 @@ function InventoryPanel({
         </span>
         {isFull && (
           <Badge variant="destructive" className="text-xs animate-pulse">
-            背包已滿
+            儲物袋已滿
           </Badge>
         )}
       </div>
@@ -407,7 +407,7 @@ function InventoryPanel({
             <path d="M4 14h20" stroke="currentColor" strokeWidth="1" opacity="0.5" />
             <path d="M10 8V6a4 4 0 018 0v2" stroke="currentColor" strokeWidth="1.5" fill="none" />
           </svg>
-          <p className="text-sm text-muted-foreground/60">背包空空如也</p>
+          <p className="text-sm text-muted-foreground/60">儲物袋空空如也</p>
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
@@ -471,11 +471,11 @@ function SlotShopDialog({
           <Button variant="outline" size="sm" className="gap-1.5 border-spirit-gold/30 text-spirit-gold hover:bg-spirit-gold-dim hover:text-spirit-gold" />
         }
       >
-        <span className="text-base">+</span> 擴充背包
+        <span className="text-base">+</span> 擴充儲物袋
       </DialogTrigger>
       <DialogContent className="scroll-surface sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-heading text-xl">背包擴充</DialogTitle>
+          <DialogTitle className="font-heading text-xl">儲物袋擴充</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="rounded-lg bg-muted/50 p-4 space-y-3">

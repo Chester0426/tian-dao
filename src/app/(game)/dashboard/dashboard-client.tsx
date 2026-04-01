@@ -388,7 +388,7 @@ export function DashboardClient({
             <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="font-heading text-lg">背包</CardTitle>
+                  <CardTitle className="font-heading text-lg">儲物袋</CardTitle>
                   <Badge
                     variant={inventoryNearFull ? "destructive" : "outline"}
                     className={`tabular-nums ${inventoryNearFull ? "" : "border-spirit-gold/30 text-spirit-gold bg-spirit-gold/5"}`}
@@ -414,7 +414,7 @@ export function DashboardClient({
                     className: "w-full font-heading hover:border-jade/30 hover:text-jade",
                   })}
                 >
-                  查看背包
+                  查看儲物袋
                 </Link>
               </CardContent>
             </Card>

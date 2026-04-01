@@ -105,7 +105,7 @@ export function InventoryClient({
           <div className="flex items-start justify-between">
             <div>
               <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                背包
+                儲物袋
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 管理你的物資與資源
@@ -280,7 +280,7 @@ export function InventoryClient({
                   <span className="text-3xl text-muted-foreground/40">🎒</span>
                 </div>
                 <p className="font-heading text-lg font-medium text-muted-foreground">
-                  背包空空如也
+                  儲物袋空空如也
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground/70">
                   前往礦場開始採集資源
