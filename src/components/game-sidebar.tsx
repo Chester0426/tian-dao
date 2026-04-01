@@ -6,14 +6,14 @@ import { createClient } from "@/lib/supabase";
 
 const NAV_SECTIONS = [
   {
-    title: "修仙",
+    title: "境界",
     items: [
       { name: "總覽", href: "/dashboard", icon: "🏠" },
       { name: "練體", href: "/dashboard", icon: "⚡", badge: "境界" },
     ],
   },
   {
-    title: "生活技能",
+    title: "技能",
     items: [
       { name: "挖礦", href: "/mining", icon: "⛏" },
     ],
@@ -58,7 +58,7 @@ export function GameSidebar({
         {NAV_SECTIONS.map((section) => (
           <div key={section.title} className="mb-5">
             <div className="mb-2 flex items-center gap-2 px-2">
-              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 {section.title}
               </span>
               <div className="h-px flex-1 bg-border/20" />
