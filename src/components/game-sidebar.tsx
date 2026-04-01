@@ -4,28 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { useGameState } from "@/components/mining-provider";
+import { useI18n } from "@/lib/i18n";
 
-const NAV_SECTIONS = [
-  {
-    title: "物品",
-    items: [
-      { name: "商店", href: "/shop", icon: "🏪" },
-      { name: "儲物袋", href: "/inventory", icon: "🎒" },
-    ],
-  },
-  {
-    title: "境界",
-    items: [
-      { name: "練體", href: "/dashboard", icon: "💪" },
-    ],
-  },
-  {
-    title: "技能",
-    items: [
-      { name: "挖礦", href: "/mining", icon: "⛏" },
-    ],
-  },
-];
+// NAV_SECTIONS moved inside component to use translations
 
 export function GameSidebar({
   open,
@@ -37,6 +18,20 @@ export function GameSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const gameState = useGameState();
+  const { locale, setLocale, t } = useI18n();
+
+  const NAV_SECTIONS = [
+    { title: t("sidebar_items"), items: [
+      { name: t("sidebar_shop"), href: "/shop", icon: "🏪", key: "shop" },
+      { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", key: "inventory" },
+    ]},
+    { title: t("sidebar_realm"), items: [
+      { name: t("sidebar_bodyTempering"), href: "/dashboard", icon: "💪", key: "body" },
+    ]},
+    { title: t("sidebar_skills"), items: [
+      { name: t("sidebar_mining"), href: "/mining", icon: "⛏", key: "mining" },
+    ]},
+  ];
 
   const slotsUsed = new Set(gameState.inventory.map((i) => i.item_type)).size;
   const totalSlots = 20; // TODO: read from profile
@@ -82,12 +77,12 @@ export function GameSidebar({
                   >
                     <span className="text-base leading-none">{item.icon}</span>
                     <span className="flex-1">{item.name}</span>
-                    {item.name === "儲物袋" && (
+                    {item.key === "inventory" && (
                       <span className="text-sm tabular-nums text-muted-foreground/70">
                         {slotsUsed}/{totalSlots}
                       </span>
                     )}
-                    {item.name === "商店" && (
+                    {item.key === "shop" && (
                       <span className="text-sm tabular-nums text-spirit-gold">
                         🪙 0
                       </span>
@@ -112,7 +107,7 @@ export function GameSidebar({
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
         >
           <span className="text-base leading-none">🔄</span>
-          <span>切換角色</span>
+          <span>{t("sidebar_switchChar")}</span>
         </Link>
         <button
           onClick={async () => {
@@ -124,11 +119,19 @@ export function GameSidebar({
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
         >
           <span className="text-base leading-none">🚪</span>
-          <span>登出</span>
+          <span>{t("sidebar_logout")}</span>
         </button>
-        <p className="px-3 text-[10px] text-muted-foreground/40">
-          天道 v0.1
-        </p>
+        <div className="flex items-center justify-between px-3 pt-1">
+          <p className="text-[10px] text-muted-foreground/40">
+            Tian Dao v0.1
+          </p>
+          <button
+            onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            className="text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {locale === "zh" ? "EN" : "CN"}
+          </button>
+        </div>
       </div>
     </aside>
   );
