@@ -1,6 +1,5 @@
 "use client";
 
-import "./[slug]/mining-animations.css";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
