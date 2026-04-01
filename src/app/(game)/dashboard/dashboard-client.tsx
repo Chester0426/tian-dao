@@ -189,10 +189,10 @@ export function DashboardClient({
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                  修煉總覽
+                  練體
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  修煉之路，永不停歇
+                  透過挖礦與修煉突破境界
                 </p>
               </div>
               <Badge variant="outline" className="font-heading text-jade border-jade/30 bg-jade/5 px-3 py-1.5 text-sm">
@@ -212,11 +212,11 @@ export function DashboardClient({
             </div>
           </header>
 
-          {/* Main Grid */}
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* Cultivation only */}
+          <div className="grid gap-6">
             {/* === Cultivation Status Card === */}
             <Card
-              className={`md:col-span-1 scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
+              className={`scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
                 liveBreakthroughReady ? "qi-glow" : ""
               }`}
               style={scaleReveal(1)}
@@ -317,169 +317,7 @@ export function DashboardClient({
               </CardContent>
             </Card>
 
-            {/* === Mining Skill Card — slide from right === */}
-            <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" style={slideFromRight(2)}>
-              <CardHeader>
-                <CardTitle className="font-heading text-lg">挖礦技能</CardTitle>
-                <CardDescription>挖礦等級與精通度</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Mining level — large centered display */}
-                <div className="flex flex-col items-center gap-1 rounded-lg border border-jade/15 bg-jade/5 py-4">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                    技能等級
-                  </span>
-                  <span className="font-heading text-4xl font-bold text-jade text-glow-jade tabular-nums">
-                    {liveMiningLevel}
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>XP</span>
-                    <span className="tabular-nums">{formatNumber(liveMiningXp)}</span>
-                  </div>
-                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted/40">
-                    <div
-                      className="h-full rounded-full bg-jade/80 transition-all duration-500"
-                      style={{ width: `${liveMiningXpMax > 0 ? Math.min((liveMiningXp / liveMiningXpMax) * 100, 100) : 0}%` }}
-                    />
-                  </div>
-                </div>
-
-                <Separator className="opacity-50" />
-
-                {/* Mastery for depleted vein */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">枯竭礦脈 精通</span>
-                    <span className="font-heading text-lg font-bold tabular-nums">
-                      {depletedMastery?.level ?? 1}
-                    </span>
-                  </div>
-                  {depletedMastery && (
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
-                      <div
-                        className="h-full rounded-full bg-spirit-gold/70 transition-all duration-500"
-                        style={{ width: `${Math.min((depletedMastery.xp % 100), 100)}%` }}
-                      />
-                    </div>
-                  )}
-                  {!depletedMastery && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      開始挖礦以獲得精通度
-                    </p>
-                  )}
-                </div>
-
-                <Link
-                  href="/mining"
-                  className={buttonVariants({
-                    variant: "default",
-                    size: "lg",
-                    className: "w-full seal-glow hover:scale-[1.02] transition-transform font-heading mt-2",
-                  })}
-                >
-                  前往礦場
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* === Inventory Summary Card === */}
-            <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="font-heading text-lg">儲物袋</CardTitle>
-                  <Badge
-                    variant={inventoryNearFull ? "destructive" : "outline"}
-                    className={`tabular-nums ${inventoryNearFull ? "" : "border-spirit-gold/30 text-spirit-gold bg-spirit-gold/5"}`}
-                  >
-                    {liveSlotsUsed}/{totalSlots}
-                  </Badge>
-                </div>
-                <CardDescription>{liveSlotsUsed} / {totalSlots} 格已使用</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      inventoryNearFull ? "bg-destructive" : "bg-gradient-to-r from-jade/60 to-jade"
-                    }`}
-                    style={{ width: `${inventorySlotPercent}%` }}
-                  />
-                </div>
-                <Link
-                  href="/inventory"
-                  className={buttonVariants({
-                    variant: "outline",
-                    className: "w-full font-heading hover:border-jade/30 hover:text-jade",
-                  })}
-                >
-                  查看儲物袋
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* === Quick Actions Card — scroll-triggered, slide from right === */}
-            <div
-              ref={quickActionsReveal.ref}
-              style={{
-                opacity: quickActionsReveal.visible ? 1 : 0,
-                transform: quickActionsReveal.visible ? "translateX(0)" : "translateX(24px)",
-                transition: "all 0.55s cubic-bezier(0.22,1,0.36,1) 0.1s",
-              }}
-            >
-              <Card className="scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-                <CardHeader>
-                  <CardTitle className="font-heading text-lg">快速操作</CardTitle>
-                  <CardDescription>常用功能</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Link
-                    href="/mining"
-                    className={buttonVariants({
-                      variant: "outline",
-                      className: "w-full justify-start gap-3 font-heading hover:bg-jade/10 hover:border-jade/30 hover:text-jade transition-colors",
-                    })}
-                  >
-                    <span className="text-jade">⛏</span>
-                    挖礦 — 枯竭礦脈
-                  </Link>
-
-                  {liveBreakthroughReady && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start gap-3 font-heading hover:bg-spirit-gold/10 hover:border-spirit-gold/30 hover:text-spirit-gold transition-colors animate-pulse hover:animate-none"
-                      onClick={() => setShowBreakthrough(true)}
-                    >
-                      <span className="text-spirit-gold">✨</span>
-                      突破修煉
-                    </Button>
-                  )}
-
-                  {isPostBodyTempering && (
-                    <div className="rounded-lg border border-jade/20 bg-jade/5 p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-jade">✓</span>
-                        <span className="text-sm font-heading text-jade">
-                          練體技能樹已解鎖
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        繼續挖礦以提升練體技能等級 (1-99)
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Game tip — ink wash styled quote */}
-                  <div className="mt-4 rounded-lg bg-muted/15 border border-border/30 p-3 relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cinnabar/40 via-cinnabar/20 to-transparent" />
-                    <p className="pl-2 text-xs text-muted-foreground italic leading-relaxed">
-                      「修仙之道，非一日之功。」— 離線時修煉仍在進行，最多累積 24 小時。
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Mining skill, inventory, quick actions removed — only cultivation here */}
           </div>
         </div>
 
