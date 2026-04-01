@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { useGameState } from "@/components/mining-provider";
 
 const NAV_SECTIONS = [
   {
@@ -35,6 +36,10 @@ export function GameSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const gameState = useGameState();
+
+  const slotsUsed = new Set(gameState.inventory.map((i) => i.item_type)).size;
+  const totalSlots = 20; // TODO: read from profile
 
   return (
     <aside
@@ -79,6 +84,16 @@ export function GameSidebar({
                   >
                     <span className="text-base leading-none">{item.icon}</span>
                     <span className="flex-1">{item.name}</span>
+                    {item.name === "儲物袋" && (
+                      <span className="text-[10px] tabular-nums text-muted-foreground/70">
+                        {slotsUsed}/{totalSlots}
+                      </span>
+                    )}
+                    {item.name === "商店" && (
+                      <span className="text-[10px] tabular-nums text-spirit-gold">
+                        🪙 0
+                      </span>
+                    )}
                   </Link>
                 );
               })}
