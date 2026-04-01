@@ -6,23 +6,22 @@ import { createClient } from "@/lib/supabase";
 
 const NAV_SECTIONS = [
   {
+    title: "物品",
+    items: [
+      { name: "背包", href: "/inventory", icon: "🎒" },
+      { name: "商店", href: "/shop", icon: "🏪" },
+    ],
+  },
+  {
     title: "境界",
     items: [
-      { name: "總覽", href: "/dashboard", icon: "🏠" },
-      { name: "練體", href: "/dashboard", icon: "⚡", badge: "境界" },
+      { name: "練體", href: "/dashboard", icon: "⚡" },
     ],
   },
   {
     title: "技能",
     items: [
       { name: "挖礦", href: "/mining", icon: "⛏" },
-    ],
-  },
-  {
-    title: "其他",
-    items: [
-      { name: "背包", href: "/inventory", icon: "🎒" },
-      { name: "商店", href: "/shop", icon: "🏪" },
     ],
   },
 ];
@@ -80,11 +79,6 @@ export function GameSidebar({
                   >
                     <span className="text-base leading-none">{item.icon}</span>
                     <span className="flex-1">{item.name}</span>
-                    {item.badge && (
-                      <span className="text-[10px] text-muted-foreground/50">
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 );
               })}
