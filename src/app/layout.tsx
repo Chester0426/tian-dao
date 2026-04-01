@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   description:
     "修仙主題放置 RPG：挖礦、修煉、突破境界，24 小時不停歇。你的資源，未來可上鏈交易。",
   icons: {
-    icon: "/favicon.png",
+    icon: "/images/favicon.png",
   },
 };
 
