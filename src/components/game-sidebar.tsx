@@ -85,12 +85,12 @@ export function GameSidebar({
                     <span className="text-base leading-none">{item.icon}</span>
                     <span className="flex-1">{item.name}</span>
                     {item.name === "儲物袋" && (
-                      <span className="text-[10px] tabular-nums text-muted-foreground/70">
+                      <span className="text-sm tabular-nums text-muted-foreground/70">
                         {slotsUsed}/{totalSlots}
                       </span>
                     )}
                     {item.name === "商店" && (
-                      <span className="text-[10px] tabular-nums text-spirit-gold">
+                      <span className="text-sm tabular-nums text-spirit-gold">
                         🪙 0
                       </span>
                     )}
