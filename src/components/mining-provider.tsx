@@ -148,6 +148,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const [bodyStage] = useState(initialState?.bodyStage ?? 1);
   const [bodyXp, setBodyXp] = useState(initialState?.bodyXp ?? 0);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialState?.inventory ?? []);
+  const inventoryRef = useRef(inventory);
+  inventoryRef.current = inventory;
 
   // --- Notifications (system 1) ---
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -249,12 +251,12 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     const isDouble = Math.random() < getMasteryDoubleDropChance(mastery);
     const qty = isDouble ? 2 : 1;
 
-    // Update inventory
-    let newTotal = qty;
+    // Update inventory — calculate total from ref (always current)
+    const currentQty = inventoryRef.current.find((i) => i.item_type === droppedItem)?.quantity ?? 0;
+    const newTotal = currentQty + qty;
     setInventory((prev) => {
       const existing = prev.find((i) => i.item_type === droppedItem);
       if (existing) {
-        newTotal = existing.quantity + qty;
         return prev.map((i) => i.item_type === droppedItem ? { ...i, quantity: existing.quantity + qty } : i);
       }
       return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: droppedItem, quantity: qty, created_at: "" }];

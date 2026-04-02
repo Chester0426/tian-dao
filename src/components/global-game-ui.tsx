@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 
 const ITEM_INFO: Record<string, { name: string; icon: string; color: string }> = {
@@ -40,64 +38,84 @@ export function GlobalGameUI() {
         </div>
       )}
 
-      {/* === System 2: Unified offline rewards dialog === */}
+      {/* === System 2: Melvor-style offline rewards dialog === */}
       <Dialog open={!!pendingOfflineRewards} onOpenChange={() => {}}>
-        <DialogContent className="scroll-surface sm:max-w-md" showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle className="font-heading text-xl">離線收益</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="scroll-surface sm:max-w-sm" showCloseButton={false}>
           {pendingOfflineRewards && (
-            <div className="space-y-4 py-2">
-              <p className="text-sm text-muted-foreground">
-                你離開了{" "}
-                <span className="text-foreground font-medium">
-                  {pendingOfflineRewards.minutes_away >= 60
-                    ? `${Math.floor(pendingOfflineRewards.minutes_away / 60)} 小時 ${pendingOfflineRewards.minutes_away % 60} 分鐘`
-                    : `${pendingOfflineRewards.minutes_away} 分鐘`}
-                </span>
-                ，{pendingOfflineRewards.activity}持續運行，共{" "}
-                <span className="text-foreground font-medium tabular-nums">
-                  {pendingOfflineRewards.total_actions.toLocaleString()}
-                </span>{" "}
-                次
-              </p>
+            <div className="flex flex-col items-center text-center space-y-5 py-4">
+              {/* Icon */}
+              <img src="/images/logo-dao.png" alt="" className="h-16 w-16 rounded-xl" />
 
-              {Object.keys(pendingOfflineRewards.drops).length > 0 && (
-                <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    獲得物品
-                  </h3>
-                  {Object.entries(pendingOfflineRewards.drops).map(([itemType, qty]) => {
-                    const info = ITEM_INFO[itemType];
-                    return (
-                    <div key={itemType} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className={info?.color ?? ""}>{info?.icon ?? "○"}</span>
-                        <span>{info?.name ?? itemType}</span>
-                      </div>
-                      <span className="tabular-nums text-muted-foreground">x{qty.toLocaleString()}</span>
-                    </div>
-                    );
-                  })}
-                </div>
-              )}
+              {/* Welcome back */}
+              <h2 className="font-heading text-2xl font-bold">
+                歡迎回來！
+              </h2>
 
-              <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  經驗獲得
-                </h3>
-                <div className="flex justify-between text-sm">
-                  <span>⛏ 挖礦</span>
-                  <span className="tabular-nums">+{pendingOfflineRewards.xp_gained.mining.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>💪 煉體</span>
-                  <span className="tabular-nums">+{pendingOfflineRewards.xp_gained.body.toLocaleString()}</span>
-                </div>
+              {/* Time away */}
+              <div className="space-y-1">
+                <p className="text-base text-foreground">
+                  你離開了大約{" "}
+                  <span className="font-bold">
+                    {pendingOfflineRewards.minutes_away >= 60
+                      ? `${Math.floor(pendingOfflineRewards.minutes_away / 60)} 小時 ${pendingOfflineRewards.minutes_away % 60} 分鐘`
+                      : `${pendingOfflineRewards.minutes_away} 分鐘`}
+                  </span>
+                </p>
+                <p className="text-sm text-jade">
+                  (12 小時為離線進度的最大上限)
+                </p>
               </div>
 
-              <Button className="w-full seal-glow font-heading" onClick={dismissOfflineRewards}>
-                領取完畢
+              {/* Rewards section */}
+              <div className="space-y-3 w-full">
+                <p className="text-sm text-muted-foreground">在你離開時：</p>
+
+                {/* Mining XP */}
+                {pendingOfflineRewards.xp_gained.mining > 0 && (
+                  <p className="text-base">
+                    你獲得了{" "}
+                    <span className="font-bold text-blue-400 tabular-nums">
+                      {pendingOfflineRewards.xp_gained.mining.toLocaleString()}
+                    </span>
+                    {" "}點挖礦技能經驗值
+                  </p>
+                )}
+
+                {/* Body XP */}
+                {pendingOfflineRewards.xp_gained.body > 0 && (
+                  <p className="text-base">
+                    你獲得了{" "}
+                    <span className="font-bold text-spirit-gold tabular-nums">
+                      {pendingOfflineRewards.xp_gained.body.toLocaleString()}
+                    </span>
+                    {" "}點煉體經驗值
+                  </p>
+                )}
+
+                {/* Items */}
+                {Object.entries(pendingOfflineRewards.drops).map(([itemType, qty]) => {
+                  const info = ITEM_INFO[itemType];
+                  return (
+                    <p key={itemType} className="text-base">
+                      你獲得了{" "}
+                      <span className={`font-bold tabular-nums ${info?.color ?? "text-foreground"}`}>
+                        {(qty as number).toLocaleString()}
+                      </span>
+                      {" "}個{" "}
+                      <span className={info?.color ?? ""}>{info?.icon ?? "○"}</span>
+                      {" "}
+                      <span className="font-medium">{info?.name ?? itemType}</span>
+                    </p>
+                  );
+                })}
+              </div>
+
+              {/* Claim button */}
+              <Button
+                className="w-full max-w-[200px] seal-glow font-heading text-base py-5"
+                onClick={dismissOfflineRewards}
+              >
+                好的
               </Button>
             </div>
           )}
