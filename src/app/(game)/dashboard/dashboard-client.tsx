@@ -212,7 +212,6 @@ export function DashboardClient({
             </div>
           </header>
 
-          {/* Cultivation only */}
           <div className="grid gap-6">
             {/* === Cultivation Status Card === */}
             <Card

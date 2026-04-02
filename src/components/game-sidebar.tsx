@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
+import { useState, useCallback } from "react";
 
 // NAV_SECTIONS moved inside component to use translations
 
@@ -25,16 +26,31 @@ export function GameSidebar({
       { name: t("sidebar_shop"), href: "/shop", icon: "🏪", key: "shop" },
       { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", key: "inventory" },
     ]},
+    { title: locale === "zh" ? "戰鬥" : "Combat", items: [
+      { name: locale === "zh" ? "遊歷" : "Adventure", href: "/adventure", icon: "⚔️", key: "adventure" },
+      { name: locale === "zh" ? "秘境" : "Dungeon", href: "/dungeon", icon: "🌀", key: "dungeon" },
+    ]},
     { title: t("sidebar_realm"), items: [
+      { name: locale === "zh" ? "數值" : "Stats", href: "/stats", icon: "📊", key: "stats" },
       { name: t("sidebar_bodyTempering"), href: "/dashboard", icon: "💪", key: "body" },
     ]},
     { title: t("sidebar_skills"), items: [
       { name: t("sidebar_mining"), href: "/mining", icon: "⛏", key: "mining" },
+      { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", key: "herbalism" },
+      { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", key: "alchemy" },
+      { name: locale === "zh" ? "烹飪" : "Cooking", href: "/cooking", icon: "🍳", key: "cooking" },
+      { name: locale === "zh" ? "釣魚" : "Fishing", href: "/fishing", icon: "🎣", key: "fishing" },
+      { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing" },
     ]},
   ];
 
   const slotsUsed = new Set(gameState.inventory.map((i) => i.item_type)).size;
   const totalSlots = 20; // TODO: read from profile
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSection = useCallback((title: string) => {
+    setCollapsed((prev) => ({ ...prev, [title]: !prev[title] }));
+  }, []);
 
   return (
     <aside
@@ -42,9 +58,9 @@ export function GameSidebar({
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
     >
-      {/* Brand — large centered logo */}
-      <div className="flex flex-col items-center gap-1 border-b border-border/30 py-4 px-4">
-        <img src="/images/logo-dao.png" alt="天道" className="h-20 w-20 rounded-xl object-cover" />
+      {/* Brand — compact logo */}
+      <div className="flex shrink-0 items-center gap-2.5 border-b border-border/30 py-3 px-4">
+        <img src="/images/logo-dao.png" alt="天道" className="h-10 w-10 rounded-lg object-cover" />
         <span className="font-heading text-sm font-bold text-foreground tracking-widest">
           TIAN DAO
         </span>
@@ -52,14 +68,35 @@ export function GameSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_SECTIONS.map((section) => (
+        {NAV_SECTIONS.map((section) => {
+          const isCollapsed = collapsed[section.title] ?? false;
+          return (
           <div key={section.title} className="mb-5">
-            <div className="mb-2 flex items-center gap-2 px-2">
+            <button
+              type="button"
+              onClick={() => toggleSection(section.title)}
+              className="mb-2 flex w-full items-center gap-2 px-2 group cursor-pointer"
+            >
               <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 {section.title}
               </span>
               <div className="h-px flex-1 bg-border/20" />
-            </div>
+              <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
+                {isCollapsed ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </span>
+            </button>
+            {!isCollapsed && (
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive = pathname === item.href ||
@@ -91,12 +128,14 @@ export function GameSidebar({
                 );
               })}
             </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer — switch character + logout */}
-      <div className="border-t border-border/30 px-3 py-3 space-y-1">
+      <div className="shrink-0 border-t border-border/30 px-3 py-3 space-y-1">
         <Link
           href="/characters"
           onClick={() => {

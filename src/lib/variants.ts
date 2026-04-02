@@ -20,9 +20,9 @@ export interface VariantContent {
 export const VARIANT_MAP: Record<Variant, VariantContent> = {
   cultivation: {
     slug: "cultivation",
-    headline: "修仙放置 — 掛機也能登仙",
+    headline: "天道",
     subheadline:
-      "挖礦、修煉、突破境界，24 小時不停歇。你的資源，未來可上鏈交易。",
+      "每一絲靈氣的運轉皆由你敕令，每一份機緣的歸屬皆由你主宰。",
     cta: "開始修煉",
     promise: "掛機即修煉，離線也成長",
     proof: "基於 EVM — 你的物資真正屬於你",

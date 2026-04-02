@@ -135,7 +135,22 @@ const translations = {
 
     // Signup
     signup_title: "踏入修仙界",
+    signup_subtitle: "建立帳號，開啟你的修仙之旅",
     signup_google: "使用 Google 註冊",
+    signup_cardTitle: "建立帳號",
+    signup_cardDesc: "使用 Email 註冊開始修煉",
+    signup_email: "Email",
+    signup_password: "密碼",
+    signup_confirmPassword: "確認密碼",
+    signup_passwordHint: "至少 6 個字元",
+    signup_confirmHint: "再次輸入密碼",
+    signup_submit: "開始修煉",
+    signup_creating: "建立帳號中...",
+    signup_success: "帳號建立成功，正在進入修仙界...",
+    signup_welcomeBtn: "歡迎，修煉者",
+    signup_hasAccount: "已經是修煉者了？",
+    signup_login: "登入",
+    signup_bottomText: "修仙之路，始於今日",
 
     // Single tab
     singleTab_title: "遊戲已在其他視窗開啟",
@@ -276,7 +291,22 @@ const translations = {
 
     // Signup
     signup_title: "Enter the Realm",
+    signup_subtitle: "Create your account and begin your cultivation journey",
     signup_google: "Sign up with Google",
+    signup_cardTitle: "Create Account",
+    signup_cardDesc: "Sign up with your email to start cultivating",
+    signup_email: "Email",
+    signup_password: "Password",
+    signup_confirmPassword: "Confirm Password",
+    signup_passwordHint: "At least 6 characters",
+    signup_confirmHint: "Re-enter your password",
+    signup_submit: "Begin Cultivation",
+    signup_creating: "Creating Account...",
+    signup_success: "Account created successfully. Entering the cultivation world...",
+    signup_welcomeBtn: "Welcome, Cultivator",
+    signup_hasAccount: "Already a cultivator?",
+    signup_login: "Sign in",
+    signup_bottomText: "The path of cultivation begins today",
 
     // Single tab
     singleTab_title: "Game already open",

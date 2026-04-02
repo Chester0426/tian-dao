@@ -8,6 +8,10 @@ const publicPaths = [
   "/auth/callback",
   "/auth/reset-password",
   "/api/health",
+  "/dev-portal",
+  "/api/auth/wallet-login",
+  "/api/auth/webauthn/login-options",
+  "/api/auth/webauthn/login-verify",
   "/v/cultivation",
   "/v/earn",
 ];
@@ -18,6 +22,9 @@ const noSlotPaths = [
   "/api/game/init-profile",
   "/api/game/select-slot",
   "/api/game/delete-character",
+  "/settings",
+  "/api/auth/webauthn/register-options",
+  "/api/auth/webauthn/register-verify",
 ];
 
 export async function middleware(request: NextRequest) {
