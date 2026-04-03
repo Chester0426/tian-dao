@@ -232,7 +232,7 @@ export default function LandingContent({
   const isZh = locale === "zh";
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
+    <div className="relative h-screen overflow-y-auto overflow-x-hidden snap-y snap-mandatory">
       {/* === FIXED NAV === */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-3 bg-black/40 backdrop-blur-md border-b border-white/5">
         <Link href="/" className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export default function LandingContent({
       </section>
 
       {/* === DEV LOG === */}
-      <section id="devlog" className="relative flex h-screen flex-col items-center border-t border-white/5 px-6 py-12 md:px-12">
+      <section id="devlog" className="relative snap-start flex h-screen flex-col items-center border-t border-white/5 px-6 py-12 md:px-12">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
         <div className="absolute inset-0 bg-black/30" />
         <div className="relative z-10 mx-auto max-w-3xl w-full flex-1 flex flex-col min-h-0">
