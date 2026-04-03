@@ -21,11 +21,10 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const slot = getSlotFromRequest(req);
+  const { verifyProfile } = await import("@/lib/verify-profile");
+  const result = await verifyProfile(req);
+  if ("error" in result) return result.error;
+  const { user, slot, supabase } = result;
 
   let body;
   try {
@@ -166,11 +165,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (profile) {
-    let newBodyXp = profile.body_xp + safeXp.body;
-    if (profile.cultivation_stage <= 9) {
-      const xpForBreakthrough = melvorXpForLevel(profile.cultivation_stage + 1) - melvorXpForLevel(profile.cultivation_stage);
-      newBodyXp = Math.min(newBodyXp, xpForBreakthrough);
-    }
+    const newBodyXp = profile.body_xp + safeXp.body;
     await supabase
       .from("profiles")
       .update({ body_xp: newBodyXp })

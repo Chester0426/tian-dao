@@ -27,7 +27,12 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error) {
+      // Clear slot cookie — force character selection on new login
+      const res = NextResponse.redirect(`${origin}/characters`);
+      res.cookies.set("x-slot", "", { path: "/", maxAge: 0 });
+      return res;
+    }
   }
   return NextResponse.redirect(`${origin}/login?error=auth`);
 }

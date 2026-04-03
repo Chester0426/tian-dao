@@ -27,12 +27,10 @@ export function GameSidebar({
       { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", key: "inventory" },
     ]},
     { title: locale === "zh" ? "戰鬥" : "Combat", items: [
+      { name: locale === "zh" ? "境界" : "Realm", href: "/dashboard", icon: "🧘", key: "body" },
+      { name: locale === "zh" ? "數值" : "Stats", href: "/stats", icon: "📊", key: "stats" },
       { name: locale === "zh" ? "遊歷" : "Adventure", href: "/adventure", icon: "⚔️", key: "adventure" },
       { name: locale === "zh" ? "秘境" : "Dungeon", href: "/dungeon", icon: "🌀", key: "dungeon" },
-    ]},
-    { title: t("sidebar_realm"), items: [
-      { name: locale === "zh" ? "數值" : "Stats", href: "/stats", icon: "📊", key: "stats" },
-      { name: t("sidebar_bodyTempering"), href: "/dashboard", icon: "💪", key: "body" },
     ]},
     { title: t("sidebar_skills"), items: [
       { name: t("sidebar_mining"), href: "/mining", icon: "⛏", key: "mining" },
@@ -58,13 +56,13 @@ export function GameSidebar({
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
     >
-      {/* Brand — compact logo */}
-      <div className="flex shrink-0 items-center gap-2.5 border-b border-border/30 py-3 px-4">
+      {/* Brand — compact logo, links to landing page */}
+      <Link href="/" className="flex shrink-0 items-center gap-2.5 border-b border-border/30 py-3 px-4 transition-opacity hover:opacity-80">
         <img src="/images/logo-dao.png" alt="天道" className="h-10 w-10 rounded-lg object-cover" />
         <span className="font-heading text-sm font-bold text-foreground tracking-widest">
-          TIAN DAO
+          TIAN TAO
         </span>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">

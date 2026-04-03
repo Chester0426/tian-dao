@@ -88,7 +88,7 @@ export default function SignupPage() {
       trackSignupComplete({ method: "email" });
 
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/characters");
       }, 800);
     } catch {
       setFormState("error");

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
-import { getMasteryDoubleDropChance, melvorXpForLevel } from "@/lib/types";
+import { getMasteryDoubleDropChance, melvorXpForLevel, bodyXpForStage } from "@/lib/types";
 import type { InventoryItem } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const [masteryLevels, setMasteryLevels] = useState(initialState?.masteryLevels ?? {});
   const [masteryXps, setMasteryXps] = useState(initialState?.masteryXps ?? {});
   const [masteryXpMaxs, setMasteryXpMaxs] = useState(initialState?.masteryXpMaxs ?? {});
-  const [bodyStage] = useState(initialState?.bodyStage ?? 1);
+  const [bodyStage, setBodyStage] = useState(initialState?.bodyStage ?? 1);
   const [bodyXp, setBodyXp] = useState(initialState?.bodyXp ?? 0);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialState?.inventory ?? []);
   const inventoryRef = useRef(inventory);
@@ -294,12 +294,25 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       return { ...prev, [mine.id]: cur };
     });
 
-    // Update body XP (with cap)
+    // Update body XP — auto-breakthrough at 巔峰+N (level >= 9)
     setBodyXp((prev) => {
-      const stage = bodyStageRef.current;
-      if (stage >= 10) return prev;
-      const maxXp = melvorXpForLevel(stage + 1) - melvorXpForLevel(stage);
-      return Math.min(prev + mine.xp_body, maxXp);
+      let newXp = prev + mine.xp_body;
+      // Auto-breakthrough for 巔峰+N (level >= 9, still in 煉體)
+      if (bodyStageRef.current >= 9) {
+        const required = bodyXpForStage(bodyStageRef.current);
+        if (newXp >= required) {
+          newXp -= required;
+          const newLevel = bodyStageRef.current + 1;
+          setBodyStage(newLevel);
+          bodyStageRef.current = newLevel;
+          // Sync to server
+          fetch("/api/game/breakthrough", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }).catch(() => {});
+        }
+      }
+      return newXp;
     });
 
     // Accumulate sync data
@@ -443,11 +456,19 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       });
     }
 
-    // Apply body XP (with cap)
+    // Apply body XP — no cap, overflow allowed
+    // Apply body XP — auto-breakthrough at 巔峰+N for offline rewards
     setBodyXp((prev) => {
-      if (bodyStageRef.current >= 10) return prev;
-      const maxXp = melvorXpForLevel(bodyStageRef.current + 1) - melvorXpForLevel(bodyStageRef.current);
-      return Math.min(prev + rewards.xp_gained.body, maxXp);
+      let newXp = prev + rewards.xp_gained.body;
+      while (bodyStageRef.current >= 9) {
+        const required = bodyXpForStage(bodyStageRef.current);
+        if (newXp < required) break;
+        newXp -= required;
+        const newLevel = bodyStageRef.current + 1;
+        setBodyStage(newLevel);
+        bodyStageRef.current = newLevel;
+      }
+      return newXp;
     });
 
     // Queue sync

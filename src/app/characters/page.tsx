@@ -31,7 +31,11 @@ export default async function CharactersPage() {
         slot: 1,
         profile: {
           id: "demo", user_id: "demo", slot: 1,
-          cultivation_stage: 1, body_xp: 0, body_skill_level: 1, body_skill_xp: 0,
+          realm: "煉體" as const, realm_level: 1, cultivation_stage: 1,
+          body_level: 1, body_xp: 0,
+          qi_level: 0, qi_xp: 0, foundation_level: 0, foundation_xp: 0,
+          core_level: 0, core_xp: 0, nascent_level: 0, nascent_xp: 0,
+          body_skill_level: 1, body_skill_xp: 0,
           inventory_slots: 20, dao_points: 0, created_at: new Date().toISOString(),
         },
         miningLevel: 1,

@@ -17,11 +17,10 @@ const DAO_POINTS_PER_ITEM: Record<string, number> = {
 };
 
 export async function POST(req: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const slot = getSlotFromRequest(req);
+  const { verifyProfile } = await import("@/lib/verify-profile");
+  const result = await verifyProfile(req);
+  if ("error" in result) return result.error;
+  const { user, slot, supabase } = result;
 
   let body;
   try {

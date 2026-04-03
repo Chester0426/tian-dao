@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { getMasteryDoubleDropChance, melvorXpForLevel } from "@/lib/types";
+import { getMasteryDoubleDropChance, melvorXpForLevel, bodyXpForStage } from "@/lib/types";
 import { getSlotFromRequest } from "@/lib/slot-api";
 
 const MineActionSchema = z.object({
@@ -10,11 +10,10 @@ const MineActionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const slot = getSlotFromRequest(request);
+  const { verifyProfile } = await import("@/lib/verify-profile");
+  const result = await verifyProfile(request);
+  if ("error" in result) return result.error;
+  const { user, slot, supabase } = result;
 
   let body: unknown;
   try {
@@ -215,11 +214,7 @@ export async function POST(request: NextRequest) {
   let newBodySkillXp = profile.body_skill_xp;
   let newBodySkillLevel = profile.body_skill_level;
 
-  // Cap body XP at breakthrough threshold (can't exceed, must manually breakthrough)
-  if (profile.cultivation_stage <= 9) {
-    const xpForBreakthrough = melvorXpForLevel(profile.cultivation_stage + 1) - melvorXpForLevel(profile.cultivation_stage);
-    newBodyXp = Math.min(newBodyXp, xpForBreakthrough);
-  }
+  // Body XP can overflow past breakthrough threshold — no cap
 
   // If post-煉體9, apply to skill track
   if (profile.cultivation_stage > 9) {

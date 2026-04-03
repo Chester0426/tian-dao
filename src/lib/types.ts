@@ -9,17 +9,31 @@ export type Json =
   | Json[];
 
 // profiles — player cultivation state and inventory capacity
+export type Realm = "煉體" | "練氣" | "築基" | "金丹" | "元嬰";
+
 export interface Profile {
-  id: string; // uuid, references auth.users
-  user_id: string; // uuid, references auth.users
-  slot: number; // 1-3, save slot
-  cultivation_stage: number; // 1-9 for 煉體 stages
-  body_xp: number; // current 煉體 XP within stage
-  body_skill_level: number; // 1-99 post-煉體9 skill track (starts at 9)
-  body_skill_xp: number; // XP for post-煉體9 skill track
-  inventory_slots: number; // base 20, expandable via shop
-  dao_points: number; // 天道值, earned by sacrificing items
-  created_at: string; // timestamptz
+  id: string;
+  user_id: string;
+  slot: number;
+  realm: Realm; // current active realm
+  realm_level: number; // current level in active realm
+  cultivation_stage: number; // legacy
+  // Independent realm data
+  body_level: number; // 煉體 level (1-9, 9+=巔峰+N)
+  body_xp: number; // 煉體 current XP
+  qi_level: number; // 練氣 level (0=not unlocked, 1-13)
+  qi_xp: number; // 練氣 current XP
+  foundation_level: number; // 築基 level (0=not unlocked)
+  foundation_xp: number;
+  core_level: number; // 金丹 level (0=not unlocked)
+  core_xp: number;
+  nascent_level: number; // 元嬰 level (0=not unlocked)
+  nascent_xp: number;
+  body_skill_level: number;
+  body_skill_xp: number;
+  inventory_slots: number;
+  dao_points: number;
+  created_at: string;
 }
 
 // mining_skills — mining skill level and XP per player
@@ -123,4 +137,51 @@ export function melvorXpForLevel(level: number): number {
     total += Math.floor((1 / 4) * (l - 1 + 300 * Math.pow(2, (l - 1) / 7)));
   }
   return total;
+}
+
+// Custom body tempering XP table (stage 1-9)
+// Based on 2,3,5,7,9,11,13,15 minute progression with 5 XP per 3s action
+const BODY_XP_TABLE: Record<number, number> = {
+  1: 200,
+  2: 300,
+  3: 500,
+  4: 700,
+  5: 900,
+  6: 1100,
+  7: 1300,
+  8: 1500,
+};
+
+/** XP required to break through from the given body tempering level.
+ *  Level 1-8: fixed table. Level 9+ (巔峰+N): base 1500, +10% per level. */
+export function bodyXpForStage(level: number): number {
+  if (level <= 8) return BODY_XP_TABLE[level] ?? 2000;
+  // 巔峰+N: 1500 * 1.1^(level - 8)
+  return Math.floor(1500 * Math.pow(1.1, level - 8));
+}
+
+/** Display name for realm (with 期) */
+export const REALM_DISPLAY: Record<Realm, { zh: string; en: string; enDesc: string }> = {
+  "煉體": { zh: "煉體期", en: "Body Refining", enDesc: "Strengthening the physical shell." },
+  "練氣": { zh: "練氣期", en: "Qi Condensation", enDesc: "Gathering and compressing spiritual energy." },
+  "築基": { zh: "築基期", en: "Foundation Establishment", enDesc: "Building the base for immortality." },
+  "金丹": { zh: "金丹期", en: "Golden Core", enDesc: "Forming the inner core of power." },
+  "元嬰": { zh: "元嬰期", en: "Nascent Soul", enDesc: "Birthing the spiritual infant within." },
+};
+
+/** Get display label for realm level */
+export function getRealmLevelLabel(realm: Realm, level: number): string {
+  if (realm === "煉體") return level >= 9 ? `巔峰${level > 9 ? "+" + (level - 9) : ""}` : `${level} 級`;
+  if (realm === "練氣") return `${level} 級`;
+  const namedLevels = ["初期", "前期", "中期", "後期", "巔峰"];
+  return namedLevels[level - 1] ?? `${level}`;
+}
+
+/** Total stat gains from realm breakthroughs */
+export function getRealmStats(realm: Realm, level: number) {
+  if (realm === "煉體") {
+    const breakthroughs = level - 1;
+    return { hp: breakthroughs * 10, atk: breakthroughs, def: breakthroughs };
+  }
+  return { hp: 0, atk: 0, def: 0 };
 }

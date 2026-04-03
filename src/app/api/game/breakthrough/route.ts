@@ -1,18 +1,16 @@
-// POST /api/game/breakthrough — Advance 煉體 stage (b-06, b-07)
+// POST /api/game/breakthrough — Advance realm level
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { melvorXpForLevel } from "@/lib/types";
+import { bodyXpForStage } from "@/lib/types";
 import { trackServerEvent } from "@/lib/analytics-server";
 import { getSlotFromRequest } from "@/lib/slot-api";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { verifyProfile } = await import("@/lib/verify-profile");
+  const vResult = await verifyProfile(request);
+  if ("error" in vResult) return vResult.error;
+  const { user, slot, supabase } = vResult;
 
-  const slot = getSlotFromRequest(request);
-
-  // Fetch player profile
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
@@ -24,23 +22,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  const currentStage = profile.cultivation_stage;
+  const realm = profile.realm ?? "煉體";
+  const bodyLevel = profile.body_level ?? profile.realm_level ?? profile.cultivation_stage ?? 1;
 
-  // Demo cap: cannot go past 練氣一階 (stage 10)
-  if (currentStage >= 10) {
-    return NextResponse.json({
-      error: "demo_ended",
-      message: "Demo 版本已結束。正式版即將推出，敬請期待！",
-    }, { status: 403 });
-  }
-
-  // Must be in valid stage range (1-9 煉體, 10 練氣一階)
-  if (currentStage > 10) {
-    return NextResponse.json({ error: "Invalid stage" }, { status: 400 });
-  }
-
-  // Check if XP is sufficient for breakthrough
-  const xpRequired = melvorXpForLevel(currentStage + 1) - melvorXpForLevel(currentStage);
+  // Check if XP is sufficient
+  const xpRequired = bodyXpForStage(bodyLevel);
   if (profile.body_xp < xpRequired) {
     return NextResponse.json({
       error: "Insufficient XP for breakthrough",
@@ -49,20 +35,17 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  // 100% success rate for 煉體 1-9
-  const newStage = currentStage + 1;
   const leftoverXp = profile.body_xp - xpRequired;
-
-  // If reaching stage 10 (past 煉體9), unlock skill track (b-07)
-  const isPostBodyTempering = newStage > 9;
+  const newBodyLevel = bodyLevel + 1;
 
   const { error: updateError } = await supabase
     .from("profiles")
     .update({
-      cultivation_stage: newStage,
+      realm,
+      realm_level: newBodyLevel,
+      body_level: newBodyLevel,
+      cultivation_stage: newBodyLevel,
       body_xp: leftoverXp,
-      // If unlocking skill track, initialize at level 9
-      ...(isPostBodyTempering ? { body_skill_level: 9, body_skill_xp: 0 } : {}),
     })
     .eq("user_id", user.id)
     .eq("slot", slot);
@@ -73,14 +56,14 @@ export async function POST(request: NextRequest) {
   }
 
   await trackServerEvent("breakthrough_complete", user.id, {
-    from_stage: currentStage,
-    to_stage: newStage,
-    unlocked_skill_track: isPostBodyTempering,
+    realm,
+    from_level: bodyLevel,
+    to_level: newBodyLevel,
   });
 
   return NextResponse.json({
-    new_stage: newStage,
+    realm,
+    new_level: newBodyLevel,
     leftover_xp: leftoverXp,
-    unlocked_skill_track: isPostBodyTempering,
   });
 }

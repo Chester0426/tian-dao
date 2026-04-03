@@ -68,7 +68,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/characters");
     } catch {
       setErrorMessage("發生意外錯誤，請重新嘗試。");
       setLoading(false);

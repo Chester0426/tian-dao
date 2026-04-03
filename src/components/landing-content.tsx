@@ -30,6 +30,39 @@ function useScrollReveal(threshold = 0.15) {
   return { ref, revealed };
 }
 
+const DEV_LOG = [
+  { date: "04/03", items: [
+    { zh: "新增境界系統（煉體期→練氣期→築基期→金丹期→元嬰期）", en: "Added realm system (Body Refining→Qi Condensation→Foundation Establishment→Golden Core→Nascent Soul)" },
+    { zh: "數值頁面（主要屬性 + 次要屬性 + 裝備區）", en: "Stats page (main stats + secondary stats + equipment)" },
+    { zh: "煉體巔峰機制（9級後可無限提升）", en: "Body Refining peak mechanic (infinite progression after Lv.9)" },
+    { zh: "各境界獨立資料儲存", en: "Independent realm data storage" },
+    { zh: "自定義煉體經驗表", en: "Custom Body Refining XP table" },
+    { zh: "經驗溢出機制", en: "XP overflow mechanic" },
+    { zh: "遷移至新 Supabase 專案", en: "Migrated to new Supabase project" },
+    { zh: "API 安全驗證", en: "API security verification" },
+    { zh: "修復帳號切換資料混淆 bug", en: "Fixed account switching data contamination bug" },
+    { zh: "開發日誌頁面", en: "Dev log page" },
+    { zh: "角色選擇頁面優化", en: "Character selection page improvements" },
+    { zh: "全頁面中英文翻譯", en: "Full page Chinese/English translation" },
+  ]},
+  { date: "04/02", items: [
+    { zh: "Phantom 錢包開發者登入", en: "Phantom wallet dev login" },
+    { zh: "Landing page 全新設計", en: "Landing page redesign" },
+    { zh: "登入註冊頁面重設計", en: "Login/signup redesign" },
+    { zh: "中英文切換", en: "Chinese/English toggle" },
+    { zh: "新增戰鬥頁面（遊歷、秘境）", en: "Combat pages (adventure, dungeon)" },
+    { zh: "新增技能頁面（採藥、煉丹、烹飪、釣魚、煉器）", en: "Skill pages (herbalism, alchemy, cooking, fishing, smithing)" },
+    { zh: "可收合式 sidebar", en: "Collapsible sidebar" },
+  ]},
+  { date: "04/01", items: [
+    { zh: "離線獎勵對話框", en: "Offline rewards dialog" },
+    { zh: "通知計數修正", en: "Notification count fix" },
+  ]},
+  { date: "03/31", items: [
+    { zh: "創建開發日誌", en: "Created dev log" },
+  ]},
+];
+
 const FEATURES = [
   {
     titleZh: "放置修煉",
@@ -199,7 +232,7 @@ export default function LandingContent({
   const isZh = locale === "zh";
 
   return (
-    <div className="relative snap-y snap-mandatory h-screen overflow-y-auto overflow-x-hidden scroll-smooth">
+    <div className="relative min-h-screen overflow-x-hidden">
       {/* === FIXED NAV === */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-3 bg-black/40 backdrop-blur-md border-b border-white/5">
         <Link href="/" className="flex items-center gap-2">
@@ -306,6 +339,45 @@ export default function LandingContent({
         </div>
       </section>
 
+      {/* === DEV LOG === */}
+      <section id="devlog" className="relative flex min-h-screen flex-col items-center justify-center border-t border-white/5 px-6 py-16 md:px-12">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="relative z-10 mx-auto max-w-3xl w-full flex-1 flex flex-col">
+          <h2 className="text-center font-heading text-2xl font-bold text-white mb-2">
+            {isZh ? "開發日誌" : "Dev Log"}
+          </h2>
+          <div
+            className="mx-auto mb-8 h-px w-16"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.5), transparent)" }}
+          />
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+            {DEV_LOG.map((entry, i) => (
+              <div key={i} className="border-l-2 border-white/10 pl-4">
+                <span className="text-xs font-mono text-spirit-gold/70">
+                  {entry.date}
+                </span>
+                <div className="mt-1.5 space-y-1">
+                  {entry.items.map((item, j) => (
+                    <p key={j} className="text-sm text-white/60">
+                      {isZh ? item.zh : item.en}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 border-t border-white/5 pt-6 text-center">
+            <p className="text-xs text-white/25">
+              &copy; {new Date().getFullYear()} Tian Tao.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {false && <>
       {/* === SECTION 2: FEATURES + SCREENSHOTS === */}
       <section
         ref={featuresReveal.ref}
@@ -451,7 +523,7 @@ export default function LandingContent({
         </div>
       </section>
 
-      {/* === SECTION 4: ROADMAP === */}
+      {/* === SECTION 4: ROADMAP (also hidden) === */}
       <section
         ref={roadmapReveal.ref}
         className="relative snap-start flex min-h-screen flex-col items-center justify-center px-6 py-20 md:px-12"
@@ -542,6 +614,7 @@ export default function LandingContent({
           </p>
         </div>
       </section>
+      </>}
     </div>
   );
 }

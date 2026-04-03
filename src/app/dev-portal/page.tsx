@@ -62,7 +62,7 @@ export default function DevPortalPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/characters");
     } catch {
       setErrorMessage("登入失敗，請重新嘗試。");
       setLoading(false);

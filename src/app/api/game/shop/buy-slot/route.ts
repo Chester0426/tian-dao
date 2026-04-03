@@ -11,11 +11,10 @@ function slotPrice(currentSlots: number): number {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const slot = getSlotFromRequest(request);
+  const { verifyProfile } = await import("@/lib/verify-profile");
+  const result = await verifyProfile(request);
+  if ("error" in result) return result.error;
+  const { user, slot, supabase } = result;
 
   // Fetch profile to compute price
   const { data: profile, error: profileError } = await supabase
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
   const price = slotPrice(profile.inventory_slots);
 
   // Atomic buy: check balance, deduct, and increment slots in one transaction
-  const { data: result, error: rpcError } = await supabase.rpc("buy_inventory_slot", {
+  const { data: rpcResult, error: rpcError } = await supabase.rpc("buy_inventory_slot", {
     p_price: price,
     p_slot: slot,
   });
@@ -42,20 +41,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Purchase failed" }, { status: 500 });
   }
 
-  if (result?.error === "insufficient_balance") {
+  if (rpcResult?.error === "insufficient_balance") {
     return NextResponse.json({
       error: "Insufficient spirit stones",
       required: price,
-      available: result.available,
+      available: rpcResult.available,
     }, { status: 400 });
   }
 
-  const nextPrice = slotPrice(result.new_slots);
+  const nextPrice = slotPrice(rpcResult.new_slots);
 
   return NextResponse.json({
-    new_slots: result.new_slots,
-    spent: result.spent,
+    new_slots: rpcResult.new_slots,
+    spent: rpcResult.spent,
     next_price: nextPrice,
-    spirit_stone_remaining: result.spirit_stone_remaining,
+    spirit_stone_remaining: rpcResult.spirit_stone_remaining,
   });
 }

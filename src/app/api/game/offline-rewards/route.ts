@@ -9,11 +9,10 @@ const ACTION_INTERVAL_SECONDS = 3;
 const ROCK_RESPAWN_SECONDS = 5;
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const slot = getSlotFromRequest(request);
+  const { verifyProfile } = await import("@/lib/verify-profile");
+  const result = await verifyProfile(request);
+  if ("error" in result) return result.error;
+  const { user, slot, supabase } = result;
 
   // Fetch latest idle session
   const { data: sessions } = await supabase

@@ -17,21 +17,9 @@ interface BreakthroughDialogProps {
   onCancel: () => void;
 }
 
-const STAGE_NAMES: Record<number, string> = {
-  1: "煉體一階",
-  2: "煉體二階",
-  3: "煉體三階",
-  4: "煉體四階",
-  5: "煉體五階",
-  6: "煉體六階",
-  7: "煉體七階",
-  8: "煉體八階",
-  9: "煉體九階",
-  10: "練氣一階",
-};
-
-function getStageName(stage: number): string {
-  return STAGE_NAMES[stage] ?? (stage > 9 ? `練氣${stage - 9}階` : `煉體${stage}階`);
+function getLevelLabel(level: number): string {
+  if (level >= 9) return `巔峰${level > 9 ? "+" + (level - 9) : ""}`;
+  return `${level} 級`;
 }
 
 export function BreakthroughDialog({
@@ -44,16 +32,12 @@ export function BreakthroughDialog({
   >("confirm");
   const [open, setOpen] = useState(true);
 
-  const nextStage = currentStage + 1;
-  const currentName = getStageName(currentStage);
-  const nextName = getStageName(nextStage);
-
-  const isEnteringQiRefining = currentStage === 9;
+  const currentName = `煉體期 ${getLevelLabel(currentStage)}`;
+  const nextName = `煉體期 ${getLevelLabel(currentStage + 1)}`;
 
   useEffect(() => {
     if (phase === "success") {
       const timer = setTimeout(() => {
-        // Full reload to show new stage, reset XP, etc.
         window.location.reload();
       }, 2000);
       return () => clearTimeout(timer);
@@ -110,23 +94,21 @@ export function BreakthroughDialog({
                 突破修煉
               </DialogTitle>
               <DialogDescription>
-                {isEnteringQiRefining
-                  ? "煉體九階已圓滿，突破後將進入練氣境界。"
-                  : `經驗已滿，可從 ${currentName} 突破至 ${nextName}。突破成功率 100%。`}
+                經驗已滿，突破成功率 100%
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center justify-center gap-4 py-4">
+            <div className="flex items-center justify-center gap-6 py-6">
               <div className="text-center">
-                <div className="font-heading text-2xl text-muted-foreground">
+                <p className="text-xs text-muted-foreground/60 mb-1">當前</p>
+                <div className="font-heading text-xl text-muted-foreground">
                   {currentName}
                 </div>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-spirit-gold text-lg">→</span>
-              </div>
+              <div className="text-spirit-gold text-2xl">→</div>
               <div className="text-center">
-                <div className="font-heading text-2xl text-spirit-gold text-glow-gold">
+                <p className="text-xs text-spirit-gold/60 mb-1">突破後</p>
+                <div className="font-heading text-xl text-spirit-gold text-glow-gold">
                   {nextName}
                 </div>
               </div>
@@ -175,9 +157,7 @@ export function BreakthroughDialog({
               突破成功！
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isEnteringQiRefining
-                ? "進入練氣境界"
-                : `已達 ${nextName}`}
+              已達 {nextName}
             </p>
           </div>
         )}
@@ -191,8 +171,7 @@ export function BreakthroughDialog({
               Demo 版本已結束
             </p>
             <p className="mt-2 text-sm text-muted-foreground text-center leading-relaxed">
-              恭喜你已達到 Demo 版本的修煉上限。<br />
-              正式版即將推出，開通需支付 20 USDT。
+              正式版即將推出，敬請期待！
             </p>
             <Button
               variant="outline"

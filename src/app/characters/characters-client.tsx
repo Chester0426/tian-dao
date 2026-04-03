@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useI18n } from "@/lib/i18n";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import bs58 from "bs58";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,7 @@ export function CharactersClient({
   walletAddress: string | null;
 }) {
   const router = useRouter();
+  const { locale, setLocale, t } = useI18n();
   const { publicKey, connected, signMessage } = useWallet();
   const [walletAddress, setWalletAddress] = useState(initialWalletAddress);
   const [bindingWallet, setBindingWallet] = useState(false);
@@ -93,16 +95,38 @@ export function CharactersClient({
     }
   };
 
+  const handleLogout = async () => {
+    const { createClient } = await import("@/lib/supabase");
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    document.cookie = "x-slot=; path=/; max-age=0";
+    router.push("/login");
+  };
+
   return (
-    <div className="min-h-screen ink-wash-bg ink-noise flex items-center justify-center">
-      <div className="w-full max-w-3xl px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center">
+      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
+      <div className="absolute inset-0 bg-black/30" />
+
+      {/* Language toggle */}
+      <button
+        type="button"
+        onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+        className="absolute right-5 top-5 z-20 rounded-full border border-white/20 bg-black/30 px-5 py-2 text-sm font-medium text-white/70 backdrop-blur-sm transition-colors hover:text-white hover:border-white/40"
+      >
+        {locale === "zh" ? "English" : "中文"}
+      </button>
+
+      <div className="relative z-10 w-full max-w-3xl px-4 py-8">
         {/* Header */}
         <div className="text-center mb-10">
-          <img src="/images/logo-dao.png" alt="天道" className="mx-auto h-24 w-24 mb-4 rounded-xl" />
+          <a href="/">
+            <img src="/images/logo-dao.png" alt="天道" className="mx-auto h-24 w-24 mb-4 rounded-xl cursor-pointer transition-transform hover:scale-105" />
+          </a>
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
             天道
           </h1>
-          <p className="mt-2 text-muted-foreground">選擇存檔開始修煉</p>
+          <p className="mt-2 text-muted-foreground">{t("char_subtitle")}</p>
 
           {/* Wallet binding */}
           <div className="mt-4">
@@ -140,12 +164,20 @@ export function CharactersClient({
                   }
                 }}
               >
-                {bindingWallet ? "簽名中..." : "簽名綁定此錢包"}
+                {bindingWallet ? t("char_signing") : t("char_signBind")}
               </Button>
             ) : (
               <WalletMultiButton style={{ height: "32px", fontSize: "14px" }} />
             )}
           </div>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t("sidebar_logout")}
+          </button>
         </div>
 
         {/* 3 Slot Grid */}
@@ -168,7 +200,7 @@ export function CharactersClient({
                     variant="outline"
                     className="text-xs text-muted-foreground border-border/40"
                   >
-                    存檔 {slot}
+                    {t("char_save")} {slot}
                   </Badge>
 
                   {isEmpty && slot > 1 ? (
@@ -183,7 +215,7 @@ export function CharactersClient({
                         variant="outline"
                         className="w-full opacity-50"
                       >
-                        即將開放
+                        {t("char_lockedBtn")}
                       </Button>
                     </>
                   ) : isEmpty ? (
@@ -192,13 +224,13 @@ export function CharactersClient({
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/20 border border-dashed border-border/40">
                         <span className="text-3xl text-muted-foreground/30">+</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">空存檔</p>
+                      <p className="text-sm text-muted-foreground">{t("char_empty")}</p>
                       <Button
                         onClick={() => handleSelectSlot(slot, false, null, null)}
                         disabled={isLoading}
                         className="w-full seal-glow font-heading"
                       >
-                        {isLoading ? "建立中..." : "建立角色"}
+                        {isLoading ? t("char_creating") : t("char_create")}
                       </Button>
                     </>
                   ) : (
@@ -206,13 +238,16 @@ export function CharactersClient({
                       {/* Occupied slot */}
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-cinnabar-dim border border-cinnabar/20">
                         <span className="font-heading text-2xl font-bold text-cinnabar">
-                          {profile.cultivation_stage}
+                          {profile.realm_level ?? profile.cultivation_stage}
                         </span>
                       </div>
 
                       <div className="text-center space-y-1">
                         <p className="font-heading font-bold text-sm">
-                          {stageNames[profile.cultivation_stage] ?? `煉體${profile.cultivation_stage}階`}
+                          {locale === "zh"
+                            ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
+                            : `Body Refining ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
+                          }
                         </p>
                         {miningLevel > 0 && (
                           <p className="text-xs text-muted-foreground">
@@ -232,7 +267,7 @@ export function CharactersClient({
                           disabled={isLoading}
                           className="flex-1 seal-glow font-heading"
                         >
-                          {isLoading ? "載入中..." : "載入"}
+                          {isLoading ? t("char_loading") : t("char_load")}
                         </Button>
                         <Button
                           variant="outline"
@@ -260,24 +295,27 @@ export function CharactersClient({
       <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}>
         <DialogContent className="scroll-surface sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-heading text-lg">刪除角色</DialogTitle>
+            <DialogTitle className="font-heading text-lg">{t("char_delete")}</DialogTitle>
           </DialogHeader>
           {deleteTarget?.profile && (
             <div className="space-y-4 py-2">
               <p className="text-sm text-muted-foreground">
-                確定要刪除存檔 {deleteTarget.slot} 的角色嗎？
+                {t("char_deleteConfirm", { n: deleteTarget.slot })}
               </p>
               <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 text-sm">
                 <p className="font-heading font-bold text-destructive">
-                  {stageNames[deleteTarget.profile.cultivation_stage] ?? `煉體${deleteTarget.profile.cultivation_stage}階`}
+                  {locale === "zh"
+                    ? `${(deleteTarget.profile.realm ?? "煉體")}期 ${deleteTarget.profile.realm_level >= 9 ? "巔峰" : (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage) + " 級"}`
+                    : `Body Refining ${deleteTarget.profile.realm_level >= 9 ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
+                  }
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  此操作無法復原，所有進度將永久刪除。
+                  {t("char_deleteWarn")}
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  請輸入 <span className="font-bold text-destructive">Delete</span> 確認刪除
+                  {t("char_deleteInput")} <span className="font-bold text-destructive">Delete</span> {t("char_deleteInputHint")}
                 </p>
                 <input
                   type="text"
@@ -302,7 +340,7 @@ export function CharactersClient({
                   onClick={handleDelete}
                   disabled={deleting || deleteConfirmText !== "Delete"}
                 >
-                  {deleting ? "刪除中..." : "確認刪除"}
+                  {deleting ? t("char_deleting") : t("char_confirmDelete")}
                 </Button>
               </div>
             </div>

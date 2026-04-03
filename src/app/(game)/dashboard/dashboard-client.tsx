@@ -1,41 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import Link from "next/link";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useGameState } from "@/components/mining-provider";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { trackActivate, trackRetainReturn } from "@/lib/events";
 import type { Profile, MiningSkill, MineMastery, InventoryItem } from "@/lib/types";
+import { getRealmLevelLabel } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 import { BreakthroughDialog } from "./breakthrough-dialog";
-
-// -- Item display data --
-
-/** Hook: observe element entering viewport for scroll-triggered reveals */
-function useScrollReveal(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, visible };
-}
 
 interface OfflineRewards {
   minutesAway: number;
@@ -67,76 +43,60 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
+const REALMS_DISPLAY = [
+  { id: "煉體", nameZh: "煉體期", nameEn: "Body Refining Realm" },
+  { id: "練氣", nameZh: "練氣期", nameEn: "Qi Condensation Realm" },
+  { id: "築基", nameZh: "築基期", nameEn: "Foundation Establishment Realm" },
+  { id: "金丹", nameZh: "金丹期", nameEn: "Golden Core Realm" },
+  { id: "元嬰", nameZh: "元嬰期", nameEn: "Nascent Soul Realm" },
+];
+
 export function DashboardClient({
   profile,
-  miningSkill,
-  masteries,
-  inventory,
-  offlineRewards,
-  stageName,
   xpProgress,
   xpCurrent,
   xpRequired,
-  isBreakthroughReady,
-  slotsUsed,
-  totalSlots,
   isPostBodyTempering,
   bodySkillLevel,
 }: DashboardClientProps) {
   const router = useRouter();
   const gameState = useGameState();
+  const { locale } = useI18n();
+  const isZh = locale === "zh";
 
-  // Use global real-time values (updates while mining on other pages)
   const liveBodyXp = gameState.bodyXp ?? xpCurrent;
-  const liveMiningLevel = gameState.miningLevel ?? miningSkill.level;
-  const liveMiningXp = gameState.miningXp ?? 0;
-  const liveMiningXpMax = gameState.miningXpMax ?? 100;
-  const liveInventory = gameState.inventory.length > 0 ? gameState.inventory : inventory;
-  const liveSlotsUsed = new Set(liveInventory.map((i) => i.item_type)).size;
+  const liveXpProgress = xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress;
 
-  // For stage 10 (demo cap), don't show breakthrough
-  const isDemoCap = profile.cultivation_stage >= 10;
-  const liveXpProgress = isDemoCap ? 100 : (xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress);
-  const liveBreakthroughReady = !isDemoCap && liveXpProgress >= 100 && profile.cultivation_stage <= 9;
+  // Manual breakthrough: stages 1-8, or 巔峰 to 練氣
+  const isPeakToNextRealm = profile.realm === "煉體" && profile.body_level >= 9;
+  const isAutoBreakthroughZone = profile.realm === "煉體" && profile.body_level >= 9;
+  const liveBreakthroughReady = !isPostBodyTempering && liveXpProgress >= 100 && !isAutoBreakthroughZone;
+  // For 巔峰 manual breakthrough to 練氣, show a different button
+  const canBreakToNextRealm = isPeakToNextRealm && liveXpProgress >= 100;
 
   const [showBreakthrough, setShowBreakthrough] = useState(false);
-  const [hasTrackedActivate, setHasTrackedActivate] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Fire activate event on first dashboard visit
   useEffect(() => {
-    if (!hasTrackedActivate) {
-      const hasVisited = localStorage.getItem("xian_dashboard_visited");
-      if (!hasVisited) {
-        trackActivate({ action: "entered_dashboard" });
-        localStorage.setItem("xian_dashboard_visited", "true");
-      }
-      setHasTrackedActivate(true);
+    const hasVisited = localStorage.getItem("xian_dashboard_visited");
+    if (!hasVisited) {
+      trackActivate({ action: "entered_dashboard" });
+      localStorage.setItem("xian_dashboard_visited", "true");
     }
-  }, [hasTrackedActivate]);
+  }, []);
 
-  // Fire retain_return if returning after 24h+
   useEffect(() => {
     try {
       const lastVisit = localStorage.getItem("xian_last_dashboard_visit");
       if (lastVisit) {
-        const days = Math.floor(
-          (Date.now() - Number(lastVisit)) / 86_400_000
-        );
-        if (days >= 1) {
-          trackRetainReturn({ days_since_last: days });
-        }
+        const days = Math.floor((Date.now() - Number(lastVisit)) / 86_400_000);
+        if (days >= 1) trackRetainReturn({ days_since_last: days });
       }
       localStorage.setItem("xian_last_dashboard_visit", String(Date.now()));
-    } catch {
-      // localStorage unavailable
-    }
+    } catch {}
   }, []);
 
-  // Mount animation
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   const handleBreakthroughConfirm = useCallback(async () => {
     try {
@@ -144,168 +104,206 @@ export function DashboardClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (res.ok) {
-        // Refresh page to show new stage
-        router.refresh();
-      }
-    } catch {
-      // Handle error silently for now
-    }
+      if (res.ok) router.refresh();
+    } catch {}
   }, [router]);
 
-  // Diverse animation styles to avoid monotony
-  const fadeSlide = (index: number) => ({
-    opacity: mounted ? 1 : 0,
-    transform: mounted ? "translateY(0)" : "translateY(12px)",
-    filter: mounted ? "blur(0)" : "blur(4px)",
-    transition: `all 0.5s ease-out ${index * 100}ms`,
-  });
-
-  const scaleReveal = (index: number) => ({
-    opacity: mounted ? 1 : 0,
-    transform: mounted ? "scale(1)" : "scale(0.96)",
-    transition: `all 0.45s cubic-bezier(0.22,1,0.36,1) ${index * 120}ms`,
-  });
-
-  const slideFromRight = (index: number) => ({
-    opacity: mounted ? 1 : 0,
-    transform: mounted ? "translateX(0)" : "translateX(20px)",
-    transition: `all 0.5s ease-out ${index * 100}ms`,
-  });
-
-  // Scroll reveal hooks for below-fold cards
-  const quickActionsReveal = useScrollReveal(0.1);
-
-  const depletedMastery = masteries.find((m) => m.mine_id !== null) ?? null;
-  const inventorySlotPercent = totalSlots > 0 ? (liveSlotsUsed / totalSlots) * 100 : 0;
-  const inventoryNearFull = inventorySlotPercent >= 80;
+  const currentRealmIdx = REALMS_DISPLAY.findIndex((r) => r.id === profile.realm);
+  const currentLevel = profile.realm === "煉體" ? profile.body_level : profile.realm_level;
+  const levelLabel = getRealmLevelLabel(profile.realm, currentLevel);
+  const breakthroughs = currentLevel - 1;
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen">
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-          {/* Header — brush-stroke reveal + decorative line */}
-          <header className="mb-6" style={fadeSlide(0)}>
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                  煉體
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  透過挖礦與修煉突破境界
-                </p>
-              </div>
-              <Badge variant="outline" className="font-heading text-jade border-jade/30 bg-jade/5 px-3 py-1.5 text-sm">
-                {stageName}
-              </Badge>
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {/* Header */}
+        <header
+          className="mb-6"
+          style={{
+            opacity: mounted ? 1 : 0,
+            transform: mounted ? "translateY(0)" : "translateY(12px)",
+            transition: "all 0.5s ease-out",
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+                {isZh ? "境界" : "Realm"}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isZh ? "修煉突破，踏上更高境界" : "Cultivate and break through to higher realms"}
+              </p>
             </div>
-            {/* Decorative brush-stroke separator */}
-            <div className="relative mt-4">
-              <Separator />
-              <div
-                className="absolute left-0 top-0 h-[2px] bg-gradient-to-r from-cinnabar via-spirit-gold to-transparent"
-                style={{
-                  width: mounted ? "40%" : "0%",
-                  transition: "width 0.8s cubic-bezier(0.22,1,0.36,1) 0.3s",
-                }}
-              />
-            </div>
-          </header>
-
-          <div className="grid gap-6">
-            {/* === Cultivation Status Card === */}
-            <Card
-              className={`scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
-                liveBreakthroughReady ? "qi-glow" : ""
-              }`}
-              style={scaleReveal(1)}
-            >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="font-heading text-lg">
-                      {isPostBodyTempering ? (
-                        <>
-                          煉體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span>
-                        </>
-                      ) : (
-                        <span className="text-glow-cinnabar">{stageName}</span>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
-                      {isPostBodyTempering
-                        ? "煉體已圓滿，技能樹持續深化中"
-                        : "身體深化 — 透過挖礦與修煉獲得經驗"}
-                    </CardDescription>
-                  </div>
-                  {liveBreakthroughReady && (
-                    <Button
-                      onClick={() => setShowBreakthrough(true)}
-                      className="seal-glow animate-pulse hover:animate-none hover:scale-[1.02] transition-transform font-heading"
-                      size="lg"
-                    >
-                      突破
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* XP Progress — custom themed bar */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">煉體經驗</span>
-                    <span className="font-heading tabular-nums text-foreground">
-                      {formatNumber(liveBodyXp)} / {formatNumber(xpRequired)}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted/40">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-cinnabar to-spirit-gold transition-all duration-700 ease-out"
-                        style={{ width: `${liveXpProgress}%` }}
-                      />
-                      {liveXpProgress > 5 && (
-                        <div
-                          className="absolute inset-y-0 left-0 rounded-full opacity-40"
-                          style={{
-                            width: `${liveXpProgress}%`,
-                            background: "linear-gradient(90deg, transparent 60%, oklch(1 0 0 / 20%) 100%)",
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {Math.round(liveXpProgress)}%
-                    </span>
-                    {liveBreakthroughReady && (
-                      <span className="text-xs font-medium text-spirit-gold animate-pulse text-glow-gold">
-                        可以突破了！
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-
-            {/* Mining skill, inventory, quick actions removed — only cultivation here */}
+            <Badge variant="outline" className="font-heading text-jade border-jade/30 bg-jade/5 px-3 py-1.5 text-sm">
+              {isZh ? (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameZh ?? profile.realm) : (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameEn ?? profile.realm)} · {levelLabel}
+            </Badge>
           </div>
+          <div className="relative mt-4">
+            <Separator />
+            <div
+              className="absolute left-0 top-0 h-[2px] bg-gradient-to-r from-cinnabar via-spirit-gold to-transparent"
+              style={{
+                width: mounted ? "40%" : "0%",
+                transition: "width 0.8s cubic-bezier(0.22,1,0.36,1) 0.3s",
+              }}
+            />
+          </div>
+        </header>
+
+        {/* Realm Progress Map */}
+        <div
+          className="mb-6 flex items-center gap-1 overflow-x-auto pb-2"
+          style={{
+            opacity: mounted ? 1 : 0,
+            transition: "opacity 0.5s ease-out 0.2s",
+          }}
+        >
+          {REALMS_DISPLAY.map((realm, idx) => {
+            const isActive = idx === currentRealmIdx;
+            const isPast = idx < currentRealmIdx;
+            const isFuture = idx > currentRealmIdx;
+            return (
+              <div key={realm.id} className="flex items-center">
+                {idx > 0 && (
+                  <div className={`h-px w-4 sm:w-8 ${isPast ? "bg-spirit-gold/50" : "bg-border/30"}`} />
+                )}
+                <div
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-heading transition-all ${
+                    isActive
+                      ? "bg-spirit-gold/15 text-spirit-gold border border-spirit-gold/30"
+                      : isPast
+                        ? "bg-muted/30 text-muted-foreground"
+                        : "bg-muted/10 text-muted-foreground/40"
+                  }`}
+                >
+                  {isPast && <span className="text-spirit-gold/60">✓</span>}
+                  {isActive && <span className="inline-block h-1.5 w-1.5 rounded-full bg-spirit-gold animate-pulse" />}
+                  {isFuture && <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />}
+                  <span>{isZh ? realm.nameZh : realm.nameEn}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Offline rewards handled globally by GlobalGameUI */}
+        {/* Current Cultivation Card */}
+        <Card
+          className={`scroll-surface transition-all duration-300 ${(liveBreakthroughReady || canBreakToNextRealm) ? "qi-glow" : ""}`}
+          style={{
+            opacity: mounted ? 1 : 0,
+            transform: mounted ? "scale(1)" : "scale(0.96)",
+            transition: "all 0.45s cubic-bezier(0.22,1,0.36,1) 0.15s",
+          }}
+        >
+          <CardContent className="pt-6 space-y-5">
+            {/* Title row */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-heading text-xl font-bold">
+                  {isPostBodyTempering ? (
+                    <>煉體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span></>
+                  ) : (
+                    <>{isZh ? (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameZh ?? profile.realm) : (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameEn ?? profile.realm)} <span className="text-spirit-gold">{levelLabel}</span></>
+                  )}
+                </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {isPostBodyTempering
+                    ? (isZh ? "煉體已圓滿，技能樹持續深化中" : "Body Refining complete, skill tree deepening")
+                    : (isZh ? "強化肉體 — 透過挖礦或戰鬥淬煉肉體" : "Strengthen your body through mining or combat")}
+                </p>
+              </div>
+              {liveBreakthroughReady && (
+                <Button
+                  onClick={() => setShowBreakthrough(true)}
+                  className="seal-glow animate-pulse hover:animate-none hover:scale-[1.02] transition-transform font-heading"
+                  size="lg"
+                >
+                  {isZh ? "突破" : "Break Through"}
+                </Button>
+              )}
+              {canBreakToNextRealm && (
+                <Button
+                  onClick={() => setShowBreakthrough(true)}
+                  className="seal-glow animate-pulse hover:animate-none hover:scale-[1.02] transition-transform font-heading bg-jade hover:bg-jade/90"
+                  size="lg"
+                >
+                  {isZh ? "突破至練氣" : "Break to Qi Condensation"}
+                </Button>
+              )}
+            </div>
 
-        {/* Breakthrough Dialog */}
-        {showBreakthrough && (
-          <BreakthroughDialog
-            currentStage={profile.cultivation_stage}
-            onConfirm={handleBreakthroughConfirm}
-            onCancel={() => setShowBreakthrough(false)}
-          />
-        )}
+            {/* XP Progress */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{isZh ? "修煉進度" : "Progress"}</span>
+                <span className="font-heading tabular-nums text-foreground">
+                  {formatNumber(liveBodyXp)} / {formatNumber(xpRequired)}
+                </span>
+              </div>
+              <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted/40">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cinnabar to-spirit-gold transition-all duration-700 ease-out"
+                  style={{ width: `${Math.min(liveXpProgress, 100)}%` }}
+                />
+                {liveXpProgress > 5 && (
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full opacity-40"
+                    style={{
+                      width: `${Math.min(liveXpProgress, 100)}%`,
+                      background: "linear-gradient(90deg, transparent 60%, oklch(1 0 0 / 20%) 100%)",
+                    }}
+                  />
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {Math.min(Math.round(liveXpProgress), 100)}%{liveXpProgress > 100 && ` (${isZh ? "溢出" : "overflow"} ${formatNumber(liveBodyXp - xpRequired)})`}
+                </span>
+                {(liveBreakthroughReady || canBreakToNextRealm) && (
+                  <span className="text-xs font-medium text-spirit-gold animate-pulse text-glow-gold">
+                    {isZh ? "可以突破了！" : "Ready to break through!"}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Breakthrough info */}
+            {!isPostBodyTempering && (
+              <div className="rounded-lg border border-border/30 bg-muted/10 px-4 py-3">
+                {isPeakToNextRealm ? (
+                  <>
+                    <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? "突破至 練氣" : "Break to Qi Condensation"}</p>
+                    <div className="flex gap-4 text-xs mb-2">
+                      <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+10</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs * 10})</span></span>
+                      <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
+                      <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
+                    </div>
+                    <p className="text-xs text-jade">{isZh ? "解鎖：煉丹、煉器" : "Unlock: Alchemy, Smithing"}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">{isZh ? "每級突破成長" : "Per Breakthrough"}</p>
+                    <div className="flex gap-4 text-xs">
+                      <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+10</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs * 10})</span></span>
+                      <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
+                      <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-    </TooltipProvider>
+      {/* Breakthrough Dialog */}
+      {showBreakthrough && (
+        <BreakthroughDialog
+          currentStage={currentLevel}
+          onConfirm={handleBreakthroughConfirm}
+          onCancel={() => setShowBreakthrough(false)}
+        />
+      )}
+    </div>
   );
 }

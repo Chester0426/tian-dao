@@ -68,7 +68,7 @@ export default async function GameGroupLayout({
           masteryLevels,
           masteryXps,
           masteryXpMaxs,
-          bodyStage: profile?.cultivation_stage ?? 1,
+          bodyStage: profile?.body_level ?? profile?.realm_level ?? profile?.cultivation_stage ?? 1,
           bodyXp: profile?.body_xp ?? 0,
           inventory,
           activeMine: activeMineData ? {
