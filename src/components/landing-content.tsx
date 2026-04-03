@@ -340,18 +340,18 @@ export default function LandingContent({
       </section>
 
       {/* === DEV LOG === */}
-      <section id="devlog" className="relative flex min-h-screen flex-col items-center justify-center border-t border-white/5 px-6 py-16 md:px-12">
+      <section id="devlog" className="relative flex h-screen flex-col items-center border-t border-white/5 px-6 py-12 md:px-12">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
         <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 mx-auto max-w-3xl w-full flex-1 flex flex-col">
-          <h2 className="text-center font-heading text-2xl font-bold text-white mb-2">
+        <div className="relative z-10 mx-auto max-w-3xl w-full flex-1 flex flex-col min-h-0">
+          <h2 className="text-center font-heading text-2xl font-bold text-white mb-2 shrink-0">
             {isZh ? "開發日誌" : "Dev Log"}
           </h2>
           <div
-            className="mx-auto mb-8 h-px w-16"
+            className="mx-auto mb-6 h-px w-16 shrink-0"
             style={{ background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.5), transparent)" }}
           />
-          <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+          <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
             {DEV_LOG.map((entry, i) => (
               <div key={i} className="border-l-2 border-white/10 pl-4">
                 <span className="text-xs font-mono text-spirit-gold/70">
@@ -369,7 +369,7 @@ export default function LandingContent({
           </div>
 
           {/* Footer */}
-          <div className="mt-8 border-t border-white/5 pt-6 text-center">
+          <div className="mt-4 pt-4 text-center shrink-0">
             <p className="text-xs text-white/25">
               &copy; {new Date().getFullYear()} Tian Tao.
             </p>
