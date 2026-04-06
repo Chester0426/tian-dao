@@ -294,26 +294,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       return { ...prev, [mine.id]: cur };
     });
 
-    // Update body XP — auto-breakthrough at 巔峰+N (level >= 9)
-    setBodyXp((prev) => {
-      let newXp = prev + mine.xp_body;
-      // Auto-breakthrough for 巔峰+N (level >= 9, still in 煉體)
-      if (bodyStageRef.current >= 9) {
-        const required = bodyXpForStage(bodyStageRef.current);
-        if (newXp >= required) {
-          newXp -= required;
-          const newLevel = bodyStageRef.current + 1;
-          setBodyStage(newLevel);
-          bodyStageRef.current = newLevel;
-          // Sync to server
-          fetch("/api/game/breakthrough", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          }).catch(() => {});
-        }
-      }
-      return newXp;
-    });
+    // Update body XP — no auto-breakthrough at 巔峰 (realm transition is manual)
+    setBodyXp((prev) => prev + mine.xp_body);
 
     // Accumulate sync data
     const p = pendingRef.current;
@@ -456,20 +438,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       });
     }
 
-    // Apply body XP — no cap, overflow allowed
-    // Apply body XP — auto-breakthrough at 巔峰+N for offline rewards
-    setBodyXp((prev) => {
-      let newXp = prev + rewards.xp_gained.body;
-      while (bodyStageRef.current >= 9) {
-        const required = bodyXpForStage(bodyStageRef.current);
-        if (newXp < required) break;
-        newXp -= required;
-        const newLevel = bodyStageRef.current + 1;
-        setBodyStage(newLevel);
-        bodyStageRef.current = newLevel;
-      }
-      return newXp;
-    });
+    // Apply body XP — no auto-breakthrough at 巔峰 (realm transition is manual)
+    setBodyXp((prev) => prev + rewards.xp_gained.body);
 
     // Queue sync
     if (activeMineRef.current) {

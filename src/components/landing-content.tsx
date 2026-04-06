@@ -31,6 +31,15 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 const DEV_LOG = [
+  { date: "04/05", items: [
+    { zh: "突破動畫優化（盤坐剪影 + 金色填充特效）", en: "Breakthrough animation overhaul (meditation silhouette + golden fill effect)" },
+    { zh: "境界系統（煉體→練氣轉換）", en: "Realm system (Body Refining → Qi Condensation transition)" },
+    { zh: "練氣期板塊 + 煉體板塊保留", en: "Qi Condensation panel + Body Refining panel retained" },
+    { zh: "累積成長 / 突破成長數據顯示", en: "Cumulative growth / breakthrough growth data display" },
+    { zh: "fal.ai API 整合", en: "fal.ai API integration" },
+    { zh: "主頁 scroll snap + 路線圖更新", en: "Landing page scroll snap + roadmap update" },
+    { zh: "突破雙重觸發 bug 修復", en: "Fixed breakthrough double-trigger bug" },
+  ]},
   { date: "04/03", items: [
     { zh: "新增境界系統（煉體期→練氣期→築基期→金丹期→元嬰期）", en: "Added realm system (Body Refining→Qi Condensation→Foundation Establishment→Golden Core→Nascent Soul)" },
     { zh: "數值頁面（主要屬性 + 次要屬性 + 裝備區）", en: "Stats page (main stats + secondary stats + equipment)" },
@@ -156,48 +165,34 @@ const COMMITMENTS = [
   { zh: "遊戲生態部分保證 100% 屬於社區", en: "Ecosystem allocation 100% belongs to community" },
 ];
 
-const ROADMAP = [
+const ROADMAP_SECTIONS = [
   {
-    titleZh: "刪檔測試",
-    titleEn: "Closed Beta (Wipe)",
-    descZh: "",
-    descEn: "",
+    labelZh: "已完成",
+    labelEn: "Completed",
+    status: "done" as const,
+    items: [
+      { zh: "遊戲網站架設", en: "Game website setup" },
+    ],
+  },
+  {
+    labelZh: "進行中",
+    labelEn: "In Progress",
     status: "active" as const,
+    items: [
+      { zh: "Steam 上架 KYC", en: "Steam listing KYC" },
+      { zh: "刪檔測試", en: "Closed beta (wipe)" },
+      { zh: "開發挖礦、境界、戰鬥、功法、符文、更多核心玩法...", en: "Developing mining, realms, combat, techniques, runes, more core mechanics..." },
+    ],
   },
   {
-    titleZh: "完善遊戲核心系統",
-    titleEn: "Core Game Systems",
-    descZh: "挖礦、境界、戰鬥、功法、符文、更多核心玩法...",
-    descEn: "Mining, realms, combat, techniques, runes, more core mechanics...",
+    labelZh: "核心目標",
+    labelEn: "Core Goals",
     status: "upcoming" as const,
-  },
-  {
-    titleZh: "鏈上整合",
-    titleEn: "On-chain Integration",
-    descZh: "物品上鏈、交易市場",
-    descEn: "On-chain items, trading marketplace",
-    status: "upcoming" as const,
-  },
-  {
-    titleZh: "公開測試",
-    titleEn: "Open Beta",
-    descZh: "",
-    descEn: "",
-    status: "upcoming" as const,
-  },
-  {
-    titleZh: "上架 iOS & Android",
-    titleEn: "Launch on iOS & Android",
-    descZh: "",
-    descEn: "",
-    status: "upcoming" as const,
-  },
-  {
-    titleZh: "上架 Steam",
-    titleEn: "Launch on Steam",
-    descZh: "",
-    descEn: "",
-    status: "upcoming" as const,
+    items: [
+      { zh: "公開測試", en: "Open beta" },
+      { zh: "上架 Steam", en: "Launch on Steam" },
+      { zh: "上架 iOS & Android", en: "Launch on iOS & Android" },
+    ],
   },
 ];
 
@@ -339,41 +334,130 @@ export default function LandingContent({
         </div>
       </section>
 
-      {/* === DEV LOG === */}
-      <section id="devlog" className="relative snap-start flex h-screen flex-col items-center border-t border-white/5 px-6 py-12 md:px-12">
+      {/* === ROADMAP === */}
+      <section
+        ref={roadmapReveal.ref}
+        className="relative snap-start flex h-screen flex-col border-t border-white/5"
+      >
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 mx-auto max-w-3xl w-full flex-1 flex flex-col min-h-0">
-          <h2 className="text-center font-heading text-2xl font-bold text-white mb-2 shrink-0">
-            {isZh ? "開發日誌" : "Dev Log"}
-          </h2>
-          <div
-            className="mx-auto mb-6 h-px w-16 shrink-0"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.5), transparent)" }}
-          />
-          <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-            {DEV_LOG.map((entry, i) => (
-              <div key={i} className="border-l-2 border-white/10 pl-4">
-                <span className="text-xs font-mono text-spirit-gold/70">
-                  {entry.date}
-                </span>
-                <div className="mt-1.5 space-y-1">
-                  {entry.items.map((item, j) => (
-                    <p key={j} className="text-sm text-white/60">
-                      {isZh ? item.zh : item.en}
-                    </p>
-                  ))}
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative z-10 mx-auto w-full max-w-3xl flex-1 flex flex-col min-h-0 px-6 pt-20 pb-8 md:px-12">
+          {/* Header */}
+          <div className="shrink-0 mb-5">
+            <h2 className="text-center font-heading text-2xl font-bold text-white md:text-3xl">
+              {isZh ? "路線圖" : "Roadmap"}
+            </h2>
+            <div
+              className="mx-auto mt-3 h-px w-16"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.5), transparent)" }}
+            />
+          </div>
+
+          {/* Scrollable card */}
+          <div className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-black/50 backdrop-blur-md overflow-y-auto">
+            <div className="p-6 md:p-8">
+              <div className="relative">
+                <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-emerald-500/40 via-spirit-gold/40 to-white/10" />
+
+                <div className="space-y-8">
+                  {ROADMAP_SECTIONS.map((section, si) => {
+                    const colorMap = {
+                      done: { dot: "bg-emerald-400 ring-emerald-500/50", label: "text-emerald-400", badge: "bg-emerald-500/15 border-emerald-500/20 text-emerald-400" },
+                      active: { dot: "bg-spirit-gold ring-spirit-gold/50", label: "text-spirit-gold", badge: "bg-spirit-gold/15 border-spirit-gold/20 text-spirit-gold" },
+                      upcoming: { dot: "bg-white/30 ring-white/10", label: "text-white/50", badge: "bg-white/5 border-white/10 text-white/50" },
+                    };
+                    const c = colorMap[section.status];
+                    return (
+                      <div key={si}>
+                        {/* Section label */}
+                        <div
+                          className="relative flex items-center gap-4 mb-4"
+                          style={{
+                            opacity: roadmapReveal.revealed ? 1 : 0,
+                            transform: roadmapReveal.revealed ? "translateX(0)" : "translateX(-20px)",
+                            transition: `all 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${0.15 * (si + 1)}s`,
+                          }}
+                        >
+                          <div className={`relative z-10 h-[10px] w-[10px] shrink-0 rounded-full ring-2 ring-offset-1 ring-offset-transparent ${c.dot}`}>
+                            {section.status === "active" && (
+                              <div className="absolute inset-0 rounded-full bg-spirit-gold/20 animate-ping" />
+                            )}
+                          </div>
+                          <span className={`font-heading text-sm font-bold uppercase tracking-wider ${c.label}`}>
+                            {isZh ? section.labelZh : section.labelEn}
+                          </span>
+                        </div>
+                        {/* Items */}
+                        <div className="space-y-3 pl-[26px]">
+                          {section.items.map((item, j) => (
+                            <div
+                              key={j}
+                              className="text-sm leading-relaxed text-white/60"
+                              style={{
+                                opacity: roadmapReveal.revealed ? 1 : 0,
+                                transform: roadmapReveal.revealed ? "translateX(0)" : "translateX(-10px)",
+                                transition: `all 0.5s ease-out ${0.15 * (si + 1) + 0.1 * (j + 1)}s`,
+                              }}
+                            >
+                              {isZh ? item.zh : item.en}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+            </div>
           </div>
 
           {/* Footer */}
-          <div className="mt-4 pt-4 text-center shrink-0">
-            <p className="text-xs text-white/25">
-              &copy; {new Date().getFullYear()} Tian Tao.
-            </p>
+          <p className="shrink-0 mt-4 text-center text-xs text-white/20">
+            &copy; {new Date().getFullYear()} Tian Tao.
+          </p>
+        </div>
+      </section>
+
+      {/* === DEV LOG === */}
+      <section id="devlog" className="relative snap-start flex h-screen flex-col border-t border-white/5">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative z-10 mx-auto w-full max-w-3xl flex-1 flex flex-col min-h-0 px-6 pt-20 pb-8 md:px-12">
+          {/* Header */}
+          <div className="shrink-0 mb-5">
+            <h2 className="text-center font-heading text-2xl font-bold text-white md:text-3xl">
+              {isZh ? "開發日誌" : "Dev Log"}
+            </h2>
+            <div
+              className="mx-auto mt-3 h-px w-16"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.5), transparent)" }}
+            />
           </div>
+
+          {/* Scrollable card */}
+          <div className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-black/50 backdrop-blur-md overflow-y-auto">
+            <div className="p-6 md:p-8 space-y-5">
+              {DEV_LOG.map((entry, i) => (
+                <div key={i} className="relative pl-4 border-l-2 border-spirit-gold/20">
+                  <span className="text-xs font-mono font-medium text-spirit-gold/60 tracking-wider">
+                    {entry.date}
+                  </span>
+                  <div className="mt-2 space-y-1.5">
+                    {entry.items.map((item, j) => (
+                      <p key={j} className="text-sm leading-relaxed text-white/55">
+                        {isZh ? item.zh : item.en}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <p className="shrink-0 mt-4 text-center text-xs text-white/20">
+            &copy; {new Date().getFullYear()} Tian Tao.
+          </p>
         </div>
       </section>
 
@@ -523,97 +607,6 @@ export default function LandingContent({
         </div>
       </section>
 
-      {/* === SECTION 4: ROADMAP (also hidden) === */}
-      <section
-        ref={roadmapReveal.ref}
-        className="relative snap-start flex min-h-screen flex-col items-center justify-center px-6 py-20 md:px-12"
-      >
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }} />
-        <div className="absolute inset-0 bg-black/30" />
-        <div
-          className="relative z-10 max-w-3xl w-full"
-          style={{
-            opacity: roadmapReveal.revealed ? 1 : 0,
-            transform: roadmapReveal.revealed ? "translateY(0)" : "translateY(30px)",
-            transition: "all 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
-          }}
-        >
-          <h2 className="text-center font-heading text-3xl font-bold text-white md:text-4xl">
-            {isZh ? "路線圖" : "Roadmap"}
-          </h2>
-          <div
-            className="mx-auto mt-3 h-px w-20"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.5), transparent)" }}
-          />
-
-          <div className="relative mt-12">
-            {/* Vertical line */}
-            <div className="absolute left-[19px] top-0 bottom-0 w-px bg-white/10" />
-
-            <div className="space-y-8">
-              {ROADMAP.map((r, i) => (
-                <div
-                  key={i}
-                  className="relative flex gap-5 pl-2"
-                  style={{
-                    opacity: roadmapReveal.revealed ? 1 : 0,
-                    transform: roadmapReveal.revealed ? "translateX(0)" : "translateX(-20px)",
-                    transition: `all 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${0.15 * (i + 1)}s`,
-                  }}
-                >
-                  {/* Dot */}
-                  <div className={`relative z-10 mt-1 flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full border-2 ${
-                    r.status === "active"
-                      ? "border-spirit-gold bg-spirit-gold/30"
-                      : "border-white/20 bg-black"
-                  }`}>
-                    {r.status === "active" && (
-                      <div className="h-1.5 w-1.5 rounded-full bg-spirit-gold animate-pulse" />
-                    )}
-                  </div>
-
-                  <div className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-heading text-lg font-bold text-white/90">
-                        {isZh ? r.titleZh : r.titleEn}
-                      </h3>
-                      {r.status === "active" && (
-                        <span className="rounded-full bg-spirit-gold/15 px-2 py-0.5 text-[10px] font-medium text-spirit-gold">
-                          {isZh ? "進行中" : "In Progress"}
-                        </span>
-                      )}
-                    </div>
-                    {(isZh ? r.descZh : r.descEn) && (
-                      <p className="mt-1 text-sm text-white/50">
-                        {isZh ? r.descZh : r.descEn}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="mt-12 text-center">
-            <Link href="/signup">
-              <Button
-                className="seal-glow h-12 px-8 text-base font-bold transition-all duration-200 hover:scale-[1.03]"
-                size="lg"
-              >
-                {variant.cta}
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-white/5 py-6 text-center">
-          <p className="text-xs text-white/25">
-            &copy; {new Date().getFullYear()} Tian Dao.
-          </p>
-        </div>
-      </section>
       </>}
     </div>
   );
