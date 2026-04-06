@@ -157,14 +157,14 @@ export async function POST(req: NextRequest) {
       .insert({ user_id: user.id, slot, mine_id, level: 1, xp: safeXp.mastery });
   }
 
-  // Update body XP (with cap at breakthrough threshold)
+  // Update body XP
   const { data: profile } = await supabase
     .from("profiles")
-    .select("cultivation_stage, body_xp")
+    .select("body_xp")
     .eq("user_id", user.id).eq("slot", slot)
     .single();
 
-  if (profile) {
+  if (profile && safeXp.body > 0) {
     const newBodyXp = profile.body_xp + safeXp.body;
     await supabase
       .from("profiles")

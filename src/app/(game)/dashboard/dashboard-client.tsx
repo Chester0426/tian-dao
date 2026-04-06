@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useGameState } from "@/components/mining-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,19 +58,21 @@ export function DashboardClient({
   isPostBodyTempering,
   bodySkillLevel,
 }: DashboardClientProps) {
-  const router = useRouter();
   const gameState = useGameState();
   const { locale } = useI18n();
   const isZh = locale === "zh";
 
+  const currentRealmIdx = REALMS_DISPLAY.findIndex((r) => r.id === profile.realm);
+  const currentLevel = profile.realm === "煉體" ? profile.body_level : profile.realm_level;
+
   const liveBodyXp = gameState.bodyXp ?? xpCurrent;
   const liveXpProgress = xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress;
 
-  // Manual breakthrough: stages 1-8, or 巔峰 to 練氣
-  const isPeakToNextRealm = profile.realm === "煉體" && profile.body_level >= 9;
-  const isAutoBreakthroughZone = profile.realm === "煉體" && profile.body_level >= 9;
-  const liveBreakthroughReady = !isPostBodyTempering && liveXpProgress >= 100 && !isAutoBreakthroughZone;
-  // For 巔峰 manual breakthrough to 練氣, show a different button
+  // Breakthrough logic only applies to 煉體 (other realms have their own systems)
+  const isInBodyTempering = profile.realm === "煉體";
+  const peakLevel = isInBodyTempering ? 9 : profile.realm === "練氣" ? 13 : 5;
+  const isPeakToNextRealm = isInBodyTempering && currentLevel >= peakLevel && currentRealmIdx < REALMS_DISPLAY.length - 1;
+  const liveBreakthroughReady = isInBodyTempering && !isPeakToNextRealm && liveXpProgress >= 100;
   const canBreakToNextRealm = isPeakToNextRealm && liveXpProgress >= 100;
 
   const [showBreakthrough, setShowBreakthrough] = useState(false);
@@ -98,20 +99,7 @@ export function DashboardClient({
 
   useEffect(() => { setMounted(true); }, []);
 
-  const handleBreakthroughConfirm = useCallback(async () => {
-    try {
-      const res = await fetch("/api/game/breakthrough", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (res.ok) router.refresh();
-    } catch {}
-  }, [router]);
-
-  const currentRealmIdx = REALMS_DISPLAY.findIndex((r) => r.id === profile.realm);
-  const currentLevel = profile.realm === "煉體" ? profile.body_level : profile.realm_level;
   const levelLabel = getRealmLevelLabel(profile.realm, currentLevel);
-  const breakthroughs = currentLevel - 1;
 
   return (
     <div className="min-h-screen">
@@ -186,30 +174,52 @@ export function DashboardClient({
           })}
         </div>
 
-        {/* Current Cultivation Card */}
+        {/* Current Realm Card (練氣 or above) */}
+        {isPostBodyTempering && (
+          <Card
+            className="scroll-surface transition-all duration-300 mb-4"
+            style={{
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "scale(1)" : "scale(0.96)",
+              transition: "all 0.45s cubic-bezier(0.22,1,0.36,1) 0.15s",
+            }}
+          >
+            <CardContent className="pt-1 space-y-4">
+              <div>
+                <h2 className="font-heading text-xl font-bold">
+                  {isZh ? (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameZh ?? profile.realm) : (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameEn ?? profile.realm)} <span className="text-jade text-glow-jade">{getRealmLevelLabel(profile.realm, currentLevel)}</span>
+                </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {isZh ? "凝聚靈氣 — 透過冥想修煉內功" : "Condense spiritual energy through meditation"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/30 bg-muted/10 px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {isZh ? "冥想系統開發中..." : "Meditation system in development..."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Body Tempering (煉體) Card */}
         <Card
-          className={`scroll-surface transition-all duration-300 ${(liveBreakthroughReady || canBreakToNextRealm) ? "qi-glow" : ""}`}
+          className={`scroll-surface transition-all duration-300 ${(!isPostBodyTempering && (liveBreakthroughReady || canBreakToNextRealm)) ? "qi-glow" : ""}`}
           style={{
             opacity: mounted ? 1 : 0,
             transform: mounted ? "scale(1)" : "scale(0.96)",
             transition: "all 0.45s cubic-bezier(0.22,1,0.36,1) 0.15s",
           }}
         >
-          <CardContent className="pt-6 space-y-5">
+          <CardContent className="pt-1 space-y-5">
             {/* Title row */}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-heading text-xl font-bold">
-                  {isPostBodyTempering ? (
-                    <>煉體技能 <span className="text-jade text-glow-jade">Lv.{bodySkillLevel}</span></>
-                  ) : (
-                    <>{isZh ? (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameZh ?? profile.realm) : (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameEn ?? profile.realm)} <span className="text-spirit-gold">{levelLabel}</span></>
-                  )}
+                  {isZh ? "煉體期" : "Body Refining"} <span className="text-spirit-gold">{getRealmLevelLabel("煉體", profile.body_level)}</span>
                 </h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  {isPostBodyTempering
-                    ? (isZh ? "煉體已圓滿，技能樹持續深化中" : "Body Refining complete, skill tree deepening")
-                    : (isZh ? "強化肉體 — 透過挖礦或戰鬥淬煉肉體" : "Strengthen your body through mining or combat")}
+                  {isZh ? "強化肉體 — 透過挖礦或戰鬥淬煉肉體" : "Strengthen your body through mining or combat"}
                 </p>
               </div>
               {liveBreakthroughReady && (
@@ -227,7 +237,7 @@ export function DashboardClient({
                   className="seal-glow animate-pulse hover:animate-none hover:scale-[1.02] transition-transform font-heading bg-jade hover:bg-jade/90"
                   size="lg"
                 >
-                  {isZh ? "突破至練氣" : "Break to Qi Condensation"}
+                  {isZh ? `突破至${REALMS_DISPLAY[currentRealmIdx + 1]?.nameZh ?? "下一境界"}` : `Break to ${REALMS_DISPLAY[currentRealmIdx + 1]?.nameEn ?? "Next Realm"}`}
                 </Button>
               )}
             </div>
@@ -268,30 +278,44 @@ export function DashboardClient({
             </div>
 
             {/* Breakthrough info */}
-            {!isPostBodyTempering && (
-              <div className="rounded-lg border border-border/30 bg-muted/10 px-4 py-3">
-                {isPeakToNextRealm ? (
-                  <>
-                    <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? "突破至 練氣" : "Break to Qi Condensation"}</p>
-                    <div className="flex gap-4 text-xs mb-2">
-                      <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+10</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs * 10})</span></span>
-                      <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
-                      <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
-                    </div>
-                    <p className="text-xs text-jade">{isZh ? "解鎖：煉丹、煉器" : "Unlock: Alchemy, Smithing"}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">{isZh ? "每級突破成長" : "Per Breakthrough"}</p>
-                    <div className="flex gap-4 text-xs">
-                      <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+10</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs * 10})</span></span>
-                      <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
-                      <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+1</span> <span className="text-muted-foreground/50">({isZh ? "累計" : "total"} {breakthroughs})</span></span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            <div className="rounded-lg border border-border/30 bg-muted/10 px-4 py-3">
+              {isPeakToNextRealm ? (
+                <>
+                  <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? "累積成長" : "Total Growth"}</p>
+                  <div className="flex gap-4 text-xs mb-3">
+                    <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+{(profile.body_level - 1) * 10}</span></span>
+                    <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+{profile.body_level - 1}</span></span>
+                    <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+{profile.body_level - 1}</span></span>
+                  </div>
+                  <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? `突破至 ${REALMS_DISPLAY[currentRealmIdx + 1]?.nameZh ?? "下一境界"}` : `Break to ${REALMS_DISPLAY[currentRealmIdx + 1]?.nameEn ?? "Next Realm"}`}</p>
+                  <div className="flex gap-4 text-xs mb-2">
+                    <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+100</span></span>
+                    <span className="text-blue-400">{isZh ? "法力" : "MP"} <span className="font-heading">+10</span></span>
+                    <span className="text-purple-400">{isZh ? "內功" : "Inner ATK"} <span className="font-heading">+1</span></span>
+                  </div>
+                  <p className="text-xs text-jade">{isZh ? "解鎖：煉丹、煉器、煉體巔峰系統" : "Unlock: Alchemy, Smithing, Body Tempering Peak System"}</p>
+                </>
+              ) : (
+                <>
+                  {profile.body_level > 1 && (
+                    <>
+                      <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? "累積成長" : "Total Growth"}</p>
+                      <div className="flex gap-4 text-xs mb-3">
+                        <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+{(profile.body_level - 1) * 10}</span></span>
+                        <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+{profile.body_level - 1}</span></span>
+                        <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+{profile.body_level - 1}</span></span>
+                      </div>
+                    </>
+                  )}
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{isZh ? "突破成長" : "Breakthrough Growth"}</p>
+                  <div className="flex gap-4 text-xs">
+                    <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+10</span></span>
+                    <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+1</span></span>
+                    <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+1</span></span>
+                  </div>
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -300,7 +324,9 @@ export function DashboardClient({
       {showBreakthrough && (
         <BreakthroughDialog
           currentStage={currentLevel}
-          onConfirm={handleBreakthroughConfirm}
+          currentRealm={profile.realm}
+          nextRealm={isPeakToNextRealm ? REALMS_DISPLAY[currentRealmIdx + 1]?.id : undefined}
+          isRealmTransition={isPeakToNextRealm}
           onCancel={() => setShowBreakthrough(false)}
         />
       )}
