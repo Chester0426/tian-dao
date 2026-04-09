@@ -286,10 +286,11 @@ export function CharactersClient({
                           {isLoading ? t("char_loading") : t("char_load")}
                         </Button>
                         <Button
-                          variant="outline"
+                         
                           size="icon"
                           onClick={() => setDeleteTarget(slotData)}
-                          className="text-muted-foreground hover:text-destructive hover:border-destructive/30"
+                          className="bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-muted-foreground hover:text-destructive"
+                          style={{ backgroundImage: "url('/images/btn-bg4.png')" }}
                         >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                             <path d="M3 4h10M5.5 4V3a1 1 0 011-1h3a1 1 0 011 1v1M6 7v5M10 7v5M4.5 4l.5 9a1 1 0 001 1h4a1 1 0 001-1l.5-9" />
