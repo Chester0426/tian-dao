@@ -251,8 +251,8 @@ export function CharactersClient({
                   ) : (
                     <>
                       {/* Occupied slot */}
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-cinnabar-dim border border-cinnabar/20">
-                        <span className="font-heading text-2xl font-bold text-cinnabar">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-cover bg-center border-0" style={{ backgroundImage: "url('/images/element-bg1.png')" }}>
+                        <span className="font-heading text-2xl font-bold text-amber-300">
                           {profile.realm_level ?? profile.cultivation_stage}
                         </span>
                       </div>
