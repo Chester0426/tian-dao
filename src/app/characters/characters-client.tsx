@@ -190,11 +190,22 @@ export function CharactersClient({
             return (
               <Card
                 key={slot}
-                className={`scroll-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                   isEmpty ? "border-dashed" : ""
                 }`}
               >
-                <CardContent className="flex flex-col items-center gap-4 py-8">
+                {/* Card background image */}
+                <img
+                  src={isEmpty && slot > 1
+                    ? "/images/card-bg2.png"
+                    : isEmpty
+                      ? "/images/card-bg1.png"
+                      : "/images/card-bg3.png"
+                  }
+                  alt=""
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
+                />
+                <CardContent className="relative z-10 flex flex-col items-center gap-4 py-8">
                   {/* Slot number */}
                   <Badge
                     variant="outline"
