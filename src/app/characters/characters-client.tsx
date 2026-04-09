@@ -188,31 +188,34 @@ export function CharactersClient({
             const isLoading = loading === slot;
 
             return (
-              <Card
-                key={slot}
-                className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-                  isEmpty ? "border-dashed" : ""
-                }`}
-              >
-                {/* Card background image */}
-                <img
-                  src={isEmpty && slot > 1
-                    ? "/images/card-bg2.png"
-                    : isEmpty
-                      ? "/images/card-bg1.png"
-                      : "/images/card-bg3.png"
-                  }
-                  alt=""
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
-                />
-                <CardContent className="relative z-10 flex flex-col items-center gap-4 py-8">
-                  {/* Slot number */}
-                  <Badge
-                    variant="outline"
-                    className="text-xs text-muted-foreground border-border/40"
-                  >
-                    {t("char_save")} {slot}
-                  </Badge>
+              <div key={slot} className="flex w-full flex-col items-center gap-2">
+                {/* Slot number — outside card */}
+                <div
+                  className="inline-flex items-center justify-center text-xs text-black bg-contain bg-center bg-no-repeat"
+                  style={{ backgroundImage: "url('/images/btn-bg3.png')", width: '120px', height: '30px' }}
+                >
+                  {t("char_save")} {slot}
+                </div>
+
+                <Card
+                  className={`w-full h-[340px] bg-transparent ring-0 shadow-none relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                    isEmpty ? "border-dashed" : ""
+                  }`}
+                >
+                  {/* Card background image */}
+                  <div
+                    className="pointer-events-none absolute inset-0 bg-contain bg-center bg-no-repeat"
+                    style={{
+                      backgroundImage: `url(${
+                        isEmpty && slot > 1
+                          ? '"/images/card-bg2.png"'
+                          : isEmpty
+                            ? '"/images/card-bg1.png"'
+                            : '"/images/card-bg3.png"'
+                      })`,
+                    }}
+                  />
+                  <CardContent className="relative z-10 flex h-full flex-col items-center justify-center gap-4 py-8">
 
                   {isEmpty && slot > 1 ? (
                     <>
@@ -220,11 +223,11 @@ export function CharactersClient({
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/10 border border-dashed border-border/20">
                         <span className="text-3xl text-muted-foreground/20">🔒</span>
                       </div>
-                      <p className="text-sm text-muted-foreground/60">未解鎖</p>
+                      {/* <p className="text-sm text-muted-foreground/60">未解鎖</p> */}
                       <Button
                         disabled
-                        variant="outline"
-                        className="w-full opacity-50"
+                        className="mt-auto w-full font-heading bg-cover bg-center border-0 shadow-none bg-transparent text-white"
+                        style={{ backgroundImage: "url('/images/btn-bg2.png')" }}
                       >
                         {t("char_lockedBtn")}
                       </Button>
@@ -239,7 +242,8 @@ export function CharactersClient({
                       <Button
                         onClick={() => handleSelectSlot(slot, false, null, null)}
                         disabled={isLoading}
-                        className="w-full seal-glow font-heading"
+                        className="mt-auto w-full font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
+                        style={{ backgroundImage: "url('/images/btn-bg1.png')" }}
                       >
                         {isLoading ? t("char_creating") : t("char_create")}
                       </Button>
@@ -272,11 +276,12 @@ export function CharactersClient({
                         )}
                       </div>
 
-                      <div className="flex w-full gap-2">
+                      <div className="flex w-full gap-2 mt-auto">
                         <Button
                           onClick={() => handleSelectSlot(slot, true, slotData.lastActivity, slotData.lastMineSlug)}
                           disabled={isLoading}
-                          className="flex-1 seal-glow font-heading"
+                          className="flex-1 font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
+                          style={{ backgroundImage: "url('/images/btn-bg1.png')" }}
                         >
                           {isLoading ? t("char_loading") : t("char_load")}
                         </Button>
@@ -295,6 +300,7 @@ export function CharactersClient({
                   )}
                 </CardContent>
               </Card>
+              </div>
             );
           })}
         </div>
