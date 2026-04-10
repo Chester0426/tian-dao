@@ -264,22 +264,25 @@ export function CharactersClient({
                     </>
                   ) : (
                     <>
-                      {/* Occupied slot */}
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-cover bg-center border-0" style={{ backgroundImage: "url('/images/element-bg1.png')" }}>
-                        <span className="font-heading text-2xl font-bold text-amber-300">
-                          {profile.realm_level ?? profile.cultivation_stage}
-                        </span>
-                      </div>
-
-                      <div className="text-center space-y-1">
-                        <p className="font-heading font-bold text-sm">
+                      <div
+                        className="text-center space-y-1.5 rounded-lg px-3 py-2"
+                        style={{
+                          animation: "ink-fade-in 0.8s ease-out both",
+                          background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 100%)",
+                          textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
+                        }}
+                      >
+                        <p className="font-heading font-bold text-base text-amber-200">
                           {locale === "zh"
                             ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
                             : `Body Refining Realm ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
                           }
                         </p>
                         {lastActivity ? (
-                          <p className="text-xs text-muted-foreground">
+                          <p
+                            className="text-sm font-medium text-white/90"
+                            style={{ animation: "ink-fade-in 0.8s ease-out 0.2s both" }}
+                          >
                             {lastActivity === "meditate"
                               ? (locale === "zh" ? "🧘 冥想中" : "🧘 Meditating")
                               : lastActivity === "mining"
@@ -287,12 +290,18 @@ export function CharactersClient({
                               : lastActivity}
                           </p>
                         ) : miningLevel > 0 ? (
-                          <p className="text-xs text-muted-foreground/60">
+                          <p
+                            className="text-sm font-medium text-white/70"
+                            style={{ animation: "ink-fade-in 0.8s ease-out 0.2s both" }}
+                          >
                             {locale === "zh" ? "閒置" : "Idle"}
                           </p>
                         ) : null}
                         {lastPlayed && (
-                          <p className="text-[10px] text-muted-foreground/60">
+                          <p
+                            className="text-xs text-white/60"
+                            style={{ animation: "ink-fade-in 0.8s ease-out 0.35s both" }}
+                          >
                             {formatTimeAgo(lastPlayed, locale === "zh")}
                           </p>
                         )}
