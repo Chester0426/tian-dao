@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GameSidebar } from "./game-sidebar";
 
-export function GameLayout({ children }: { children: React.ReactNode }) {
+export function GameLayout({ children, isAdmin = false }: { children: React.ReactNode; isAdmin?: boolean }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -16,7 +16,7 @@ export function GameLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <GameSidebar open={sidebarOpen} onCloseAction={() => setSidebarOpen(false)} />
+      <GameSidebar open={sidebarOpen} onCloseAction={() => setSidebarOpen(false)} isAdmin={isAdmin} />
 
       <main className="flex-1 md:ml-56 lg:ml-60">
         {/* Mobile top bar */}

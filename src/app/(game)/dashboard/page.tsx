@@ -151,10 +151,8 @@ export default async function DashboardPage() {
   }
 
   const offlineRewards = calculateOfflineRewards(latestSession, profile);
-  // Use the appropriate level/xp for current realm
-  const currentRealmLevel = profile.realm === "煉體" ? profile.body_level : profile.realm_level;
-  const currentRealmXp = profile.realm === "煉體" ? profile.body_xp : profile.body_xp;
-  const xpForNext = getXpForNextLevel(currentRealmLevel);
+  // 煉體 panel always shows body progression (even after entering 練氣 — peak system)
+  const xpForNext = getXpForNextLevel(profile.body_level);
   const xpProgress = xpForNext > 0 ? Math.min((profile.body_xp / xpForNext) * 100, 100) : 0;
   const isBreakthroughReady = xpProgress >= 100;
 

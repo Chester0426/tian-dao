@@ -206,6 +206,9 @@ export function InventoryClient({
                               {sacrificeMode && !isSelected && " · 點擊選取"}
                               {sacrificeMode && isSelected && " · 點擊取消"}
                             </p>
+                            {item.item_type === "spirit_stone_fragment" && (
+                              <p className="text-xs text-jade mt-1">可用於修煉</p>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       );

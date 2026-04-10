@@ -168,7 +168,7 @@ const translations = {
     sidebar_skills: "Skills",
     sidebar_shop: "Shop",
     sidebar_inventory: "Inventory",
-    sidebar_bodyTempering: "Body Tempering",
+    sidebar_bodyTempering: "Body Refining",
     sidebar_mining: "Mining",
     sidebar_switchChar: "Switch Character",
     sidebar_logout: "Logout",
@@ -224,7 +224,7 @@ const translations = {
     // Dashboard
     dash_title: "Cultivation Overview",
     dash_subtitle: "The path of cultivation never stops",
-    dash_bodyXp: "Body Tempering XP",
+    dash_bodyXp: "Body Refining XP",
     dash_canBreak: "Ready to break through!",
     dash_breakthrough: "Break Through",
     dash_current: "Current",
@@ -236,7 +236,7 @@ const translations = {
 
     // Notifications
     notif_miningXp: "Mining XP",
-    notif_bodyXp: "Body XP",
+    notif_bodyXp: "Body Refining XP",
     notif_miningLevelUp: "Mining Level Up Lv.{n}",
     notif_masteryLevelUp: "Mastery Level Up Lv.{n}",
 

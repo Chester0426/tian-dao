@@ -23,6 +23,8 @@ export interface Profile {
   body_xp: number; // 煉體 current XP
   qi_level: number; // 練氣 level (0=not unlocked, 1-13)
   qi_xp: number; // 練氣 current XP
+  qi_fail_bonus?: Record<string, number>; // permanent +% per level from failed breakthroughs
+  qi_array?: (string | null)[]; // 5 slots; each stores an item_type or null
   foundation_level: number; // 築基 level (0=not unlocked)
   foundation_xp: number;
   core_level: number; // 金丹 level (0=not unlocked)
@@ -152,6 +154,60 @@ const BODY_XP_TABLE: Record<number, number> = {
   8: 1500,
 };
 
+// Mine display names by slug
+export const MINE_NAMES: Record<string, { zh: string; en: string }> = {
+  depleted_vein: { zh: "枯竭礦脈", en: "Depleted Vein" },
+  red_copper_vein: { zh: "赤銅礦脈", en: "Red Copper Vein" },
+  vein_3: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_4: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_5: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_6: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_7: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_8: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_9: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_10: { zh: "XX 礦脈", en: "XX Vein" },
+};
+
+// Spirit stone bonuses (per-tick qi added while equipped in 聚靈陣).
+// Item identity lives in @/lib/items; this map only stores the numeric bonus.
+import { hasTag } from "./items";
+
+export const SPIRIT_STONE_BONUSES: Record<string, number> = {
+  spirit_stone_fragment: 10,
+};
+
+export function isSpiritStone(itemType: string): boolean {
+  return hasTag(itemType, "spirit_stone");
+}
+
+export function spiritStoneBonus(itemType: string | null | undefined): number {
+  if (!itemType) return 0;
+  return SPIRIT_STONE_BONUSES[itemType] ?? 0;
+}
+
+// 練氣 XP table — Lv.1→13 (13 = 巔峰, 下一步嘗試築基)
+const QI_XP_TABLE: Record<number, number> = {
+  1: 1200, 2: 1800, 3: 2500, 4: 3300, 5: 4200, 6: 5200,
+  7: 6300, 8: 7500, 9: 8800, 10: 10200, 11: 11700, 12: 13300,
+  13: 13300, // 13→築基 uses same xp cost
+};
+
+/** XP required to break through from qi level (1-13). */
+export function qiXpForStage(level: number): number {
+  return QI_XP_TABLE[level] ?? 13300;
+}
+
+// Base 練氣 breakthrough success rate (%). Failures permanently add +1% per attempt.
+const QI_BASE_RATE: Record<number, number> = {
+  1: 100, 2: 100, 3: 100, 4: 100, 5: 100,
+  6: 99, 7: 98, 8: 97, 9: 95, 10: 90, 11: 85, 12: 80,
+  13: 1, // 13 → 築基
+};
+
+export function qiBaseRate(level: number): number {
+  return QI_BASE_RATE[level] ?? 100;
+}
+
 /** XP required to break through from the given body tempering level.
  *  Level 1-8: fixed table. Level 9+ (巔峰+N): base 1500, +10% per level. */
 export function bodyXpForStage(level: number): number {
@@ -170,9 +226,15 @@ export const REALM_DISPLAY: Record<Realm, { zh: string; en: string; enDesc: stri
 };
 
 /** Get display label for realm level */
-export function getRealmLevelLabel(realm: Realm, level: number): string {
+export function getRealmLevelLabel(realm: Realm, level: number, locale: "zh" | "en" = "zh"): string {
+  if (locale === "en") {
+    if (realm === "煉體") return level >= 9 ? `Peak${level > 9 ? "+" + (level - 9) : ""}` : `Lv.${level}`;
+    if (realm === "練氣") return level >= 13 ? "Peak" : `Lv.${level}`;
+    const namedLevelsEn = ["Early", "Mid-Early", "Mid", "Late", "Peak"];
+    return namedLevelsEn[level - 1] ?? `Lv.${level}`;
+  }
   if (realm === "煉體") return level >= 9 ? `巔峰${level > 9 ? "+" + (level - 9) : ""}` : `${level} 級`;
-  if (realm === "練氣") return `${level} 級`;
+  if (realm === "練氣") return level >= 13 ? "巔峰" : `${level} 級`;
   const namedLevels = ["初期", "前期", "中期", "後期", "巔峰"];
   return namedLevels[level - 1] ?? `${level}`;
 }

@@ -29,6 +29,15 @@ function getItemName(itemType: string, locale: string): string {
 // Mine names
 const MINE_NAMES: Record<string, { zh: string; en: string }> = {
   depleted_vein: { zh: "枯竭礦脈", en: "Depleted Vein" },
+  red_copper_vein: { zh: "赤銅礦脈", en: "Red Copper Vein" },
+  vein_3: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_4: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_5: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_6: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_7: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_8: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_9: { zh: "XX 礦脈", en: "XX Vein" },
+  vein_10: { zh: "XX 礦脈", en: "XX Vein" },
 };
 
 // Loot table per mine (TODO: fetch from DB)
@@ -160,7 +169,7 @@ export function MiningPageClient({
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 
         {/* === Header Bar === */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 -mx-6 md:-mx-12 px-1">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
               <span className="text-xl">⛏</span>
@@ -180,7 +189,7 @@ export function MiningPageClient({
         </div>
 
         {/* Skill XP bar */}
-        <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted/30">
+        <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted/30 -mx-6 md:-mx-12" style={{ width: "auto" }}>
           <div
             className="h-full rounded-full bg-blue-500 transition-all duration-300"
             style={{ width: `${xpPercent}%` }}
@@ -188,7 +197,7 @@ export function MiningPageClient({
         </div>
 
         {/* === Mine Grid === */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr -mx-6 md:-mx-12">
           {mines.map((mine) => {
             const isLocked = miningLevel < mine.required_level;
             const isActive = activeMine === mine.id && isMining;
@@ -196,51 +205,71 @@ export function MiningPageClient({
             const lootTable = LOOT_TABLES[mine.slug] ?? LOOT_TABLES["depleted_vein"];
             const circumference = 2 * Math.PI * 38; // SVG circle r=38
 
+            // === LOCKED MINE CARD ===
+            if (isLocked) {
+              return (
+                <Card key={mine.id} className="border-border/30 bg-muted/5 overflow-hidden flex flex-col">
+                  <div className="h-1 bg-destructive/40 shrink-0" />
+                  <CardContent className="p-4 flex-1 flex flex-col">
+                    {/* Header — locked label */}
+                    <div className="flex items-center justify-center">
+                      <p className="font-heading text-base font-bold text-muted-foreground/60">
+                        {t("mining_locked")}
+                      </p>
+                    </div>
+
+                    {/* Centered icon — fills space between header and button */}
+                    <div className="flex-1 flex items-center justify-center">
+                      <span className="text-7xl opacity-30">⛏</span>
+                    </div>
+
+                    {/* Disabled button at bottom */}
+                    <button
+                      disabled
+                      className="w-full rounded-lg py-2 text-sm font-heading font-bold bg-destructive/80 text-destructive-foreground cursor-not-allowed opacity-70"
+                    >
+                      {t("mining_needLevel", { n: mine.required_level })}
+                    </button>
+                  </CardContent>
+                </Card>
+              );
+            }
+
             return (
-              <Card key={mine.id} className={`transition-all duration-200 overflow-hidden ${
+              <Card key={mine.id} className={`transition-all duration-200 overflow-hidden flex flex-col ${
                 isActive
                   ? "border-jade shadow-lg shadow-jade/10"
-                  : isLocked
-                    ? "opacity-40"
-                    : "border-border/40"
+                  : "border-border/40"
               }`}>
                 {/* Top color strip */}
-                <div className={`h-1 ${isActive ? "bg-jade" : isLocked ? "bg-destructive/50" : "bg-border/20"}`} />
+                <div className={`h-1 shrink-0 ${isActive ? "bg-jade" : "bg-border/20"}`} />
 
-                <CardContent className="p-4 space-y-4">
+                <CardContent className="p-4 flex-1 flex flex-col space-y-4">
                   {/* Mine header */}
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex items-baseline gap-2">
                       <p className="font-heading text-base font-bold">
-                        {isLocked ? t("mining_locked") : (MINE_NAMES[mine.slug]?.[locale] ?? mine.name)}
+                        {MINE_NAMES[mine.slug]?.[locale] ?? mine.name}
                       </p>
-                      {!isLocked && (
-                        <p className="text-xs text-muted-foreground">
-                          ⏱ {(3).toFixed(2)} s · XP {mine.xp_mining}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        ⏱ {(3).toFixed(2)} s
+                      </p>
                     </div>
-                    {isLocked ? (
-                      <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
-                        {t("mining_needLevel", { n: mine.required_level })}
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 gap-1">
+                        XP {mine.xp_mining}
                       </Badge>
-                    ) : (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 gap-1">
-                          XP {mine.xp_mining}
-                        </Badge>
-                        <Badge variant="secondary" className="bg-cinnabar-dim text-cinnabar gap-1">
-                          🏆 {mine.xp_mastery}
-                        </Badge>
-                        <Badge variant="secondary" className="bg-spirit-gold-dim text-spirit-gold gap-1">
-                          💪 {mine.xp_body}
-                        </Badge>
-                      </div>
-                    )}
+                      <Badge variant="secondary" className="bg-cinnabar-dim text-cinnabar gap-1">
+                        🏆 {mine.xp_mastery}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-spirit-gold-dim text-spirit-gold gap-1">
+                        💪 {mine.xp_body}
+                      </Badge>
+                    </div>
                   </div>
 
                   {/* Drop rates + Progress circle row */}
-                  {!isLocked && (
+                  {(
                     <div className="flex items-center gap-4">
                       {/* Drop rates */}
                       <div className="flex-1 space-y-1.5">
@@ -266,12 +295,12 @@ export function MiningPageClient({
                           {/* Track */}
                           <circle cx="44" cy="44" r="38" fill="none" stroke="currentColor" strokeWidth="4"
                             className="text-muted/20" />
-                          {/* Progress */}
+                          {/* Progress — no CSS transition; setActionProgress runs at 50ms interval which is smooth enough. Transition causes "backwards" animation on tick reset. */}
                           {isActive && (
                             <circle cx="44" cy="44" r="38" fill="none" stroke="currentColor" strokeWidth="4"
                               strokeDasharray={`${(actionProgress / 100) * circumference} ${circumference}`}
                               strokeLinecap="round"
-                              className="text-jade transition-all duration-75 ease-linear" />
+                              className="text-jade" />
                           )}
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -282,7 +311,7 @@ export function MiningPageClient({
                   )}
 
                   {/* Mastery with XP */}
-                  {!isLocked && (
+                  {(
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">
@@ -299,19 +328,17 @@ export function MiningPageClient({
                     </div>
                   )}
 
-                  {/* Action button */}
-                  {!isLocked && (
-                    <button
-                      onClick={() => handleSelectMine(mine)}
-                      className={`w-full rounded-lg py-2 text-sm font-heading font-bold transition-all duration-200 ${
-                        isActive
-                          ? "bg-destructive/80 text-destructive-foreground hover:bg-destructive"
-                          : "bg-jade/80 text-primary-foreground hover:bg-jade"
-                      }`}
-                    >
-                      {isActive ? t("mining_stopMining") : t("mining_startMining")}
-                    </button>
-                  )}
+                  {/* Action button — pushed to bottom */}
+                  <button
+                    onClick={() => handleSelectMine(mine)}
+                    className={`mt-auto w-full rounded-lg py-2 text-sm font-heading font-bold transition-all duration-200 ${
+                      isActive
+                        ? "bg-destructive/80 text-destructive-foreground hover:bg-destructive"
+                        : "bg-jade/80 text-primary-foreground hover:bg-jade"
+                    }`}
+                  >
+                    {isActive ? t("mining_stopMining") : t("mining_startMining")}
+                  </button>
 
                   {isLocked && (
                     <p className="text-center text-xs text-muted-foreground/50">

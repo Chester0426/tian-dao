@@ -12,9 +12,11 @@ import { useState, useCallback } from "react";
 export function GameSidebar({
   open,
   onCloseAction,
+  isAdmin = false,
 }: {
   open: boolean;
   onCloseAction: () => void;
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,12 +35,17 @@ export function GameSidebar({
       { name: locale === "zh" ? "秘境" : "Dungeon", href: "/dungeon", icon: "🌀", key: "dungeon" },
     ]},
     { title: t("sidebar_skills"), items: [
-      { name: t("sidebar_mining"), href: "/mining", icon: "⛏", key: "mining" },
+      { name: locale === "zh" ? "參悟" : "Enlightenment", href: "/enlightenment", icon: "📜", key: "enlightenment" },
+      { name: t("sidebar_mining"), href: "/mining", icon: "⛏️", key: "mining" },
       { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", key: "herbalism" },
-      { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", key: "alchemy" },
+      ...((gameState.realm && gameState.realm !== "煉體") ? [
+        { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", key: "alchemy" },
+      ] : []),
       { name: locale === "zh" ? "烹飪" : "Cooking", href: "/cooking", icon: "🍳", key: "cooking" },
       { name: locale === "zh" ? "釣魚" : "Fishing", href: "/fishing", icon: "🎣", key: "fishing" },
-      { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing" },
+      ...((gameState.realm && gameState.realm !== "煉體") ? [
+        { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing" },
+      ] : []),
     ]},
   ];
 
@@ -132,8 +139,26 @@ export function GameSidebar({
         })}
       </nav>
 
-      {/* Footer — switch character + logout */}
+      {/* Footer — feedback + admin + switch character + logout */}
       <div className="shrink-0 border-t border-border/30 px-3 py-3 space-y-1">
+        <Link
+          href="/feedback"
+          onClick={onCloseAction}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+        >
+          <span className="text-base leading-none">📮</span>
+          <span>{locale === "zh" ? "回報與建議" : "Feedback"}</span>
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/admin/feedback"
+            onClick={onCloseAction}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+          >
+            <span className="text-base leading-none">🛡️</span>
+            <span>{locale === "zh" ? "回報管理" : "Manage Feedback"}</span>
+          </Link>
+        )}
         <Link
           href="/characters"
           onClick={() => {

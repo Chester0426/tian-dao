@@ -11,16 +11,19 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 interface BreakthroughDialogProps {
   currentStage: number;
   currentRealm?: string;
   nextRealm?: string;
   isRealmTransition?: boolean;
+  successRate?: number; // 0-100, undefined = always 100% (legacy body path)
   onCancel: () => void;
 }
 
-function getLevelLabel(level: number): string {
+function getLevelLabel(level: number, realm: string = "煉體"): string {
+  if (realm === "練氣") return level >= 13 ? "巔峰" : `${level} 級`;
   if (level >= 9) return `巔峰${level > 9 ? "+" + (level - 9) : ""}`;
   return `${level} 級`;
 }
@@ -94,6 +97,7 @@ export function BreakthroughDialog({
   currentRealm = "煉體",
   nextRealm,
   isRealmTransition = false,
+  successRate,
   onCancel,
 }: BreakthroughDialogProps) {
   const [phase, setPhase] = useState<
@@ -103,25 +107,37 @@ export function BreakthroughDialog({
   const [animProgress, setAnimProgress] = useState(0);
   const [errorDetail, setErrorDetail] = useState("");
   const router = useRouter();
+  const { locale } = useI18n();
+  const isZh = locale === "zh";
 
   // Lock display text at mount time
   const [displayNames] = useState(() => {
     const realmNames: Record<string, { zh: string; en: string }> = {
-      "煉體": { zh: "煉體期", en: "Body Refining" },
-      "練氣": { zh: "練氣期", en: "Qi Condensation" },
-      "築基": { zh: "築基期", en: "Foundation" },
-      "金丹": { zh: "金丹期", en: "Golden Core" },
-      "元嬰": { zh: "元嬰期", en: "Nascent Soul" },
+      "煉體": { zh: "煉體期", en: "Body Refining Realm" },
+      "練氣": { zh: "練氣期", en: "Qi Condensation Realm" },
+      "築基": { zh: "築基期", en: "Foundation Establishment Realm" },
+      "金丹": { zh: "金丹期", en: "Golden Core Realm" },
+      "元嬰": { zh: "元嬰期", en: "Nascent Soul Realm" },
     };
-    const crName = realmNames[currentRealm]?.zh ?? currentRealm;
+    const realmName = realmNames[currentRealm] ?? { zh: currentRealm, en: currentRealm };
+    const nextRealmName = nextRealm ? (realmNames[nextRealm] ?? { zh: nextRealm, en: nextRealm }) : null;
+    const levelLabelEn = (lvl: number, r: string = "煉體") => {
+      if (r === "練氣") return lvl >= 13 ? "Peak" : `Lv.${lvl}`;
+      return lvl >= 9 ? `Peak${lvl > 9 ? "+" + (lvl - 9) : ""}` : `Lv.${lvl}`;
+    };
     return {
-      currentName: `${crName} ${getLevelLabel(currentStage)}`,
-      nextName: isRealmTransition && nextRealm
-        ? `${realmNames[nextRealm]?.zh ?? nextRealm} 1 級`
-        : `${crName} ${getLevelLabel(currentStage + 1)}`,
+      currentNameZh: `${realmName.zh} ${getLevelLabel(currentStage, currentRealm)}`,
+      currentNameEn: `${realmName.en} ${levelLabelEn(currentStage, currentRealm)}`,
+      nextNameZh: isRealmTransition && nextRealmName
+        ? `${nextRealmName.zh} 1 級`
+        : `${realmName.zh} ${getLevelLabel(currentStage + 1, currentRealm)}`,
+      nextNameEn: isRealmTransition && nextRealmName
+        ? `${nextRealmName.en} Lv.1`
+        : `${realmName.en} ${levelLabelEn(currentStage + 1, currentRealm)}`,
     };
   });
-  const { currentName, nextName } = displayNames;
+  const currentName = isZh ? displayNames.currentNameZh : displayNames.currentNameEn;
+  const nextName = isZh ? displayNames.nextNameZh : displayNames.nextNameEn;
 
   const handleClose = useCallback(() => {
     setOpen(false);
@@ -150,6 +166,14 @@ export function BreakthroughDialog({
       }).then(async (res): Promise<"success" | "failed" | "demo_ended"> => {
         const text = await res.text();
         if (res.ok) {
+          // Qi path returns 200 with success:false on roll fail — check body
+          try {
+            const data = JSON.parse(text);
+            if (data && data.success === false) {
+              router.refresh();
+              return "failed";
+            }
+          } catch {}
           router.refresh();
           return "success";
         }
@@ -204,23 +228,30 @@ export function BreakthroughDialog({
           <>
             <DialogHeader>
               <DialogTitle className="font-heading text-lg text-spirit-gold text-glow-gold">
-                突破修煉
+                {isZh ? "突破修煉" : "Break Through"}
               </DialogTitle>
               <DialogDescription>
-                經驗已滿，突破成功率 100%
+                {isZh
+                  ? `經驗已滿，突破成功率 ${successRate ?? 100}%`
+                  : `XP full, ${successRate ?? 100}% success rate`}
+                {typeof successRate === "number" && successRate < 100 && (
+                  <span className="block mt-1 text-[11px] text-cinnabar/80">
+                    {isZh ? "失敗將消耗經驗並永久提升 1% 成功率" : "Failure consumes XP and permanently adds +1%"}
+                  </span>
+                )}
               </DialogDescription>
             </DialogHeader>
 
             <div className="flex items-center justify-center gap-6 py-6">
               <div className="text-center">
-                <p className="text-xs text-muted-foreground/60 mb-1">當前</p>
+                <p className="text-xs text-muted-foreground/60 mb-1">{isZh ? "當前" : "Current"}</p>
                 <div className="font-heading text-xl text-muted-foreground">
                   {currentName}
                 </div>
               </div>
               <div className="text-spirit-gold text-2xl">→</div>
               <div className="text-center">
-                <p className="text-xs text-spirit-gold/60 mb-1">突破後</p>
+                <p className="text-xs text-spirit-gold/60 mb-1">{isZh ? "突破後" : "After"}</p>
                 <div className="font-heading text-xl text-spirit-gold text-glow-gold">
                   {nextName}
                 </div>
@@ -229,13 +260,13 @@ export function BreakthroughDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={handleClose}>
-                稍後再說
+                {isZh ? "稍後再說" : "Later"}
               </Button>
               <Button
                 onClick={handleBreakthrough}
                 className="seal-glow hover:scale-[1.02] transition-transform"
               >
-                開始突破
+                {isZh ? "開始突破" : "Begin Breakthrough"}
               </Button>
             </DialogFooter>
           </>
@@ -245,7 +276,7 @@ export function BreakthroughDialog({
           <div className="flex flex-col items-center justify-center py-4">
             <BreakthroughAnimation progress={animProgress} />
             <p className="mt-3 font-heading text-spirit-gold/80 text-sm tracking-widest animate-pulse">
-              突破中
+              {isZh ? "突破中" : "Breaking Through"}
             </p>
           </div>
         )}
@@ -256,16 +287,16 @@ export function BreakthroughDialog({
               <span className="font-heading text-2xl text-spirit-gold">✓</span>
             </div>
             <p className="mt-4 font-heading text-lg text-spirit-gold text-glow-gold">
-              突破成功！
+              {isZh ? "突破成功！" : "Breakthrough Success!"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              已達 {nextName}
+              {isZh ? `已達 ${nextName}` : `Reached ${nextName}`}
             </p>
             <button
               onClick={handleClose}
               className="mt-5 text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors"
             >
-              關閉
+              {isZh ? "關閉" : "Close"}
             </button>
           </div>
         )}
@@ -276,10 +307,10 @@ export function BreakthroughDialog({
               <span className="font-heading text-2xl text-cinnabar">✗</span>
             </div>
             <p className="mt-4 font-heading text-lg text-cinnabar">
-              突破失敗
+              {isZh ? "突破失敗" : "Breakthrough Failed"}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              修為不足，請繼續修煉
+              {isZh ? "修為不足，請繼續修煉" : "Insufficient cultivation, keep training"}
             </p>
             {errorDetail && (
               <p className="mt-1 text-xs text-muted-foreground/40 font-mono">
@@ -290,7 +321,7 @@ export function BreakthroughDialog({
               onClick={handleClose}
               className="mt-5 text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors"
             >
-              關閉
+              {isZh ? "關閉" : "Close"}
             </button>
           </div>
         )}
@@ -301,16 +332,16 @@ export function BreakthroughDialog({
               <span className="font-heading text-2xl text-cinnabar">封</span>
             </div>
             <p className="mt-4 font-heading text-lg text-foreground">
-              Demo 版本已結束
+              {isZh ? "Demo 版本已結束" : "Demo Version Ended"}
             </p>
             <p className="mt-2 text-sm text-muted-foreground text-center leading-relaxed">
-              正式版即將推出，敬請期待！
+              {isZh ? "正式版即將推出，敬請期待！" : "Full version coming soon!"}
             </p>
             <button
               onClick={handleClose}
               className="mt-5 text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors"
             >
-              關閉
+              {isZh ? "關閉" : "Close"}
             </button>
           </div>
         )}

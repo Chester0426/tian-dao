@@ -81,17 +81,23 @@ export default async function CharactersPage() {
   const slots: SlotData[] = [1, 2, 3].map((slot) => {
     const profile = (profiles as Profile[] | null)?.find((p) => p.slot === slot) ?? null;
     const skill = miningSkills?.find((s: { slot: number; level: number }) => s.slot === slot);
-    const session = sessions?.find((s: { slot: number }) => s.slot === slot);
-    const lastPlayed = session
-      ? (session as { ended_at: string | null; started_at: string }).ended_at ?? (session as { started_at: string }).started_at
-      : profile?.created_at ?? null;
+    // Find the most recent *active* session (ended_at = null) for this slot
+    const slotSessions = sessions?.filter((s: { slot: number }) => s.slot === slot) ?? [];
+    const activeSession = slotSessions.find((s: { ended_at: string | null }) => !s.ended_at);
+    const session = activeSession ?? slotSessions[0];
+    // Prefer profile.last_seen_at (updated on page close/heartbeat)
+    const lastPlayed = (profile as (Profile & { last_seen_at?: string }) | null)?.last_seen_at
+      ?? (session
+        ? (session as { ended_at: string | null; started_at: string }).ended_at ?? (session as { started_at: string }).started_at
+        : profile?.created_at ?? null);
 
     return {
       slot,
       profile,
       miningLevel: skill?.level ?? 0,
       lastPlayed,
-      lastActivity: session ? (session as { type: string }).type : null,
+      // Only mark as currently-doing if session is active (ended_at null)
+      lastActivity: activeSession ? (activeSession as { type: string }).type : null,
       lastMineSlug: session ? minesData?.find((m) => m.id === (session as { mine_id: string }).mine_id)?.slug ?? null : null,
     };
   });

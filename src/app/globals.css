@@ -302,6 +302,11 @@
             0 0 60px oklch(0.62 0.20 25 / 10%);
     }
 
+    /* Synchronized risk pulse — entire container fades together */
+    .risk-pulse-sync {
+        animation: risk-pulse 1.6s ease-in-out infinite;
+    }
+
     /* Jade qi inner glow -- for cards with spiritual significance */
     .qi-glow {
         box-shadow:
@@ -365,6 +370,11 @@
     50% {
         box-shadow: 0 0 35px var(--jade-dim), 0 0 60px oklch(0.65 0.15 160 / 6%);
     }
+}
+
+@keyframes risk-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
 }
 
 @keyframes seal-stamp {

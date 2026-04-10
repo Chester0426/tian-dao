@@ -104,6 +104,18 @@ export default function LoginPage() {
         {locale === "zh" ? "English" : "中文"}
       </button>
 
+      {/* Developer login — bottom right */}
+      <Link
+        href="/dev-portal"
+        className="absolute bottom-4 right-5 z-20 text-xs text-white/30 hover:text-white/60 transition-colors"
+        style={{
+          opacity: mounted ? 1 : 0,
+          transition: "opacity 0.8s ease-out 1s, color 0.2s",
+        }}
+      >
+        {locale === "zh" ? "開發者" : "Developer"}
+      </Link>
+
       {/* Main content — centered */}
       <div className="relative z-10 flex w-full items-center justify-center px-6 py-6">
         <div

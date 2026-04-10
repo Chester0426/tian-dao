@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useI18n } from "@/lib/i18n";
+import { MINE_NAMES } from "@/lib/types";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import bs58 from "bs58";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,15 +18,15 @@ import {
 } from "@/components/ui/dialog";
 import type { SlotData } from "./page";
 
-function formatTimeAgo(dateStr: string): string {
+function formatTimeAgo(dateStr: string, isZh: boolean): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "剛剛";
-  if (minutes < 60) return `${minutes} 分鐘前`;
+  if (minutes < 1) return isZh ? "剛剛" : "just now";
+  if (minutes < 60) return isZh ? `${minutes} 分鐘前` : `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小時前`;
+  if (hours < 24) return isZh ? `${hours} 小時前` : `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days} 天前`;
+  return isZh ? `${days} 天前` : `${days}d ago`;
 }
 
 export function CharactersClient({
@@ -47,6 +48,13 @@ export function CharactersClient({
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   // Offline rewards handled by GlobalGameUI in game layout
+
+  // Tick every 30s so "time ago" labels update live on this page
+  const [, setTimeTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTimeTick((t) => t + 1), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleSelectSlot = async (slot: number, hasProfile: boolean, lastActivity: string | null, lastMineSlug: string | null) => {
     setLoading(slot);
@@ -124,7 +132,7 @@ export function CharactersClient({
             <img src="/images/logo-dao.png" alt="天道" className="mx-auto h-24 w-24 mb-4 rounded-xl cursor-pointer transition-transform hover:scale-105" />
           </a>
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
-            天道
+            {locale === "zh" ? "天道" : "Tian Tao"}
           </h1>
           <p className="mt-2 text-muted-foreground">{t("char_subtitle")}</p>
 
@@ -177,6 +185,11 @@ export function CharactersClient({
             className="mt-4 inline-flex items-center justify-center text-sm font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
             style={{ backgroundImage: "url('/images/btn-bg5.png')", width: '120px', height: '36px' }}
           >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
             {t("sidebar_logout")}
           </button>
         </div>
@@ -184,7 +197,7 @@ export function CharactersClient({
         {/* 3 Slot Grid */}
         <div className="grid gap-4 sm:grid-cols-3">
           {slots.map((slotData) => {
-            const { slot, profile, miningLevel, lastPlayed } = slotData;
+            const { slot, profile, miningLevel, lastPlayed, lastActivity, lastMineSlug } = slotData;
             const isEmpty = !profile;
             const isLoading = loading === slot;
 
@@ -224,7 +237,7 @@ export function CharactersClient({
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/10 border border-dashed border-border/20">
                         <span className="text-3xl text-muted-foreground/20">🔒</span>
                       </div>
-                      {/* <p className="text-sm text-muted-foreground/60">未解鎖</p> */}
+                      {/* Locked label hidden per new card design */}
                       <Button
                         disabled
                         className="mt-auto w-full font-heading bg-cover bg-center border-0 shadow-none bg-transparent text-white"
@@ -262,17 +275,25 @@ export function CharactersClient({
                         <p className="font-heading font-bold text-sm">
                           {locale === "zh"
                             ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
-                            : `Body Refining ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
+                            : `Body Refining Realm ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
                           }
                         </p>
-                        {miningLevel > 0 && (
+                        {lastActivity ? (
                           <p className="text-xs text-muted-foreground">
-                            挖礦 Lv.{miningLevel}
+                            {lastActivity === "meditate"
+                              ? (locale === "zh" ? "🧘 冥想中" : "🧘 Meditating")
+                              : lastActivity === "mining"
+                              ? `⛏️ ${locale === "zh" ? "挖礦中" : "Mining"}${lastMineSlug ? ` · ${MINE_NAMES[lastMineSlug]?.[locale === "zh" ? "zh" : "en"] ?? lastMineSlug}` : ""}`
+                              : lastActivity}
                           </p>
-                        )}
+                        ) : miningLevel > 0 ? (
+                          <p className="text-xs text-muted-foreground/60">
+                            {locale === "zh" ? "閒置" : "Idle"}
+                          </p>
+                        ) : null}
                         {lastPlayed && (
                           <p className="text-[10px] text-muted-foreground/60">
-                            {formatTimeAgo(lastPlayed)}
+                            {formatTimeAgo(lastPlayed, locale === "zh")}
                           </p>
                         )}
                       </div>
@@ -325,7 +346,7 @@ export function CharactersClient({
                 <p className="font-heading font-bold text-destructive">
                   {locale === "zh"
                     ? `${(deleteTarget.profile.realm ?? "煉體")}期 ${deleteTarget.profile.realm_level >= 9 ? "巔峰" : (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage) + " 級"}`
-                    : `Body Refining ${deleteTarget.profile.realm_level >= 9 ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
+                    : `Body Refining Realm ${deleteTarget.profile.realm_level >= 9 ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
                   }
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">

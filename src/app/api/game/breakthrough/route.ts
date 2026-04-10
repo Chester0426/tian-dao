@@ -1,7 +1,7 @@
 // POST /api/game/breakthrough — Advance realm level
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { bodyXpForStage } from "@/lib/types";
+import { bodyXpForStage, qiXpForStage, qiBaseRate } from "@/lib/types";
 import { trackServerEvent } from "@/lib/analytics-server";
 import { getSlotFromRequest } from "@/lib/slot-api";
 
@@ -23,6 +23,119 @@ export async function POST(request: NextRequest) {
   }
 
   const realm = profile.realm ?? "煉體";
+
+  // Parse optional body peak target (post-煉體 body progression)
+  let bodyPeak = false;
+  try {
+    const body = await request.json();
+    if (body?.target === "body_peak") bodyPeak = true;
+  } catch {
+    // no body — default path
+  }
+
+  // Body peak progression: loop cascade breakthroughs in one call (no realm transition)
+  if (bodyPeak) {
+    if (realm === "煉體") {
+      return NextResponse.json({ error: "body_peak only valid after 煉體" }, { status: 400 });
+    }
+    let lvl = profile.body_level ?? 1;
+    let xp = profile.body_xp ?? 0;
+    let count = 0;
+    while (lvl >= 9 && count < 200) {
+      const need = bodyXpForStage(lvl);
+      if (xp < need) break;
+      xp -= need;
+      lvl += 1;
+      count += 1;
+    }
+    if (count === 0) {
+      return NextResponse.json({ error: "Insufficient XP", xp_current: xp, xp_required: bodyXpForStage(lvl) }, { status: 400 });
+    }
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update({ body_level: lvl, body_xp: xp })
+      .eq("user_id", user.id)
+      .eq("slot", slot);
+    if (upErr) {
+      return NextResponse.json({ error: "Failed", detail: upErr.message }, { status: 500 });
+    }
+    return NextResponse.json({ body_peak: true, new_level: lvl, leftover_xp: xp, breakthroughs: count });
+  }
+
+  // --- 練氣 breakthrough with success probability & failure bonus ---
+  if (realm === "練氣") {
+    const curLvl = profile.qi_level ?? 1;
+    const curXp = profile.qi_xp ?? 0;
+    const need = qiXpForStage(curLvl);
+    if (curXp < need) {
+      return NextResponse.json({ error: "Insufficient XP", xp_current: curXp, xp_required: need }, { status: 400 });
+    }
+
+    const failBonusMap = (profile.qi_fail_bonus ?? {}) as Record<string, number>;
+    const bonus = failBonusMap[String(curLvl)] ?? 0;
+    const effectiveRate = Math.min(100, qiBaseRate(curLvl) + bonus);
+    const roll = Math.random() * 100;
+    const success = roll < effectiveRate;
+
+    const leftoverXp = curXp - need;
+    let updateData: Record<string, unknown> = {};
+
+    if (success) {
+      // Level up. If curLvl was 13, transition to 築基
+      if (curLvl >= 13) {
+        updateData = {
+          realm: "築基",
+          realm_level: 1,
+          qi_xp: leftoverXp,
+          foundation_level: 1,
+          foundation_xp: 0,
+        };
+      } else {
+        updateData = {
+          qi_level: curLvl + 1,
+          qi_xp: leftoverXp,
+          realm_level: curLvl + 1,
+        };
+      }
+    } else {
+      // Failure: deduct XP, add +1% permanent bonus for this level
+      const newBonus = { ...failBonusMap, [String(curLvl)]: bonus + 1 };
+      updateData = {
+        qi_xp: leftoverXp,
+        qi_fail_bonus: newBonus,
+      };
+    }
+
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update(updateData)
+      .eq("user_id", user.id)
+      .eq("slot", slot);
+    if (upErr) {
+      return NextResponse.json({ error: "Failed", detail: upErr.message }, { status: 500 });
+    }
+
+    try {
+      await trackServerEvent("breakthrough_complete", user.id, {
+        realm: success && curLvl >= 13 ? "築基" : "練氣",
+        from_level: curLvl,
+        to_level: success ? (curLvl >= 13 ? 1 : curLvl + 1) : curLvl,
+        realm_transition: success && curLvl >= 13,
+        success,
+        rate: effectiveRate,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success,
+      rate: effectiveRate,
+      from_level: curLvl,
+      new_level: success ? (curLvl >= 13 ? 1 : curLvl + 1) : curLvl,
+      new_realm: success && curLvl >= 13 ? "築基" : "練氣",
+      leftover_xp: leftoverXp,
+      new_fail_bonus: success ? bonus : bonus + 1,
+    });
+  }
 
   // Realm progression order
   const REALM_ORDER = ["煉體", "練氣", "築基", "金丹", "元嬰"] as const;
@@ -105,6 +218,18 @@ export async function POST(request: NextRequest) {
       [nextLevelField]: 1,
       [nextXpField]: 0,
     };
+
+    // Cascade body peak breakthroughs using leftover body_xp (only when leaving 煉體)
+    if (realm === "煉體") {
+      let peakLvl = currentLevel + 1; // start at 10 (first peak level)
+      let peakXp = leftoverXp;
+      while (peakLvl >= 9 && peakXp >= bodyXpForStage(peakLvl)) {
+        peakXp -= bodyXpForStage(peakLvl);
+        peakLvl += 1;
+      }
+      updateData.body_level = peakLvl;
+      updateData.body_xp = peakXp;
+    }
   } else {
     // Normal level up within same realm
     const newLevel = currentLevel + 1;

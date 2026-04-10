@@ -8,6 +8,7 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 import type { MiningSkill, MineMastery, InventoryItem, Profile } from "@/lib/types";
 import { melvorXpForLevel } from "@/lib/types";
+import type { OfflineRewardResult } from "@/lib/offline-rewards";
 
 export default async function GameGroupLayout({
   children,
@@ -17,24 +18,42 @@ export default async function GameGroupLayout({
   const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
 
   let miningStatus = { isMining: false, mineId: null as string | null };
-  let initialState = {};
+  let initialState: Record<string, unknown> = {};
+  let isMeditatingInit = false;
+  let offlineRewardsInit: OfflineRewardResult | null = null;
+  let isAdmin = false;
 
   if (!isDemo) {
     try {
       const supabase = await createServerSupabaseClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        const adminId = process.env.ADMIN_USER_ID;
+        if (adminId && user.id === adminId) isAdmin = true;
         const cookieStore = await cookies();
         const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
 
-        const [sessionRes, profileRes, skillRes, masteryRes, inventoryRes, mineRes] = await Promise.all([
-          supabase.from("idle_sessions").select("mine_id").eq("user_id", user.id).eq("slot", slot).eq("type", "mining").single(),
+        const [latestSessionRes, profileRes, skillRes, masteryRes, inventoryRes, mineRes] = await Promise.all([
+          supabase.from("idle_sessions").select("type,mine_id,started_at,ended_at,last_sync_at").eq("user_id", user.id).eq("slot", slot).in("type", ["mining", "meditate"]).is("ended_at", null).order("last_sync_at", { ascending: false }).limit(1).maybeSingle(),
           supabase.from("profiles").select("*").eq("user_id", user.id).eq("slot", slot).single(),
           supabase.from("mining_skills").select("*").eq("user_id", user.id).eq("slot", slot).single(),
           supabase.from("mine_masteries").select("*").eq("user_id", user.id).eq("slot", slot),
           supabase.from("inventory_items").select("*").eq("user_id", user.id).eq("slot", slot),
           supabase.from("mines").select("id, slug, xp_mining, xp_mastery, xp_body").limit(10),
         ]);
+
+        // Only resume an activity if the latest session has ended_at = NULL
+        const latestSession = latestSessionRes.data;
+        const sessionRes = latestSession && !latestSession.ended_at && latestSession.type === "mining"
+          ? { data: { mine_id: latestSession.mine_id } }
+          : { data: null as { mine_id: string } | null };
+
+        if (latestSession && !latestSession.ended_at && latestSession.type === "meditate") {
+          isMeditatingInit = true;
+        }
+
+        // Offline rewards now computed via client-triggered API (mount + visibility).
+        // SSR path removed to avoid double-award on internal navigation.
 
         if (sessionRes.data?.mine_id) {
           miningStatus = { isMining: true, mineId: sessionRes.data.mine_id };
@@ -70,6 +89,11 @@ export default async function GameGroupLayout({
           masteryXpMaxs,
           bodyStage: profile?.body_level ?? profile?.realm_level ?? profile?.cultivation_stage ?? 1,
           bodyXp: profile?.body_xp ?? 0,
+          realm: profile?.realm ?? "煉體",
+          isMeditating: isMeditatingInit,
+          qiXp: profile?.qi_xp ?? 0,
+          qiArray: (profile?.qi_array as (string | null)[] | null) ?? [null, null, null, null, null],
+          offlineRewards: offlineRewardsInit,
           inventory,
           activeMine: activeMineData ? {
             id: activeMineData.id,
@@ -89,7 +113,7 @@ export default async function GameGroupLayout({
     <SingleTabGuard>
       <MiningProvider initialStatus={miningStatus} initialState={initialState}>
         <GlobalGameUI />
-        <GameLayout>{children}</GameLayout>
+        <GameLayout isAdmin={isAdmin}>{children}</GameLayout>
       </MiningProvider>
     </SingleTabGuard>
   );

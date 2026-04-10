@@ -31,6 +31,43 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 const DEV_LOG = [
+  { date: "04/09", items: [
+    { zh: "練氣突破機率修正", en: "Qi breakthrough probability fix" },
+    { zh: "冥想系統套用挖礦框架", en: "Meditation adopts mining framework" },
+    { zh: "聚靈陣即時同步", en: "Qi Array real-time sync" },
+    { zh: "離線判定機制重構", en: "Offline detection overhaul" },
+    { zh: "離線獎勵預載優化", en: "Offline rewards preload optimization" },
+    { zh: "挖礦/冥想/參悟三方互斥", en: "Mining/meditation/enlightenment mutual exclusion" },
+    { zh: "角色頁活動狀態顯示", en: "Character page activity status" },
+    { zh: "參悟系統", en: "Enlightenment system" },
+    { zh: "物品中央表與標籤系統", en: "Central item registry and tag system" },
+    { zh: "功法系統", en: "Technique system" },
+    { zh: "參悟頁面 UI 設計", en: "Enlightenment page UI design" },
+    { zh: "首頁/角色頁翻譯修正", en: "Landing/character page i18n fixes" },
+    { zh: "挖礦讀條動畫修復", en: "Mining progress bar animation fix" },
+  ]},
+  { date: "04/08", items: [
+    { zh: "練氣期冥想系統", en: "Qi Condensation meditation system" },
+    { zh: "聚靈陣裝填系統", en: "Qi Array equipment system" },
+    { zh: "練氣突破機率系統", en: "Qi breakthrough probability system" },
+    { zh: "風險條視覺化", en: "Risk bar visualization" },
+    { zh: "技能底層交互優化", en: "Skill interaction layer optimization" },
+    { zh: "底層框架優化(provider tick loop、批次 sync、sendBeacon、離線獎勵)", en: "Core framework (provider tick loop, batched sync, sendBeacon, offline rewards)" },
+    { zh: "回報系統", en: "Feedback system" },
+    { zh: "admin 回報管理頁", en: "Admin feedback management page" },
+    { zh: "煉體隱藏鈕", en: "Body Refining collapse toggle" },
+    { zh: "技能動態解鎖", en: "Dynamic skill unlocking" },
+    { zh: "通知位置調整", en: "Notification position adjustment" },
+  ]},
+  { date: "04/07", items: [
+    { zh: "全域 i18n 翻譯統一（境界、物品、經驗用詞）", en: "Global i18n unified (realms, items, XP terminology)" },
+    { zh: "突破對話框、滾動通知、離線通知英文化", en: "Breakthrough dialog, notifications, offline rewards localized" },
+    { zh: "煉體巔峰系統（進入練氣後自動連續突破）", en: "Body Refining Peak system (auto-breakthrough after entering Qi Condensation)" },
+    { zh: "修煉進度顯示修正（巔峰系統）", en: "Cultivation progress display fix (peak system)" },
+    { zh: "挖礦頁面 UI 優化（未解鎖卡片設計、3 列佈局、間距調整）", en: "Mining page UI overhaul (locked card design, 3-column layout, spacing)" },
+    { zh: "新增 9 個礦脈到資料庫（Lv.10-90）", en: "Added 9 new mines to database (Lv.10-90)" },
+    { zh: "Four.meme 黑客松提交準備", en: "Four.meme hackathon submission prep" },
+  ]},
   { date: "04/05", items: [
     { zh: "突破動畫優化（盤坐剪影 + 金色填充特效）", en: "Breakthrough animation overhaul (meditation silhouette + golden fill effect)" },
     { zh: "境界系統（煉體→練氣轉換）", en: "Realm system (Body Refining → Qi Condensation transition)" },
@@ -259,6 +296,16 @@ export default function LandingContent({
               <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
             </svg>
           </a>
+          <a
+            href="https://www.twitch.tv/chester0416"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition-colors hover:text-white hover:bg-white/10"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+            </svg>
+          </a>
 
           <div className="mx-1 h-4 w-px bg-white/10" />
 
@@ -299,7 +346,7 @@ export default function LandingContent({
           />
 
           <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
-            {variant.headline}
+            {isZh ? variant.headline : (variant.headlineEn ?? variant.headline)}
           </h1>
 
           <div
@@ -310,7 +357,7 @@ export default function LandingContent({
           />
 
           <p className="max-w-2xl text-lg leading-relaxed text-white/70 md:text-xl">
-            {variant.subheadline}
+            {isZh ? variant.subheadline : (variant.subheadlineEn ?? variant.subheadline)}
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
@@ -319,7 +366,7 @@ export default function LandingContent({
                 className="seal-glow h-12 px-8 text-base font-bold transition-all duration-200 hover:scale-[1.03]"
                 size="lg"
               >
-                {variant.cta}
+                {isZh ? variant.cta : (variant.ctaEn ?? variant.cta)}
               </Button>
             </Link>
           </div>
