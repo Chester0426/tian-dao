@@ -167,14 +167,15 @@ export function CharactersClient({
                 {bindingWallet ? t("char_signing") : t("char_signBind")}
               </Button>
             ) : (
-              <WalletMultiButton style={{ height: "32px", fontSize: "14px" }} />
+              <WalletMultiButton style={{ width: "180px", height: "36px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", backgroundImage: "url('/images/btn-bg6.png')", backgroundSize: "100% 100%", backgroundPosition: "center", backgroundRepeat: "no-repeat", border: "none", boxShadow: "none", transition: "none" }} />
             )}
           </div>
 
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="mt-4 inline-flex items-center justify-center text-sm font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
+            style={{ backgroundImage: "url('/images/btn-bg5.png')", width: '120px', height: '36px' }}
           >
             {t("sidebar_logout")}
           </button>

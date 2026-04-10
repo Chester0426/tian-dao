@@ -450,6 +450,19 @@
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
+/* Solana WalletMultiButton — override hover/cursor effects */
+.wallet-adapter-button {
+    cursor: pointer !important;
+    transition: none !important;
+    background-color: transparent !important;
+}
+.wallet-adapter-button:hover:not(:disabled) {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    background-color: transparent !important;
+}
+
 /* Global game notifications — fixed position, fade in/out only */
 @keyframes drop-float-up {
   0% { opacity: 0; transform: scale(0.95); }
