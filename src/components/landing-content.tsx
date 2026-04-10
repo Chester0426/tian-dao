@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import type { VariantContent } from "@/lib/variants";
 import { trackVisitLanding } from "@/lib/events";
 import { useI18n } from "@/lib/i18n";
@@ -331,46 +332,85 @@ export default function LandingContent({
         />
         <div className="absolute inset-0 bg-black/30" />
 
-        <div
+        <motion.div
           className="relative z-10 flex max-w-3xl flex-col items-center text-center"
-          style={{
-            opacity: heroReveal.revealed ? 1 : 0,
-            transform: heroReveal.revealed ? "translateY(0)" : "translateY(30px)",
-            transition: "all 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
-          }}
+          initial={{ opacity: 0, y: 30 }}
+          animate={heroReveal.revealed ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <img
+          <motion.img
             src="/images/logo-dao.png"
             alt="天道"
             className="mb-6 h-20 w-20 rounded-xl drop-shadow-[0_0_30px_rgba(200,160,100,0.4)]"
+            initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
+            animate={heroReveal.revealed ? { scale: 1, opacity: 1, rotate: 0 } : {}}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
           />
 
-          <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
+          <motion.h1
+            className="font-heading text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]"
+            initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+            animate={heroReveal.revealed ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}
+          >
             {isZh ? variant.headline : (variant.headlineEn ?? variant.headline)}
-          </h1>
+          </motion.h1>
 
-          <div
+          <motion.div
             className="my-5 h-px w-48 md:w-64"
             style={{
               background: "linear-gradient(90deg, transparent, rgba(200,160,100,0.7), transparent)",
             }}
+            initial={{ scaleX: 0 }}
+            animate={heroReveal.revealed ? { scaleX: 1 } : {}}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.45 }}
           />
 
-          <p className="max-w-2xl text-lg leading-relaxed text-white/70 md:text-xl">
-            {isZh ? variant.subheadline : (variant.subheadlineEn ?? variant.subheadline)}
-          </p>
+          <motion.p
+            className="max-w-2xl text-lg leading-relaxed md:text-xl"
+            style={{
+              textShadow: "0 1px 8px rgba(0,0,0,0.6), 0 0 20px rgba(200,160,100,0.15)",
+              color: "rgba(255,255,255,0.85)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={heroReveal.revealed ? { opacity: 1 } : {}}
+            transition={{ duration: 0.3, delay: 0.5 }}
+          >
+            {(isZh ? variant.subheadline : (variant.subheadlineEn ?? variant.subheadline))
+              .split("").map((char, i) => (
+                <motion.span
+                  key={i}
+                  style={{ display: "inline-block" }}
+                  initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
+                  animate={heroReveal.revealed ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+                  transition={{
+                    duration: 0.4,
+                    ease: [0.22, 1, 0.36, 1],
+                    delay: 0.55 + i * 0.035,
+                  }}
+                >
+                  {char === " " ? "\u00A0" : char}
+                </motion.span>
+              ))
+            }
+          </motion.p>
 
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
+          <motion.div
+            className="mt-8 flex flex-col items-center gap-4 sm:flex-row"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={heroReveal.revealed ? { opacity: 1, scale: 1 } : {}}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 1 }}
+          >
             <Link href="/signup">
               <Button
-                className="seal-glow h-12 px-8 text-base font-bold transition-all duration-200 hover:scale-[1.03]"
-                size="lg"
+                className="h-12 min-w-[180px] pl-8 pr-12 text-base font-heading font-bold bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.03] transition-transform text-white justify-end"
+                style={{ backgroundImage: "url('/images/btn-bg7.png')" }}
               >
                 {isZh ? variant.cta : (variant.ctaEn ?? variant.cta)}
               </Button>
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30">

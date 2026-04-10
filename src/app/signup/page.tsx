@@ -102,14 +102,12 @@ export default function SignupPage() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/Gemini_Generated_Image_l3pzrrl3pzrrl3pz.png')",
+          backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')",
           opacity: mounted ? 1 : 0,
           transition: "opacity 1.5s ease-out",
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)]" />
-
+  
       {/* Language toggle — top right */}
       <button
         type="button"
@@ -161,15 +159,26 @@ export default function SignupPage() {
             />
           </div>
 
-          {/* Signup card — glass morphism */}
+          {/* Signup card */}
           <div
-            className="rounded-2xl border border-white/10 bg-black/50 p-5 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+            className="relative rounded-2xl overflow-hidden"
             style={{
+              width: '420px',
+              maxWidth: '100%',
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(12px)",
               transition: "opacity 0.6s ease-out 0.35s, transform 0.6s ease-out 0.35s",
             }}
           >
+            <img
+              src="/images/card-bg4.png"
+              alt=""
+              className="w-full h-auto block"
+            />
+            <div
+              className="absolute top-0 bottom-0 left-[10%] p-5 flex flex-col items-center justify-end"
+              style={{ width: "80%" }}
+            >
             {/* Google signup */}
             <Button
               type="button"
@@ -196,7 +205,7 @@ export default function SignupPage() {
             </div>
 
             {/* Email form */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 w-full">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="signup-email" className="text-xs font-medium uppercase tracking-wider text-white/50">
                   {t("signup_email")}
@@ -291,6 +300,7 @@ export default function SignupPage() {
                 {t("signup_login")}
               </Link>
             </p>
+            </div>
           </div>
 
           {/* Bottom text */}
