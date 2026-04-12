@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { LanguageToggle } from "@/components/language-toggle";
+import { QiParticles } from "@/components/qi-particles";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { locale, setLocale, t } = useI18n();
+  const { locale, t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -76,12 +78,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex h-screen overflow-hidden">
+    <div className="relative flex min-h-screen overflow-hidden">
       {/* Background image with dark overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/Gemini_Generated_Image_l3pzrrl3pzrrl3pz.png')",
+          backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')",
           opacity: mounted ? 1 : 0,
           transition: "opacity 1.5s ease-out",
         }}
@@ -90,19 +92,10 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
       {/* Extra vignette on edges */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)]" />
+      <QiParticles />
 
       {/* Language toggle — top right */}
-      <button
-        type="button"
-        onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-        className="absolute right-5 top-5 z-20 rounded-full border border-white/20 bg-black/30 px-5 py-2 text-sm font-medium text-white/70 backdrop-blur-sm transition-colors hover:text-white hover:border-white/40"
-        style={{
-          opacity: mounted ? 1 : 0,
-          transition: "opacity 0.6s ease-out 0.3s, color 0.2s, border-color 0.2s",
-        }}
-      >
-        {locale === "zh" ? "English" : "中文"}
-      </button>
+      <LanguageToggle />
 
       {/* Developer login — bottom right */}
       <Link
@@ -154,15 +147,26 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Login card — glass morphism */}
+          {/* Login card */}
           <div
-            className="rounded-2xl border border-white/10 bg-black/50 p-6 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+            className="relative rounded-2xl overflow-hidden"
             style={{
+              width: '420px',
+              maxWidth: '100%',
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(12px)",
               transition: "opacity 0.6s ease-out 0.35s, transform 0.6s ease-out 0.35s",
             }}
           >
+            <img
+              src="/images/card-bg5.png"
+              alt=""
+              className="w-full h-auto block"
+            />
+            <div
+              className="absolute top-0 bottom-0 left-[10%] p-5 flex flex-col items-center justify-end"
+              style={{ width: "80%", paddingBottom: 'calc(1.25rem + 50px)' }}
+            >
             {/* Google login */}
             <Button
               type="button"
@@ -181,7 +185,7 @@ export default function LoginPage() {
               {t("login_google")}
             </Button>
 
-            <div className="relative mb-4">
+            <div className="relative mb-4 w-full">
               <Separator className="bg-white/10" />
               <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/50 px-3 text-xs text-white/40">
                 {t("or")}
@@ -189,7 +193,7 @@ export default function LoginPage() {
             </div>
 
             {/* Email form */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium uppercase tracking-wider text-white/50">
                   {t("login_email")}
@@ -232,29 +236,28 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button
+              <button
                 type="submit"
-                size="lg"
                 disabled={loading}
-                className="mt-1 h-11 text-base font-medium seal-glow transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                className="mt-1 relative w-full hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground"
-                      style={{ animation: "spin 0.8s linear infinite" }}
-                    />
-                    {t("login_logging")}
-                  </span>
-                ) : (
-                  t("login_submit")
-                )}
-              </Button>
+                <img src="/images/btn-bg7.png" alt="" className="w-full h-auto block" />
+                <span className="absolute inset-0 flex items-center justify-end pr-10 font-heading font-bold text-base text-white">
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      {t("login_logging")}
+                    </span>
+                  ) : (
+                    t("login_submit")
+                  )}
+                </span>
+              </button>
             </form>
 
-            <Separator className="my-4 bg-white/10" />
+            <Separator className="my-4 bg-white/10 w-full" />
 
-            <p className="text-center text-sm text-white/50">
+            <p className="text-center text-sm text-white/50 w-full">
               {t("login_noAccount")}{" "}
               <Link
                 href="/signup"
@@ -263,6 +266,7 @@ export default function LoginPage() {
                 {t("login_signup")}
               </Link>
             </p>
+            </div>
           </div>
 
           {/* Bottom text */}

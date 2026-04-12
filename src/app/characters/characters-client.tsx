@@ -10,6 +10,7 @@ import bs58 from "bs58";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LanguageToggle } from "@/components/language-toggle";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +40,7 @@ export function CharactersClient({
   walletAddress: string | null;
 }) {
   const router = useRouter();
-  const { locale, setLocale, t } = useI18n();
+  const { locale, t } = useI18n();
   const { publicKey, connected, signMessage } = useWallet();
   const [walletAddress, setWalletAddress] = useState(initialWalletAddress);
   const [bindingWallet, setBindingWallet] = useState(false);
@@ -117,13 +118,7 @@ export function CharactersClient({
       <div className="absolute inset-0 bg-black/30" />
 
       {/* Language toggle */}
-      <button
-        type="button"
-        onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-        className="absolute right-5 top-5 z-20 rounded-full border border-white/20 bg-black/30 px-5 py-2 text-sm font-medium text-white/70 backdrop-blur-sm transition-colors hover:text-white hover:border-white/40"
-      >
-        {locale === "zh" ? "English" : "中文"}
-      </button>
+      <LanguageToggle />
 
       <div className="relative z-10 w-full max-w-3xl px-4 py-8">
         {/* Header */}

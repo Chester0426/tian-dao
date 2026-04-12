@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
 import { useState, useCallback } from "react";
+import { LanguageToggle } from "@/components/language-toggle";
 
 // NAV_SECTIONS moved inside component to use translations
 
@@ -21,7 +22,7 @@ export function GameSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const gameState = useGameState();
-  const { locale, setLocale, t } = useI18n();
+  const { locale, t } = useI18n();
 
   const NAV_SECTIONS = [
     { title: t("sidebar_items"), items: [
@@ -183,13 +184,7 @@ export function GameSidebar({
           <span className="text-base leading-none">🚪</span>
           <span>{t("sidebar_logout")}</span>
         </button>
-        <button
-          onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
-        >
-          <span className="text-base leading-none">🌐</span>
-          <span>{locale === "zh" ? "English" : "中文"}</span>
-        </button>
+        <LanguageToggle variant="inline" />
         <p className="px-3 pt-1 text-[10px] text-muted-foreground/40">
           Tian Dao v0.1
         </p>

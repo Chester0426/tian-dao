@@ -7,6 +7,7 @@ import type { VariantContent } from "@/lib/variants";
 import { trackVisitLanding } from "@/lib/events";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { QiParticles } from "@/components/qi-particles";
 
 function useScrollReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
@@ -331,6 +332,7 @@ export default function LandingContent({
           style={{ backgroundImage: "url('/images/cfdb37ef-6450-4434-844a-d087c65ff5bb.jpeg')" }}
         />
         <div className="absolute inset-0 bg-black/30" />
+        <QiParticles />
 
         <motion.div
           className="relative z-10 flex max-w-3xl flex-col items-center text-center"
@@ -402,12 +404,12 @@ export default function LandingContent({
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 1 }}
           >
             <Link href="/signup">
-              <Button
-                className="h-12 min-w-[180px] pl-8 pr-12 text-base font-heading font-bold bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.03] transition-transform text-white justify-end"
-                style={{ backgroundImage: "url('/images/btn-bg7.png')" }}
-              >
-                {isZh ? variant.cta : (variant.ctaEn ?? variant.cta)}
-              </Button>
+              <span className="relative inline-block hover:scale-[1.03] transition-transform cursor-pointer" style={{ width: '240px' }}>
+                <img src="/images/btn-bg7.png" alt="" className="w-full h-auto block" />
+                <span className="absolute inset-0 flex items-center justify-end pr-10 font-heading font-bold text-base text-white">
+                  {isZh ? variant.cta : (variant.ctaEn ?? variant.cta)}
+                </span>
+              </span>
             </Link>
           </motion.div>
         </motion.div>

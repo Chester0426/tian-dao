@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { LanguageToggle } from "@/components/language-toggle";
+import { QiParticles } from "@/components/qi-particles";
 
 type FormState = "idle" | "submitting" | "success" | "error";
 
@@ -22,7 +24,7 @@ export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [mounted, setMounted] = useState(false);
 
-  const { locale, setLocale, t } = useI18n();
+  const { locale, t } = useI18n();
 
   useEffect(() => {
     setMounted(true);
@@ -107,19 +109,14 @@ export default function SignupPage() {
           transition: "opacity 1.5s ease-out",
         }}
       />
-  
+    {/* Dark overlay to blend with dark theme */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
+      {/* Extra vignette on edges */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)]" />
+      <QiParticles />
+
       {/* Language toggle — top right */}
-      <button
-        type="button"
-        onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-        className="absolute right-5 top-5 z-20 rounded-full border border-white/20 bg-black/30 px-5 py-2 text-sm font-medium text-white/70 backdrop-blur-sm transition-colors hover:text-white hover:border-white/40"
-        style={{
-          opacity: mounted ? 1 : 0,
-          transition: "opacity 0.6s ease-out 0.3s, color 0.2s, border-color 0.2s",
-        }}
-      >
-        {locale === "zh" ? "English" : "中文"}
-      </button>
+      <LanguageToggle />
 
       {/* Main content */}
       <div className="relative z-10 flex w-full items-center justify-center px-6 py-6">
@@ -267,26 +264,28 @@ export default function SignupPage() {
                 </div>
               )}
 
-              <Button
+              <button
                 type="submit"
-                size="lg"
                 disabled={formState === "submitting" || formState === "success"}
-                className="mt-1 h-11 text-base font-medium seal-glow transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                className="mt-1 relative w-full hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {formState === "submitting" ? (
-                  <span className="flex items-center gap-2">
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                    {t("signup_creating")}
-                  </span>
-                ) : formState === "success" ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {t("signup_welcomeBtn")}
-                  </span>
-                ) : (
-                  t("signup_submit")
-                )}
-              </Button>
+                <img src="/images/btn-bg7.png" alt="" className="w-full h-auto block" />
+                <span className="absolute inset-0 flex items-center justify-end pr-10 font-heading font-bold text-base text-white">
+                  {formState === "submitting" ? (
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      {t("signup_creating")}
+                    </span>
+                  ) : formState === "success" ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      {t("signup_welcomeBtn")}
+                    </span>
+                  ) : (
+                    t("signup_submit")
+                  )}
+                </span>
+              </button>
             </form>
 
             <Separator className="my-3 bg-white/10" />
