@@ -199,7 +199,7 @@ export default function StatsPage() {
                           )}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[180px] !bg-card !text-foreground border border-border/50">
+                      <TooltipContent side="top" className="max-w-[180px] ">
                         {equippedItem ? (
                           <div className="space-y-1">
                             <p className="font-heading text-sm text-spirit-gold">{isZh ? equippedItem.nameZh : equippedItem.nameEn}</p>
@@ -260,7 +260,7 @@ export default function StatsPage() {
                                     <span className="flex-1 text-left font-heading truncate">{isZh ? meta.nameZh : meta.nameEn}</span>
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[180px] !bg-card !text-foreground border border-border/50">
+                                <TooltipContent side="right" className="max-w-[180px] ">
                                   <div className="space-y-1">
                                     <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
                                     <p className="text-[11px] text-muted-foreground">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
