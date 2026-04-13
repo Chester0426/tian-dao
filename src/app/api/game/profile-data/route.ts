@@ -9,9 +9,12 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("equipment")
+    .select("equipment, body_level")
     .eq("user_id", user.id).eq("slot", slot)
     .single();
 
-  return NextResponse.json({ equipment: profile?.equipment ?? {} });
+  return NextResponse.json({
+    equipment: profile?.equipment ?? {},
+    body_level: profile?.body_level ?? 1,
+  });
 }

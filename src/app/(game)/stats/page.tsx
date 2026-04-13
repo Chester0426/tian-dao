@@ -13,6 +13,7 @@ import {
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
 import { getItem, type EquipSlotId } from "@/lib/items";
+import { computeStats } from "@/lib/stats";
 
 // Equipment slot definitions for the 3x5 grid
 interface EquipSlot {
@@ -45,15 +46,15 @@ const EQUIPMENT_SLOTS: EquipSlot[] = [
   { id: "empty", label: "", labelEn: "", icon: null, hidden: true },
 ];
 
-const STATS = [
-  { name: "氣血", nameEn: "HP", value: 100, color: "text-red-400", desc: "當氣血歸零時角色死亡", descEn: "Character dies when HP reaches 0" },
-  { name: "法力", nameEn: "MP", value: 0, color: "text-blue-400", desc: "設計中", descEn: "In development" },
-  { name: "外功", nameEn: "ATK", value: 1, color: "text-spirit-gold", desc: "設計中", descEn: "In development" },
-  { name: "內功", nameEn: "INT", value: 0, color: "text-jade", desc: "設計中", descEn: "In development" },
-  { name: "防禦", nameEn: "DEF", value: 0, color: "text-white/70", desc: "設計中", descEn: "In development" },
-  { name: "攻速", nameEn: "SPD", value: 0, color: "text-white/70", desc: "設計中", descEn: "In development" },
-  { name: "爆擊率", nameEn: "Crit%", value: 0, unit: "%", color: "text-cinnabar", desc: "設計中", descEn: "In development" },
-  { name: "爆擊傷害", nameEn: "CritDMG", value: 0, unit: "%", color: "text-cinnabar", desc: "設計中", descEn: "In development" },
+const STAT_DEFS = [
+  { key: "hp" as const, name: "氣血", nameEn: "HP", color: "text-red-400", desc: "當氣血歸零時角色死亡", descEn: "Character dies when HP reaches 0" },
+  { key: "mp" as const, name: "法力", nameEn: "MP", color: "text-blue-400", desc: "施展技能的消耗", descEn: "Consumed when using skills" },
+  { key: "atk" as const, name: "外功", nameEn: "ATK", color: "text-spirit-gold", desc: "物理攻擊力", descEn: "Physical attack power" },
+  { key: "int" as const, name: "內功", nameEn: "INT", color: "text-jade", desc: "法術攻擊力", descEn: "Magical attack power" },
+  { key: "def" as const, name: "防禦", nameEn: "DEF", color: "text-blue-300", desc: "減少受到的傷害", descEn: "Reduces damage taken" },
+  { key: "spd" as const, name: "攻速", nameEn: "SPD", color: "text-white/70", desc: "攻擊間隔", descEn: "Attack interval" },
+  { key: "critRate" as const, name: "爆擊率", nameEn: "Crit%", unit: "%", color: "text-cinnabar", desc: "暴擊觸發機率", descEn: "Critical hit chance" },
+  { key: "critDmg" as const, name: "爆擊傷害", nameEn: "CritDMG", unit: "%", color: "text-cinnabar", desc: "暴擊傷害倍率", descEn: "Critical hit damage multiplier" },
 ];
 
 export default function StatsPage() {
@@ -64,7 +65,10 @@ export default function StatsPage() {
   const inventory = gameState.inventory;
 
   const [equipment, setEquipment] = useState<Record<string, string>>({});
+  const [bodyLevel, setBodyLevel] = useState(1);
   const [openSlot, setOpenSlot] = useState<string | null>(null);
+
+  const stats = computeStats({ bodyLevel, equipment });
 
   // Fetch equipment on mount
   useEffect(() => {
@@ -73,7 +77,10 @@ export default function StatsPage() {
     // For now, read from a quick fetch
     fetch("/api/game/profile-data")
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.equipment) setEquipment(d.equipment); })
+      .then((d) => {
+        if (d?.equipment) setEquipment(d.equipment);
+        if (d?.body_level) setBodyLevel(d.body_level);
+      })
       .catch(() => {});
   }, []);
 
@@ -120,18 +127,18 @@ export default function StatsPage() {
               <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{isZh ? "主要屬性" : "Primary"}</p>
                 <div className="space-y-3">
-                  {STATS.map((stat) => (
-                    <Tooltip key={stat.name}>
+                  {STAT_DEFS.map((def) => (
+                    <Tooltip key={def.key}>
                       <TooltipTrigger className="w-full">
                         <div className="flex items-center justify-between cursor-default rounded px-1 -mx-1 py-0.5 transition-colors hover:bg-muted/30">
-                          <span className="text-sm text-muted-foreground">{isZh ? stat.name : stat.nameEn}</span>
-                          <span className={`font-heading text-sm tabular-nums ${stat.color}`}>
-                            {stat.value}{stat.unit ?? ""}
+                          <span className="text-sm text-muted-foreground">{isZh ? def.name : def.nameEn}</span>
+                          <span className={`font-heading text-sm tabular-nums ${def.color}`}>
+                            {stats[def.key]}{def.unit ?? ""}
                           </span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        <p className="text-xs">{isZh ? stat.desc : stat.descEn}</p>
+                        <p className="text-xs">{isZh ? def.desc : def.descEn}</p>
                       </TooltipContent>
                     </Tooltip>
                   ))}
