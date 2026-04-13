@@ -241,27 +241,34 @@ export default function StatsPage() {
                           {availableItems.map((inv) => {
                             const meta = getItem(inv.item_type);
                             if (!meta) return null;
-                            const stats = meta.equipStats;
                             return (
-                              <button
-                                key={inv.item_type}
-                                type="button"
-                                onClick={() => equip(slotId, inv.item_type)}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
-                              >
-                                <span className="text-base">{meta.icon}</span>
-                                <div className="flex-1 text-left min-w-0">
-                                  <span className="font-heading truncate block">{isZh ? meta.nameZh : meta.nameEn}</span>
-                                  {stats && (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {stats.hp ? `+${stats.hp} ${isZh ? "氣血" : "HP"} ` : ""}
-                                      {stats.atk ? `+${stats.atk} ${isZh ? "外功" : "ATK"} ` : ""}
-                                      {stats.def ? `+${stats.def} ${isZh ? "防禦" : "DEF"} ` : ""}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[11px] text-muted-foreground tabular-nums">×{inv.quantity}</span>
-                              </button>
+                              <Tooltip key={inv.item_type}>
+                                <TooltipTrigger>
+                                  <button
+                                    type="button"
+                                    onClick={() => equip(slotId, inv.item_type)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
+                                  >
+                                    <span className="text-base">{meta.icon}</span>
+                                    <span className="flex-1 text-left font-heading truncate">{isZh ? meta.nameZh : meta.nameEn}</span>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[180px]">
+                                  <div className="space-y-1">
+                                    <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
+                                    <p className="text-[10px] text-muted-foreground">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
+                                    <p className="text-[10px] text-muted-foreground">{isZh ? "裝備要求" : "Requires"}: {isZh ? meta.requirementZh : meta.requirementEn}</p>
+                                    {meta.equipStats && (
+                                      <div className="text-[10px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
+                                        {meta.equipStats.hp && <p className="text-red-400">+{meta.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
+                                        {meta.equipStats.atk && <p className="text-spirit-gold">+{meta.equipStats.atk} {isZh ? "外功" : "ATK"}</p>}
+                                        {meta.equipStats.def && <p className="text-white/70">+{meta.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
+                                        {meta.equipStats.mp && <p className="text-blue-400">+{meta.equipStats.mp} {isZh ? "法力" : "MP"}</p>}
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             );
                           })}
                         </div>
