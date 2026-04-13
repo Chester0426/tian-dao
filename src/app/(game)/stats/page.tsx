@@ -203,13 +203,13 @@ export default function StatsPage() {
                         {equippedItem ? (
                           <div className="space-y-1">
                             <p className="font-heading text-sm text-spirit-gold">{isZh ? equippedItem.nameZh : equippedItem.nameEn}</p>
-                            <p className="text-[10px] text-muted-foreground">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
-                            <p className="text-[10px] text-muted-foreground">{isZh ? "裝備要求" : "Requires"}: {isZh ? equippedItem.requirementZh : equippedItem.requirementEn}</p>
+                            <p className="text-[11px] text-foreground/70">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
+                            <p className="text-[11px] text-foreground/70">{isZh ? "裝備要求" : "Requires"}: {isZh ? equippedItem.requirementZh : equippedItem.requirementEn}</p>
                             {equippedItem.equipStats && (
-                              <div className="text-[10px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
+                              <div className="text-[11px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
                                 {equippedItem.equipStats.hp && <p className="text-red-400">+{equippedItem.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
                                 {equippedItem.equipStats.atk && <p className="text-spirit-gold">+{equippedItem.equipStats.atk} {isZh ? "外功" : "ATK"}</p>}
-                                {equippedItem.equipStats.def && <p className="text-white/70">+{equippedItem.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
+                                {equippedItem.equipStats.def && <p className="text-blue-300">+{equippedItem.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
                                 {equippedItem.equipStats.mp && <p className="text-blue-400">+{equippedItem.equipStats.mp} {isZh ? "法力" : "MP"}</p>}
                               </div>
                             )}
@@ -263,13 +263,13 @@ export default function StatsPage() {
                                 <TooltipContent side="right" className="max-w-[180px]">
                                   <div className="space-y-1">
                                     <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
-                                    <p className="text-[10px] text-muted-foreground">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
-                                    <p className="text-[10px] text-muted-foreground">{isZh ? "裝備要求" : "Requires"}: {isZh ? meta.requirementZh : meta.requirementEn}</p>
+                                    <p className="text-[11px] text-foreground/70">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
+                                    <p className="text-[11px] text-foreground/70">{isZh ? "裝備要求" : "Requires"}: {isZh ? meta.requirementZh : meta.requirementEn}</p>
                                     {meta.equipStats && (
-                                      <div className="text-[10px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
+                                      <div className="text-[11px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
                                         {meta.equipStats.hp && <p className="text-red-400">+{meta.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
                                         {meta.equipStats.atk && <p className="text-spirit-gold">+{meta.equipStats.atk} {isZh ? "外功" : "ATK"}</p>}
-                                        {meta.equipStats.def && <p className="text-white/70">+{meta.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
+                                        {meta.equipStats.def && <p className="text-blue-300">+{meta.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
                                         {meta.equipStats.mp && <p className="text-blue-400">+{meta.equipStats.mp} {isZh ? "法力" : "MP"}</p>}
                                       </div>
                                     )}
