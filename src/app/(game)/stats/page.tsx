@@ -10,44 +10,35 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// 3x7 = 21 slots. Row 1 top → Row 7 bottom. Columns: left, center, right.
-// Slot positions match Melvor-style equipment layout.
-// SVG paths are simple silhouette icons.
+// 3x5 equipment grid. "hidden" slots are invisible spacers.
 interface EquipSlot {
-  id: number;
+  id: string;
   label: string;
-  icon: React.ReactNode | null;
+  icon: React.ReactNode;
+  hidden?: boolean;
 }
 
 const EQUIPMENT_SLOTS: EquipSlot[] = [
-  // Row 1
-  { id: 1, label: "未定義", icon: null },
-  { id: 2, label: "頭盔", icon: <><path d="M12 3C8 3 5 6.5 5 10.5V14h14v-3.5C19 6.5 16 3 12 3z" /><path d="M5 14v2c0 1 1 2 2 2h10c1 0 2-1 2-2v-2" /><path d="M9 10h6" /><path d="M5 14h14" /><circle cx="7" cy="12" r="0.5" fill="currentColor" /><circle cx="17" cy="12" r="0.5" fill="currentColor" /></> },
-  { id: 3, label: "未定義", icon: null },
-  // Row 2
-  { id: 4, label: "未定義", icon: null },
-  { id: 5, label: "未定義", icon: null },
-  { id: 6, label: "未定義", icon: null },
-  // Row 3
-  { id: 7, label: "未定義", icon: null },
-  { id: 8, label: "未定義", icon: null },
-  { id: 9, label: "未定義", icon: null },
-  // Row 4
-  { id: 10, label: "未定義", icon: null },
-  { id: 11, label: "未定義", icon: null },
-  { id: 12, label: "未定義", icon: null },
-  // Row 5
-  { id: 13, label: "未定義", icon: null },
-  { id: 14, label: "未定義", icon: null },
-  { id: 15, label: "未定義", icon: null },
-  // Row 6
-  { id: 16, label: "未定義", icon: null },
-  { id: 17, label: "未定義", icon: null },
-  { id: 18, label: "未定義", icon: null },
-  // Row 7
-  { id: 19, label: "未定義", icon: null },
-  { id: 20, label: "未定義", icon: null },
-  { id: 21, label: "未定義", icon: null },
+  // Row 1: _ 頭盔 _
+  { id: "empty-1", label: "", icon: null, hidden: true },
+  { id: "helmet", label: "頭盔", icon: <><path d="M12 3C8 3 5 6.5 5 10.5V14h14v-3.5C19 6.5 16 3 12 3z" /><path d="M5 14v2c0 1 1 2 2 2h10c1 0 2-1 2-2v-2" /><path d="M9 10h6" /><path d="M5 14h14" /></> },
+  { id: "empty-2", label: "", icon: null, hidden: true },
+  // Row 2: 項鍊 護肩 披風
+  { id: "necklace", label: "項鍊", icon: <><ellipse cx="12" cy="14" rx="6" ry="5" /><path d="M12 9v-3" /><circle cx="12" cy="19" r="1.5" fill="currentColor" /></> },
+  { id: "shoulder", label: "護肩", icon: <><path d="M4 10c0-2 3-4 8-4s8 2 8 4" /><path d="M4 10v3h16v-3" /><path d="M8 13v2M16 13v2" /></> },
+  { id: "cape", label: "披風", icon: <><path d="M8 4h8v2H8z" /><path d="M7 6c-1 4-2 10 0 14h10c2-4 1-10 0-14" /><path d="M9 6v12M15 6v12" /></> },
+  // Row 3: 左手 胸甲 右手
+  { id: "main-hand", label: "左手武器", icon: <><path d="M12 2l-2 14" /><path d="M10 16l4-14" /><path d="M8 14h8" /><circle cx="12" cy="20" r="2" /></> },
+  { id: "chest", label: "胸甲", icon: <><path d="M6 4h12v6c0 4-2 8-6 10-4-2-6-6-6-10z" /><path d="M9 4v6M15 4v6" /><path d="M6 10h12" /></> },
+  { id: "off-hand", label: "右手武器", icon: <><path d="M12 2l-2 14" /><path d="M10 16l4-14" /><path d="M8 14h8" /><circle cx="12" cy="20" r="2" /></> },
+  // Row 4: 手套 褲子 飾品
+  { id: "gloves", label: "手套", icon: <><path d="M7 12V8c0-1 1-2 2-2s2 1 2 2" /><path d="M11 8V6c0-1 1-2 2-2s2 1 2 2v2" /><path d="M15 10V8c0-1 1-2 2-2" /><path d="M7 12c0 4 2 6 5 8 3-2 5-4 5-8" /></> },
+  { id: "pants", label: "褲子", icon: <><path d="M7 4h10v8l-2 8h-2l-1-8-1 8H9l-2-8z" /><path d="M7 8h10" /></> },
+  { id: "accessory", label: "飾品", icon: <><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="3" /><path d="M12 7v-3M17 12h3M12 17v3M7 12H4" /></> },
+  // Row 5: 戒指 靴子 _
+  { id: "ring", label: "戒指", icon: <><circle cx="12" cy="13" r="5" /><circle cx="12" cy="13" r="3" /><path d="M10 8l2-4 2 4" /></> },
+  { id: "boots", label: "靴子", icon: <><path d="M7 4v10h4v4h6v-6h-4V4" /><path d="M7 14h10" /><path d="M11 14v4" /></> },
+  { id: "empty-3", label: "", icon: null, hidden: true },
 ];
 
 const STATS = [
@@ -133,25 +124,29 @@ export default function StatsPage() {
             {/* 3 x 7 equipment grid — responsive sizing */}
             <div className="grid grid-cols-3 gap-1.5 mx-auto" style={{ maxWidth: "min(100%, 192px)" }}>
               {EQUIPMENT_SLOTS.map((slot) => (
-                <Tooltip key={slot.id}>
-                  <TooltipTrigger>
-                    <div
-                      className="group relative aspect-square rounded-lg border border-border/30 bg-muted/10 hover:border-spirit-gold/40 hover:bg-spirit-gold/5 transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer"
-                    >
-                      <div className="absolute inset-[1px] rounded-[7px] border border-white/[0.03] pointer-events-none" />
-                      {slot.icon ? (
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/35 group-hover:text-muted-foreground/60 transition-colors">
-                          {slot.icon}
-                        </svg>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground/15 font-heading select-none">{slot.id}</span>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    {slot.label}
-                  </TooltipContent>
-                </Tooltip>
+                slot.hidden ? (
+                  <div key={slot.id} className="aspect-square" />
+                ) : (
+                  <Tooltip key={slot.id}>
+                    <TooltipTrigger>
+                      <div
+                        className="group relative aspect-square rounded-lg border border-border/30 bg-muted/10 hover:border-spirit-gold/40 hover:bg-spirit-gold/5 transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                      >
+                        <div className="absolute inset-[1px] rounded-[7px] border border-white/[0.03] pointer-events-none" />
+                        {slot.icon ? (
+                          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/35 group-hover:text-muted-foreground/60 transition-colors">
+                            {slot.icon}
+                          </svg>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/15 font-heading select-none">{slot.id}</span>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {slot.label}
+                    </TooltipContent>
+                  </Tooltip>
+                )
               ))}
             </div>
 
