@@ -8,12 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { InventoryItem } from "@/lib/types";
-
-const ITEM_DISPLAY: Record<string, { name: string; icon: string; color: string }> = {
-  coal: { name: "煤", icon: "◆", color: "text-ink-2" },
-  copper_ore: { name: "銅礦", icon: "◇", color: "text-spirit-gold" },
-  spirit_stone_fragment: { name: "靈石碎片", icon: "✦", color: "text-jade" },
-};
+import { getItem } from "@/lib/items";
+import { useI18n } from "@/lib/i18n";
 
 interface SacrificeSelection {
   [itemType: string]: number; // item_type → quantity to sacrifice
@@ -29,6 +25,8 @@ export function InventoryClient({
   daoPoints: number;
 }) {
   const router = useRouter();
+  const { locale } = useI18n();
+  const isZh = locale === "zh";
   const [inventory, setInventory] = useState(initialInventory);
   const [daoPoints, setDaoPoints] = useState(initialDaoPoints);
   const [sacrificeMode, setSacrificeMode] = useState(false);
@@ -173,7 +171,7 @@ export function InventoryClient({
                 <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
                   <TooltipProvider>
                     {inventory.map((item) => {
-                      const display = ITEM_DISPLAY[item.item_type];
+                      const display = getItem(item.item_type);
                       const isSelected = !!selections[item.item_type];
                       const selectedQty = selections[item.item_type] ?? 0;
 
@@ -200,14 +198,14 @@ export function InventoryClient({
                               )}
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="font-heading">{display?.name ?? item.item_type}</p>
+                            <p className="font-heading">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</p>
                             <p className="text-xs text-muted-foreground">
-                              {item.quantity.toLocaleString()} 個
+                              {item.quantity.toLocaleString()} {isZh ? "個" : ""}
                               {sacrificeMode && !isSelected && " · 點擊選取"}
                               {sacrificeMode && isSelected && " · 點擊取消"}
                             </p>
-                            {item.item_type === "spirit_stone_fragment" && (
-                              <p className="text-xs text-jade mt-1">可用於修煉</p>
+                            {display?.hintZh && (
+                              <p className="text-xs text-jade mt-1">{isZh ? display.hintZh : display.hintEn}</p>
                             )}
                           </TooltipContent>
                         </Tooltip>
@@ -233,12 +231,12 @@ export function InventoryClient({
                     {Object.entries(selections).map(([itemType, qty]) => {
                       const item = inventory.find((i) => i.item_type === itemType);
                       if (!item) return null;
-                      const display = ITEM_DISPLAY[itemType];
+                      const display = getItem(itemType);
                       return (
                         <div key={itemType} className="flex items-center justify-between rounded-lg bg-muted/20 px-3 py-2">
                           <div className="flex items-center gap-2">
                             <span className={display?.color ?? ""}>{display?.icon ?? "○"}</span>
-                            <span className="text-sm font-medium">{display?.name ?? itemType}</span>
+                            <span className="text-sm font-medium">{display ? (isZh ? display.nameZh : display.nameEn) : itemType}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button variant="outline" size="icon" className="h-6 w-6 text-xs"
