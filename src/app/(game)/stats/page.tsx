@@ -147,13 +147,15 @@ export default function StatsPage() {
 
         {/* Right — Equipment */}
         <Card className="scroll-surface">
-          <CardContent className="pt-4 pb-4 space-y-2">
+          <CardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="font-heading text-lg font-bold">{isZh ? "裝備" : "Equipment"}</h3>
+              <CardTitle className="font-heading text-lg">{isZh ? "裝備" : "Equipment"}</CardTitle>
               <button type="button" className="text-xs font-heading text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline">
                 {isZh ? "檢視裝備數值" : "View Stats"}
               </button>
             </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
 
             <div className="grid grid-cols-3 gap-2 mx-auto" style={{ maxWidth: "min(100%, 220px)" }}>
               {EQUIPMENT_SLOTS.map((slot, idx) => {
