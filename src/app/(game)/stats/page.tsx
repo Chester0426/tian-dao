@@ -158,7 +158,7 @@ export default function StatsPage() {
                         <TooltipTrigger className="w-full">
                           <div className="flex items-center justify-between cursor-default rounded px-1 -mx-1 py-0.5 transition-colors hover:bg-muted/30">
                             <span className="text-sm text-muted-foreground">{isZh ? def.name : def.nameEn}</span>
-                            <span className="font-heading text-sm tabular-nums text-foreground">
+                            <span className="font-heading text-sm tabular-nums text-red-400">
                               {stats[def.key]}{def.unit ?? ""}
                             </span>
                           </div>
