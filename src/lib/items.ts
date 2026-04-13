@@ -10,7 +10,11 @@
 export type ItemTag =
   | "spirit_stone" // used by 聚靈陣 equipment filter
   | "book"         // books (enlightenment inputs: 破損書籍, 小說)
-  | "tome";        // 典藏 (learnable technique items dropped from book enlightenment)
+  | "tome"         // 典藏 (learnable technique items dropped from book enlightenment)
+  | "equipment";   // equippable gear
+
+// Equipment slot IDs — must match EQUIPMENT_SLOTS in stats/page.tsx
+export type EquipSlotId = "helmet" | "shoulder" | "cape" | "necklace" | "main-hand" | "off-hand" | "chest" | "gloves" | "pants" | "accessory" | "ring" | "boots";
 
 export interface ItemDef {
   // --- Player-facing ---
@@ -24,6 +28,11 @@ export interface ItemDef {
 
   // --- Developer/internal ---
   tags: ItemTag[];
+  equipSlot?: EquipSlotId;
+  // Equipment stats (only for equipment tag)
+  equipStats?: { hp?: number; atk?: number; def?: number; mp?: number };
+  requirementZh?: string;
+  requirementEn?: string;
 }
 
 export const ITEMS: Record<string, ItemDef> = {
@@ -93,6 +102,67 @@ export const ITEMS: Record<string, ItemDef> = {
     hintEn: "Tome: Refinement",
     tags: ["tome"],
   },
+  // === Equipment — 劣質 (Poor quality) ===
+  poor_helmet: {
+    nameZh: "劣質頭盔", nameEn: "Poor Helmet", icon: "🪖", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "helmet",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_shoulder: {
+    nameZh: "劣質護肩", nameEn: "Poor Shoulder Pads", icon: "🛡️", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "shoulder",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_chest: {
+    nameZh: "劣質胸甲", nameEn: "Poor Chestplate", icon: "👕", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "chest",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_pants: {
+    nameZh: "劣質褲子", nameEn: "Poor Pants", icon: "👖", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "pants",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_gloves: {
+    nameZh: "劣質手套", nameEn: "Poor Gloves", icon: "🧤", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "gloves",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_boots: {
+    nameZh: "劣質靴子", nameEn: "Poor Boots", icon: "🥾", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "boots",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_sword: {
+    nameZh: "劣質劍", nameEn: "Poor Sword", icon: "🗡️", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "main-hand",
+    equipStats: { atk: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_shield: {
+    nameZh: "劣質盾", nameEn: "Poor Shield", icon: "🛡️", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "off-hand",
+    equipStats: { def: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_ring: {
+    nameZh: "劣質戒指", nameEn: "Poor Ring", icon: "💍", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "ring",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_accessory: {
+    nameZh: "劣質飾品", nameEn: "Poor Accessory", icon: "📿", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "accessory",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_cape: {
+    nameZh: "劣質披風", nameEn: "Poor Cape", icon: "🧣", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "cape",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
+  poor_necklace: {
+    nameZh: "劣質項鍊", nameEn: "Poor Necklace", icon: "📿", color: "text-muted-foreground",
+    tags: ["equipment"], equipSlot: "necklace",
+    equipStats: { hp: 10 }, requirementZh: "煉體期 1 級", requirementEn: "Body Refining Lv.1",
+  },
 };
 
 export function getItem(itemType: string): ItemDef | null {
@@ -105,4 +175,8 @@ export function hasTag(itemType: string, tag: ItemTag): boolean {
 
 export function itemsByTag(tag: ItemTag): string[] {
   return Object.keys(ITEMS).filter((k) => ITEMS[k].tags.includes(tag));
+}
+
+export function itemsForSlot(slotId: EquipSlotId): string[] {
+  return Object.keys(ITEMS).filter((k) => ITEMS[k].equipSlot === slotId);
 }
