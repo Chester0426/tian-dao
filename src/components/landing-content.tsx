@@ -33,6 +33,20 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 const DEV_LOG = [
+  { date: "04/12", items: [
+    { zh: "離線系統優化", en: "Offline system optimization" },
+    { zh: "裝備欄系統", en: "Equipment panel system" },
+    { zh: "參悟等級修復", en: "Enlightenment level fix" },
+    { zh: "離線獎勵優化", en: "Offline rewards optimization" },
+    { zh: "悟道台 UI 布局", en: "Dao Comprehension Altar UI layout" },
+    { zh: "典藏系統", en: "Tome system" },
+    { zh: "風險條文案優化", en: "Risk bar text optimization" },
+    { zh: "靈氣粒子動畫", en: "Qi particle animations" },
+    { zh: "framer-motion 動畫", en: "Framer-motion animations" },
+    { zh: "Landing/註冊頁自訂背景", en: "Landing/signup custom backgrounds" },
+    { zh: "角色卡可見度優化", en: "Character card visibility optimization" },
+    { zh: "Vercel 自動部署", en: "Vercel auto-deployment" },
+  ]},
   { date: "04/09", items: [
     { zh: "練氣突破機率修正", en: "Qi breakthrough probability fix" },
     { zh: "冥想系統套用挖礦框架", en: "Meditation adopts mining framework" },
