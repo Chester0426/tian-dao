@@ -63,32 +63,26 @@ export default function StatsPage() {
   const gameState = useGameState();
   const inventory = gameState.inventory;
 
-  const [equipment, setEquipment] = useState<Record<string, string>>({});
-  const [bodyLevel, setBodyLevel] = useState(1);
+  const [equipmentLocal, setEquipmentLocal] = useState<Record<string, string>>(gameState.equipment ?? {});
   const [openSlot, setOpenSlot] = useState<string | null>(null);
 
+  // Sync from provider when SSR data arrives
+  useEffect(() => {
+    if (gameState.equipment && Object.keys(gameState.equipment).length > 0) {
+      setEquipmentLocal(gameState.equipment);
+    }
+  }, [gameState.equipment]);
+
+  const equipment = equipmentLocal;
+  const bodyLevel = gameState.bodyLevel ?? 1;
   const breakdown = computeStatsBreakdown({ bodyLevel, equipment });
   const stats = breakdown.total;
-
-  // Fetch equipment on mount
-  useEffect(() => {
-    fetch("/api/game/equip", { method: "GET" }).catch(() => {});
-    // Equipment is stored in profile — fetch via a simple endpoint or use layout data
-    // For now, read from a quick fetch
-    fetch("/api/game/profile-data")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d?.equipment) setEquipment(d.equipment);
-        if (d?.body_level) setBodyLevel(d.body_level);
-      })
-      .catch(() => {});
-  }, []);
 
   const equip = async (slotId: string, itemType: string | null) => {
     setOpenSlot(null);
     const oldEquipped = equipment[slotId] ?? null;
     // Optimistic update equipment
-    setEquipment((prev) => {
+    setEquipmentLocal((prev) => {
       const next = { ...prev };
       if (itemType) next[slotId] = itemType;
       else delete next[slotId];

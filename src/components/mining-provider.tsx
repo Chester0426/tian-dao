@@ -86,7 +86,9 @@ export interface GameState {
   pendingOfflineRewards: PendingOfflineRewards | null;
   isMeditating: boolean;
   qiXp: number;
-  meditationProgress: number; // 0-1, current 10s tick progress
+  meditationProgress: number;
+  equipment: Record<string, string>;
+  bodyLevel: number;
 }
 
 interface GameContextValue extends GameState {
@@ -141,6 +143,8 @@ interface ProviderProps {
     realm?: string;
     isMeditating?: boolean;
     qiXp?: number;
+    equipment?: Record<string, string>;
+    bodyLevel?: number;
     qiArray?: (string | null)[];
     offlineRewards?: {
       minutes_away: number;
@@ -839,6 +843,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     bodyStage, bodyXp, realm, inventory,
     notifications, pendingOfflineRewards,
     isMeditating, qiXp, meditationProgress,
+    equipment: initialState?.equipment ?? {},
+    bodyLevel: initialState?.bodyLevel ?? 1,
     startMining, stopMining, startMeditation, stopMeditation,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
     addNotification,

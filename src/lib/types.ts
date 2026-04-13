@@ -25,6 +25,7 @@ export interface Profile {
   qi_xp: number; // 練氣 current XP
   qi_fail_bonus?: Record<string, number>; // permanent +% per level from failed breakthroughs
   qi_array?: (string | null)[]; // 5 slots; each stores an item_type or null
+  equipment?: Record<string, string>; // slot_id → item_type
   foundation_level: number; // 築基 level (0=not unlocked)
   foundation_xp: number;
   core_level: number; // 金丹 level (0=not unlocked)

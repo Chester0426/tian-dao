@@ -93,6 +93,8 @@ export default async function GameGroupLayout({
           isMeditating: isMeditatingInit,
           qiXp: profile?.qi_xp ?? 0,
           qiArray: (profile?.qi_array as (string | null)[] | null) ?? [null, null, null, null, null],
+          equipment: (profile?.equipment as Record<string, string> | null) ?? {},
+          bodyLevel: profile?.body_level ?? 1,
           offlineRewards: offlineRewardsInit,
           inventory,
           activeMine: activeMineData ? {
