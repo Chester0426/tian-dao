@@ -65,6 +65,7 @@ export default function StatsPage() {
 
   const [equipmentLocal, setEquipmentLocal] = useState<Record<string, string>>(gameState.equipment ?? {});
   const [openSlot, setOpenSlot] = useState<string | null>(null);
+  const [showEquipStats, setShowEquipStats] = useState(false);
 
   // Sync from provider when SSR data arrives
   useEffect(() => {
@@ -204,12 +205,73 @@ export default function StatsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-heading text-lg">{isZh ? "裝備" : "Equipment"}</CardTitle>
-              <button type="button" className="text-xs font-heading text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline">
+              <button
+                type="button"
+                onClick={() => setShowEquipStats(!showEquipStats)}
+                className="text-xs font-heading text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
+              >
                 {isZh ? "檢視裝備數值" : "View Stats"}
               </button>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
+            {/* Equipment stats summary */}
+            {showEquipStats && (
+              <div className="rounded-lg border border-border/30 bg-muted/10 px-3 py-2 space-y-1 text-sm mb-2">
+                <p className="text-xs font-heading text-spirit-gold mb-1.5">{isZh ? "裝備加總" : "Equipment Total"}</p>
+                {breakdown.equipment.hp > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "氣血" : "HP"}</span>
+                    <span className="text-red-400 tabular-nums font-heading">+{breakdown.equipment.hp}</span>
+                  </div>
+                )}
+                {breakdown.equipment.mp > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "法力" : "MP"}</span>
+                    <span className="text-blue-400 tabular-nums font-heading">+{breakdown.equipment.mp}</span>
+                  </div>
+                )}
+                {breakdown.equipment.atk > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "外功" : "ATK"}</span>
+                    <span className="text-spirit-gold tabular-nums font-heading">+{breakdown.equipment.atk}</span>
+                  </div>
+                )}
+                {breakdown.equipment.int > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "內功" : "INT"}</span>
+                    <span className="text-jade tabular-nums font-heading">+{breakdown.equipment.int}</span>
+                  </div>
+                )}
+                {breakdown.equipment.def > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "防禦" : "DEF"}</span>
+                    <span className="text-blue-300 tabular-nums font-heading">+{breakdown.equipment.def}</span>
+                  </div>
+                )}
+                {breakdown.equipment.spd > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "攻速" : "SPD"}</span>
+                    <span className="text-foreground/70 tabular-nums font-heading">+{breakdown.equipment.spd}</span>
+                  </div>
+                )}
+                {breakdown.equipment.critRate > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "爆擊率" : "Crit%"}</span>
+                    <span className="text-cinnabar tabular-nums font-heading">+{breakdown.equipment.critRate}%</span>
+                  </div>
+                )}
+                {breakdown.equipment.critDmg > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isZh ? "爆擊傷害" : "CritDMG"}</span>
+                    <span className="text-cinnabar tabular-nums font-heading">+{breakdown.equipment.critDmg}%</span>
+                  </div>
+                )}
+                {Object.values(breakdown.equipment).every((v) => v === 0) && (
+                  <p className="text-xs text-muted-foreground">{isZh ? "未裝備任何物品" : "No equipment"}</p>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-2 mx-auto" style={{ maxWidth: "min(100%, 220px)" }}>
               {EQUIPMENT_SLOTS.map((slot, idx) => {
