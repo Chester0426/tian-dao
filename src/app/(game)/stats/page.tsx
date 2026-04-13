@@ -215,62 +215,43 @@ export default function StatsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {/* Equipment stats summary */}
+            {/* Equipment stats overlay */}
             {showEquipStats && (
-              <div className="rounded-lg border border-border/30 bg-muted/10 px-3 py-2 space-y-1 text-sm mb-2">
-                <p className="text-xs font-heading text-spirit-gold mb-1.5">{isZh ? "裝備加總" : "Equipment Total"}</p>
-                {breakdown.equipment.hp > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "氣血" : "HP"}</span>
-                    <span className="text-red-400 tabular-nums font-heading">+{breakdown.equipment.hp}</span>
+              <>
+                <div className="fixed inset-0 z-40 bg-background/50 backdrop-blur-sm" onClick={() => setShowEquipStats(false)} />
+                <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[280px] rounded-xl border border-border/50 bg-card shadow-2xl overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
+                  <div className="px-5 py-4 space-y-3">
+                    <h3 className="font-heading text-base font-bold text-spirit-gold text-center">{isZh ? "裝備數值加總" : "Equipment Stats Total"}</h3>
+                    <div className="space-y-1.5 text-sm">
+                      {([
+                        { key: "hp" as const, label: isZh ? "氣血" : "HP", color: "text-red-400" },
+                        { key: "mp" as const, label: isZh ? "法力" : "MP", color: "text-blue-400" },
+                        { key: "atk" as const, label: isZh ? "外功" : "ATK", color: "text-spirit-gold" },
+                        { key: "int" as const, label: isZh ? "內功" : "INT", color: "text-jade" },
+                        { key: "def" as const, label: isZh ? "防禦" : "DEF", color: "text-blue-300" },
+                        { key: "spd" as const, label: isZh ? "攻速" : "SPD", color: "text-foreground/70" },
+                        { key: "critRate" as const, label: isZh ? "爆擊率" : "Crit%", color: "text-cinnabar", unit: "%" },
+                        { key: "critDmg" as const, label: isZh ? "爆擊傷害" : "CritDMG", color: "text-cinnabar", unit: "%" },
+                      ] as { key: keyof typeof breakdown.equipment; label: string; color: string; unit?: string }[]).map((row) => (
+                        <div key={row.key} className="flex justify-between">
+                          <span className="text-muted-foreground">{row.label}</span>
+                          <span className={`tabular-nums font-heading ${breakdown.equipment[row.key] > 0 ? row.color : "text-muted-foreground/40"}`}>
+                            {breakdown.equipment[row.key] > 0 ? `+${breakdown.equipment[row.key]}${row.unit ?? ""}` : `0${row.unit ?? ""}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEquipStats(false)}
+                      className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+                    >
+                      {isZh ? "關閉" : "Close"}
+                    </button>
                   </div>
-                )}
-                {breakdown.equipment.mp > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "法力" : "MP"}</span>
-                    <span className="text-blue-400 tabular-nums font-heading">+{breakdown.equipment.mp}</span>
-                  </div>
-                )}
-                {breakdown.equipment.atk > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "外功" : "ATK"}</span>
-                    <span className="text-spirit-gold tabular-nums font-heading">+{breakdown.equipment.atk}</span>
-                  </div>
-                )}
-                {breakdown.equipment.int > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "內功" : "INT"}</span>
-                    <span className="text-jade tabular-nums font-heading">+{breakdown.equipment.int}</span>
-                  </div>
-                )}
-                {breakdown.equipment.def > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "防禦" : "DEF"}</span>
-                    <span className="text-blue-300 tabular-nums font-heading">+{breakdown.equipment.def}</span>
-                  </div>
-                )}
-                {breakdown.equipment.spd > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "攻速" : "SPD"}</span>
-                    <span className="text-foreground/70 tabular-nums font-heading">+{breakdown.equipment.spd}</span>
-                  </div>
-                )}
-                {breakdown.equipment.critRate > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "爆擊率" : "Crit%"}</span>
-                    <span className="text-cinnabar tabular-nums font-heading">+{breakdown.equipment.critRate}%</span>
-                  </div>
-                )}
-                {breakdown.equipment.critDmg > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isZh ? "爆擊傷害" : "CritDMG"}</span>
-                    <span className="text-cinnabar tabular-nums font-heading">+{breakdown.equipment.critDmg}%</span>
-                  </div>
-                )}
-                {Object.values(breakdown.equipment).every((v) => v === 0) && (
-                  <p className="text-xs text-muted-foreground">{isZh ? "未裝備任何物品" : "No equipment"}</p>
-                )}
-              </div>
+                </div>
+              </>
             )}
 
             <div className="grid grid-cols-3 gap-2 mx-auto" style={{ maxWidth: "min(100%, 220px)" }}>
