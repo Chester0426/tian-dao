@@ -35,6 +35,17 @@ export async function POST(req: NextRequest) {
 
   const { mine_id, actions, elapsed_ms, drops, xp } = body;
 
+  // Type guard: only process if active session is mining. If user switched, return early.
+  const { data: activeSession } = await supabase
+    .from("idle_sessions")
+    .select("type")
+    .eq("user_id", user.id).eq("slot", slot)
+    .is("ended_at", null)
+    .maybeSingle();
+  if (!activeSession || activeSession.type !== "mining") {
+    return NextResponse.json({ synced: false, reason: "not_mining" });
+  }
+
   // === Anomaly Detection ===
   const anomalies: string[] = [];
 
@@ -172,36 +183,8 @@ export async function POST(req: NextRequest) {
       .eq("user_id", user.id).eq("slot", slot);
   }
 
-  // End any active meditate session for this slot (mutual exclusion)
-  await supabase
-    .from("idle_sessions")
-    .update({ ended_at: new Date().toISOString() })
-    .eq("user_id", user.id).eq("slot", slot)
-    .eq("type", "meditate")
-    .is("ended_at", null);
-
-  // Update idle session heartbeat. There is a unique constraint on (user_id, slot, type),
-  // so we upsert. If the row exists but was ended, this revives it with a fresh started_at.
-  const nowIso = new Date().toISOString();
-  const { data: existingSession } = await supabase
-    .from("idle_sessions")
-    .select("id, ended_at")
-    .eq("user_id", user.id).eq("slot", slot)
-    .eq("type", "mining")
-    .maybeSingle();
-  if (existingSession) {
-    // If previously ended, this is a new session — reset started_at. Otherwise preserve it.
-    const updates: Record<string, unknown> = { last_sync_at: nowIso, mine_id, ended_at: null };
-    if (existingSession.ended_at) updates.started_at = nowIso;
-    await supabase
-      .from("idle_sessions")
-      .update(updates)
-      .eq("id", existingSession.id);
-  } else {
-    await supabase
-      .from("idle_sessions")
-      .insert({ user_id: user.id, slot, type: "mining", mine_id, started_at: nowIso, last_sync_at: nowIso });
-  }
+  // Heartbeat via atomic RPC
+  await supabase.rpc("sync_heartbeat", { p_user_id: user.id, p_slot: slot, p_type: "mining" });
 
   // Log sync for anomaly tracking (admin-only table, no RLS read access)
   await supabase.from("mining_sync_logs").insert({

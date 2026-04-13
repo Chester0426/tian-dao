@@ -12,6 +12,7 @@ import {
   rollDamagedBook,
   getTechniqueByBook,
 } from "@/lib/techniques";
+import { melvorXpForLevel } from "@/lib/types";
 import { z } from "zod";
 
 const schema = z.object({
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
   if (payload.kind === "book") {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("enlightenment_xp")
+      .select("enlightenment_xp, enlightenment_level")
       .eq("user_id", user.id).eq("slot", slot)
       .single();
 
@@ -114,12 +115,16 @@ export async function POST(request: NextRequest) {
       await supabase.from("inventory_items").delete().eq("id", inv!.id);
     }
 
-    // Gain enlightenment xp
+    // Gain enlightenment xp + level up
     const gainedEnlightXp = ticksToProcess * DAMAGED_BOOK_ENLIGHTENMENT_XP;
     const newEnlightXp = (profile?.enlightenment_xp ?? 0) + gainedEnlightXp;
+    let newEnlightLevel = profile?.enlightenment_level ?? 1;
+    while (newEnlightLevel < 99 && newEnlightXp >= melvorXpForLevel(newEnlightLevel + 1)) {
+      newEnlightLevel++;
+    }
     await supabase
       .from("profiles")
-      .update({ enlightenment_xp: newEnlightXp })
+      .update({ enlightenment_xp: newEnlightXp, enlightenment_level: newEnlightLevel })
       .eq("user_id", user.id).eq("slot", slot);
 
     // Heartbeat
@@ -180,17 +185,21 @@ export async function POST(request: NextRequest) {
     .update({ mastery_level: level, mastery_xp: xp })
     .eq("id", pt.id);
 
-  // Gain player enlightenment xp
+  // Gain player enlightenment xp + level up
   const { data: profile } = await supabase
     .from("profiles")
-    .select("enlightenment_xp")
+    .select("enlightenment_xp, enlightenment_level")
     .eq("user_id", user.id).eq("slot", slot)
     .single();
   const gainedEnlightXp = ticksUsed * ENLIGHTENMENT_XP_PER_TICK;
   const newEnlightXp = (profile?.enlightenment_xp ?? 0) + gainedEnlightXp;
+  let newEnlightLevel = profile?.enlightenment_level ?? 1;
+  while (newEnlightLevel < 99 && newEnlightXp >= melvorXpForLevel(newEnlightLevel + 1)) {
+    newEnlightLevel++;
+  }
   await supabase
     .from("profiles")
-    .update({ enlightenment_xp: newEnlightXp })
+    .update({ enlightenment_xp: newEnlightXp, enlightenment_level: newEnlightLevel })
     .eq("user_id", user.id).eq("slot", slot);
 
   // Heartbeat

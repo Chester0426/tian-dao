@@ -140,7 +140,7 @@ export function GameSidebar({
         })}
       </nav>
 
-      {/* Footer — feedback + admin + switch character + logout */}
+      {/* Footer */}
       <div className="shrink-0 border-t border-border/30 px-3 py-3 space-y-1">
         <Link
           href="/feedback"
@@ -163,7 +163,6 @@ export function GameSidebar({
         <Link
           href="/characters"
           onClick={() => {
-            // Clear slot cookie so middleware redirects properly
             document.cookie = "x-slot=; path=/; max-age=0";
             onCloseAction();
           }}
@@ -186,7 +185,7 @@ export function GameSidebar({
         </button>
         <LanguageToggle variant="inline" />
         <p className="px-3 pt-1 text-[10px] text-muted-foreground/40">
-          Tian Dao v0.1
+          Tian Tao v0.1
         </p>
       </div>
     </aside>

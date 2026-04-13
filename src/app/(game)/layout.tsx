@@ -34,7 +34,7 @@ export default async function GameGroupLayout({
         const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
 
         const [latestSessionRes, profileRes, skillRes, masteryRes, inventoryRes, mineRes] = await Promise.all([
-          supabase.from("idle_sessions").select("type,mine_id,started_at,ended_at,last_sync_at").eq("user_id", user.id).eq("slot", slot).in("type", ["mining", "meditate"]).is("ended_at", null).order("last_sync_at", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("idle_sessions").select("type,mine_id,started_at,ended_at,last_sync_at,payload").eq("user_id", user.id).eq("slot", slot).is("ended_at", null).maybeSingle(),
           supabase.from("profiles").select("*").eq("user_id", user.id).eq("slot", slot).single(),
           supabase.from("mining_skills").select("*").eq("user_id", user.id).eq("slot", slot).single(),
           supabase.from("mine_masteries").select("*").eq("user_id", user.id).eq("slot", slot),

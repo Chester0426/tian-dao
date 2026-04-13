@@ -169,28 +169,30 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
           return (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{isZh ? "突破成功率" : "Success Rate"}</span>
                 <span className={`font-heading tabular-nums ${textColor}`}>
-                  {effectiveRate}%
+                  {isZh ? "突破成功率" : "Success Rate"} {effectiveRate}%
                 </span>
+                {(isPeakAttempt || effectiveRate < 100) && (
+                  <span className={`text-[11px] ${isPeakAttempt ? "text-cinnabar/80" : "text-muted-foreground"}`}>
+                    {isPeakAttempt
+                      ? (isZh ? "⚠ 失敗將扣除靈氣" : "⚠ Failure consumes qi")
+                      : (isZh ? "失敗將扣除靈氣並 +1% 成功率" : "Failure: -qi, +1% rate")}
+                  </span>
+                )}
               </div>
               <div className={`relative h-3 w-full overflow-hidden rounded-full bg-cinnabar/15 ${isHighRisk ? "risk-pulse-sync" : ""}`}>
-                {/* Base rate */}
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${rateColor}`}
                   style={{ width: `${baseRate}%` }}
                 />
-                {/* Fail bonus overlay (lighter shade) */}
                 {failBonus > 0 && (
                   <div
                     className="absolute inset-y-0 rounded-full bg-jade/40"
                     style={{ left: `${baseRate}%`, width: `${Math.min(failBonus, 100 - baseRate)}%` }}
                   />
                 )}
-                {/* 100% mark line */}
                 <div className="absolute inset-y-0 right-0 w-px bg-foreground/20" />
               </div>
-              {/* Breakdown */}
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <span className={`inline-block h-2 w-2 rounded-sm bg-gradient-to-r ${rateColor}`} />
@@ -410,14 +412,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
           </div>
         </div>
 
-        {/* Hint text only (rate moved up) */}
-        {(isPeakAttempt || effectiveRate < 100) && (
-          <p className={`text-[11px] ${isPeakAttempt ? "text-cinnabar/80" : "text-muted-foreground"}`}>
-            {isPeakAttempt
-              ? (isZh ? "⚠ 嘗試突破至築基期 — 失敗仍會扣除靈氣" : "⚠ Attempting Foundation realm — XP consumed on failure")
-              : (isZh ? "失敗扣除靈氣並永久 +1% 成功率" : "Failure consumes XP and permanently adds +1%")}
-          </p>
-        )}
+        {/* Hint moved into risk bar row above */}
       </CardContent>
     </Card>
   );

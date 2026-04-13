@@ -172,15 +172,14 @@ export function EnlightenmentClient({
   // Step 2: begin enlightenment (user clicks "開始參悟")
   const startEnlightenment = async () => {
     if (!currentTarget) return;
-    // Stop mining/meditation if active (client-side mutual exclusion)
     if (gameState.isMining) gameState.stopMining();
     if (gameState.isMeditating) gameState.stopMeditation();
     setIsEnlightening(true);
     pendingTicksRef.current = 0;
-    await fetch("/api/game/enlightenment/session", {
+    await fetch("/api/game/start-activity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", target: currentTarget }),
+      body: JSON.stringify({ type: "enlightenment", target: currentTarget, requested_at: Date.now() }),
       keepalive: true,
     });
   };
@@ -202,10 +201,8 @@ export function EnlightenmentClient({
     }
     setIsEnlightening(false);
     setCurrentTarget(null);
-    await fetch("/api/game/enlightenment/session", {
+    await fetch("/api/game/stop-activity", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "stop" }),
       keepalive: true,
     });
     router.refresh();
@@ -268,7 +265,7 @@ export function EnlightenmentClient({
                   <button
                     type="button"
                     onClick={() => { if (!isEnlightening) setSelectionOpen(!selectionOpen); }}
-                    className={`relative w-full aspect-square max-w-[200px] rounded-full transition-all duration-300 ${!isEnlightening && !currentTarget ? "hover:scale-[1.02]" : ""}`}
+                    className={`relative w-full aspect-square max-w-[150px] rounded-full transition-all duration-300 ${!isEnlightening && !currentTarget ? "hover:scale-[1.02]" : ""}`}
                   >
                     {isEnlightening && (
                       <div className="absolute inset-[-12px] rounded-full opacity-40" style={{ background: "radial-gradient(circle, var(--spirit-gold-dim) 0%, transparent 70%)", animation: "qi-pulse 3s ease-in-out infinite" }} />
@@ -311,8 +308,8 @@ export function EnlightenmentClient({
                   )}
                 </div>
 
-                {/* Right: title + stats (no XP/level — already in header badges) */}
-                <div className="min-w-0 space-y-3">
+                {/* Right: title + stats — vertically centered */}
+                <div className="min-w-0 space-y-3 flex flex-col justify-center">
                   <div>
                     <h3 className="font-heading text-lg font-bold text-spirit-gold">{isZh ? "悟道台" : "Dao Comprehension Altar"}</h3>
                     <p className="text-sm text-muted-foreground">{isZh ? "焚香靜坐,翻閱古籍,感悟天機" : "Light incense, study ancient texts, perceive heavenly secrets"}</p>
@@ -499,29 +496,27 @@ export function EnlightenmentClient({
                   </button>
                 </div>
                 {!booksHidden && (
-                  <div className="space-y-2 mt-3">
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 mt-3">
                     {unlearnedBooks.map((inv) => {
                       const meta = ITEMS[inv.item_type];
                       const tech = TECHNIQUES[inv.item_type];
                       if (!meta || !tech) return null;
                       return (
-                        <div key={inv.item_type} className="flex items-center gap-3 rounded-lg border border-border/30 bg-muted/5 px-4 py-3 hover:border-jade/30 transition-colors">
-                          <span className="text-2xl">{meta.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-heading text-sm">{isZh ? meta.nameZh : meta.nameEn}</p>
-                            <p className="text-xs text-muted-foreground truncate">{isZh ? tech.descZh : tech.descEn}</p>
+                        <button
+                          key={inv.item_type}
+                          type="button"
+                          disabled={learning === inv.item_type}
+                          onClick={() => learnBook(inv.item_type)}
+                          className="group relative aspect-square rounded-md border border-jade/30 bg-jade/5 flex flex-col items-center justify-center text-center transition-all hover:border-jade/60 hover:bg-jade/10"
+                        >
+                          <span className="text-[clamp(0.6rem,3vw,1rem)] leading-none">{meta.icon}</span>
+                          <span className="text-[clamp(5px,1.2vw,8px)] font-heading leading-none truncate w-full px-px mt-0.5">
+                            {isZh ? meta.nameZh : meta.nameEn}
+                          </span>
+                          <div className="pointer-events-none absolute left-1/2 -top-2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border/60 bg-card px-2 py-1 text-[10px] text-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            {isZh ? `${meta.nameZh} — 點擊領悟` : `${meta.nameEn} — Click to learn`}
                           </div>
-                          <Button
-                            size="sm"
-                            disabled={learning === inv.item_type}
-                            onClick={() => learnBook(inv.item_type)}
-                            className="bg-jade hover:bg-jade/90 text-background font-heading"
-                          >
-                            {learning === inv.item_type
-                              ? (isZh ? "領悟中..." : "Learning...")
-                              : (isZh ? "領悟" : "Learn")}
-                          </Button>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

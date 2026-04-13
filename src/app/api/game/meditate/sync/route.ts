@@ -23,6 +23,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
+  // Type guard: only process if active session is meditate
+  const { data: activeSession } = await supabase
+    .from("idle_sessions")
+    .select("type")
+    .eq("user_id", user.id).eq("slot", slot)
+    .is("ended_at", null)
+    .maybeSingle();
+  if (!activeSession || activeSession.type !== "meditate") {
+    return NextResponse.json({ synced: false, reason: "not_meditating" });
+  }
+
   const { data: profile, error: pErr } = await supabase
     .from("profiles")
     .select("realm, qi_xp, qi_array")
@@ -94,13 +105,8 @@ export async function POST(request: NextRequest) {
 
   if (upErr) return NextResponse.json({ error: "Update failed", detail: upErr.message }, { status: 500 });
 
-  // Update session heartbeat
-  await supabase
-    .from("idle_sessions")
-    .update({ last_sync_at: new Date().toISOString() })
-    .eq("user_id", user.id).eq("slot", slot)
-    .eq("type", "meditate")
-    .is("ended_at", null);
+  // Heartbeat via atomic RPC
+  await supabase.rpc("sync_heartbeat", { p_user_id: user.id, p_slot: slot, p_type: "meditate" });
 
   return NextResponse.json({
     qi_xp: newQiXp,

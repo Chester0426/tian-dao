@@ -22,7 +22,7 @@ interface EquipSlot {
 const EQUIPMENT_SLOTS: EquipSlot[] = [
   // Row 1
   { id: 1, label: "未定義", icon: null },
-  { id: 2, label: "頭盔", icon: <><path d="M4 15c0-4.4 3.6-8 8-8s8 3.6 8 8" /><path d="M2 15h20" /><path d="M7 15v4h10v-4" /></> },
+  { id: 2, label: "頭盔", icon: <><path d="M12 3C8 3 5 6.5 5 10.5V14h14v-3.5C19 6.5 16 3 12 3z" /><path d="M5 14v2c0 1 1 2 2 2h10c1 0 2-1 2-2v-2" /><path d="M9 10h6" /><path d="M5 14h14" /><circle cx="7" cy="12" r="0.5" fill="currentColor" /><circle cx="17" cy="12" r="0.5" fill="currentColor" /></> },
   { id: 3, label: "未定義", icon: null },
   // Row 2
   { id: 4, label: "未定義", icon: null },
@@ -118,40 +118,35 @@ export default function StatsPage() {
 
         {/* Right — Equipment */}
         <Card className="scroll-surface">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-heading text-lg text-center">裝備</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* View equipment stats button */}
-            <div className="text-center">
+          <CardContent className="pt-4 pb-4 space-y-2">
+            {/* Title + stats link in one row */}
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading text-lg font-bold">裝備</h3>
               <button
                 type="button"
-                className="text-sm font-heading text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
+                className="text-xs font-heading text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
               >
                 檢視裝備數值
               </button>
             </div>
 
-            {/* 3 x 7 equipment grid */}
-            <div className="grid grid-cols-3 gap-2 max-w-[220px] mx-auto">
+            {/* 3 x 7 equipment grid — responsive sizing */}
+            <div className="grid grid-cols-3 gap-1.5 mx-auto" style={{ maxWidth: "min(100%, 192px)" }}>
               {EQUIPMENT_SLOTS.map((slot) => (
                 <Tooltip key={slot.id}>
                   <TooltipTrigger>
-                    <button
-                      type="button"
-                      className="group relative w-[64px] h-[64px] rounded-lg border border-border/30 bg-muted/10 hover:border-spirit-gold/40 hover:bg-spirit-gold/5 transition-all duration-200 flex items-center justify-center overflow-hidden"
+                    <div
+                      className="group relative aspect-square rounded-lg border border-border/30 bg-muted/10 hover:border-spirit-gold/40 hover:bg-spirit-gold/5 transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer"
                     >
-                      {/* Inner bevel effect */}
                       <div className="absolute inset-[1px] rounded-[7px] border border-white/[0.03] pointer-events-none" />
-                      {/* Slot content */}
                       {slot.icon ? (
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/35 group-hover:text-muted-foreground/60 transition-colors">
                           {slot.icon}
                         </svg>
                       ) : (
-                        <span className="text-[11px] text-muted-foreground/15 font-heading select-none">{slot.id}</span>
+                        <span className="text-[10px] text-muted-foreground/15 font-heading select-none">{slot.id}</span>
                       )}
-                    </button>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs">
                     {slot.label}

@@ -778,32 +778,17 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
   // --- Actions ---
   const startMining = useCallback((mine: MineData) => {
-    // Flush any pending meditation ticks before switching
-    if (isMeditatingRef.current) {
-      syncMeditation();
-    }
-    setIsMeditating(false); // mutual exclusion
-    // End any active meditate session server-side
-    fetch("/api/game/meditate/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "stop" }),
-    }).catch(() => {});
+    if (isMeditatingRef.current) syncMeditation();
+    setIsMeditating(false);
     activeMineRef.current = mine;
     setActiveMineId(mine.id);
     setIsMining(true);
     accumulatedRef.current = 0;
-    // End any active enlightenment session
-    fetch("/api/game/enlightenment/session", {
+    // Single unified call — server handles mutual exclusion via requested_at
+    fetch("/api/game/start-activity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "stop" }),
-    }).catch(() => {});
-    // Create the session server-side immediately so a refresh within the first 30s still resumes
-    fetch("/api/game/sync-mining", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mine_id: mine.id, actions: 0, elapsed_ms: 0, drops: {}, xp: { mining: 0, mastery: 0, body: 0 } }),
+      body: JSON.stringify({ type: "mining", mine_id: mine.id, requested_at: Date.now() }),
       keepalive: true,
     }).catch(() => {});
   }, [syncMeditation]);
@@ -814,6 +799,10 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     setActiveMineId(null);
     activeMineRef.current = null;
     setActionProgress(0);
+    fetch("/api/game/stop-activity", {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => {});
   }, [syncToServer]);
 
   const startMeditation = useCallback(() => {
@@ -824,18 +813,11 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       activeMineRef.current = null;
       setActionProgress(0);
     }
-    // End any active enlightenment session
-    fetch("/api/game/enlightenment/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "stop" }),
-    }).catch(() => {});
     setIsMeditating(true);
-    // keepalive ensures the request survives an immediate page refresh
-    fetch("/api/game/meditate/session", {
+    fetch("/api/game/start-activity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start" }),
+      body: JSON.stringify({ type: "meditate", requested_at: Date.now() }),
       keepalive: true,
     }).catch(() => {});
   }, [syncToServer]);
@@ -843,10 +825,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const stopMeditation = useCallback(() => {
     syncMeditation();
     setIsMeditating(false);
-    fetch("/api/game/meditate/session", {
+    fetch("/api/game/stop-activity", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "stop" }),
       keepalive: true,
     }).catch(() => {});
   }, [syncMeditation]);

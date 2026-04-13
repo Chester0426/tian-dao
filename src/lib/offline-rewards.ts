@@ -26,16 +26,13 @@ export async function computeOfflineRewards(
   userId: string,
   slot: number
 ): Promise<OfflineRewardResult | null> {
-  // Find latest active session of any type
-  const { data: sessions } = await supabase
+  // Find the single session for this user+slot (UNIQUE constraint guarantees at most 1 row)
+  const { data: session } = await supabase
     .from("idle_sessions")
     .select("id, type, started_at, ended_at, mine_id, last_sync_at")
     .eq("user_id", userId).eq("slot", slot)
-    .in("type", ["mining", "meditate"])
-    .order("started_at", { ascending: false })
-    .limit(1);
+    .maybeSingle();
 
-  const session = sessions?.[0];
   if (!session) return null;
   if (session.ended_at) return null;
 
