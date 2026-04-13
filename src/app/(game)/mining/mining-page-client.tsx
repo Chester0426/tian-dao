@@ -172,26 +172,59 @@ export function MiningPageClient({
         <div className="mb-5 relative rounded-2xl overflow-hidden -mx-6 md:-mx-12">
           <img src="/images/mining-title-bg.png" alt="" className="w-full h-auto block" />
           <div
-            className="absolute inset-0 px-4 flex items-center justify-center gap-6"
+            className="absolute inset-0 px-6 flex items-center justify-center gap-6"
             style={{
               textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
             }}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 border border-amber-500/30">
-                <span className="text-xl">⛏</span>
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-full"
+                style={{
+                  background: "radial-gradient(circle, rgba(62,207,165,0.2) 0%, rgba(26,74,58,0.3) 100%)",
+                  boxShadow: "0 0 10px rgba(62,207,165,0.2), inset 0 0 6px rgba(0,0,0,0.3)",
+                  border: "1px solid rgba(62,207,165,0.3)",
+                }}
+              >
+                <img src="/images/pickaxe.png" alt="" className="w-6 h-6 object-contain" />
               </div>
               <div>
-                <h1 className="font-heading text-xl font-bold sm:text-2xl text-amber-200">{t("mining_title")}</h1>
+                <h1
+                  className="font-heading text-xl font-bold sm:text-2xl"
+                  style={{
+                    background: "linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))",
+                  }}
+                >
+                  {t("mining_title")}
+                </h1>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="border-amber-500/40 text-amber-300 font-heading px-3 py-1 text-sm bg-black/30">
+              <div
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-heading"
+                style={{
+                  background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
+                  border: "1px solid rgba(62,207,165,0.3)",
+                  boxShadow: "0 0 6px rgba(62,207,165,0.1)",
+                  color: "#6ee7b7",
+                }}
+              >
                 {t("mining_skillLevel")} {miningLevel}
-              </Badge>
-              <Badge variant="outline" className="border-white/30 text-white/90 tabular-nums px-3 py-1 text-sm bg-black/30">
+              </div>
+              <div
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm tabular-nums"
+                style={{
+                  background: "linear-gradient(135deg, rgba(200,160,100,0.1), rgba(120,90,50,0.2))",
+                  border: "1px solid rgba(200,160,100,0.25)",
+                  boxShadow: "0 0 6px rgba(200,160,100,0.08)",
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              >
                 {t("mining_skillXp")} {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
-              </Badge>
+              </div>
             </div>
           </div>
         </div>
@@ -253,8 +286,8 @@ export function MiningPageClient({
                     </div>
 
                     {/* Centered icon */}
-                    <div className="flex-1 flex items-center justify-center">
-                      <span className="text-7xl opacity-30">⛏</span>
+                    <div className="flex-1 flex items-center justify-center opacity-50">
+                      <img src="/images/pickaxe.png" alt="" className="w-24 h-24 object-contain" />
                     </div>
 
                     {/* Disabled button at bottom */}
@@ -289,23 +322,52 @@ export function MiningPageClient({
                   {/* Mine header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-2">
-                      <p className="font-heading text-base font-bold text-white">
+                      <p
+                        className="font-heading text-base font-bold"
+                        style={{
+                          background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
+                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
+                        }}
+                      >
                         {MINE_NAMES[mine.slug]?.[locale] ?? mine.name}
                       </p>
-                      <p className="text-xs text-white/60">
+                      <p className="text-xs text-white/50">
                         ⏱ {(3).toFixed(2)} s
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 gap-1">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span
+                        className="rounded-full px-2 py-0.5"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
+                          border: "1px solid rgba(62,207,165,0.25)",
+                          color: "#6ee7b7",
+                        }}
+                      >
                         XP {mine.xp_mining}
-                      </Badge>
-                      <Badge variant="secondary" className="bg-cinnabar-dim text-cinnabar gap-1">
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(200,60,60,0.15), rgba(120,30,30,0.25))",
+                          border: "1px solid rgba(200,60,60,0.25)",
+                          color: "#f87171",
+                        }}
+                      >
                         🏆 {mine.xp_mastery}
-                      </Badge>
-                      <Badge variant="secondary" className="bg-spirit-gold-dim text-spirit-gold gap-1">
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(200,160,100,0.15), rgba(120,90,50,0.25))",
+                          border: "1px solid rgba(200,160,100,0.25)",
+                          color: "#fbbf24",
+                        }}
+                      >
                         💪 {mine.xp_body}
-                      </Badge>
+                      </span>
                     </div>
                   </div>
 
@@ -313,16 +375,21 @@ export function MiningPageClient({
                   {(
                     <div className="flex items-center gap-4">
                       {/* Drop rates */}
-                      <div className="flex-1 space-y-1.5">
+                      <div className="flex-1 space-y-2">
                         {lootTable.map((entry) => {
                           const info = ITEM_META[entry.item_type];
+                          const rarityColor = info?.rarity === "rare" ? "#fbbf24" : info?.rarity === "uncommon" ? "#6ee7b7" : "rgba(255,255,255,0.7)";
                           return (
-                            <div key={entry.item_type} className="flex items-center justify-between text-sm">
+                            <div
+                              key={entry.item_type}
+                              className="flex items-center justify-between text-sm rounded-md px-2 py-0.5"
+                              style={{ background: "rgba(0,0,0,0.2)" }}
+                            >
                               <div className="flex items-center gap-2">
-                                <span className={info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground"}>
+                                <span style={{ color: rarityColor, textShadow: `0 0 6px ${rarityColor}40` }}>
                                   {info?.icon ?? "○"}
                                 </span>
-                                <span className="text-white/70">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
+                                <span className="text-white/80">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
                               </div>
                               <span className="tabular-nums text-white/50 text-xs">{(entry.probability * 100).toFixed(0)}%</span>
                             </div>
@@ -330,22 +397,37 @@ export function MiningPageClient({
                         })}
                       </div>
 
-                      {/* Circular progress */}
-                      <div className="relative flex-shrink-0">
+                      {/* Circular progress — spirit qi ring */}
+                      <div
+                        className="relative flex-shrink-0 rounded-full"
+                        style={{
+                          width: '88px', height: '88px',
+                          boxShadow: isActive
+                            ? "0 0 12px rgba(62,207,165,0.3), 0 0 24px rgba(62,207,165,0.1), inset 0 0 8px rgba(0,0,0,0.4)"
+                            : "inset 0 0 8px rgba(0,0,0,0.4)",
+                          background: "radial-gradient(circle, rgba(20,30,25,0.6) 0%, rgba(10,15,12,0.8) 100%)",
+                        }}
+                      >
                         <svg width="88" height="88" viewBox="0 0 88 88" className="-rotate-90">
-                          {/* Track */}
-                          <circle cx="44" cy="44" r="38" fill="none" stroke="currentColor" strokeWidth="4"
-                            className="text-muted/20" />
-                          {/* Progress — no CSS transition; setActionProgress runs at 50ms interval which is smooth enough. Transition causes "backwards" animation on tick reset. */}
+                          <circle cx="44" cy="44" r="38" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
                           {isActive && (
-                            <circle cx="44" cy="44" r="38" fill="none" stroke="currentColor" strokeWidth="4"
+                            <circle cx="44" cy="44" r="38" fill="none"
+                              stroke="url(#qiGradient)" strokeWidth="4"
                               strokeDasharray={`${(actionProgress / 100) * circumference} ${circumference}`}
                               strokeLinecap="round"
-                              className="text-jade" />
+                              style={{ filter: "drop-shadow(0 0 4px rgba(62,207,165,0.6))" }}
+                            />
                           )}
+                          <defs>
+                            <linearGradient id="qiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#1a4a3a" />
+                              <stop offset="50%" stopColor="#3ecfa5" />
+                              <stop offset="100%" stopColor="#6ee7b7" />
+                            </linearGradient>
+                          </defs>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-2xl">⛏</span>
+                          <img src="/images/pickaxe.png" alt="" className="w-8 h-8 object-contain" style={{ filter: isActive ? "drop-shadow(0 0 6px rgba(62,207,165,0.5))" : "none" }} />
                         </div>
                       </div>
                     </div>
@@ -353,18 +435,37 @@ export function MiningPageClient({
 
                   {/* Mastery with XP */}
                   {(
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-white/70">
-                          🏆 {t("mining_mastery")} <span className="font-bold text-cinnabar">{mastery}</span>
+                          🏆 {t("mining_mastery")} <span className="font-bold" style={{ color: "#f87171", textShadow: "0 0 6px rgba(248,113,113,0.3)" }}>{mastery}</span>
                         </span>
                         <span className="tabular-nums text-white/50">
                           {(masteryXps[mine.id] ?? 0).toLocaleString()} / {(masteryXpMaxs[mine.id] ?? 83).toLocaleString()}
                         </span>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/20">
-                        <div className="h-full rounded-full bg-cinnabar/60 transition-all duration-300"
-                          style={{ width: `${masteryXpMaxs[mine.id] ? Math.min((masteryXps[mine.id] ?? 0) / masteryXpMaxs[mine.id] * 100, 100) : 0}%` }} />
+                      <div
+                        className="h-1.5 w-full overflow-hidden rounded-full"
+                        style={{
+                          background: "rgba(0,0,0,0.3)",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-300 relative"
+                          style={{
+                            width: `${masteryXpMaxs[mine.id] ? Math.min((masteryXps[mine.id] ?? 0) / masteryXpMaxs[mine.id] * 100, 100) : 0}%`,
+                            background: "linear-gradient(90deg, #7f1d1d, #dc2626, #f87171)",
+                            boxShadow: "0 0 6px rgba(248,113,113,0.4), 0 0 12px rgba(248,113,113,0.15)",
+                          }}
+                        >
+                          <div
+                            className="absolute inset-0 rounded-full"
+                            style={{
+                              background: "linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%)",
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
