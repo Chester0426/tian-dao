@@ -111,7 +111,9 @@ export default function StatsPage() {
         {/* Left — Stats */}
         <Card className="scroll-surface">
           <CardHeader>
-            <CardTitle className="font-heading text-lg">{isZh ? "屬性" : "Attributes"}</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-heading text-lg">{isZh ? "屬性" : "Attributes"}</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-6">
@@ -166,10 +168,13 @@ export default function StatsPage() {
                 const equippedItem = equippedItemType ? getItem(equippedItemType) : null;
                 const isOpen = openSlot === slotId;
 
-                // Items in inventory that fit this slot
+                // Items in inventory that fit this slot (exclude already equipped items)
                 const availableItems = inventory.filter((inv) => {
                   const def = getItem(inv.item_type);
-                  return def && def.equipSlot === slotId && inv.quantity > 0;
+                  if (!def || def.equipSlot !== slotId || inv.quantity <= 0) return false;
+                  // If this item is currently equipped in THIS slot, don't show it (it's already worn)
+                  if (equippedItemType === inv.item_type) return false;
+                  return true;
                 });
 
                 return (
