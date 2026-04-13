@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -60,7 +59,7 @@ const STAT_DEFS = [
 export default function StatsPage() {
   const { locale } = useI18n();
   const isZh = locale === "zh";
-  const router = useRouter();
+  // const router = useRouter();
   const gameState = useGameState();
   const inventory = gameState.inventory;
 
@@ -86,11 +85,34 @@ export default function StatsPage() {
 
   const equip = async (slotId: string, itemType: string | null) => {
     setOpenSlot(null);
-    // Optimistic update
+    const oldEquipped = equipment[slotId] ?? null;
+    // Optimistic update equipment
     setEquipment((prev) => {
       const next = { ...prev };
       if (itemType) next[slotId] = itemType;
       else delete next[slotId];
+      return next;
+    });
+    // Optimistic update inventory
+    gameState.updateInventory((prev) => {
+      let next = [...prev];
+      // If equipping: remove item from inventory
+      if (itemType) {
+        next = next.map((inv) =>
+          inv.item_type === itemType ? { ...inv, quantity: inv.quantity - 1 } : inv
+        ).filter((inv) => inv.quantity > 0);
+      }
+      // If unequipping (or swapping): return old item to inventory
+      if (oldEquipped) {
+        const existing = next.find((inv) => inv.item_type === oldEquipped);
+        if (existing) {
+          next = next.map((inv) =>
+            inv.item_type === oldEquipped ? { ...inv, quantity: inv.quantity + 1 } : inv
+          );
+        } else {
+          next = [...next, { item_type: oldEquipped, quantity: 1 } as typeof prev[0]];
+        }
+      }
       return next;
     });
     await fetch("/api/game/equip", {
@@ -98,7 +120,6 @@ export default function StatsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slot_id: slotId, item_type: itemType }),
     });
-    router.refresh();
   };
 
   return (
