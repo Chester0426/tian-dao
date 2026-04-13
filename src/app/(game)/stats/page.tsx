@@ -155,7 +155,7 @@ export default function StatsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 mx-auto" style={{ maxWidth: "min(100%, 192px)" }}>
+            <div className="grid grid-cols-3 gap-2 mx-auto" style={{ maxWidth: "min(100%, 220px)" }}>
               {EQUIPMENT_SLOTS.map((slot, idx) => {
                 if (slot.hidden) return <div key={`empty-${idx}`} className="aspect-square" />;
 
@@ -176,7 +176,7 @@ export default function StatsPage() {
                       <TooltipTrigger>
                         <div
                           onClick={() => setOpenSlot(isOpen ? null : slotId)}
-                          className={`group relative aspect-square rounded-lg border transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer ${
+                          className={`group relative w-[64px] h-[64px] rounded-lg border transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer ${
                             equippedItem
                               ? "border-spirit-gold/50 bg-spirit-gold/10"
                               : "border-border/30 bg-muted/10 hover:border-spirit-gold/40 hover:bg-spirit-gold/5"
