@@ -169,31 +169,57 @@ export function MiningPageClient({
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 
         {/* === Header Bar === */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 -mx-6 md:-mx-12 px-1">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <span className="text-xl">⛏</span>
+        <div className="mb-5 relative rounded-2xl overflow-hidden -mx-6 md:-mx-12">
+          <img src="/images/mining-title-bg.png" alt="" className="w-full h-auto block" />
+          <div
+            className="absolute inset-0 px-4 flex items-center justify-center gap-6"
+            style={{
+              textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 border border-amber-500/30">
+                <span className="text-xl">⛏</span>
+              </div>
+              <div>
+                <h1 className="font-heading text-xl font-bold sm:text-2xl text-amber-200">{t("mining_title")}</h1>
+              </div>
             </div>
-            <div>
-              <h1 className="font-heading text-xl font-bold sm:text-2xl">{t("mining_title")}</h1>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="border-amber-500/40 text-amber-300 font-heading px-3 py-1 text-sm bg-black/30">
+                {t("mining_skillLevel")} {miningLevel}
+              </Badge>
+              <Badge variant="outline" className="border-white/30 text-white/90 tabular-nums px-3 py-1 text-sm bg-black/30">
+                {t("mining_skillXp")} {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
+              </Badge>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-heading px-3 py-1 text-sm">
-              {t("mining_skillLevel")} {miningLevel}
-            </Badge>
-            <Badge variant="outline" className="border-border/40 text-muted-foreground tabular-nums px-3 py-1 text-sm">
-              {t("mining_skillXp")} {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
-            </Badge>
           </div>
         </div>
 
-        {/* Skill XP bar */}
-        <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted/30 -mx-6 md:-mx-12" style={{ width: "auto" }}>
+        {/* Skill XP bar — spirit qi vein style */}
+        <div
+          className="mb-6 h-2 w-full overflow-hidden rounded-full -mx-6 md:-mx-12"
+          style={{
+            width: "auto",
+            background: "linear-gradient(90deg, rgba(0,0,0,0.4), rgba(30,30,30,0.3))",
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)",
+          }}
+        >
           <div
-            className="h-full rounded-full bg-blue-500 transition-all duration-300"
-            style={{ width: `${xpPercent}%` }}
-          />
+            className="h-full rounded-full transition-all duration-500 relative"
+            style={{
+              width: `${xpPercent}%`,
+              background: "linear-gradient(90deg, #1a4a3a, #3ecfa5, #6ee7b7)",
+              boxShadow: "0 0 8px rgba(62,207,165,0.5), 0 0 20px rgba(62,207,165,0.2)",
+            }}
+          >
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: "linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%)",
+              }}
+            />
+          </div>
         </div>
 
         {/* === Mine Grid === */}
@@ -208,17 +234,25 @@ export function MiningPageClient({
             // === LOCKED MINE CARD ===
             if (isLocked) {
               return (
-                <Card key={mine.id} className="border-border/30 bg-muted/5 overflow-hidden flex flex-col">
-                  <div className="h-1 bg-destructive/40 shrink-0" />
-                  <CardContent className="p-4 flex-1 flex flex-col">
+                <div key={mine.id} className="relative rounded-2xl overflow-hidden">
+                  <img src="/images/mining-card-bg2.png" alt="" className="w-full h-auto block" />
+                  <div
+                    className="absolute flex flex-col items-center justify-between rounded-xl"
+                    style={{
+                      top: '20%', bottom: '20%', left: '5%', right: '5%',
+                      background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.40) 100%)",
+                      padding: '16px',
+                      textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                    }}
+                  >
                     {/* Header — locked label */}
-                    <div className="flex items-center justify-center">
-                      <p className="font-heading text-base font-bold text-muted-foreground/60">
+                    <div className="flex items-center justify-center pt-2">
+                      <p className="font-heading text-base font-bold text-white/40">
                         {t("mining_locked")}
                       </p>
                     </div>
 
-                    {/* Centered icon — fills space between header and button */}
+                    {/* Centered icon */}
                     <div className="flex-1 flex items-center justify-center">
                       <span className="text-7xl opacity-30">⛏</span>
                     </div>
@@ -226,32 +260,39 @@ export function MiningPageClient({
                     {/* Disabled button at bottom */}
                     <button
                       disabled
-                      className="w-full rounded-lg py-2 text-sm font-heading font-bold bg-destructive/80 text-destructive-foreground cursor-not-allowed opacity-70"
+                      className="relative w-full cursor-not-allowed opacity-70"
                     >
-                      {t("mining_needLevel", { n: mine.required_level })}
+                      <img src="/images/mining-btn-bg3.png" alt="" className="w-full h-auto block" />
+                      <span className="absolute inset-0 flex items-center justify-center font-heading font-bold text-sm text-white">
+                        {t("mining_needLevel", { n: mine.required_level })}
+                      </span>
                     </button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             }
 
             return (
-              <Card key={mine.id} className={`transition-all duration-200 overflow-hidden flex flex-col ${
-                isActive
-                  ? "border-jade shadow-lg shadow-jade/10"
-                  : "border-border/40"
+              <div key={mine.id} className={`relative rounded-2xl overflow-hidden transition-all duration-200 ${
+                isActive ? "ring-2 ring-jade/60" : ""
               }`}>
-                {/* Top color strip */}
-                <div className={`h-1 shrink-0 ${isActive ? "bg-jade" : "bg-border/20"}`} />
-
-                <CardContent className="p-4 flex-1 flex flex-col space-y-4">
+                  <img src="/images/mining-card-bg1.png" alt="" className="w-full h-auto block" />
+                  <div
+                    className="absolute flex flex-col space-y-4 rounded-xl"
+                    style={{
+                      top: '20%', bottom: '20%', left: '5%', right: '5%',
+                      background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.40) 100%)",
+                      padding: '16px',
+                      textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                    }}
+                  >
                   {/* Mine header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-2">
-                      <p className="font-heading text-base font-bold">
+                      <p className="font-heading text-base font-bold text-white">
                         {MINE_NAMES[mine.slug]?.[locale] ?? mine.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-white/60">
                         ⏱ {(3).toFixed(2)} s
                       </p>
                     </div>
@@ -281,9 +322,9 @@ export function MiningPageClient({
                                 <span className={info?.rarity === "rare" ? "text-spirit-gold" : info?.rarity === "uncommon" ? "text-jade" : "text-foreground"}>
                                   {info?.icon ?? "○"}
                                 </span>
-                                <span className="text-muted-foreground">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
+                                <span className="text-white/70">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
                               </div>
-                              <span className="tabular-nums text-muted-foreground text-xs">{(entry.probability * 100).toFixed(0)}%</span>
+                              <span className="tabular-nums text-white/50 text-xs">{(entry.probability * 100).toFixed(0)}%</span>
                             </div>
                           );
                         })}
@@ -314,10 +355,10 @@ export function MiningPageClient({
                   {(
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">
+                        <span className="text-white/70">
                           🏆 {t("mining_mastery")} <span className="font-bold text-cinnabar">{mastery}</span>
                         </span>
-                        <span className="tabular-nums text-muted-foreground/70">
+                        <span className="tabular-nums text-white/50">
                           {(masteryXps[mine.id] ?? 0).toLocaleString()} / {(masteryXpMaxs[mine.id] ?? 83).toLocaleString()}
                         </span>
                       </div>
@@ -331,22 +372,25 @@ export function MiningPageClient({
                   {/* Action button — pushed to bottom */}
                   <button
                     onClick={() => handleSelectMine(mine)}
-                    className={`mt-auto w-full rounded-lg py-2 text-sm font-heading font-bold transition-all duration-200 ${
-                      isActive
-                        ? "bg-destructive/80 text-destructive-foreground hover:bg-destructive"
-                        : "bg-jade/80 text-primary-foreground hover:bg-jade"
-                    }`}
+                    className="mt-auto relative w-full hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer"
                   >
-                    {isActive ? t("mining_stopMining") : t("mining_startMining")}
+                    <img
+                      src={isActive ? "/images/mining-btn-bg2.png" : "/images/mining-btn-bg1.png"}
+                      alt=""
+                      className="w-full h-auto block"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center font-heading font-bold text-sm text-white">
+                      {isActive ? t("mining_stopMining") : t("mining_startMining")}
+                    </span>
                   </button>
 
                   {isLocked && (
-                    <p className="text-center text-xs text-muted-foreground/50">
+                    <p className="text-center text-xs text-white/40">
                       {t("mining_levelUp", { n: mine.required_level })}
                     </p>
                   )}
-                </CardContent>
-              </Card>
+                  </div>
+                </div>
             );
           })}
         </div>
