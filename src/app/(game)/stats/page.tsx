@@ -67,7 +67,7 @@ export default function StatsPage() {
         <Separator className="mt-4" />
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 items-start">
         {/* Left — Stats */}
         <Card className="scroll-surface">
           <CardHeader>
