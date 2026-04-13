@@ -12,7 +12,7 @@ import {
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
 import { getItem, type EquipSlotId } from "@/lib/items";
-import { computeStats } from "@/lib/stats";
+import { computeStatsBreakdown } from "@/lib/stats";
 
 // Equipment slot definitions for the 3x5 grid
 interface EquipSlot {
@@ -67,7 +67,8 @@ export default function StatsPage() {
   const [bodyLevel, setBodyLevel] = useState(1);
   const [openSlot, setOpenSlot] = useState<string | null>(null);
 
-  const stats = computeStats({ bodyLevel, equipment });
+  const breakdown = computeStatsBreakdown({ bodyLevel, equipment });
+  const stats = breakdown.total;
 
   // Fetch equipment on mount
   useEffect(() => {
@@ -148,21 +149,50 @@ export default function StatsPage() {
               <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{isZh ? "主要屬性" : "Primary"}</p>
                 <div className="space-y-3">
-                  {STAT_DEFS.map((def) => (
-                    <Tooltip key={def.key}>
-                      <TooltipTrigger className="w-full">
-                        <div className="flex items-center justify-between cursor-default rounded px-1 -mx-1 py-0.5 transition-colors hover:bg-muted/30">
-                          <span className="text-sm text-muted-foreground">{isZh ? def.name : def.nameEn}</span>
-                          <span className={`font-heading text-sm tabular-nums ${def.color}`}>
-                            {stats[def.key]}{def.unit ?? ""}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p className="text-xs">{isZh ? def.desc : def.descEn}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
+                  {STAT_DEFS.map((def) => {
+                    const baseVal = breakdown.base[def.key];
+                    const realmVal = breakdown.realm[def.key];
+                    const equipVal = breakdown.equipment[def.key];
+                    return (
+                      <Tooltip key={def.key}>
+                        <TooltipTrigger className="w-full">
+                          <div className="flex items-center justify-between cursor-default rounded px-1 -mx-1 py-0.5 transition-colors hover:bg-muted/30">
+                            <span className="text-sm text-muted-foreground">{isZh ? def.name : def.nameEn}</span>
+                            <span className={`font-heading text-sm tabular-nums ${def.color}`}>
+                              {stats[def.key]}{def.unit ?? ""}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[200px]">
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{isZh ? def.desc : def.descEn}</p>
+                            <div className="text-[11px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
+                              <div className="flex justify-between">
+                                <span className="text-foreground/70">{isZh ? "基礎" : "Base"}</span>
+                                <span className="tabular-nums">{baseVal}</span>
+                              </div>
+                              {realmVal > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-spirit-gold">{isZh ? "境界" : "Realm"}</span>
+                                  <span className="tabular-nums text-spirit-gold">+{realmVal}</span>
+                                </div>
+                              )}
+                              {equipVal > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-jade">{isZh ? "裝備" : "Equipment"}</span>
+                                  <span className="tabular-nums text-jade">+{equipVal}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between border-t border-border/20 pt-0.5 mt-0.5">
+                                <span className={`font-heading ${def.color}`}>{isZh ? "總計" : "Total"}</span>
+                                <span className={`font-heading tabular-nums ${def.color}`}>{stats[def.key]}{def.unit ?? ""}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
               </div>
               <div>
