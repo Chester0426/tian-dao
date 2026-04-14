@@ -389,7 +389,7 @@ export default function AdventurePage() {
                     <h2 className="font-heading text-xl font-bold">{isZh ? zone.nameZh : zone.nameEn}</h2>
                     <Badge variant="outline" className="border-jade/30 text-jade text-xs">{isZh ? "簡單" : "Easy"}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{isZh ? zone.descZh : zone.descEn}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-line">{isZh ? zone.descZh : zone.descEn}</p>
                 </div>
               </div>
 

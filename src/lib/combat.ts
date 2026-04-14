@@ -27,8 +27,8 @@ export const COMBAT_ZONES: CombatZone[] = [
     id: "archway",
     nameZh: "牌坊",
     nameEn: "Archway",
-    descZh: "城鎮入口的牌坊,常有醉漢和流氓出沒",
-    descEn: "The town entrance archway, frequented by drunkards and thugs",
+    descZh: "城鎮入口的牌坊\n常有醉漢和流氓出沒",
+    descEn: "The town entrance archway\nFrequented by drunkards and thugs",
     monsters: [
       {
         id: "drunkard",
@@ -60,8 +60,8 @@ export const COMBAT_ZONES: CombatZone[] = [
     id: "imperial-road",
     nameZh: "官道",
     nameEn: "Imperial Road",
-    descZh: "連接城鎮的官道,途中常有劫匪出沒",
-    descEn: "The imperial road between towns, bandits lurk along the way",
+    descZh: "連接城鎮的官道\n途中常有劫匪出沒",
+    descEn: "The imperial road between towns\nBandits lurk along the way",
     monsters: [
       {
         id: "bandit",
@@ -93,8 +93,8 @@ export const COMBAT_ZONES: CombatZone[] = [
     id: "mountain-camp",
     nameZh: "山寨",
     nameEn: "Mountain Camp",
-    descZh: "盤踞山頭的賊窩,實力不容小覷",
-    descEn: "A bandit stronghold in the mountains, not to be underestimated",
+    descZh: "盤踞山頭的賊窩\n實力不容小覷",
+    descEn: "A bandit stronghold in the mountains\nNot to be underestimated",
     monsters: [
       {
         id: "mountain-bandit",
