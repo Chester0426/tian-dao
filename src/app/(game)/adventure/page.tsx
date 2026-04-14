@@ -251,8 +251,7 @@ export default function AdventurePage() {
           <Card className="scroll-surface mb-6 overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-5 pb-5 space-y-4">
-              {/* Player vs Monster — only when actively fighting */}
-              {isFighting && selectedMonster && (<>
+              {/* Player vs Monster */}
               <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
                 {/* Player */}
                 <div className="text-center space-y-2">
@@ -326,15 +325,11 @@ export default function AdventurePage() {
                 )}
               </div>
 
-              </>)}
-
-              {isFighting && (
-                <div className="flex justify-center">
-                  <Button onClick={stopFight} className="bg-cinnabar hover:bg-cinnabar/90 text-white font-heading px-8">
-                    {isZh ? "撤退" : "Retreat"}
-                  </Button>
-                </div>
-              )}
+              <div className="flex justify-center">
+                <Button onClick={stopFight} className="bg-cinnabar hover:bg-cinnabar/90 text-white font-heading px-8">
+                  {isZh ? "撤退" : "Retreat"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
