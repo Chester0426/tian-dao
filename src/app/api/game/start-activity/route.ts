@@ -13,6 +13,7 @@ const schema = z.object({
   target: z.union([
     z.object({ kind: z.literal("book"), item_type: z.string() }),
     z.object({ kind: z.literal("technique"), technique_slug: z.string() }),
+    z.object({ monster_id: z.string() }),
   ]).optional(),
 });
 
@@ -38,27 +39,29 @@ export async function POST(request: NextRequest) {
 
   if (type === "enlightenment") {
     if (!body.target) return NextResponse.json({ error: "target required" }, { status: 400 });
-    if (body.target.kind === "book") {
-      if (!hasTag(body.target.item_type, "book")) {
+    const t = body.target as { kind?: string; item_type?: string; technique_slug?: string };
+    if (t.kind === "book") {
+      if (!t.item_type || !hasTag(t.item_type, "book")) {
         return NextResponse.json({ error: "Not a book" }, { status: 400 });
       }
       const { data: inv } = await supabase
         .from("inventory_items")
         .select("quantity")
         .eq("user_id", user.id).eq("slot", slot)
-        .eq("item_type", body.target.item_type)
+        .eq("item_type", t.item_type)
         .maybeSingle();
       if (!inv || inv.quantity <= 0) {
         return NextResponse.json({ error: "Book not owned" }, { status: 400 });
       }
-    } else {
-      const tech = getTechnique(body.target.technique_slug);
+    } else if (t.kind === "technique") {
+      if (!t.technique_slug) return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+      const tech = getTechnique(t.technique_slug);
       if (!tech) return NextResponse.json({ error: "Unknown technique" }, { status: 400 });
       const { data: learned } = await supabase
         .from("player_techniques")
         .select("mastery_level")
         .eq("user_id", user.id).eq("slot", slot)
-        .eq("technique_slug", body.target.technique_slug)
+        .eq("technique_slug", t.technique_slug)
         .maybeSingle();
       if (!learned) return NextResponse.json({ error: "Technique not learned" }, { status: 400 });
       if (learned.mastery_level >= MAX_MASTERY_LEVEL) {
