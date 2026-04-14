@@ -9,7 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { useGameState } from "@/components/mining-provider";
 import { COMBAT_ZONES, type Monster } from "@/lib/combat";
 import { computeStats } from "@/lib/stats";
-import { ITEMS } from "@/lib/items";
+import { ITEMS, hasTag } from "@/lib/items";
 
 interface CombatLog {
   id: number;
@@ -36,13 +36,14 @@ export default function AdventurePage() {
   const [monsterProgress, setMonsterProgress] = useState(0);
   const [killCount, setKillCount] = useState(0);
   const [showDrops, setShowDrops] = useState<string | null>(null);
-  const [lootBox, setLootBox] = useState<Record<string, number>>({}); // item_type → quantity
+  // Loot box: array of slots. Equipment = 1 per slot. Regular items stack.
+  interface LootSlot { item_type: string; quantity: number }
+  const [lootSlots, setLootSlots] = useState<LootSlot[]>([]);
   const [collecting, setCollecting] = useState(false);
   const [collectError, setCollectError] = useState("");
 
   const LOOT_BOX_LIMIT = 100;
-  const lootBoxCount = Object.values(lootBox).reduce((s, v) => s + v, 0);
-  const lootBoxTypes = Object.keys(lootBox).length;
+  const lootSlotCount = lootSlots.length;
 
   const logIdRef = useRef(0);
   const playerTickRef = useRef(0);
@@ -100,22 +101,32 @@ export default function AdventurePage() {
           setKillCount((c) => c + 1);
           gameState.addNotification(monster.icon, isZh ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
           // Drops go to loot box
-          setLootBox((prev) => {
-            const next = { ...prev };
-            const currentTotal = Object.values(next).reduce((s, v) => s + v, 0);
-            let remaining = LOOT_BOX_LIMIT - currentTotal;
+          setLootSlots((prev) => {
+            const next = [...prev];
             for (const drop of monster.drops) {
-              if (remaining <= 0) break;
-              const qty = Math.min(drop.quantity, remaining);
-              next[drop.item_type] = (next[drop.item_type] ?? 0) + qty;
-              remaining -= qty;
+              const isEquip = hasTag(drop.item_type, "equipment");
+              for (let i = 0; i < drop.quantity; i++) {
+                if (next.length >= LOOT_BOX_LIMIT) {
+                  addLog(isZh ? "戰利品箱已滿！" : "Loot box full!", "text-cinnabar");
+                  break;
+                }
+                if (isEquip) {
+                  // Equipment: each piece occupies its own slot
+                  next.push({ item_type: drop.item_type, quantity: 1 });
+                } else {
+                  // Regular item: stack in existing slot
+                  const existing = next.find((s) => s.item_type === drop.item_type);
+                  if (existing) {
+                    existing.quantity += 1;
+                  } else {
+                    next.push({ item_type: drop.item_type, quantity: 1 });
+                  }
+                }
+              }
               const meta = ITEMS[drop.item_type];
               if (meta) {
-                gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, qty, meta.color);
+                gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
               }
-            }
-            if (remaining <= 0) {
-              addLog(isZh ? "戰利品箱已滿！" : "Loot box full!", "text-cinnabar");
             }
             return next;
           });
@@ -158,23 +169,27 @@ export default function AdventurePage() {
   }, [isFighting]);
 
   const collectLoot = async () => {
-    if (lootBoxTypes === 0) return;
+    if (lootSlots.length === 0) return;
     setCollectError("");
     setCollecting(true);
+    // Aggregate slots into { item_type: total_quantity }
+    const aggregated: Record<string, number> = {};
+    for (const slot of lootSlots) {
+      aggregated[slot.item_type] = (aggregated[slot.item_type] ?? 0) + slot.quantity;
+    }
     try {
       const res = await fetch("/api/game/collect-loot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: lootBox }),
+        body: JSON.stringify({ items: aggregated }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setCollectError(data.error ?? "Failed");
+        setCollectError(isZh ? (data.error ?? "收取失敗") : (data.error_en ?? data.error ?? "Failed"));
         setCollecting(false);
         return;
       }
-      // Clear loot box
-      setLootBox({});
+      setLootSlots([]);
       addLog(isZh ? "戰利品已收取！" : "Loot collected!", "text-jade");
     } catch {
       setCollectError(isZh ? "收取失敗" : "Collection failed");
@@ -307,32 +322,38 @@ export default function AdventurePage() {
                 )}
               </div>
 
-              {/* Loot box */}
+              {/* Loot box — grid of slots like inventory */}
               <div className="rounded-lg border border-spirit-gold/30 bg-spirit-gold/5 px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base">📦</span>
                     <span className="font-heading text-sm text-spirit-gold">{isZh ? "戰利品箱" : "Loot Box"}</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{lootBoxCount}/{LOOT_BOX_LIMIT}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{lootSlotCount}/{LOOT_BOX_LIMIT}</span>
                   </div>
                   <Button
                     size="sm"
                     onClick={collectLoot}
-                    disabled={lootBoxTypes === 0 || collecting}
+                    disabled={lootSlots.length === 0 || collecting}
                     className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
                   >
                     {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
                   </Button>
                 </div>
-                {lootBoxTypes > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(lootBox).map(([itemType, qty]) => {
-                      const meta = ITEMS[itemType];
+                {lootSlots.length > 0 ? (
+                  <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
+                    {lootSlots.map((slot, idx) => {
+                      const meta = ITEMS[slot.item_type];
                       return (
-                        <div key={itemType} className="flex items-center gap-1.5 rounded-md border border-border/30 bg-muted/10 px-2 py-1 text-xs">
-                          <span>{meta?.icon ?? "○"}</span>
-                          <span className="text-muted-foreground">{meta ? (isZh ? meta.nameZh : meta.nameEn) : itemType}</span>
-                          <span className="text-spirit-gold font-heading tabular-nums">×{qty}</span>
+                        <div
+                          key={`${slot.item_type}-${idx}`}
+                          className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative"
+                        >
+                          <span className="text-lg">{meta?.icon ?? "○"}</span>
+                          {slot.quantity > 1 && (
+                            <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">
+                              {slot.quantity}
+                            </span>
+                          )}
                         </div>
                       );
                     })}
