@@ -111,8 +111,10 @@ export function GameSidebar({
             {!isCollapsed && (
             <div className="space-y-0.5">
               {section.items.map((item) => {
-                const isActive = pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href.split("#")[0]));
+                const isActive = !item.href.startsWith("#") && (
+                  pathname === item.href ||
+                  (item.href !== "/dashboard" && pathname.startsWith(item.href))
+                );
                 return (
                   <Link
                     key={item.name}
