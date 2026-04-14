@@ -1,6 +1,7 @@
 "use client";
 
 import { useGameState } from "@/components/mining-provider";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ const ITEM_INFO: Record<string, { nameZh: string; nameEn: string; icon: string; 
 export function GlobalGameUI() {
   const gameState = useGameState();
   const { notifications, pendingOfflineRewards, dismissOfflineRewards } = gameState;
+  const pathname = usePathname();
   const { locale } = useI18n();
   const isZh = locale === "zh";
 
@@ -161,7 +163,7 @@ export function GlobalGameUI() {
       </Dialog>
 
       {/* === Mini combat panel — fixed bottom-right, visible on all pages when fighting === */}
-      {gameState.isCombating && gameState.combatMonster && (
+      {gameState.isCombating && gameState.combatMonster && pathname !== "/adventure" && (
         <div className="fixed bottom-4 right-4 md:right-6 z-40 w-[220px] rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl overflow-hidden">
           <div className="h-0.5 bg-cinnabar" />
           <div className="px-3 py-2 space-y-1.5">

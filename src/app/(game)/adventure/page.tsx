@@ -20,6 +20,7 @@ export default function AdventurePage() {
   const [collapsedZones, setCollapsedZones] = useState<Record<string, boolean>>({});
   const [collectError, setCollectError] = useState("");
   const [collecting, setCollecting] = useState(false);
+  const [lootBoxCollapsed, setLootBoxCollapsed] = useState(false);
 
   const handleCollect = async () => {
     setCollecting(true);
@@ -127,22 +128,42 @@ export default function AdventurePage() {
         <Card className="scroll-surface mb-6 overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
           <CardContent className="pt-5 pb-5">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-base">📦</span>
                 <span className="font-heading text-base font-bold text-spirit-gold">{isZh ? "戰利品箱" : "Loot Box"}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">{gameState.combatLootSlots.length}/100</span>
               </div>
-              <Button
-                size="sm"
-                onClick={handleCollect}
-                disabled={gameState.combatLootSlots.length === 0 || collecting}
-                className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
-              >
-                {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleCollect}
+                  disabled={gameState.combatLootSlots.length === 0 || collecting}
+                  className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
+                >
+                  {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setLootBoxCollapsed((v) => !v)}
+                  className="shrink-0 rounded-md p-1.5 text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 transition-colors"
+                >
+                  {lootBoxCollapsed ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
-            {gameState.combatLootSlots.length > 0 ? (
+            {!lootBoxCollapsed && gameState.combatLootSlots.length > 0 ? (
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
                 {gameState.combatLootSlots.map((slot, idx) => {
                   const meta = ITEMS[slot.item_type];
