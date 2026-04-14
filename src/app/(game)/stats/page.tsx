@@ -306,12 +306,15 @@ export default function StatsPage() {
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-[180px] ">
                         {equippedItem ? (
-                          <div className="space-y-1">
-                            <p className="font-heading text-sm text-spirit-gold">{isZh ? equippedItem.nameZh : equippedItem.nameEn}</p>
-                            <p className="text-[11px] text-muted-foreground">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
-                            <p className="text-[11px] text-muted-foreground">{isZh ? "裝備要求" : "Requires"}: {isZh ? equippedItem.requirementZh : equippedItem.requirementEn}</p>
+                          <div className="space-y-1.5">
+                            <div>
+                              <p className="font-heading text-sm text-spirit-gold">{isZh ? equippedItem.nameZh : equippedItem.nameEn}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                {isZh ? slot.label : slot.labelEn} · {isZh ? equippedItem.requirementZh : equippedItem.requirementEn}
+                              </p>
+                            </div>
                             {equippedItem.equipStats && (
-                              <div className="text-[11px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
+                              <div className="text-[11px] border-t border-border/30 pt-1 space-y-0.5">
                                 {equippedItem.equipStats.hp && <p className="text-red-400">+{equippedItem.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
                                 {equippedItem.equipStats.atk && <p className="text-spirit-gold">+{equippedItem.equipStats.atk} {isZh ? "外功" : "ATK"}</p>}
                                 {equippedItem.equipStats.def && <p className="text-blue-300">+{equippedItem.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
@@ -365,11 +368,14 @@ export default function StatsPage() {
                                     <span className="flex-1 text-left font-heading truncate">{isZh ? meta.nameZh : meta.nameEn}</span>
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[180px] ">
-                                  <div className="space-y-1">
-                                    <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
-                                    <p className="text-[11px] text-muted-foreground">{isZh ? "部位" : "Slot"}: {isZh ? slot.label : slot.labelEn}</p>
-                                    <p className="text-[11px] text-muted-foreground">{isZh ? "裝備要求" : "Requires"}: {isZh ? meta.requirementZh : meta.requirementEn}</p>
+                                <TooltipContent side="right" className="max-w-[180px]">
+                                  <div className="space-y-1.5">
+                                    <div>
+                                      <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
+                                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        {isZh ? slot.label : slot.labelEn} · {isZh ? meta.requirementZh : meta.requirementEn}
+                                      </p>
+                                    </div>
                                     {meta.equipStats && (
                                       <div className="text-[11px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
                                         {meta.equipStats.hp && <p className="text-red-400">+{meta.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
