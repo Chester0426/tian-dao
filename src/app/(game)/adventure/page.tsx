@@ -96,12 +96,6 @@ export default function AdventurePage() {
                 </div>
               </div>
 
-              {gameState.combatKillCount > 0 && (
-                <div className="text-center text-xs text-muted-foreground">
-                  {isZh ? "擊殺數" : "Kills"}: <span className="text-cinnabar font-heading">{gameState.combatKillCount}</span>
-                </div>
-              )}
-
               {/* Combat log */}
               <div className="rounded-lg border border-border/30 bg-muted/10 px-4 py-3 min-h-[80px] max-h-[120px] overflow-y-auto">
                 {gameState.combatLogs.length === 0 ? (
