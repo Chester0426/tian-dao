@@ -36,6 +36,13 @@ export default function AdventurePage() {
   const [monsterProgress, setMonsterProgress] = useState(0);
   const [killCount, setKillCount] = useState(0);
   const [showDrops, setShowDrops] = useState<string | null>(null);
+  const [lootBox, setLootBox] = useState<Record<string, number>>({}); // item_type → quantity
+  const [collecting, setCollecting] = useState(false);
+  const [collectError, setCollectError] = useState("");
+
+  const LOOT_BOX_LIMIT = 100;
+  const lootBoxCount = Object.values(lootBox).reduce((s, v) => s + v, 0);
+  const lootBoxTypes = Object.keys(lootBox).length;
 
   const logIdRef = useRef(0);
   const playerTickRef = useRef(0);
@@ -92,12 +99,26 @@ export default function AdventurePage() {
           );
           setKillCount((c) => c + 1);
           gameState.addNotification(monster.icon, isZh ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
-          for (const drop of monster.drops) {
-            const meta = ITEMS[drop.item_type];
-            if (meta) {
-              gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
+          // Drops go to loot box
+          setLootBox((prev) => {
+            const next = { ...prev };
+            const currentTotal = Object.values(next).reduce((s, v) => s + v, 0);
+            let remaining = LOOT_BOX_LIMIT - currentTotal;
+            for (const drop of monster.drops) {
+              if (remaining <= 0) break;
+              const qty = Math.min(drop.quantity, remaining);
+              next[drop.item_type] = (next[drop.item_type] ?? 0) + qty;
+              remaining -= qty;
+              const meta = ITEMS[drop.item_type];
+              if (meta) {
+                gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, qty, meta.color);
+              }
             }
-          }
+            if (remaining <= 0) {
+              addLog(isZh ? "戰利品箱已滿！" : "Loot box full!", "text-cinnabar");
+            }
+            return next;
+          });
           if (monster.bodyXp > 0) {
             gameState.addNotification("💪", isZh ? "煉體經驗" : "Body XP", monster.bodyXp, "text-spirit-gold");
           }
@@ -135,6 +156,31 @@ export default function AdventurePage() {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFighting]);
+
+  const collectLoot = async () => {
+    if (lootBoxTypes === 0) return;
+    setCollectError("");
+    setCollecting(true);
+    try {
+      const res = await fetch("/api/game/collect-loot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: lootBox }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCollectError(data.error ?? "Failed");
+        setCollecting(false);
+        return;
+      }
+      // Clear loot box
+      setLootBox({});
+      addLog(isZh ? "戰利品已收取！" : "Loot collected!", "text-jade");
+    } catch {
+      setCollectError(isZh ? "收取失敗" : "Collection failed");
+    }
+    setCollecting(false);
+  };
 
   const startFight = (monster: Monster) => {
     setSelectedMonster(monster);
@@ -244,6 +290,44 @@ export default function AdventurePage() {
                       <p key={log.id} className={`text-xs ${log.color}`}>{log.text}</p>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Loot box */}
+              <div className="rounded-lg border border-spirit-gold/30 bg-spirit-gold/5 px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📦</span>
+                    <span className="font-heading text-sm text-spirit-gold">{isZh ? "戰利品箱" : "Loot Box"}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{lootBoxCount}/{LOOT_BOX_LIMIT}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={collectLoot}
+                    disabled={lootBoxTypes === 0 || collecting}
+                    className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
+                  >
+                    {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
+                  </Button>
+                </div>
+                {lootBoxTypes > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(lootBox).map(([itemType, qty]) => {
+                      const meta = ITEMS[itemType];
+                      return (
+                        <div key={itemType} className="flex items-center gap-1.5 rounded-md border border-border/30 bg-muted/10 px-2 py-1 text-xs">
+                          <span>{meta?.icon ?? "○"}</span>
+                          <span className="text-muted-foreground">{meta ? (isZh ? meta.nameZh : meta.nameEn) : itemType}</span>
+                          <span className="text-spirit-gold font-heading tabular-nums">×{qty}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
+                )}
+                {collectError && (
+                  <p className="text-xs text-cinnabar mt-2">{collectError}</p>
                 )}
               </div>
 
