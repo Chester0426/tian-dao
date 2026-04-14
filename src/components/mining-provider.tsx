@@ -170,6 +170,7 @@ interface ProviderProps {
     activeEquipmentSet?: number;
     bodyLevel?: number;
     lootBox?: { item_type: string; quantity: number }[];
+    combatMonsterId?: string | null;
     qiArray?: (string | null)[];
     offlineRewards?: {
       minutes_away: number;
@@ -808,6 +809,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   // --- Actions ---
   const startMining = useCallback((mine: MineData) => {
     if (isMeditatingRef.current) syncMeditation();
+    if (isCombatingRef.current) { syncCombat(); setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
     setIsMeditating(false);
     activeMineRef.current = mine;
     setActiveMineId(mine.id);
@@ -842,6 +844,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       activeMineRef.current = null;
       setActionProgress(0);
     }
+    if (isCombatingRef.current) { syncCombat(); setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
     setIsMeditating(true);
     fetch("/api/game/start-activity", {
       method: "POST",
@@ -1046,35 +1049,28 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     };
   }, []);
 
-  // Resume combat from active session on mount
+  // Resume combat from SSR initialState (instant, no client fetch)
   useEffect(() => {
     if (initialState?.lootBox && initialState.lootBox.length > 0) {
       setCombatLootSlots(initialState.lootBox);
       combatLootRef.current = initialState.lootBox;
     }
-    // Check for active combat session
-    fetch("/api/game/profile-data")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d?.active_session?.type === "combat" && d.active_session.payload?.monster_id) {
-          const monsterId = d.active_session.payload.monster_id;
-          for (const zone of COMBAT_ZONES) {
-            const monster = zone.monsters.find((m) => m.id === monsterId);
-            if (monster) {
-              const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} });
-              setCombatMonster(monster);
-              combatMonsterRef.current = monster;
-              monsterHpRef2.current = monster.hp;
-              playerHpRef2.current = stats.hp;
-              setMonsterHp(monster.hp);
-              setPlayerHp(stats.hp);
-              setIsCombating(true);
-              break;
-            }
-          }
+    if (initialState?.combatMonsterId) {
+      for (const zone of COMBAT_ZONES) {
+        const monster = zone.monsters.find((m) => m.id === initialState.combatMonsterId);
+        if (monster) {
+          const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} });
+          setCombatMonster(monster);
+          combatMonsterRef.current = monster;
+          monsterHpRef2.current = monster.hp;
+          playerHpRef2.current = stats.hp;
+          setMonsterHp(monster.hp);
+          setPlayerHp(stats.hp);
+          setIsCombating(true);
+          break;
         }
-      })
-      .catch(() => {});
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

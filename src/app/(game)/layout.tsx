@@ -20,6 +20,7 @@ export default async function GameGroupLayout({
   let miningStatus = { isMining: false, mineId: null as string | null };
   let initialState: Record<string, unknown> = {};
   let isMeditatingInit = false;
+  let combatInit: { monsterId: string } | null = null;
   let offlineRewardsInit: OfflineRewardResult | null = null;
   let isAdmin = false;
 
@@ -50,6 +51,10 @@ export default async function GameGroupLayout({
 
         if (latestSession && !latestSession.ended_at && latestSession.type === "meditate") {
           isMeditatingInit = true;
+        }
+        if (latestSession && !latestSession.ended_at && latestSession.type === "combat" && latestSession.payload) {
+          const p = latestSession.payload as { monster_id?: string };
+          if (p.monster_id) combatInit = { monsterId: p.monster_id };
         }
 
         // Offline rewards now computed via client-triggered API (mount + visibility).
@@ -98,6 +103,7 @@ export default async function GameGroupLayout({
           equipment: (profile?.equipment_sets ?? {})[String(profile?.active_equipment_set ?? 1)] ?? {},
           bodyLevel: profile?.body_level ?? 1,
           lootBox: profile?.loot_box ?? [],
+          combatMonsterId: combatInit?.monsterId ?? null,
           offlineRewards: offlineRewardsInit,
           inventory,
           activeMine: activeMineData ? {
