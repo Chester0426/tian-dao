@@ -112,12 +112,16 @@ export async function computeOfflineRewards(
     const equipment = allSets[String(activeSet)] ?? {};
     const playerStats = computeStats({ bodyLevel: profile.body_level ?? 1, equipment });
 
-    // Simulate combat
+    // Simulate combat — must match real-time logic in adventure/page.tsx
+    const PLAYER_ATTACK_INTERVAL = 3; // seconds
     const playerDmg = Math.max(1, playerStats.atk - monster.def);
     const monsterDmg = Math.max(1, monster.atk - playerStats.def);
     const hitsToKill = Math.ceil(monster.hp / playerDmg);
-    const timePerKill = hitsToKill * 3; // 3 seconds per attack
-    const damagePerKill = hitsToKill * monsterDmg;
+    const timePerKill = hitsToKill * PLAYER_ATTACK_INTERVAL;
+    // Monster attacks based on its own speed during the time it takes to kill it
+    // In real-time, player attacks first on simultaneous ticks → monster gets 1 fewer hit on kill round
+    const monsterHitsPerKill = Math.max(0, Math.ceil(timePerKill / monster.attackSpeed) - 1);
+    const damagePerKill = monsterHitsPerKill * monsterDmg;
 
     let playerHp = playerStats.hp;
     let totalKills = 0;

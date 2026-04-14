@@ -112,16 +112,16 @@ export function GlobalGameUI() {
                 )}
 
                 {/* Combat info */}
-                {(pendingOfflineRewards as { combat?: { kills: number; died: boolean } }).combat && (
+                {pendingOfflineRewards.combat && (
                   <>
                     <p className="text-base">
                       {isZh ? "你擊殺了 " : "You killed "}
                       <span className="font-bold text-cinnabar tabular-nums">
-                        {(pendingOfflineRewards as { combat: { kills: number } }).combat.kills}
+                        {pendingOfflineRewards.combat.kills}
                       </span>
                       {isZh ? " 隻怪物" : " monsters"}
                     </p>
-                    {(pendingOfflineRewards as { combat: { died: boolean } }).combat.died && (
+                    {pendingOfflineRewards.combat.died && (
                       <p className="text-sm text-cinnabar">
                         {isZh ? "你在戰鬥中被擊敗了" : "You were defeated in combat"}
                       </p>
