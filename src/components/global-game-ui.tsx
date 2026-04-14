@@ -164,47 +164,46 @@ export function GlobalGameUI() {
 
       {/* === Mini combat panel — fixed bottom-right, visible on all pages when fighting === */}
       {gameState.isCombating && gameState.combatMonster && pathname !== "/adventure" && (
-        <div className="fixed bottom-4 right-4 md:right-6 z-40 w-[220px] rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl overflow-hidden">
-          <div className="h-0.5 bg-cinnabar" />
-          <div className="px-3 py-2 space-y-1.5">
-            {/* Header: monster icon + "敵人" + retreat button */}
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{gameState.combatMonster.icon}</span>
-              <span className="font-heading text-xs truncate flex-1">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</span>
-              <button
-                type="button"
-                onClick={gameState.stopCombat}
-                className="shrink-0 rounded-md p-1 text-muted-foreground/70 hover:text-cinnabar hover:bg-cinnabar/10 transition-colors"
-                title={isZh ? "撤退" : "Retreat"}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-            </div>
-            {/* Player HP */}
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-muted-foreground">{isZh ? "你" : "You"}</span>
-                <span className="text-red-400 tabular-nums">{gameState.playerHp}/{gameState.playerMaxHp}</span>
+        <div className="fixed bottom-4 right-4 md:right-6 z-40 flex items-end gap-2">
+          {/* Combat HP panel */}
+          <div className="w-[180px] rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl overflow-hidden">
+            <div className="h-0.5 bg-cinnabar" />
+            <div className="px-3 py-2 space-y-1.5">
+              {/* Player HP */}
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">{isZh ? "你" : "You"}</span>
+                  <span className="text-red-400 tabular-nums">{gameState.playerHp}/{gameState.playerMaxHp}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
+                  <div className="h-full rounded-full bg-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
+                </div>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
-                <div className="h-full rounded-full bg-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
-              </div>
-            </div>
-            {/* Monster HP */}
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-muted-foreground">{isZh ? "敵人" : "Enemy"}</span>
-                <span className="text-cinnabar tabular-nums">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
-                <div className="h-full rounded-full bg-cinnabar transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
+              {/* Monster HP */}
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">{isZh ? "敵人" : "Enemy"}</span>
+                  <span className="text-cinnabar tabular-nums">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
+                  <div className="h-full rounded-full bg-cinnabar transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
+                </div>
               </div>
             </div>
           </div>
+          {/* Retreat button — separate */}
+          <button
+            type="button"
+            onClick={gameState.stopCombat}
+            className="rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl p-2 text-muted-foreground/70 hover:text-cinnabar hover:border-cinnabar/60 transition-colors"
+            title={isZh ? "撤退" : "Retreat"}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       )}
     </>

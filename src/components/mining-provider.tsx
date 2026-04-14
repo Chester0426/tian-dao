@@ -996,8 +996,9 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         }
       }
 
-      // Monster attacks
-      if (mElapsed >= monster.attackSpeed * 1000) {
+      // Monster attacks — recalculate elapsed in case player killed & respawned this frame
+      const mElapsedNow = now - combatMonsterTickRef.current;
+      if (mElapsedNow >= monster.attackSpeed * 1000) {
         playerHpRef2.current = Math.max(0, playerHpRef2.current - round.monsterDmg);
         setPlayerHp(playerHpRef2.current);
         addCombatLog(
