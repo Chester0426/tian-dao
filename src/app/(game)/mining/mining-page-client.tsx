@@ -202,56 +202,68 @@ export function MiningPageClient({
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-heading"
-                style={{
-                  background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
-                  border: "1px solid rgba(62,207,165,0.3)",
-                  boxShadow: "0 0 6px rgba(62,207,165,0.1)",
-                  color: "#6ee7b7",
-                }}
-              >
-                {t("mining_skillLevel")} {miningLevel}
-              </div>
-              <div
-                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm tabular-nums"
-                style={{
-                  background: "linear-gradient(135deg, rgba(200,160,100,0.1), rgba(120,90,50,0.2))",
-                  border: "1px solid rgba(200,160,100,0.25)",
-                  boxShadow: "0 0 6px rgba(200,160,100,0.08)",
-                  color: "rgba(255,255,255,0.9)",
-                }}
-              >
-                {t("mining_skillXp")} {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
-              </div>
+            <div
+              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-heading"
+              style={{
+                background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
+                border: "1px solid rgba(62,207,165,0.3)",
+                boxShadow: "0 0 6px rgba(62,207,165,0.1)",
+                color: "#6ee7b7",
+              }}
+            >
+              {t("mining_skillLevel")} {miningLevel}
             </div>
           </div>
         </div>
 
-        {/* Skill XP bar — spirit qi vein style */}
-        <div
-          className="mb-6 h-2 w-full overflow-hidden rounded-full -mx-6 md:-mx-12"
-          style={{
-            width: "auto",
-            background: "linear-gradient(90deg, rgba(0,0,0,0.4), rgba(30,30,30,0.3))",
-            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)",
-          }}
-        >
+        {/* Skill XP bar — spirit qi vein style with XP text */}
+        <div className="mb-6 -mx-6 md:-mx-12">
           <div
-            className="h-full rounded-full transition-all duration-500 relative"
+            className="relative h-7 w-full overflow-hidden rounded-full"
             style={{
-              width: `${xpPercent}%`,
-              background: "linear-gradient(90deg, #1a4a3a, #3ecfa5, #6ee7b7)",
-              boxShadow: "0 0 8px rgba(62,207,165,0.5), 0 0 20px rgba(62,207,165,0.2)",
+              background: "linear-gradient(90deg, rgba(0,0,0,0.5), rgba(20,20,20,0.4))",
+              boxShadow: "inset 0 1px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.05)",
             }}
           >
+            {/* Fill */}
             <div
-              className="absolute inset-0 rounded-full"
+              className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
               style={{
-                background: "linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%)",
+                width: `${Math.max(xpPercent, 2)}%`,
+                background: "linear-gradient(90deg, #1a4a3a, #3ecfa5, #6ee7b7)",
+                boxShadow: "0 0 8px rgba(62,207,165,0.5), 0 0 20px rgba(62,207,165,0.15)",
               }}
-            />
+            >
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%)",
+                }}
+              />
+            </div>
+            {/* XP text centered over bar */}
+            <div
+              className="absolute inset-0 flex items-center justify-center gap-2 text-sm tabular-nums"
+              style={{
+                textShadow: "0 0 1px #000, 0 0 4px #000, 0 1px 6px rgba(0,0,0,0.9)",
+                color: "#fff",
+              }}
+            >
+              <span
+                className="font-heading font-bold"
+                style={{
+                  color: "#fbbf24",
+                  textShadow: "0 0 1px #000, 0 0 4px #000, 0 0 10px rgba(212,166,67,0.4), 0 1px 6px rgba(0,0,0,0.9)",
+                }}
+              >
+                {t("mining_skillXp")}
+              </span>
+              <span className="font-bold">
+                {miningXp.toLocaleString()} / {miningXpMax.toLocaleString()}
+              </span>
+              <span className="font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>({xpPercent.toFixed(1)}%)</span>
+            </div>
           </div>
         </div>
 
