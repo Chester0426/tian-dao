@@ -43,8 +43,9 @@ export default function AdventurePage() {
   const [lootSlots, setLootSlots] = useState<LootSlot[]>([]);
   const lootSlotsRef = useRef<LootSlot[]>([]);
 
-  // Load loot box from DB on mount
+  // Load loot box + resume combat from DB on mount
   useEffect(() => {
+    // Load loot box
     fetch("/api/game/loot-box")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
@@ -54,6 +55,31 @@ export default function AdventurePage() {
         }
       })
       .catch(() => {});
+
+    // Check if there's an active combat session to resume
+    fetch("/api/game/profile-data")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d?.active_session?.type === "combat" && d.active_session.payload?.monster_id) {
+          const monsterId = d.active_session.payload.monster_id;
+          // Find the monster in combat zones
+          for (const zone of COMBAT_ZONES) {
+            const monster = zone.monsters.find((m) => m.id === monsterId);
+            if (monster) {
+              setSelectedMonster(monster);
+              monsterRef.current = monster;
+              monsterHpRef.current = monster.hp;
+              playerHpRef.current = playerStats.hp;
+              setMonsterHp(monster.hp);
+              setPlayerHp(playerStats.hp);
+              setIsFighting(true);
+              break;
+            }
+          }
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [collecting, setCollecting] = useState(false);
   const [collectError, setCollectError] = useState("");
@@ -236,11 +262,11 @@ export default function AdventurePage() {
     setLogs([]);
     setKillCount(0);
     setIsFighting(true);
-    // Register combat session server-side
+    // Register combat session server-side with monster ID in payload
     fetch("/api/game/start-activity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "combat", requested_at: Date.now() }),
+      body: JSON.stringify({ type: "combat", requested_at: Date.now(), target: { monster_id: monster.id } }),
       keepalive: true,
     }).catch(() => {});
   };

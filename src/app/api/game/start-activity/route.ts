@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     p_type: type,
     p_started_at: new Date(requested_at).toISOString(),
     p_mine_id: type === "mining" ? body.mine_id : null,
-    p_payload: type === "enlightenment" ? body.target : null,
+    p_payload: (type === "enlightenment" || type === "combat") ? body.target : null,
   });
 
   if (rpcErr) {
