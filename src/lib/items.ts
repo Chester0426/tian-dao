@@ -11,7 +11,8 @@ export type ItemTag =
   | "spirit_stone" // used by 聚靈陣 equipment filter
   | "book"         // books (enlightenment inputs: 破損書籍, 小說)
   | "tome"         // 典藏 (learnable technique items dropped from book enlightenment)
-  | "equipment";   // equippable gear
+  | "equipment"    // equippable gear
+  | "consumable";  // food/potion — heals HP when consumed
 
 // Equipment slot IDs — must match EQUIPMENT_SLOTS in stats/page.tsx
 export type EquipSlotId = "helmet" | "shoulder" | "cape" | "necklace" | "main-hand" | "off-hand" | "chest" | "gloves" | "pants" | "accessory" | "ring" | "boots";
@@ -33,6 +34,8 @@ export interface ItemDef {
   equipStats?: { hp?: number; atk?: number; def?: number; mp?: number };
   requirementZh?: string;
   requirementEn?: string;
+  // Consumable stats (only for consumable tag)
+  healHp?: number;
 }
 
 export const ITEMS: Record<string, ItemDef> = {
@@ -102,6 +105,23 @@ export const ITEMS: Record<string, ItemDef> = {
     hintEn: "Tome: Refinement",
     tags: ["tome"],
   },
+  // === Consumables — 補品 ===
+  dry_ration: {
+    nameZh: "乾糧", nameEn: "Dry Ration", icon: "🍙", color: "text-amber-300",
+    hintZh: "恢復 10 點生命", hintEn: "Restore 10 HP",
+    tags: ["consumable"], healHp: 10,
+  },
+  flatbread: {
+    nameZh: "大餅", nameEn: "Flatbread", icon: "🫓", color: "text-amber-300",
+    hintZh: "恢復 15 點生命", hintEn: "Restore 15 HP",
+    tags: ["consumable"], healHp: 15,
+  },
+  jerky: {
+    nameZh: "肉脯", nameEn: "Jerky", icon: "🥩", color: "text-amber-300",
+    hintZh: "恢復 20 點生命", hintEn: "Restore 20 HP",
+    tags: ["consumable"], healHp: 20,
+  },
+
   // === Equipment — 劣質 (Poor quality) ===
   poor_helmet: {
     nameZh: "劣質頭盔", nameEn: "Poor Helmet", icon: "🪖", color: "text-muted-foreground",

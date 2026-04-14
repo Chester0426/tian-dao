@@ -8,6 +8,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
+import { ITEMS } from "@/lib/items";
 
 const ITEM_INFO: Record<string, { nameZh: string; nameEn: string; icon: string; color: string }> = {
   coal: { nameZh: "煤", nameEn: "Coal", icon: "◆", color: "text-foreground" },
@@ -165,6 +166,22 @@ export function GlobalGameUI() {
       {/* === Mini combat panel — fixed bottom-right, visible on all pages when fighting === */}
       {gameState.isCombating && gameState.combatMonster && pathname !== "/adventure" && (
         <div className="fixed bottom-4 right-4 md:right-6 z-40 flex items-end gap-2">
+          {/* Consumable button — left of HP panel */}
+          {(() => {
+            const activeItem = gameState.consumableSlots[gameState.activeConsumableIdx];
+            const meta = activeItem ? ITEMS[activeItem] : null;
+            return meta ? (
+              <button
+                type="button"
+                onClick={gameState.consumeItem}
+                className="rounded-lg border border-jade/30 bg-card/95 backdrop-blur-sm shadow-xl px-3 py-2 flex items-center gap-1.5 hover:border-jade/60 hover:bg-jade/5 transition-colors"
+                title={`${isZh ? meta.nameZh : meta.nameEn} +${meta.healHp} HP`}
+              >
+                <span className="text-lg">{meta.icon}</span>
+                <span className="text-xs text-jade font-heading">+{meta.healHp}</span>
+              </button>
+            ) : null;
+          })()}
           {/* Combat HP panel */}
           <div className="w-[240px] rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl overflow-hidden">
             <div className="h-0.5 bg-cinnabar" />

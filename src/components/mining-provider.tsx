@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useCallback } f
 import { getMasteryDoubleDropChance, melvorXpForLevel, bodyXpForStage, spiritStoneBonus } from "@/lib/types";
 import { COMBAT_ZONES, type Monster } from "@/lib/combat";
 import { PLAYER_ATTACK_INTERVAL, calcCombatRound } from "@/lib/combat-sim";
-import { ITEMS, hasTag } from "@/lib/items";
+import { ITEMS, hasTag, getItem } from "@/lib/items";
 import { computeStats } from "@/lib/stats";
 import type { InventoryItem } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
@@ -97,6 +97,9 @@ export interface GameState {
   activeEquipmentSet: number;
   bodyLevel: number;
   lootBox: { item_type: string; quantity: number }[];
+  // Consumables
+  consumableSlots: (string | null)[]; // 3 slots, item_type or null
+  activeConsumableIdx: number; // which slot is currently selected (0-2)
   // Combat
   isCombating: boolean;
   combatMonster: Monster | null;
@@ -118,6 +121,9 @@ interface GameContextValue extends GameState {
   startCombat: (monster: Monster) => void;
   stopCombat: () => void;
   collectCombatLoot: () => Promise<{ ok: boolean; error?: string }>;
+  setConsumableSlot: (idx: number, itemType: string | null) => void;
+  setActiveConsumableIdx: (idx: number) => void;
+  consumeItem: () => void;
   updateQiArray: (next: (string | null)[]) => void;
   addNotification: (icon: string, label: string, amount: number, color: string, total?: number) => void;
   dismissOfflineRewards: () => void;
@@ -863,6 +869,63 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }).catch(() => {});
   }, [syncMeditation]);
 
+  // --- Consumable state ---
+  const [consumableSlots, setConsumableSlots] = useState<(string | null)[]>([null, null, null]);
+  const [activeConsumableIdx, setActiveConsumableIdxState] = useState(0);
+
+  const setConsumableSlot = useCallback((idx: number, itemType: string | null) => {
+    setConsumableSlots((prev) => {
+      const next = [...prev];
+      next[idx] = itemType;
+      return next;
+    });
+  }, []);
+
+  const setActiveConsumableIdx = useCallback((idx: number) => {
+    setActiveConsumableIdxState(idx);
+  }, []);
+
+  const consumeItem = useCallback(() => {
+    const itemType = consumableSlots[activeConsumableIdx];
+    if (!itemType) return;
+    const itemDef = getItem(itemType);
+    if (!itemDef?.healHp) return;
+
+    // Heal player HP (only useful during combat)
+    const heal = itemDef.healHp;
+    const maxHp = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp;
+    playerHpRef2.current = Math.min(maxHp, playerHpRef2.current + heal);
+    setPlayerHp(playerHpRef2.current);
+
+    // Decrement inventory optimistically
+    setInventory((prev) => {
+      const next = prev.map((inv) =>
+        inv.item_type === itemType ? { ...inv, quantity: inv.quantity - 1 } : inv
+      ).filter((inv) => inv.quantity > 0);
+      // If depleted, clear the slot
+      const remaining = next.find((inv) => inv.item_type === itemType);
+      if (!remaining) {
+        setConsumableSlots((slots) => {
+          const updated = [...slots];
+          updated[activeConsumableIdx] = null;
+          return updated;
+        });
+      }
+      return next;
+    });
+
+    const isZhNow = localeForMedRef.current === "zh";
+    addNotification(itemDef.icon, isZhNow ? `${itemDef.nameZh} +${heal} HP` : `${itemDef.nameEn} +${heal} HP`, heal, "text-jade");
+
+    // Server sync
+    fetch("/api/game/consume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_type: itemType }),
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consumableSlots, activeConsumableIdx, initialState, addNotification]);
+
   // --- Combat state (provider-level, survives page navigation) ---
   const [isCombating, setIsCombating] = useState(false);
   const [combatMonster, setCombatMonster] = useState<Monster | null>(null);
@@ -1163,8 +1226,10 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     lootBox: initialState?.lootBox ?? [],
     isCombating, combatMonster, playerHp, playerMaxHp: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp,
     monsterHp, combatPlayerProgress, combatMonsterProgress, combatKillCount, combatLogs, combatLootSlots,
+    consumableSlots, activeConsumableIdx,
     startMining, stopMining, startMeditation, stopMeditation,
     startCombat, stopCombat, collectCombatLoot,
+    setConsumableSlot, setActiveConsumableIdx, consumeItem,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
     addNotification,
     dismissOfflineRewards,

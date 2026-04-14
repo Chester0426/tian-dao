@@ -118,6 +118,69 @@ export default function AdventurePage() {
           </Card>
         )}
 
+        {/* Consumable bar — 補品 */}
+        <Card className="scroll-surface mb-6 overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-jade/60 via-jade to-jade/60" />
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="font-heading text-sm text-jade">{isZh ? "補品" : "Supplies"}</span>
+              <div className="flex items-center gap-1.5">
+                {gameState.consumableSlots.map((itemType, idx) => {
+                  const meta = itemType ? ITEMS[itemType] : null;
+                  const invCount = itemType ? (gameState.inventory.find((i) => i.item_type === itemType)?.quantity ?? 0) : 0;
+                  const isActive = idx === gameState.activeConsumableIdx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        if (itemType) {
+                          gameState.setActiveConsumableIdx(idx);
+                        } else {
+                          // Open slot selection — for now cycle through available consumables
+                          const consumables = gameState.inventory.filter((i) => {
+                            const def = ITEMS[i.item_type];
+                            return def?.healHp && i.quantity > 0 && !gameState.consumableSlots.includes(i.item_type);
+                          });
+                          if (consumables.length > 0) {
+                            gameState.setConsumableSlot(idx, consumables[0].item_type);
+                            gameState.setActiveConsumableIdx(idx);
+                          }
+                        }
+                      }}
+                      className={`relative rounded-lg border px-3 py-2 flex items-center gap-2 transition-all ${
+                        isActive && itemType
+                          ? "border-jade/60 bg-jade/10"
+                          : itemType
+                          ? "border-border/40 bg-muted/10 hover:border-jade/40"
+                          : "border-dashed border-border/30 bg-muted/5 hover:border-jade/30"
+                      }`}
+                    >
+                      {meta ? (
+                        <>
+                          <span className="text-xs text-muted-foreground tabular-nums">({invCount})</span>
+                          <span className="text-lg">{meta.icon}</span>
+                          <span className="text-xs text-jade font-heading">+{meta.healHp} HP</span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button
+                size="sm"
+                onClick={gameState.consumeItem}
+                disabled={!gameState.consumableSlots[gameState.activeConsumableIdx]}
+                className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
+              >
+                {isZh ? "進食" : "Eat"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Loot box — separate card, always visible */}
         <Card className="scroll-surface mb-6 overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
