@@ -63,31 +63,41 @@ export default function StatsPage() {
   const gameState = useGameState();
   const inventory = gameState.inventory;
 
-  const [equipmentLocal, setEquipmentLocal] = useState<Record<string, string>>(gameState.equipment ?? {});
+  const [activeSet, setActiveSet] = useState(gameState.activeEquipmentSet ?? 1);
+  const [setsLocal, setSetsLocal] = useState<Record<string, Record<string, string>>>(gameState.equipmentSets ?? { "1": {}, "2": {} });
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [showEquipStats, setShowEquipStats] = useState(false);
 
   // Sync from provider when SSR data arrives
   useEffect(() => {
-    if (gameState.equipment && Object.keys(gameState.equipment).length > 0) {
-      setEquipmentLocal(gameState.equipment);
-    }
-  }, [gameState.equipment]);
+    if (gameState.equipmentSets) setSetsLocal(gameState.equipmentSets);
+    if (gameState.activeEquipmentSet) setActiveSet(gameState.activeEquipmentSet);
+  }, [gameState.equipmentSets, gameState.activeEquipmentSet]);
 
-  const equipment = equipmentLocal;
+  const equipment = setsLocal[String(activeSet)] ?? {};
   const bodyLevel = gameState.bodyLevel ?? 1;
   const breakdown = computeStatsBreakdown({ bodyLevel, equipment });
   const stats = breakdown.total;
 
+  const switchSet = async (setNum: 1 | 2) => {
+    setActiveSet(setNum);
+    await fetch("/api/game/equip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ switch_set: setNum }),
+    });
+  };
+
   const equip = async (slotId: string, itemType: string | null) => {
     setOpenSlot(null);
     const oldEquipped = equipment[slotId] ?? null;
-    // Optimistic update equipment
-    setEquipmentLocal((prev) => {
-      const next = { ...prev };
-      if (itemType) next[slotId] = itemType;
-      else delete next[slotId];
-      return next;
+    // Optimistic update equipment in active set
+    setSetsLocal((prev) => {
+      const setKey = String(activeSet);
+      const current = { ...(prev[setKey] ?? {}) };
+      if (itemType) current[slotId] = itemType;
+      else delete current[slotId];
+      return { ...prev, [setKey]: current };
     });
     // Optimistic update inventory
     gameState.updateInventory((prev) => {
@@ -381,7 +391,26 @@ export default function StatsPage() {
               })}
             </div>
 
-            <EquipmentSetSwitcher />
+            {/* Equipment set switcher */}
+            <div className="text-center space-y-2 pt-2">
+              <p className="text-sm text-muted-foreground">{isZh ? "變更裝備套裝" : "Change Equipment Set"}</p>
+              <div className="flex items-center justify-center gap-2">
+                {([1, 2] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => switchSet(n)}
+                    className={`w-10 h-10 rounded-md font-heading font-bold flex items-center justify-center transition-colors ${
+                      activeSet === n
+                        ? "bg-jade text-background"
+                        : "bg-muted/20 text-muted-foreground hover:bg-muted/40 border border-border/40"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -390,29 +419,3 @@ export default function StatsPage() {
   );
 }
 
-function EquipmentSetSwitcher() {
-  const { locale } = useI18n();
-  const isZh = locale === "zh";
-  const [activeSet, setActiveSet] = useState<1 | 2>(1);
-  return (
-    <div className="text-center space-y-2 pt-2">
-      <p className="text-sm text-muted-foreground">{isZh ? "變更裝備套裝" : "Change Equipment Set"}</p>
-      <div className="flex items-center justify-center gap-2">
-        {([1, 2] as const).map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => setActiveSet(n)}
-            className={`w-10 h-10 rounded-md font-heading font-bold flex items-center justify-center transition-colors ${
-              activeSet === n
-                ? "bg-jade text-background"
-                : "bg-muted/20 text-muted-foreground hover:bg-muted/40 border border-border/40"
-            }`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}

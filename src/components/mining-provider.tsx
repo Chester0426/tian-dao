@@ -88,6 +88,8 @@ export interface GameState {
   qiXp: number;
   meditationProgress: number;
   equipment: Record<string, string>;
+  equipmentSets: Record<string, Record<string, string>>;
+  activeEquipmentSet: number;
   bodyLevel: number;
 }
 
@@ -144,6 +146,8 @@ interface ProviderProps {
     isMeditating?: boolean;
     qiXp?: number;
     equipment?: Record<string, string>;
+    equipmentSets?: Record<string, Record<string, string>>;
+    activeEquipmentSet?: number;
     bodyLevel?: number;
     qiArray?: (string | null)[];
     offlineRewards?: {
@@ -844,6 +848,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     notifications, pendingOfflineRewards,
     isMeditating, qiXp, meditationProgress,
     equipment: initialState?.equipment ?? {},
+    equipmentSets: initialState?.equipmentSets ?? { "1": {}, "2": {} },
+    activeEquipmentSet: initialState?.activeEquipmentSet ?? 1,
     bodyLevel: initialState?.bodyLevel ?? 1,
     startMining, stopMining, startMeditation, stopMeditation,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
