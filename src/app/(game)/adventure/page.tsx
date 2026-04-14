@@ -387,7 +387,7 @@ export default function AdventurePage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h2 className="font-heading text-xl font-bold">{isZh ? zone.nameZh : zone.nameEn}</h2>
-                    <Badge variant="outline" className="border-jade/30 text-jade text-xs">{isZh ? "簡單" : "Easy"}</Badge>
+                    <Badge variant="outline" className="border-spirit-gold/30 text-spirit-gold text-xs">{isZh ? zone.realmZh : zone.realmEn}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-line">{isZh ? zone.descZh : zone.descEn}</p>
                 </div>
