@@ -396,7 +396,7 @@ export default function AdventurePage() {
                           )}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
+                      <TooltipContent side="top" className="block">
                         <div className="flex items-center justify-between gap-3">
                           <span className="font-heading text-sm">{meta ? (isZh ? meta.nameZh : meta.nameEn) : slot.item_type}</span>
                           <span className="text-[11px] text-muted-foreground tabular-nums">×{slot.quantity}</span>

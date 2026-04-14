@@ -197,7 +197,7 @@ export function InventoryClient({
                                 <span className="text-[9px] text-cinnabar font-heading">已選</span>
                               )}
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent className="block">
                             <div className="flex items-center justify-between gap-3">
                               <span className="font-heading text-sm">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</span>
                               <span className="text-[11px] text-muted-foreground tabular-nums">×{item.quantity.toLocaleString()}</span>
