@@ -157,33 +157,35 @@ export default function AdventurePage() {
                 </button>
               </div>
             </div>
-            {!lootBoxCollapsed && gameState.combatLootSlots.length > 0 ? (
-              <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-                {gameState.combatLootSlots.map((slot, idx) => {
-                  const meta = ITEMS[slot.item_type];
-                  return (
-                    <Tooltip key={`${slot.item_type}-${idx}`}>
-                      <TooltipTrigger>
-                        <div className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative">
-                          <span className="text-lg">{meta?.icon ?? "○"}</span>
-                          {slot.quantity > 1 && (
-                            <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">{slot.quantity}</span>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="block">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-heading text-sm">{meta ? (isZh ? meta.nameZh : meta.nameEn) : slot.item_type}</span>
-                          <span className="text-[11px] text-muted-foreground tabular-nums">×{slot.quantity}</span>
-                        </div>
-                        {meta?.hintZh && <p className="text-[11px] text-jade">{isZh ? meta.hintZh : meta.hintEn}</p>}
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
+            {!lootBoxCollapsed && (
+              gameState.combatLootSlots.length > 0 ? (
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5 mt-2">
+                  {gameState.combatLootSlots.map((slot, idx) => {
+                    const meta = ITEMS[slot.item_type];
+                    return (
+                      <Tooltip key={`${slot.item_type}-${idx}`}>
+                        <TooltipTrigger>
+                          <div className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative">
+                            <span className="text-lg">{meta?.icon ?? "○"}</span>
+                            {slot.quantity > 1 && (
+                              <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">{slot.quantity}</span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="block">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-heading text-sm">{meta ? (isZh ? meta.nameZh : meta.nameEn) : slot.item_type}</span>
+                            <span className="text-[11px] text-muted-foreground tabular-nums">×{slot.quantity}</span>
+                          </div>
+                          {meta?.hintZh && <p className="text-[11px] text-jade">{isZh ? meta.hintZh : meta.hintEn}</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-2">{isZh ? "空" : "Empty"}</p>
+              )
             )}
             {collectError && <p className="text-xs text-cinnabar mt-2">{collectError}</p>}
           </CardContent>

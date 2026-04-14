@@ -968,11 +968,19 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
           // Drops → loot box (per-kill slots)
           setCombatLootSlots((prev) => {
             const next = [...prev];
+            const isFull = next.length >= 100;
+            if (isFull) {
+              addNotification("📦", isZhNow ? "戰利品已滿" : "Loot box full", 0, "text-cinnabar");
+              return next;
+            }
             const killSlots: { item_type: string; quantity: number }[] = [];
             for (const drop of monster.drops) {
               const isEquip = hasTag(drop.item_type, "equipment");
               for (let i = 0; i < drop.quantity; i++) {
-                if (next.length + killSlots.length >= 100) break;
+                if (next.length + killSlots.length >= 100) {
+                  addNotification("📦", isZhNow ? "戰利品已滿" : "Loot box full", 0, "text-cinnabar");
+                  break;
+                }
                 if (isEquip) {
                   killSlots.push({ item_type: drop.item_type, quantity: 1 });
                 } else {
@@ -981,8 +989,12 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
                   else killSlots.push({ item_type: drop.item_type, quantity: 1 });
                 }
               }
-              const meta = ITEMS[drop.item_type];
-              if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
+            }
+            if (killSlots.length > 0) {
+              for (const drop of monster.drops) {
+                const meta = ITEMS[drop.item_type];
+                if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
+              }
             }
             next.push(...killSlots);
             saveCombatLoot(next);
