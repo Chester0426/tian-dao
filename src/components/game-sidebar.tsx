@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase";
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
 import { useState, useCallback } from "react";
-import { LanguageToggle } from "@/components/language-toggle";
 
 // NAV_SECTIONS moved inside component to use translations
 
@@ -22,7 +21,7 @@ export function GameSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const gameState = useGameState();
-  const { locale, t } = useI18n();
+  const { locale, setLocale, t } = useI18n();
 
   const NAV_SECTIONS = [
     { title: t("sidebar_items"), items: [
@@ -47,6 +46,13 @@ export function GameSidebar({
       ...((gameState.realm && gameState.realm !== "煉體") ? [
         { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing" },
       ] : []),
+    ]},
+    { title: locale === "zh" ? "系統" : "System", items: [
+      { name: locale === "zh" ? "回報與建議" : "Feedback", href: "/feedback", icon: "📮", key: "feedback" },
+      ...(isAdmin ? [{ name: locale === "zh" ? "回報管理" : "Manage Feedback", href: "/admin/feedback", icon: "🛡️", key: "admin-feedback" }] : []),
+      { name: t("sidebar_switchChar"), href: "/characters", icon: "🔄", key: "switch-char" },
+      { name: locale === "zh" ? "English" : "中文", href: "#lang", icon: "🌐", key: "lang-toggle" },
+      { name: t("sidebar_logout"), href: "#logout", icon: "🚪", key: "logout" },
     ]},
   ];
 
@@ -111,7 +117,22 @@ export function GameSidebar({
                   <Link
                     key={item.name}
                     href={item.href}
-                    onClick={onCloseAction}
+                    onClick={(e) => {
+                      if (item.key === "logout") {
+                        e.preventDefault();
+                        const supabase = createClient();
+                        supabase.auth.signOut().then(() => {
+                          document.cookie = "x-slot=; path=/; max-age=0";
+                          router.push("/login");
+                        });
+                      } else if (item.key === "lang-toggle") {
+                        e.preventDefault();
+                        setLocale(locale === "zh" ? "en" : "zh");
+                      } else if (item.key === "switch-char") {
+                        document.cookie = "x-slot=; path=/; max-age=0";
+                      }
+                      onCloseAction();
+                    }}
                     className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                       isActive
                         ? "bg-cinnabar-dim/50 text-cinnabar border border-cinnabar/20"
@@ -140,53 +161,9 @@ export function GameSidebar({
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="shrink-0 border-t border-border/30 px-3 py-3 space-y-1">
-        <Link
-          href="/feedback"
-          onClick={onCloseAction}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
-        >
-          <span className="text-base leading-none">📮</span>
-          <span>{locale === "zh" ? "回報與建議" : "Feedback"}</span>
-        </Link>
-        {isAdmin && (
-          <Link
-            href="/admin/feedback"
-            onClick={onCloseAction}
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
-          >
-            <span className="text-base leading-none">🛡️</span>
-            <span>{locale === "zh" ? "回報管理" : "Manage Feedback"}</span>
-          </Link>
-        )}
-        <Link
-          href="/characters"
-          onClick={() => {
-            document.cookie = "x-slot=; path=/; max-age=0";
-            onCloseAction();
-          }}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
-        >
-          <span className="text-base leading-none">🔄</span>
-          <span>{t("sidebar_switchChar")}</span>
-        </Link>
-        <button
-          onClick={async () => {
-            const supabase = createClient();
-            await supabase.auth.signOut();
-            document.cookie = "x-slot=; path=/; max-age=0";
-            router.push("/login");
-          }}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
-        >
-          <span className="text-base leading-none">🚪</span>
-          <span>{t("sidebar_logout")}</span>
-        </button>
-        <LanguageToggle variant="inline" />
-        <p className="px-3 pt-1 text-[10px] text-muted-foreground/40">
-          Tian Tao v0.1
-        </p>
+      {/* Version */}
+      <div className="shrink-0 px-3 py-2">
+        <p className="px-3 text-[10px] text-muted-foreground/40">Tian Tao v0.1</p>
       </div>
     </aside>
   );
