@@ -38,13 +38,36 @@ export default function AdventurePage() {
   const [killCount, setKillCount] = useState(0);
   const [showDrops, setShowDrops] = useState<string | null>(null);
   const [collapsedZones, setCollapsedZones] = useState<Record<string, boolean>>({});
-  // Loot box: array of slots. Equipment = 1 per slot. Regular items stack.
+  // Loot box: array of slots. Equipment = 1 per slot. Regular items stack. Persisted in DB.
   interface LootSlot { item_type: string; quantity: number }
   const [lootSlots, setLootSlots] = useState<LootSlot[]>([]);
+  const lootSlotsRef = useRef<LootSlot[]>([]);
+
+  // Load loot box from DB on mount
+  useEffect(() => {
+    fetch("/api/game/loot-box")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d?.loot_box && Array.isArray(d.loot_box)) {
+          setLootSlots(d.loot_box);
+          lootSlotsRef.current = d.loot_box;
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [collecting, setCollecting] = useState(false);
   const [collectError, setCollectError] = useState("");
 
   const LOOT_BOX_LIMIT = 100;
+
+  const saveLootBox = useCallback((slots: LootSlot[]) => {
+    lootSlotsRef.current = slots;
+    fetch("/api/game/loot-box", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loot_box: slots }),
+    }).catch(() => {});
+  }, []);
   const lootSlotCount = lootSlots.length;
 
   const logIdRef = useRef(0);
@@ -102,7 +125,7 @@ export default function AdventurePage() {
           );
           setKillCount((c) => c + 1);
           gameState.addNotification(monster.icon, isZh ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
-          // Drops go to loot box
+          // Drops go to loot box + save to DB
           setLootSlots((prev) => {
             const next = [...prev];
             for (const drop of monster.drops) {
@@ -113,10 +136,8 @@ export default function AdventurePage() {
                   break;
                 }
                 if (isEquip) {
-                  // Equipment: each piece occupies its own slot
                   next.push({ item_type: drop.item_type, quantity: 1 });
                 } else {
-                  // Regular item: stack in existing slot
                   const existing = next.find((s) => s.item_type === drop.item_type);
                   if (existing) {
                     existing.quantity += 1;
@@ -130,6 +151,7 @@ export default function AdventurePage() {
                 gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
               }
             }
+            saveLootBox(next);
             return next;
           });
           if (monster.bodyXp > 0) {
@@ -193,6 +215,7 @@ export default function AdventurePage() {
         return;
       }
       setLootSlots([]);
+      saveLootBox([]);
       addLog(isZh ? "戰利品已收取！" : "Loot collected!", "text-jade");
     } catch {
       setCollectError(isZh ? "收取失敗" : "Collection failed");
