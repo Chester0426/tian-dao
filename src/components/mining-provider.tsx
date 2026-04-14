@@ -66,6 +66,7 @@ export interface PendingOfflineRewards {
   drops: Record<string, number>;
   xp_gained: { mining: number; mastery: number; body: number; qi?: number };
   activity: string;
+  combat?: { kills: number; died: boolean };
 }
 
 export interface GameState {

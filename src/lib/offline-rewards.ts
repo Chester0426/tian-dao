@@ -4,6 +4,9 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { melvorXpForLevel, getMasteryDoubleDropChance } from "@/lib/types";
+import { COMBAT_ZONES } from "@/lib/combat";
+import { computeStats } from "@/lib/stats";
+import { hasTag } from "@/lib/items";
 
 const MAX_OFFLINE_HOURS = 12;
 const ACTION_INTERVAL_SECONDS = 3;
@@ -11,9 +14,10 @@ const ROCK_RESPAWN_SECONDS = 5;
 
 export interface OfflineRewardResult {
   minutes_away: number;
-  session_type: "mining" | "meditate";
+  session_type: "mining" | "meditate" | "combat";
   drops: { item_type: string; quantity: number }[];
   xp_gained: { mining: number; mastery: number; body: number; qi?: number };
+  combat?: { kills: number; died: boolean };
 }
 
 /**
@@ -29,7 +33,7 @@ export async function computeOfflineRewards(
   // Find the single session for this user+slot (UNIQUE constraint guarantees at most 1 row)
   const { data: session } = await supabase
     .from("idle_sessions")
-    .select("id, type, started_at, ended_at, mine_id, last_sync_at")
+    .select("id, type, started_at, ended_at, mine_id, last_sync_at, payload")
     .eq("user_id", userId).eq("slot", slot)
     .maybeSingle();
 
@@ -79,6 +83,105 @@ export async function computeOfflineRewards(
       session_type: "meditate",
       drops: [],
       xp_gained: { mining: 0, mastery: 0, body: 0, qi: qiGained },
+    };
+  }
+
+  // === Combat path ===
+  if (session.type === "combat") {
+    const payload = session.payload as { monster_id?: string } | null;
+    if (!payload?.monster_id) return null;
+
+    // Find monster
+    let monster = null;
+    for (const zone of COMBAT_ZONES) {
+      monster = zone.monsters.find((m) => m.id === payload.monster_id) ?? null;
+      if (monster) break;
+    }
+    if (!monster) return null;
+
+    // Get player stats
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("body_level, body_xp, equipment_sets, active_equipment_set, loot_box")
+      .eq("user_id", userId).eq("slot", slot)
+      .single();
+    if (!profile) return null;
+
+    const allSets = (profile.equipment_sets ?? { "1": {}, "2": {} }) as Record<string, Record<string, string>>;
+    const activeSet = profile.active_equipment_set ?? 1;
+    const equipment = allSets[String(activeSet)] ?? {};
+    const playerStats = computeStats({ bodyLevel: profile.body_level ?? 1, equipment });
+
+    // Simulate combat
+    const playerDmg = Math.max(1, playerStats.atk - monster.def);
+    const monsterDmg = Math.max(1, monster.atk - playerStats.def);
+    const hitsToKill = Math.ceil(monster.hp / playerDmg);
+    const timePerKill = hitsToKill * 3; // 3 seconds per attack
+    const damagePerKill = hitsToKill * monsterDmg;
+
+    let playerHp = playerStats.hp;
+    let totalKills = 0;
+    let timeUsed = 0;
+    let died = false;
+
+    while (timeUsed + timePerKill <= effectiveSeconds) {
+      playerHp -= damagePerKill;
+      if (playerHp <= 0) {
+        died = true;
+        break;
+      }
+      totalKills++;
+      timeUsed += timePerKill;
+    }
+
+    if (totalKills === 0 && !died) return null;
+
+    // Calculate rewards
+    const totalBodyXp = totalKills * monster.bodyXp;
+    const lootBox = (profile.loot_box ?? []) as { item_type: string; quantity: number }[];
+
+    // Add drops to loot box
+    for (let i = 0; i < totalKills; i++) {
+      for (const drop of monster.drops) {
+        const isEquip = hasTag(drop.item_type, "equipment");
+        if (isEquip) {
+          for (let j = 0; j < drop.quantity; j++) {
+            if (lootBox.length < 100) lootBox.push({ item_type: drop.item_type, quantity: 1 });
+          }
+        } else {
+          const existing = lootBox.find((s) => s.item_type === drop.item_type);
+          if (existing) {
+            existing.quantity += drop.quantity;
+          } else if (lootBox.length < 100) {
+            lootBox.push({ item_type: drop.item_type, quantity: drop.quantity });
+          }
+        }
+      }
+    }
+
+    // Apply to DB
+    await supabase
+      .from("profiles")
+      .update({
+        body_xp: (profile.body_xp ?? 0) + totalBodyXp,
+        loot_box: lootBox,
+      })
+      .eq("user_id", userId).eq("slot", slot);
+
+    // If died, end session
+    if (died) {
+      await supabase
+        .from("idle_sessions")
+        .update({ ended_at: new Date().toISOString() })
+        .eq("id", session.id);
+    }
+
+    return {
+      minutes_away: Math.floor(effectiveSeconds / 60),
+      session_type: "combat",
+      drops: monster.drops.map((d) => ({ item_type: d.item_type, quantity: d.quantity * totalKills })),
+      xp_gained: { mining: 0, mastery: 0, body: totalBodyXp },
+      combat: { kills: totalKills, died },
     };
   }
 

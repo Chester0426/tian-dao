@@ -111,6 +111,24 @@ export function GlobalGameUI() {
                   </p>
                 )}
 
+                {/* Combat info */}
+                {(pendingOfflineRewards as { combat?: { kills: number; died: boolean } }).combat && (
+                  <>
+                    <p className="text-base">
+                      {isZh ? "你擊殺了 " : "You killed "}
+                      <span className="font-bold text-cinnabar tabular-nums">
+                        {(pendingOfflineRewards as { combat: { kills: number } }).combat.kills}
+                      </span>
+                      {isZh ? " 隻怪物" : " monsters"}
+                    </p>
+                    {(pendingOfflineRewards as { combat: { died: boolean } }).combat.died && (
+                      <p className="text-sm text-cinnabar">
+                        {isZh ? "你在戰鬥中被擊敗了" : "You were defeated in combat"}
+                      </p>
+                    )}
+                  </>
+                )}
+
                 {/* Items */}
                 {Object.entries(pendingOfflineRewards.drops).map(([itemType, qty]) => {
                   const info = ITEM_INFO[itemType];

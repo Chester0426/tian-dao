@@ -95,6 +95,40 @@ export default function AdventurePage() {
     }).catch(() => {});
   }, []);
   const lootSlotCount = lootSlots.length;
+  const pendingCombatRef = useRef({ kills: 0, body_xp: 0, died: false });
+
+  // Combat heartbeat sync every 30s
+  useEffect(() => {
+    if (!isFighting) return;
+    const flush = () => {
+      const p = pendingCombatRef.current;
+      fetch("/api/game/combat/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kills: p.kills, body_xp: p.body_xp, loot_box: lootSlotsRef.current, player_died: p.died }),
+      }).catch(() => {});
+      pendingCombatRef.current = { kills: 0, body_xp: 0, died: false };
+    };
+    const timer = setInterval(flush, 30000);
+    return () => { flush(); clearInterval(timer); };
+  }, [isFighting]);
+
+  // beforeunload beacon for combat
+  useEffect(() => {
+    const handler = () => {
+      if (!isFighting) return;
+      const p = pendingCombatRef.current;
+      navigator.sendBeacon("/api/game/combat/sync", JSON.stringify({
+        kills: p.kills, body_xp: p.body_xp, loot_box: lootSlotsRef.current, player_died: p.died,
+      }));
+    };
+    window.addEventListener("beforeunload", handler);
+    window.addEventListener("pagehide", handler);
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      window.removeEventListener("pagehide", handler);
+    };
+  }, [isFighting]);
 
   const logIdRef = useRef(0);
   const playerTickRef = useRef(0);
@@ -183,6 +217,9 @@ export default function AdventurePage() {
           if (monster.bodyXp > 0) {
             gameState.addNotification("💪", isZh ? "煉體經驗" : "Body XP", monster.bodyXp, "text-spirit-gold");
           }
+          // Accumulate for batched sync
+          pendingCombatRef.current.kills += 1;
+          pendingCombatRef.current.body_xp += monster.bodyXp;
 
           monsterHpRef.current = monster.hp;
           setMonsterHp(monster.hp);
