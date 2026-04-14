@@ -156,6 +156,7 @@ export default function AdventurePage() {
           addLog(isZh ? "你被擊敗了！" : "You were defeated!", "text-cinnabar");
           setIsFighting(false);
           monsterRef.current = null;
+          // Keep panel visible for loot collection
           return;
         }
       }
@@ -244,11 +245,13 @@ export default function AdventurePage() {
         </header>
 
         {/* Combat view */}
-        {isFighting && selectedMonster && (
+        {/* Combat panel — always visible */}
+        {(
           <Card className="scroll-surface mb-6 overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-5 pb-5 space-y-4">
-              {/* Player vs Monster */}
+              {/* Player vs Monster — only when actively fighting */}
+              {isFighting && selectedMonster && (<>
               <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
                 {/* Player */}
                 <div className="text-center space-y-2">
@@ -322,7 +325,9 @@ export default function AdventurePage() {
                 )}
               </div>
 
-              {/* Loot box — grid of slots like inventory */}
+              </>)}
+
+              {/* Loot box */}
               <div className="rounded-lg border border-spirit-gold/30 bg-spirit-gold/5 px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
