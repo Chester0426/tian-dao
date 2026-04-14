@@ -28,6 +28,7 @@ export interface Profile {
   equipment?: Record<string, string>; // slot_id → item_type (legacy, use equipment_sets)
   equipment_sets?: Record<string, Record<string, string>>; // { "1": {...}, "2": {...} }
   active_equipment_set?: number;
+  loot_box?: { item_type: string; quantity: number }[];
   foundation_level: number; // 築基 level (0=not unlocked)
   foundation_xp: number;
   core_level: number; // 金丹 level (0=not unlocked)

@@ -92,6 +92,7 @@ export interface GameState {
   equipmentSets: Record<string, Record<string, string>>;
   activeEquipmentSet: number;
   bodyLevel: number;
+  lootBox: { item_type: string; quantity: number }[];
 }
 
 interface GameContextValue extends GameState {
@@ -150,6 +151,7 @@ interface ProviderProps {
     equipmentSets?: Record<string, Record<string, string>>;
     activeEquipmentSet?: number;
     bodyLevel?: number;
+    lootBox?: { item_type: string; quantity: number }[];
     qiArray?: (string | null)[];
     offlineRewards?: {
       minutes_away: number;
@@ -852,6 +854,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     equipmentSets: initialState?.equipmentSets ?? { "1": {}, "2": {} },
     activeEquipmentSet: initialState?.activeEquipmentSet ?? 1,
     bodyLevel: initialState?.bodyLevel ?? 1,
+    lootBox: initialState?.lootBox ?? [],
     startMining, stopMining, startMeditation, stopMeditation,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
     addNotification,

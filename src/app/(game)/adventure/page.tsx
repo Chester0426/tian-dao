@@ -44,18 +44,13 @@ export default function AdventurePage() {
   const [lootSlots, setLootSlots] = useState<LootSlot[]>([]);
   const lootSlotsRef = useRef<LootSlot[]>([]);
 
-  // Load loot box + resume combat from DB on mount
+  // Load loot box from SSR (via provider) + resume combat on mount
   useEffect(() => {
-    // Load loot box
-    fetch("/api/game/loot-box")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d?.loot_box && Array.isArray(d.loot_box)) {
-          setLootSlots(d.loot_box);
-          lootSlotsRef.current = d.loot_box;
-        }
-      })
-      .catch(() => {});
+    // Loot box from SSR — instant, no fetch
+    if (gameState.lootBox && gameState.lootBox.length > 0) {
+      setLootSlots(gameState.lootBox);
+      lootSlotsRef.current = gameState.lootBox;
+    }
 
     // Check if there's an active combat session to resume
     fetch("/api/game/profile-data")
@@ -188,23 +183,27 @@ export default function AdventurePage() {
           setKillCount((c) => c + 1);
           gameState.addNotification(monster.icon, isZh ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
           // Drops go to loot box + save to DB
+          // Each kill is a separate "battle" — drops from this kill get their own slots
+          // Only stack within the SAME kill's drops, not with previous kills
           setLootSlots((prev) => {
             const next = [...prev];
+            const thisKillSlots: { item_type: string; quantity: number }[] = [];
             for (const drop of monster.drops) {
               const isEquip = hasTag(drop.item_type, "equipment");
               for (let i = 0; i < drop.quantity; i++) {
-                if (next.length >= LOOT_BOX_LIMIT) {
+                if (next.length + thisKillSlots.length >= LOOT_BOX_LIMIT) {
                   addLog(isZh ? "戰利品箱已滿！" : "Loot box full!", "text-cinnabar");
                   break;
                 }
                 if (isEquip) {
-                  next.push({ item_type: drop.item_type, quantity: 1 });
+                  thisKillSlots.push({ item_type: drop.item_type, quantity: 1 });
                 } else {
-                  const existing = next.find((s) => s.item_type === drop.item_type);
+                  // Stack only within this kill's slots
+                  const existing = thisKillSlots.find((s) => s.item_type === drop.item_type);
                   if (existing) {
                     existing.quantity += 1;
                   } else {
-                    next.push({ item_type: drop.item_type, quantity: 1 });
+                    thisKillSlots.push({ item_type: drop.item_type, quantity: 1 });
                   }
                 }
               }
@@ -213,6 +212,7 @@ export default function AdventurePage() {
                 gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
               }
             }
+            next.push(...thisKillSlots);
             saveLootBox(next);
             return next;
           });

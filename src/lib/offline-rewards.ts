@@ -124,22 +124,26 @@ export async function computeOfflineRewards(
     const totalBodyXp = totalKills * monster.bodyXp;
     const lootBox = (profile.loot_box ?? []) as { item_type: string; quantity: number }[];
 
-    // Add drops to loot box
+    // Add drops to loot box — each kill gets its own slots (no cross-kill stacking)
     for (let i = 0; i < totalKills; i++) {
+      const killSlots: { item_type: string; quantity: number }[] = [];
       for (const drop of monster.drops) {
         const isEquip = hasTag(drop.item_type, "equipment");
-        if (isEquip) {
-          for (let j = 0; j < drop.quantity; j++) {
-            if (lootBox.length < 100) lootBox.push({ item_type: drop.item_type, quantity: 1 });
-          }
-        } else {
-          const existing = lootBox.find((s) => s.item_type === drop.item_type);
-          if (existing) {
-            existing.quantity += drop.quantity;
-          } else if (lootBox.length < 100) {
-            lootBox.push({ item_type: drop.item_type, quantity: drop.quantity });
+        for (let j = 0; j < drop.quantity; j++) {
+          if (isEquip) {
+            killSlots.push({ item_type: drop.item_type, quantity: 1 });
+          } else {
+            const existing = killSlots.find((s) => s.item_type === drop.item_type);
+            if (existing) {
+              existing.quantity += 1;
+            } else {
+              killSlots.push({ item_type: drop.item_type, quantity: 1 });
+            }
           }
         }
+      }
+      for (const ks of killSlots) {
+        if (lootBox.length < 100) lootBox.push(ks);
       }
     }
 

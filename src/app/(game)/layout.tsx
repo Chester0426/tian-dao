@@ -97,6 +97,7 @@ export default async function GameGroupLayout({
           activeEquipmentSet: profile?.active_equipment_set ?? 1,
           equipment: (profile?.equipment_sets ?? {})[String(profile?.active_equipment_set ?? 1)] ?? {},
           bodyLevel: profile?.body_level ?? 1,
+          lootBox: profile?.loot_box ?? [],
           offlineRewards: offlineRewardsInit,
           inventory,
           activeMine: activeMineData ? {
