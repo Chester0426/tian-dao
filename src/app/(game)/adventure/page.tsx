@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { useGameState } from "@/components/mining-provider";
 import { COMBAT_ZONES, type Monster } from "@/lib/combat";
 import { computeStats } from "@/lib/stats";
+import { PLAYER_ATTACK_INTERVAL, calcCombatRound } from "@/lib/combat-sim";
 import { ITEMS, hasTag } from "@/lib/items";
 
 interface CombatLog {
@@ -138,7 +139,7 @@ export default function AdventurePage() {
   const playerHpRef = useRef(playerStats.hp);
   const monsterHpRef = useRef(0);
 
-  const ATTACK_INTERVAL = 3000;
+  const ATTACK_INTERVAL = PLAYER_ATTACK_INTERVAL * 1000;
 
   const addLog = useCallback((text: string, color: string) => {
     const id = ++logIdRef.current;
@@ -167,9 +168,10 @@ export default function AdventurePage() {
       const mElapsed = now - monsterTickRef.current;
       setMonsterProgress(Math.min(mElapsed / (monster.attackSpeed * 1000), 1));
 
-      // Player attacks
+      // Player attacks — damage from shared combat-sim
       if (pElapsed >= ATTACK_INTERVAL) {
-        const dmg = Math.max(1, playerStats.atk - monster.def);
+        const round = calcCombatRound(playerStats, monster);
+        const dmg = round.playerDmg;
         monsterHpRef.current = Math.max(0, monsterHpRef.current - dmg);
         setMonsterHp(monsterHpRef.current);
         addLog(
@@ -228,9 +230,10 @@ export default function AdventurePage() {
         }
       }
 
-      // Monster attacks
+      // Monster attacks — damage from shared combat-sim
       if (mElapsed >= monster.attackSpeed * 1000) {
-        const dmg = Math.max(1, monster.atk - playerStats.def);
+        const mRound = calcCombatRound(playerStats, monster);
+        const dmg = mRound.monsterDmg;
         playerHpRef.current = Math.max(0, playerHpRef.current - dmg);
         setPlayerHp(playerHpRef.current);
         addLog(

@@ -7,6 +7,7 @@ import { melvorXpForLevel, getMasteryDoubleDropChance } from "@/lib/types";
 import { COMBAT_ZONES } from "@/lib/combat";
 import { computeStats } from "@/lib/stats";
 import { hasTag } from "@/lib/items";
+import { simulateCombat } from "@/lib/combat-sim";
 
 const MAX_OFFLINE_HOURS = 12;
 const ACTION_INTERVAL_SECONDS = 3;
@@ -112,31 +113,10 @@ export async function computeOfflineRewards(
     const equipment = allSets[String(activeSet)] ?? {};
     const playerStats = computeStats({ bodyLevel: profile.body_level ?? 1, equipment });
 
-    // Simulate combat — must match real-time logic in adventure/page.tsx
-    const PLAYER_ATTACK_INTERVAL = 3; // seconds
-    const playerDmg = Math.max(1, playerStats.atk - monster.def);
-    const monsterDmg = Math.max(1, monster.atk - playerStats.def);
-    const hitsToKill = Math.ceil(monster.hp / playerDmg);
-    const timePerKill = hitsToKill * PLAYER_ATTACK_INTERVAL;
-    // Monster attacks based on its own speed during the time it takes to kill it
-    // In real-time, player attacks first on simultaneous ticks → monster gets 1 fewer hit on kill round
-    const monsterHitsPerKill = Math.max(0, Math.ceil(timePerKill / monster.attackSpeed) - 1);
-    const damagePerKill = monsterHitsPerKill * monsterDmg;
-
-    let playerHp = playerStats.hp;
-    let totalKills = 0;
-    let timeUsed = 0;
-    let died = false;
-
-    while (timeUsed + timePerKill <= effectiveSeconds) {
-      playerHp -= damagePerKill;
-      if (playerHp <= 0) {
-        died = true;
-        break;
-      }
-      totalKills++;
-      timeUsed += timePerKill;
-    }
+    // Simulate combat — uses shared combat-sim.ts (single source of truth)
+    const sim = simulateCombat(playerStats, monster, effectiveSeconds);
+    const totalKills = sim.kills;
+    const died = sim.died;
 
     if (totalKills === 0 && !died) return null;
 
