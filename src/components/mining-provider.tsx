@@ -938,13 +938,20 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       const isZhNow = localeForMedRef.current === "zh";
 
       const pElapsed = now - combatPlayerTickRef.current;
-      setCombatPlayerProgress(Math.min(pElapsed / COMBAT_ATTACK_MS, 1));
-
       const mElapsed = now - combatMonsterTickRef.current;
-      setCombatMonsterProgress(Math.min(mElapsed / (monster.attackSpeed * 1000), 1));
+      const monsterAttackMs = monster.attackSpeed * 1000;
 
-      // Player attacks
-      if (pElapsed >= COMBAT_ATTACK_MS) {
+      // Player first-strike: if monster is about to attack and player is within 10ms, player goes first
+      const playerReady = pElapsed >= COMBAT_ATTACK_MS;
+      const playerAlmostReady = pElapsed >= COMBAT_ATTACK_MS - 10;
+      const monsterReady = mElapsed >= monsterAttackMs;
+      const forcePlayerFirst = !playerReady && playerAlmostReady && monsterReady;
+
+      setCombatPlayerProgress(Math.min(pElapsed / COMBAT_ATTACK_MS, 1));
+      setCombatMonsterProgress(Math.min(mElapsed / monsterAttackMs, 1));
+
+      // Player attacks (includes first-strike within 10ms)
+      if (playerReady || forcePlayerFirst) {
         monsterHpRef2.current = Math.max(0, monsterHpRef2.current - round.playerDmg);
         setMonsterHp(monsterHpRef2.current);
         addCombatLog(
