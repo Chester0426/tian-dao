@@ -234,6 +234,7 @@ export default function AdventurePage() {
   };
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <header className="mb-6">
@@ -355,7 +356,6 @@ export default function AdventurePage() {
               </Button>
             </div>
             {lootSlots.length > 0 ? (
-              <TooltipProvider>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
                 {lootSlots.map((slot, idx) => {
                   const meta = ITEMS[slot.item_type];
@@ -382,7 +382,6 @@ export default function AdventurePage() {
                   );
                 })}
               </div>
-              </TooltipProvider>
             ) : (
               <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
             )}
@@ -501,5 +500,6 @@ export default function AdventurePage() {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
