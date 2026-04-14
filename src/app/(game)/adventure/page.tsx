@@ -483,7 +483,7 @@ export default function AdventurePage() {
         </Card>
 
         {/* Zone cards — 3 per row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
         {COMBAT_ZONES.map((zone) => (
           <Card key={zone.id} className="scroll-surface overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
