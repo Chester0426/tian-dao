@@ -31,8 +31,8 @@ export const COMBAT_ZONES: CombatZone[] = [
     nameEn: "Archway",
     descZh: "城鎮入口的牌坊\n常有醉漢和流氓出沒",
     descEn: "The town entrance archway\nFrequented by drunkards and thugs",
-    realmZh: "煉體期 1-5 級",
-    realmEn: "Body Refining Lv.1-5",
+    realmZh: "煉體期",
+    realmEn: "Body Refining",
     monsters: [
       {
         id: "drunkard",
@@ -66,8 +66,8 @@ export const COMBAT_ZONES: CombatZone[] = [
     nameEn: "Imperial Road",
     descZh: "連接城鎮的官道\n途中常有劫匪出沒",
     descEn: "The imperial road between towns\nBandits lurk along the way",
-    realmZh: "煉體期 3-7 級",
-    realmEn: "Body Refining Lv.3-7",
+    realmZh: "煉體期",
+    realmEn: "Body Refining",
     monsters: [
       {
         id: "bandit",
@@ -101,8 +101,8 @@ export const COMBAT_ZONES: CombatZone[] = [
     nameEn: "Mountain Camp",
     descZh: "盤踞山頭的賊窩\n實力不容小覷",
     descEn: "A bandit stronghold in the mountains\nNot to be underestimated",
-    realmZh: "煉體期 5-9 級",
-    realmEn: "Body Refining Lv.5-9",
+    realmZh: "煉體期",
+    realmEn: "Body Refining",
     monsters: [
       {
         id: "mountain-bandit",

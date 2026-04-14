@@ -36,6 +36,7 @@ export default function AdventurePage() {
   const [monsterProgress, setMonsterProgress] = useState(0);
   const [killCount, setKillCount] = useState(0);
   const [showDrops, setShowDrops] = useState<string | null>(null);
+  const [collapsedZones, setCollapsedZones] = useState<Record<string, boolean>>({});
   // Loot box: array of slots. Equipment = 1 per slot. Regular items stack.
   interface LootSlot { item_type: string; quantity: number }
   const [lootSlots, setLootSlots] = useState<LootSlot[]>([]);
@@ -327,58 +328,63 @@ export default function AdventurePage() {
 
               </>)}
 
-              {/* Loot box */}
-              <div className="rounded-lg border border-spirit-gold/30 bg-spirit-gold/5 px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">📦</span>
-                    <span className="font-heading text-sm text-spirit-gold">{isZh ? "戰利品箱" : "Loot Box"}</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{lootSlotCount}/{LOOT_BOX_LIMIT}</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={collectLoot}
-                    disabled={lootSlots.length === 0 || collecting}
-                    className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
-                  >
-                    {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
+              {isFighting && (
+                <div className="flex justify-center">
+                  <Button onClick={stopFight} className="bg-cinnabar hover:bg-cinnabar/90 text-white font-heading px-8">
+                    {isZh ? "撤退" : "Retreat"}
                   </Button>
                 </div>
-                {lootSlots.length > 0 ? (
-                  <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-                    {lootSlots.map((slot, idx) => {
-                      const meta = ITEMS[slot.item_type];
-                      return (
-                        <div
-                          key={`${slot.item_type}-${idx}`}
-                          className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative"
-                        >
-                          <span className="text-lg">{meta?.icon ?? "○"}</span>
-                          {slot.quantity > 1 && (
-                            <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">
-                              {slot.quantity}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
-                )}
-                {collectError && (
-                  <p className="text-xs text-cinnabar mt-2">{collectError}</p>
-                )}
-              </div>
-
-              <div className="flex justify-center">
-                <Button onClick={stopFight} className="bg-cinnabar hover:bg-cinnabar/90 text-white font-heading px-8">
-                  {isZh ? "撤退" : "Retreat"}
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
         )}
+
+        {/* Loot box — separate card */}
+        <Card className="scroll-surface mb-6 overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📦</span>
+                <span className="font-heading text-base font-bold text-spirit-gold">{isZh ? "戰利品箱" : "Loot Box"}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{lootSlotCount}/{LOOT_BOX_LIMIT}</span>
+              </div>
+              <Button
+                size="sm"
+                onClick={collectLoot}
+                disabled={lootSlots.length === 0 || collecting}
+                className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
+              >
+                {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
+              </Button>
+            </div>
+            {lootSlots.length > 0 ? (
+              <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
+                {lootSlots.map((slot, idx) => {
+                  const meta = ITEMS[slot.item_type];
+                  return (
+                    <div
+                      key={`${slot.item_type}-${idx}`}
+                      className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative"
+                    >
+                      <span className="text-lg">{meta?.icon ?? "○"}</span>
+                      {slot.quantity > 1 && (
+                        <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">
+                          {slot.quantity}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
+            )}
+            {collectError && (
+              <p className="text-xs text-cinnabar mt-2">{collectError}</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Zone cards — 3 per row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -386,8 +392,12 @@ export default function AdventurePage() {
           <Card key={zone.id} className="scroll-surface overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-5 pb-5">
-              {/* Zone header */}
-              <div className="flex items-center gap-4 mb-4">
+              {/* Zone header — click to toggle */}
+              <button
+                type="button"
+                onClick={() => setCollapsedZones((prev) => ({ ...prev, [zone.id]: !prev[zone.id] }))}
+                className="w-full flex items-center gap-4 text-left hover:opacity-80 transition-opacity"
+              >
                 <div className="text-4xl">🏛️</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -396,9 +406,13 @@ export default function AdventurePage() {
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-line">{isZh ? zone.descZh : zone.descEn}</p>
                 </div>
-              </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-muted-foreground/50 shrink-0 transition-transform ${collapsedZones[zone.id] ? "-rotate-90" : ""}`}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
 
-              <Separator className="mb-3" />
+              {!collapsedZones[zone.id] && (<>
+              <Separator className="mt-4 mb-3" />
 
               {/* Table header */}
               <div className="grid grid-cols-[60px_1fr_auto] gap-3 px-2 mb-2">
@@ -474,6 +488,7 @@ export default function AdventurePage() {
                   </div>
                 ))}
               </div>
+              </>)}
             </CardContent>
           </Card>
         ))}
