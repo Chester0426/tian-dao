@@ -246,8 +246,8 @@ export default function AdventurePage() {
         </header>
 
         {/* Combat view */}
-        {/* Combat panel — always visible */}
-        {(
+        {/* Combat panel — only when fighting */}
+        {isFighting && selectedMonster && (
           <Card className="scroll-surface mb-6 overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-5 pb-5 space-y-4">
