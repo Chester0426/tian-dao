@@ -256,9 +256,10 @@ export default function AdventurePage() {
           </Card>
         )}
 
-        {/* Zone cards — Melvor-style list */}
+        {/* Zone cards — 3 per row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {COMBAT_ZONES.map((zone) => (
-          <Card key={zone.id} className="scroll-surface mb-6 overflow-hidden">
+          <Card key={zone.id} className="scroll-surface overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-5 pb-5">
               {/* Zone header */}
@@ -352,6 +353,7 @@ export default function AdventurePage() {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     </div>
   );
