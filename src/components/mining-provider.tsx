@@ -2,6 +2,10 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { getMasteryDoubleDropChance, melvorXpForLevel, bodyXpForStage, spiritStoneBonus } from "@/lib/types";
+import { COMBAT_ZONES, type Monster } from "@/lib/combat";
+import { PLAYER_ATTACK_INTERVAL, calcCombatRound } from "@/lib/combat-sim";
+import { ITEMS, hasTag } from "@/lib/items";
+import { computeStats } from "@/lib/stats";
 import type { InventoryItem } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 
@@ -93,6 +97,17 @@ export interface GameState {
   activeEquipmentSet: number;
   bodyLevel: number;
   lootBox: { item_type: string; quantity: number }[];
+  // Combat
+  isCombating: boolean;
+  combatMonster: Monster | null;
+  playerHp: number;
+  playerMaxHp: number;
+  monsterHp: number;
+  combatPlayerProgress: number;
+  combatMonsterProgress: number;
+  combatKillCount: number;
+  combatLogs: { id: number; text: string; color: string }[];
+  combatLootSlots: { item_type: string; quantity: number }[];
 }
 
 interface GameContextValue extends GameState {
@@ -100,6 +115,9 @@ interface GameContextValue extends GameState {
   stopMining: () => void;
   startMeditation: () => void;
   stopMeditation: () => void;
+  startCombat: (monster: Monster) => void;
+  stopCombat: () => void;
+  collectCombatLoot: () => Promise<{ ok: boolean; error?: string }>;
   updateQiArray: (next: (string | null)[]) => void;
   addNotification: (icon: string, label: string, amount: number, color: string, total?: number) => void;
   dismissOfflineRewards: () => void;
@@ -842,6 +860,278 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }).catch(() => {});
   }, [syncMeditation]);
 
+  // --- Combat state (provider-level, survives page navigation) ---
+  const [isCombating, setIsCombating] = useState(false);
+  const [combatMonster, setCombatMonster] = useState<Monster | null>(null);
+  const [playerHp, setPlayerHp] = useState(0);
+  const [monsterHp, setMonsterHp] = useState(0);
+  const [combatPlayerProgress, setCombatPlayerProgress] = useState(0);
+  const [combatMonsterProgress, setCombatMonsterProgress] = useState(0);
+  const [combatKillCount, setCombatKillCount] = useState(0);
+  const [combatLogs, setCombatLogs] = useState<{ id: number; text: string; color: string }[]>([]);
+  const [combatLootSlots, setCombatLootSlots] = useState<{ item_type: string; quantity: number }[]>(initialState?.lootBox ?? []);
+
+  const combatMonsterRef = useRef<Monster | null>(null);
+  const playerHpRef2 = useRef(0);
+  const monsterHpRef2 = useRef(0);
+  const combatPlayerTickRef = useRef(0);
+  const combatMonsterTickRef = useRef(0);
+  const combatRafRef = useRef<number | null>(null);
+  const combatLogIdRef = useRef(0);
+  const combatPendingRef = useRef({ kills: 0, body_xp: 0 });
+  const combatLootRef = useRef<{ item_type: string; quantity: number }[]>(initialState?.lootBox ?? []);
+  const isCombatingRef = useRef(false);
+  isCombatingRef.current = isCombating;
+
+  const COMBAT_ATTACK_MS = PLAYER_ATTACK_INTERVAL * 1000;
+
+  const addCombatLog = useCallback((text: string, color: string) => {
+    const id = ++combatLogIdRef.current;
+    setCombatLogs((prev) => [...prev.slice(-8), { id, text, color }]);
+  }, []);
+
+  const saveCombatLoot = useCallback((slots: { item_type: string; quantity: number }[]) => {
+    combatLootRef.current = slots;
+    fetch("/api/game/loot-box", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loot_box: slots }),
+    }).catch(() => {});
+  }, []);
+
+  const syncCombat = useCallback(() => {
+    const p = combatPendingRef.current;
+    if (p.kills <= 0 && p.body_xp <= 0) return;
+    const toSync = { ...p };
+    combatPendingRef.current = { kills: 0, body_xp: 0 };
+    fetch("/api/game/combat/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kills: toSync.kills, body_xp: toSync.body_xp, loot_box: combatLootRef.current, player_died: false }),
+    }).catch(() => {
+      combatPendingRef.current.kills += toSync.kills;
+      combatPendingRef.current.body_xp += toSync.body_xp;
+    });
+  }, []);
+
+  // Combat RAF loop
+  useEffect(() => {
+    if (!isCombating || !combatMonsterRef.current) {
+      if (combatRafRef.current) cancelAnimationFrame(combatRafRef.current);
+      setCombatPlayerProgress(0);
+      setCombatMonsterProgress(0);
+      return;
+    }
+    combatPlayerTickRef.current = Date.now();
+    combatMonsterTickRef.current = Date.now();
+
+    const loop = () => {
+      const now = Date.now();
+      const monster = combatMonsterRef.current!;
+      const round = calcCombatRound(
+        computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }),
+        monster
+      );
+      const isZhNow = localeForMedRef.current === "zh";
+
+      const pElapsed = now - combatPlayerTickRef.current;
+      setCombatPlayerProgress(Math.min(pElapsed / COMBAT_ATTACK_MS, 1));
+
+      const mElapsed = now - combatMonsterTickRef.current;
+      setCombatMonsterProgress(Math.min(mElapsed / (monster.attackSpeed * 1000), 1));
+
+      // Player attacks
+      if (pElapsed >= COMBAT_ATTACK_MS) {
+        monsterHpRef2.current = Math.max(0, monsterHpRef2.current - round.playerDmg);
+        setMonsterHp(monsterHpRef2.current);
+        addCombatLog(
+          isZhNow ? `你對${monster.nameZh}造成 ${round.playerDmg} 點傷害` : `You deal ${round.playerDmg} to ${monster.nameEn}`,
+          "text-spirit-gold"
+        );
+        combatPlayerTickRef.current = now;
+
+        if (monsterHpRef2.current <= 0) {
+          addCombatLog(isZhNow ? `${monster.nameZh}被擊敗！` : `${monster.nameEn} defeated!`, "text-jade");
+          setCombatKillCount((c) => c + 1);
+          addNotification(monster.icon, isZhNow ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
+
+          // Drops → loot box (per-kill slots)
+          setCombatLootSlots((prev) => {
+            const next = [...prev];
+            const killSlots: { item_type: string; quantity: number }[] = [];
+            for (const drop of monster.drops) {
+              const isEquip = hasTag(drop.item_type, "equipment");
+              for (let i = 0; i < drop.quantity; i++) {
+                if (next.length + killSlots.length >= 100) break;
+                if (isEquip) {
+                  killSlots.push({ item_type: drop.item_type, quantity: 1 });
+                } else {
+                  const existing = killSlots.find((s) => s.item_type === drop.item_type);
+                  if (existing) existing.quantity += 1;
+                  else killSlots.push({ item_type: drop.item_type, quantity: 1 });
+                }
+              }
+              const meta = ITEMS[drop.item_type];
+              if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
+            }
+            next.push(...killSlots);
+            saveCombatLoot(next);
+            return next;
+          });
+
+          if (monster.bodyXp > 0) {
+            addNotification("💪", isZhNow ? "煉體經驗" : "Body XP", monster.bodyXp, "text-spirit-gold");
+          }
+          combatPendingRef.current.kills += 1;
+          combatPendingRef.current.body_xp += monster.bodyXp;
+
+          // Respawn
+          monsterHpRef2.current = monster.hp;
+          setMonsterHp(monster.hp);
+          combatPlayerTickRef.current = now;
+          combatMonsterTickRef.current = now;
+        }
+      }
+
+      // Monster attacks
+      if (mElapsed >= monster.attackSpeed * 1000) {
+        playerHpRef2.current = Math.max(0, playerHpRef2.current - round.monsterDmg);
+        setPlayerHp(playerHpRef2.current);
+        addCombatLog(
+          isZhNow ? `${monster.nameZh}對你造成 ${round.monsterDmg} 點傷害` : `${monster.nameEn} deals ${round.monsterDmg} to you`,
+          "text-cinnabar"
+        );
+        combatMonsterTickRef.current = now;
+
+        if (playerHpRef2.current <= 0) {
+          addCombatLog(isZhNow ? "你被擊敗了！" : "You were defeated!", "text-cinnabar");
+          setIsCombating(false);
+          combatMonsterRef.current = null;
+          syncCombat();
+          fetch("/api/game/stop-activity", { method: "POST", keepalive: true }).catch(() => {});
+          return;
+        }
+      }
+
+      combatRafRef.current = requestAnimationFrame(loop);
+    };
+    combatRafRef.current = requestAnimationFrame(loop);
+    return () => { if (combatRafRef.current) cancelAnimationFrame(combatRafRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCombating]);
+
+  // Combat sync every 30s
+  useEffect(() => {
+    if (!isCombating) { syncCombat(); return; }
+    const timer = setInterval(syncCombat, 30000);
+    return () => { syncCombat(); clearInterval(timer); };
+  }, [isCombating, syncCombat]);
+
+  // Combat beforeunload
+  useEffect(() => {
+    const handler = () => {
+      if (!isCombatingRef.current) return;
+      const p = combatPendingRef.current;
+      if (p.kills > 0 || p.body_xp > 0) {
+        navigator.sendBeacon("/api/game/combat/sync", JSON.stringify({
+          kills: p.kills, body_xp: p.body_xp, loot_box: combatLootRef.current, player_died: false,
+        }));
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    window.addEventListener("pagehide", handler);
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      window.removeEventListener("pagehide", handler);
+    };
+  }, []);
+
+  // Resume combat from active session on mount
+  useEffect(() => {
+    if (initialState?.lootBox && initialState.lootBox.length > 0) {
+      setCombatLootSlots(initialState.lootBox);
+      combatLootRef.current = initialState.lootBox;
+    }
+    // Check for active combat session
+    fetch("/api/game/profile-data")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d?.active_session?.type === "combat" && d.active_session.payload?.monster_id) {
+          const monsterId = d.active_session.payload.monster_id;
+          for (const zone of COMBAT_ZONES) {
+            const monster = zone.monsters.find((m) => m.id === monsterId);
+            if (monster) {
+              const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} });
+              setCombatMonster(monster);
+              combatMonsterRef.current = monster;
+              monsterHpRef2.current = monster.hp;
+              playerHpRef2.current = stats.hp;
+              setMonsterHp(monster.hp);
+              setPlayerHp(stats.hp);
+              setIsCombating(true);
+              break;
+            }
+          }
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startCombat = useCallback((monster: Monster) => {
+    // Stop other activities
+    if (isMiningRef.current) { syncToServer(); setIsMining(false); setActiveMineId(null); activeMineRef.current = null; setActionProgress(0); }
+    if (isMeditatingRef.current) { syncMeditation(); setIsMeditating(false); }
+
+    const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} });
+    setCombatMonster(monster);
+    combatMonsterRef.current = monster;
+    monsterHpRef2.current = monster.hp;
+    playerHpRef2.current = stats.hp;
+    setMonsterHp(monster.hp);
+    setPlayerHp(stats.hp);
+    setCombatLogs([]);
+    setCombatKillCount(0);
+    setIsCombating(true);
+
+    fetch("/api/game/start-activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "combat", requested_at: Date.now(), target: { monster_id: monster.id } }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [syncToServer, syncMeditation, initialState]);
+
+  const stopCombat = useCallback(() => {
+    syncCombat();
+    setIsCombating(false);
+    combatMonsterRef.current = null;
+    setCombatMonster(null);
+    fetch("/api/game/stop-activity", { method: "POST", keepalive: true }).catch(() => {});
+  }, [syncCombat]);
+
+  const collectCombatLoot = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    if (combatLootRef.current.length === 0) return { ok: true };
+    const aggregated: Record<string, number> = {};
+    for (const slot of combatLootRef.current) {
+      aggregated[slot.item_type] = (aggregated[slot.item_type] ?? 0) + slot.quantity;
+    }
+    try {
+      const res = await fetch("/api/game/collect-loot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: aggregated }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { ok: false, error: data.error ?? "Failed" };
+      setCombatLootSlots([]);
+      saveCombatLoot([]);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Network error" };
+    }
+  }, [saveCombatLoot]);
+
   // --- Context value ---
   const value: GameContextValue = {
     isMining, activeMineId, actionProgress,
@@ -855,7 +1145,10 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     activeEquipmentSet: initialState?.activeEquipmentSet ?? 1,
     bodyLevel: initialState?.bodyLevel ?? 1,
     lootBox: initialState?.lootBox ?? [],
+    isCombating, combatMonster, playerHp, playerMaxHp: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp,
+    monsterHp, combatPlayerProgress, combatMonsterProgress, combatKillCount, combatLogs, combatLootSlots,
     startMining, stopMining, startMeditation, stopMeditation,
+    startCombat, stopCombat, collectCombatLoot,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
     addNotification,
     dismissOfflineRewards,

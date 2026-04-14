@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,318 +8,25 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { useGameState } from "@/components/mining-provider";
-import { COMBAT_ZONES, type Monster } from "@/lib/combat";
-import { computeStats } from "@/lib/stats";
-import { PLAYER_ATTACK_INTERVAL, calcCombatRound } from "@/lib/combat-sim";
-import { ITEMS, hasTag } from "@/lib/items";
-
-interface CombatLog {
-  id: number;
-  text: string;
-  color: string;
-}
+import { COMBAT_ZONES } from "@/lib/combat";
+import { ITEMS } from "@/lib/items";
 
 export default function AdventurePage() {
   const { locale } = useI18n();
   const isZh = locale === "zh";
   const gameState = useGameState();
 
-  const playerStats = computeStats({
-    bodyLevel: gameState.bodyLevel ?? 1,
-    equipment: gameState.equipment ?? {},
-  });
-
-  const [selectedMonster, setSelectedMonster] = useState<Monster | null>(null);
-  const [isFighting, setIsFighting] = useState(false);
-  const [playerHp, setPlayerHp] = useState(playerStats.hp);
-  const [monsterHp, setMonsterHp] = useState(0);
-  const [logs, setLogs] = useState<CombatLog[]>([]);
-  const [playerProgress, setPlayerProgress] = useState(0);
-  const [monsterProgress, setMonsterProgress] = useState(0);
-  const [killCount, setKillCount] = useState(0);
   const [showDrops, setShowDrops] = useState<string | null>(null);
   const [collapsedZones, setCollapsedZones] = useState<Record<string, boolean>>({});
-  // Loot box: array of slots. Equipment = 1 per slot. Regular items stack. Persisted in DB.
-  interface LootSlot { item_type: string; quantity: number }
-  const [lootSlots, setLootSlots] = useState<LootSlot[]>([]);
-  const lootSlotsRef = useRef<LootSlot[]>([]);
-
-  // Load loot box from SSR (via provider) + resume combat on mount
-  useEffect(() => {
-    // Loot box from SSR — instant, no fetch
-    if (gameState.lootBox && gameState.lootBox.length > 0) {
-      setLootSlots(gameState.lootBox);
-      lootSlotsRef.current = gameState.lootBox;
-    }
-
-    // Check if there's an active combat session to resume
-    fetch("/api/game/profile-data")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d?.active_session?.type === "combat" && d.active_session.payload?.monster_id) {
-          const monsterId = d.active_session.payload.monster_id;
-          // Find the monster in combat zones
-          for (const zone of COMBAT_ZONES) {
-            const monster = zone.monsters.find((m) => m.id === monsterId);
-            if (monster) {
-              setSelectedMonster(monster);
-              monsterRef.current = monster;
-              monsterHpRef.current = monster.hp;
-              playerHpRef.current = playerStats.hp;
-              setMonsterHp(monster.hp);
-              setPlayerHp(playerStats.hp);
-              setIsFighting(true);
-              break;
-            }
-          }
-        }
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const [collecting, setCollecting] = useState(false);
   const [collectError, setCollectError] = useState("");
+  const [collecting, setCollecting] = useState(false);
 
-  const LOOT_BOX_LIMIT = 100;
-
-  const saveLootBox = useCallback((slots: LootSlot[]) => {
-    lootSlotsRef.current = slots;
-    fetch("/api/game/loot-box", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ loot_box: slots }),
-    }).catch(() => {});
-  }, []);
-  const lootSlotCount = lootSlots.length;
-  const pendingCombatRef = useRef({ kills: 0, body_xp: 0, died: false });
-
-  // Combat heartbeat sync every 30s
-  useEffect(() => {
-    if (!isFighting) return;
-    const flush = () => {
-      const p = pendingCombatRef.current;
-      fetch("/api/game/combat/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kills: p.kills, body_xp: p.body_xp, loot_box: lootSlotsRef.current, player_died: p.died }),
-      }).catch(() => {});
-      pendingCombatRef.current = { kills: 0, body_xp: 0, died: false };
-    };
-    const timer = setInterval(flush, 30000);
-    return () => { flush(); clearInterval(timer); };
-  }, [isFighting]);
-
-  // beforeunload beacon for combat
-  useEffect(() => {
-    const handler = () => {
-      if (!isFighting) return;
-      const p = pendingCombatRef.current;
-      navigator.sendBeacon("/api/game/combat/sync", JSON.stringify({
-        kills: p.kills, body_xp: p.body_xp, loot_box: lootSlotsRef.current, player_died: p.died,
-      }));
-    };
-    window.addEventListener("beforeunload", handler);
-    window.addEventListener("pagehide", handler);
-    return () => {
-      window.removeEventListener("beforeunload", handler);
-      window.removeEventListener("pagehide", handler);
-    };
-  }, [isFighting]);
-
-  const logIdRef = useRef(0);
-  const playerTickRef = useRef(0);
-  const monsterTickRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-  const monsterRef = useRef<Monster | null>(null);
-  const playerHpRef = useRef(playerStats.hp);
-  const monsterHpRef = useRef(0);
-
-  const ATTACK_INTERVAL = PLAYER_ATTACK_INTERVAL * 1000;
-
-  const addLog = useCallback((text: string, color: string) => {
-    const id = ++logIdRef.current;
-    setLogs((prev) => [...prev.slice(-6), { id, text, color }]);
-  }, []);
-
-  // Combat loop
-  useEffect(() => {
-    if (!isFighting || !monsterRef.current) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      setPlayerProgress(0);
-      setMonsterProgress(0);
-      return;
-    }
-
-    playerTickRef.current = Date.now();
-    monsterTickRef.current = Date.now();
-
-    const loop = () => {
-      const now = Date.now();
-      const monster = monsterRef.current!;
-
-      const pElapsed = now - playerTickRef.current;
-      setPlayerProgress(Math.min(pElapsed / ATTACK_INTERVAL, 1));
-
-      const mElapsed = now - monsterTickRef.current;
-      setMonsterProgress(Math.min(mElapsed / (monster.attackSpeed * 1000), 1));
-
-      // Player attacks — damage from shared combat-sim
-      if (pElapsed >= ATTACK_INTERVAL) {
-        const round = calcCombatRound(playerStats, monster);
-        const dmg = round.playerDmg;
-        monsterHpRef.current = Math.max(0, monsterHpRef.current - dmg);
-        setMonsterHp(monsterHpRef.current);
-        addLog(
-          isZh ? `你對${monster.nameZh}造成 ${dmg} 點傷害` : `You deal ${dmg} to ${monster.nameEn}`,
-          "text-spirit-gold"
-        );
-        playerTickRef.current = now;
-
-        if (monsterHpRef.current <= 0) {
-          addLog(
-            isZh ? `${monster.nameZh}被擊敗！` : `${monster.nameEn} defeated!`,
-            "text-jade"
-          );
-          setKillCount((c) => c + 1);
-          gameState.addNotification(monster.icon, isZh ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
-          // Drops go to loot box + save to DB
-          // Each kill is a separate "battle" — drops from this kill get their own slots
-          // Only stack within the SAME kill's drops, not with previous kills
-          setLootSlots((prev) => {
-            const next = [...prev];
-            const thisKillSlots: { item_type: string; quantity: number }[] = [];
-            for (const drop of monster.drops) {
-              const isEquip = hasTag(drop.item_type, "equipment");
-              for (let i = 0; i < drop.quantity; i++) {
-                if (next.length + thisKillSlots.length >= LOOT_BOX_LIMIT) {
-                  addLog(isZh ? "戰利品箱已滿！" : "Loot box full!", "text-cinnabar");
-                  break;
-                }
-                if (isEquip) {
-                  thisKillSlots.push({ item_type: drop.item_type, quantity: 1 });
-                } else {
-                  // Stack only within this kill's slots
-                  const existing = thisKillSlots.find((s) => s.item_type === drop.item_type);
-                  if (existing) {
-                    existing.quantity += 1;
-                  } else {
-                    thisKillSlots.push({ item_type: drop.item_type, quantity: 1 });
-                  }
-                }
-              }
-              const meta = ITEMS[drop.item_type];
-              if (meta) {
-                gameState.addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
-              }
-            }
-            next.push(...thisKillSlots);
-            saveLootBox(next);
-            return next;
-          });
-          if (monster.bodyXp > 0) {
-            gameState.addNotification("💪", isZh ? "煉體經驗" : "Body XP", monster.bodyXp, "text-spirit-gold");
-          }
-          // Accumulate for batched sync
-          pendingCombatRef.current.kills += 1;
-          pendingCombatRef.current.body_xp += monster.bodyXp;
-
-          monsterHpRef.current = monster.hp;
-          setMonsterHp(monster.hp);
-          playerTickRef.current = now;
-          monsterTickRef.current = now;
-        }
-      }
-
-      // Monster attacks — damage from shared combat-sim
-      if (mElapsed >= monster.attackSpeed * 1000) {
-        const mRound = calcCombatRound(playerStats, monster);
-        const dmg = mRound.monsterDmg;
-        playerHpRef.current = Math.max(0, playerHpRef.current - dmg);
-        setPlayerHp(playerHpRef.current);
-        addLog(
-          isZh ? `${monster.nameZh}對你造成 ${dmg} 點傷害` : `${monster.nameEn} deals ${dmg} to you`,
-          "text-cinnabar"
-        );
-        monsterTickRef.current = now;
-
-        if (playerHpRef.current <= 0) {
-          addLog(isZh ? "你被擊敗了！" : "You were defeated!", "text-cinnabar");
-          setIsFighting(false);
-          monsterRef.current = null;
-          // Keep panel visible for loot collection
-          return;
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(loop);
-    };
-
-    rafRef.current = requestAnimationFrame(loop);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFighting]);
-
-  const collectLoot = async () => {
-    if (lootSlots.length === 0) return;
-    setCollectError("");
+  const handleCollect = async () => {
     setCollecting(true);
-    // Aggregate slots into { item_type: total_quantity }
-    const aggregated: Record<string, number> = {};
-    for (const slot of lootSlots) {
-      aggregated[slot.item_type] = (aggregated[slot.item_type] ?? 0) + slot.quantity;
-    }
-    try {
-      const res = await fetch("/api/game/collect-loot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: aggregated }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setCollectError(isZh ? (data.error ?? "收取失敗") : (data.error_en ?? data.error ?? "Failed"));
-        setCollecting(false);
-        return;
-      }
-      setLootSlots([]);
-      saveLootBox([]);
-      addLog(isZh ? "戰利品已收取！" : "Loot collected!", "text-jade");
-    } catch {
-      setCollectError(isZh ? "收取失敗" : "Collection failed");
-    }
+    setCollectError("");
+    const result = await gameState.collectCombatLoot();
+    if (!result.ok) setCollectError(isZh ? (result.error ?? "收取失敗") : (result.error ?? "Failed"));
     setCollecting(false);
-  };
-
-  const startFight = (monster: Monster) => {
-    // Stop other activities
-    if (gameState.isMining) gameState.stopMining();
-    if (gameState.isMeditating) gameState.stopMeditation();
-    setSelectedMonster(monster);
-    monsterRef.current = monster;
-    monsterHpRef.current = monster.hp;
-    playerHpRef.current = playerStats.hp;
-    setMonsterHp(monster.hp);
-    setPlayerHp(playerStats.hp);
-    setLogs([]);
-    setKillCount(0);
-    setIsFighting(true);
-    // Register combat session server-side with monster ID in payload
-    fetch("/api/game/start-activity", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "combat", requested_at: Date.now(), target: { monster_id: monster.id } }),
-      keepalive: true,
-    }).catch(() => {});
-  };
-
-  const stopFight = () => {
-    setIsFighting(false);
-    monsterRef.current = null;
-    setSelectedMonster(null);
-    setPlayerHp(playerStats.hp);
-    fetch("/api/game/stop-activity", {
-      method: "POST",
-      keepalive: true,
-    }).catch(() => {});
   };
 
   return (
@@ -336,9 +43,8 @@ export default function AdventurePage() {
           <Separator className="mt-4" />
         </header>
 
-        {/* Combat view */}
         {/* Combat panel — only when fighting */}
-        {isFighting && selectedMonster && (
+        {gameState.isCombating && gameState.combatMonster && (
           <Card className="scroll-surface mb-6 overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-5 pb-5 space-y-4">
@@ -351,21 +57,17 @@ export default function AdventurePage() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs px-1">
                       <span className="text-muted-foreground">HP</span>
-                      <span className="text-red-400 tabular-nums font-heading">{playerHp}/{playerStats.hp}</span>
+                      <span className="text-red-400 tabular-nums font-heading">{gameState.playerHp}/{gameState.playerMaxHp}</span>
                     </div>
                     <div className="h-3 w-full overflow-hidden rounded-full bg-muted/30">
-                      <div className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (playerHp / playerStats.hp) * 100)}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
                     </div>
                   </div>
                   <div className="space-y-0.5">
                     <p className="text-[10px] text-muted-foreground">{isZh ? "攻擊" : "Attack"} 3.0s</p>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/20">
-                      <div className="h-full rounded-full bg-spirit-gold/70" style={{ width: `${playerProgress * 100}%` }} />
+                      <div className="h-full rounded-full bg-spirit-gold/70" style={{ width: `${gameState.combatPlayerProgress * 100}%` }} />
                     </div>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground flex justify-center gap-3">
-                    <span>ATK <span className="text-spirit-gold font-heading">{playerStats.atk}</span></span>
-                    <span>DEF <span className="text-blue-300 font-heading">{playerStats.def}</span></span>
                   </div>
                 </div>
 
@@ -373,43 +75,39 @@ export default function AdventurePage() {
 
                 {/* Monster */}
                 <div className="text-center space-y-2">
-                  <div className="text-4xl">{selectedMonster.icon}</div>
-                  <p className="font-heading text-sm">{isZh ? selectedMonster.nameZh : selectedMonster.nameEn}</p>
+                  <div className="text-4xl">{gameState.combatMonster.icon}</div>
+                  <p className="font-heading text-sm">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</p>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs px-1">
                       <span className="text-muted-foreground">HP</span>
-                      <span className="text-red-400 tabular-nums font-heading">{monsterHp}/{selectedMonster.hp}</span>
+                      <span className="text-red-400 tabular-nums font-heading">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
                     </div>
                     <div className="h-3 w-full overflow-hidden rounded-full bg-muted/30">
-                      <div className="h-full rounded-full bg-gradient-to-r from-cinnabar to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (monsterHp / selectedMonster.hp) * 100)}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-cinnabar to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
                     </div>
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground">{isZh ? "攻擊" : "Attack"} {selectedMonster.attackSpeed}s</p>
+                    <p className="text-[10px] text-muted-foreground">{isZh ? "攻擊" : "Attack"} {gameState.combatMonster.attackSpeed}s</p>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/20">
-                      <div className="h-full rounded-full bg-cinnabar/70" style={{ width: `${monsterProgress * 100}%` }} />
+                      <div className="h-full rounded-full bg-cinnabar/70" style={{ width: `${gameState.combatMonsterProgress * 100}%` }} />
                     </div>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground flex justify-center gap-3">
-                    <span>ATK <span className="text-spirit-gold font-heading">{selectedMonster.atk}</span></span>
-                    <span>DEF <span className="text-blue-300 font-heading">{selectedMonster.def}</span></span>
                   </div>
                 </div>
               </div>
 
-              {killCount > 0 && (
+              {gameState.combatKillCount > 0 && (
                 <div className="text-center text-xs text-muted-foreground">
-                  {isZh ? "擊殺數" : "Kills"}: <span className="text-cinnabar font-heading">{killCount}</span>
+                  {isZh ? "擊殺數" : "Kills"}: <span className="text-cinnabar font-heading">{gameState.combatKillCount}</span>
                 </div>
               )}
 
               {/* Combat log */}
               <div className="rounded-lg border border-border/30 bg-muted/10 px-4 py-3 min-h-[80px] max-h-[120px] overflow-y-auto">
-                {logs.length === 0 ? (
+                {gameState.combatLogs.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center">{isZh ? "戰鬥開始..." : "Battle begins..."}</p>
                 ) : (
                   <div className="space-y-0.5">
-                    {logs.map((log) => (
+                    {gameState.combatLogs.map((log) => (
                       <p key={log.id} className={`text-xs ${log.color}`}>{log.text}</p>
                     ))}
                   </div>
@@ -417,7 +115,7 @@ export default function AdventurePage() {
               </div>
 
               <div className="flex justify-center">
-                <Button onClick={stopFight} className="bg-cinnabar hover:bg-cinnabar/90 text-white font-heading px-8">
+                <Button onClick={gameState.stopCombat} className="bg-cinnabar hover:bg-cinnabar/90 text-white font-heading px-8">
                   {isZh ? "撤退" : "Retreat"}
                 </Button>
               </div>
@@ -425,7 +123,7 @@ export default function AdventurePage() {
           </Card>
         )}
 
-        {/* Loot box — separate card */}
+        {/* Loot box — separate card, always visible */}
         <Card className="scroll-surface mb-6 overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
           <CardContent className="pt-5 pb-5">
@@ -433,32 +131,28 @@ export default function AdventurePage() {
               <div className="flex items-center gap-2">
                 <span className="text-base">📦</span>
                 <span className="font-heading text-base font-bold text-spirit-gold">{isZh ? "戰利品箱" : "Loot Box"}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{lootSlotCount}/{LOOT_BOX_LIMIT}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{gameState.combatLootSlots.length}/100</span>
               </div>
               <Button
                 size="sm"
-                onClick={collectLoot}
-                disabled={lootSlots.length === 0 || collecting}
+                onClick={handleCollect}
+                disabled={gameState.combatLootSlots.length === 0 || collecting}
                 className="bg-jade hover:bg-jade/90 text-background font-heading px-4"
               >
                 {collecting ? (isZh ? "收取中..." : "Collecting...") : (isZh ? "收取" : "Collect")}
               </Button>
             </div>
-            {lootSlots.length > 0 ? (
+            {gameState.combatLootSlots.length > 0 ? (
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-                {lootSlots.map((slot, idx) => {
+                {gameState.combatLootSlots.map((slot, idx) => {
                   const meta = ITEMS[slot.item_type];
                   return (
                     <Tooltip key={`${slot.item_type}-${idx}`}>
                       <TooltipTrigger>
-                        <div
-                          className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative"
-                        >
+                        <div className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative">
                           <span className="text-lg">{meta?.icon ?? "○"}</span>
                           {slot.quantity > 1 && (
-                            <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">
-                              {slot.quantity}
-                            </span>
+                            <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">{slot.quantity}</span>
                           )}
                         </div>
                       </TooltipTrigger>
@@ -476,19 +170,16 @@ export default function AdventurePage() {
             ) : (
               <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
             )}
-            {collectError && (
-              <p className="text-xs text-cinnabar mt-2">{collectError}</p>
-            )}
+            {collectError && <p className="text-xs text-cinnabar mt-2">{collectError}</p>}
           </CardContent>
         </Card>
 
-        {/* Zone cards — 3 per row */}
+        {/* Zone cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
         {COMBAT_ZONES.map((zone) => (
           <Card key={zone.id} className="scroll-surface overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-2 pb-3">
-              {/* Zone header — click to toggle */}
               <button
                 type="button"
                 onClick={() => setCollapsedZones((prev) => ({ ...prev, [zone.id]: !prev[zone.id] }))}
@@ -509,41 +200,29 @@ export default function AdventurePage() {
 
               {!collapsedZones[zone.id] && (<>
               <Separator className="mt-4 mb-3" />
-
-              {/* Table header */}
               <div className="grid grid-cols-[60px_1fr_auto] gap-3 px-2 mb-2">
                 <span className="text-[10px] text-muted-foreground/60 font-heading text-center">#</span>
                 <span className="text-[10px] text-muted-foreground/60 font-heading">{isZh ? "名稱" : "Name"}</span>
                 <span className="text-[10px] text-muted-foreground/60 font-heading text-right">{isZh ? "選項" : "Options"}</span>
               </div>
-
-              {/* Monster rows */}
               <div className="space-y-0">
                 {zone.monsters.map((monster, idx) => (
                   <div key={monster.id}>
                     {idx > 0 && <Separator />}
                     <div className="grid grid-cols-[60px_1fr_auto] gap-3 items-center px-2 py-3">
-                      {/* Icon */}
                       <div className="text-center text-3xl">{monster.icon}</div>
-
-                      {/* Info */}
                       <div>
                         <p className="font-heading text-sm font-bold">{isZh ? monster.nameZh : monster.nameEn}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {isZh ? "煉體期" : "Body Refining"} {monster.id === "drunkard" ? "1" : "5"} {isZh ? "級" : "Lv"}
-                        </p>
                         <div className="flex items-center gap-1 mt-1">
                           <span className="text-red-400 text-xs">❤️</span>
                           <span className="text-red-400 text-xs font-heading">{monster.hp}</span>
                         </div>
                       </div>
-
-                      {/* Buttons */}
                       <div className="flex flex-col gap-1.5">
                         <Button
                           size="sm"
-                          onClick={() => startFight(monster)}
-                          disabled={isFighting}
+                          onClick={() => gameState.startCombat(monster)}
+                          disabled={gameState.isCombating}
                           className="bg-cinnabar/80 hover:bg-cinnabar text-white font-heading px-6"
                         >
                           {isZh ? "戰鬥" : "Fight"}
@@ -558,8 +237,6 @@ export default function AdventurePage() {
                         </Button>
                       </div>
                     </div>
-
-                    {/* Drops panel */}
                     {showDrops === monster.id && (
                       <div className="px-2 pb-3 pl-[72px]">
                         <div className="rounded-md border border-border/30 bg-muted/10 px-3 py-2 space-y-1">
