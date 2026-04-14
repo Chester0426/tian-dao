@@ -397,8 +397,10 @@ export default function AdventurePage() {
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        <p className="font-heading text-sm">{meta ? (isZh ? meta.nameZh : meta.nameEn) : slot.item_type}</p>
-                        {slot.quantity > 1 && <p className="text-[11px] text-muted-foreground">{slot.quantity} {isZh ? "個" : ""}</p>}
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-heading text-sm">{meta ? (isZh ? meta.nameZh : meta.nameEn) : slot.item_type}</span>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">×{slot.quantity}</span>
+                        </div>
                         {meta?.hintZh && <p className="text-[11px] text-jade">{isZh ? meta.hintZh : meta.hintEn}</p>}
                       </TooltipContent>
                     </Tooltip>

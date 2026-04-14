@@ -198,14 +198,15 @@ export function InventoryClient({
                               )}
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="font-heading">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.quantity.toLocaleString()} {isZh ? "個" : ""}
-                              {sacrificeMode && !isSelected && " · 點擊選取"}
-                              {sacrificeMode && isSelected && " · 點擊取消"}
-                            </p>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-heading text-sm">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</span>
+                              <span className="text-[11px] text-muted-foreground tabular-nums">×{item.quantity.toLocaleString()}</span>
+                            </div>
                             {display?.hintZh && (
-                              <p className="text-xs text-jade mt-1">{isZh ? display.hintZh : display.hintEn}</p>
+                              <p className="text-[11px] text-jade">{isZh ? display.hintZh : display.hintEn}</p>
+                            )}
+                            {sacrificeMode && (
+                              <p className="text-[11px] text-muted-foreground">{isSelected ? (isZh ? "點擊取消" : "Click to deselect") : (isZh ? "點擊選取" : "Click to select")}</p>
                             )}
                           </TooltipContent>
                         </Tooltip>
