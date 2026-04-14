@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { useGameState } from "@/components/mining-provider";
 import { COMBAT_ZONES, type Monster } from "@/lib/combat";
@@ -354,24 +355,34 @@ export default function AdventurePage() {
               </Button>
             </div>
             {lootSlots.length > 0 ? (
+              <TooltipProvider>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
                 {lootSlots.map((slot, idx) => {
                   const meta = ITEMS[slot.item_type];
                   return (
-                    <div
-                      key={`${slot.item_type}-${idx}`}
-                      className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative"
-                    >
-                      <span className="text-lg">{meta?.icon ?? "○"}</span>
-                      {slot.quantity > 1 && (
-                        <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">
-                          {slot.quantity}
-                        </span>
-                      )}
-                    </div>
+                    <Tooltip key={`${slot.item_type}-${idx}`}>
+                      <TooltipTrigger>
+                        <div
+                          className="aspect-square rounded-md border border-border/30 bg-muted/15 flex flex-col items-center justify-center relative"
+                        >
+                          <span className="text-lg">{meta?.icon ?? "○"}</span>
+                          {slot.quantity > 1 && (
+                            <span className="absolute bottom-0.5 right-1 text-[9px] font-heading text-foreground tabular-nums">
+                              {slot.quantity}
+                            </span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="font-heading text-sm">{meta ? (isZh ? meta.nameZh : meta.nameEn) : slot.item_type}</p>
+                        {slot.quantity > 1 && <p className="text-[11px] text-muted-foreground">{slot.quantity} {isZh ? "個" : ""}</p>}
+                        {meta?.hintZh && <p className="text-[11px] text-jade">{isZh ? meta.hintZh : meta.hintEn}</p>}
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </div>
+              </TooltipProvider>
             ) : (
               <p className="text-xs text-muted-foreground">{isZh ? "空" : "Empty"}</p>
             )}
@@ -386,7 +397,7 @@ export default function AdventurePage() {
         {COMBAT_ZONES.map((zone) => (
           <Card key={zone.id} className="scroll-surface overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
-            <CardContent className="pt-5 pb-5">
+            <CardContent className="pt-2 pb-3">
               {/* Zone header — click to toggle */}
               <button
                 type="button"
