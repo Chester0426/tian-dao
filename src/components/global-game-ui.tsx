@@ -16,7 +16,8 @@ const ITEM_INFO: Record<string, { nameZh: string; nameEn: string; icon: string; 
 };
 
 export function GlobalGameUI() {
-  const { notifications, pendingOfflineRewards, dismissOfflineRewards } = useGameState();
+  const gameState = useGameState();
+  const { notifications, pendingOfflineRewards, dismissOfflineRewards } = gameState;
   const { locale } = useI18n();
   const isZh = locale === "zh";
 
@@ -158,6 +159,43 @@ export function GlobalGameUI() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* === Mini combat panel — fixed bottom-right, visible on all pages when fighting === */}
+      {gameState.isCombating && gameState.combatMonster && (
+        <div className="fixed bottom-4 right-4 md:right-6 z-40 w-[220px] rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl overflow-hidden">
+          <div className="h-0.5 bg-cinnabar" />
+          <div className="px-3 py-2 space-y-1.5">
+            {/* Monster info */}
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{gameState.combatMonster.icon}</span>
+              <span className="font-heading text-xs truncate flex-1">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</span>
+              {gameState.combatKillCount > 0 && (
+                <span className="text-[10px] text-cinnabar tabular-nums font-heading">×{gameState.combatKillCount}</span>
+              )}
+            </div>
+            {/* Player HP */}
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-muted-foreground">{isZh ? "你" : "You"}</span>
+                <span className="text-red-400 tabular-nums">{gameState.playerHp}/{gameState.playerMaxHp}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
+                <div className="h-full rounded-full bg-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
+              </div>
+            </div>
+            {/* Monster HP */}
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-muted-foreground">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</span>
+                <span className="text-cinnabar tabular-nums">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
+                <div className="h-full rounded-full bg-cinnabar transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
