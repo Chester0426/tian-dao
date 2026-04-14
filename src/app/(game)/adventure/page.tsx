@@ -183,6 +183,9 @@ export default function AdventurePage() {
   };
 
   const startFight = (monster: Monster) => {
+    // Stop other activities
+    if (gameState.isMining) gameState.stopMining();
+    if (gameState.isMeditating) gameState.stopMeditation();
     setSelectedMonster(monster);
     monsterRef.current = monster;
     monsterHpRef.current = monster.hp;
@@ -192,6 +195,13 @@ export default function AdventurePage() {
     setLogs([]);
     setKillCount(0);
     setIsFighting(true);
+    // Register combat session server-side
+    fetch("/api/game/start-activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "combat", requested_at: Date.now() }),
+      keepalive: true,
+    }).catch(() => {});
   };
 
   const stopFight = () => {
@@ -199,6 +209,10 @@ export default function AdventurePage() {
     monsterRef.current = null;
     setSelectedMonster(null);
     setPlayerHp(playerStats.hp);
+    fetch("/api/game/stop-activity", {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => {});
   };
 
   return (

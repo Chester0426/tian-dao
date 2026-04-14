@@ -7,7 +7,7 @@ import { getTechnique, MAX_MASTERY_LEVEL } from "@/lib/techniques";
 import { z } from "zod";
 
 const schema = z.object({
-  type: z.enum(["mining", "meditate", "enlightenment"]),
+  type: z.enum(["mining", "meditate", "enlightenment", "combat"]),
   requested_at: z.number(),
   mine_id: z.string().optional(),
   target: z.union([
