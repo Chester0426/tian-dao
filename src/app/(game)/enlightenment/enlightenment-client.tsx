@@ -379,7 +379,11 @@ export function EnlightenmentClient({
                                 onClick={() => selectTarget({ kind: "book", item_type: inv.item_type })}
                                 className="w-full flex items-center gap-3 rounded-lg border border-border/30 bg-muted/5 px-4 py-3 text-sm hover:border-spirit-gold/40 hover:bg-spirit-gold/5 transition-all duration-200 group"
                               >
-                                <span className="text-2xl group-hover:scale-110 transition-transform">{meta.icon}</span>
+                                {meta.image ? (
+                                  <img src={meta.image} alt="" className="w-7 h-7 object-contain group-hover:scale-110 transition-transform" />
+                                ) : (
+                                  <span className="text-2xl group-hover:scale-110 transition-transform">{meta.icon}</span>
+                                )}
                                 <span className="flex-1 text-left font-heading truncate">{isZh ? meta.nameZh : meta.nameEn}</span>
                                 <span className="text-xs text-muted-foreground tabular-nums shrink-0">x{inv.quantity}</span>
                               </button>
