@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,6 +27,7 @@ export function InventoryClient({
   const { locale } = useI18n();
   const isZh = locale === "zh";
   const [inventory, setInventory] = useState(initialInventory);
+  console.log("inventory", inventory)
   const [daoPoints, setDaoPoints] = useState(initialDaoPoints);
   const [sacrificeMode, setSacrificeMode] = useState(false);
   const [selections, setSelections] = useState<SacrificeSelection>({});
@@ -99,41 +99,118 @@ export function InventoryClient({
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <header className="mb-6 animate-[ink-fade-in_0.6s_ease-out]">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                儲物袋
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                管理你的物資與資源
-              </p>
-            </div>
-            <Badge variant="outline" className="border-cinnabar/30 text-cinnabar font-heading text-sm px-3 py-1.5">
-              天道值 {daoPoints.toLocaleString()}
-            </Badge>
-          </div>
-        </header>
-
-        <div className="mb-6 flex items-center gap-4">
-          <div className="flex-1">
-            <div className="flex items-center justify-between text-sm mb-1.5">
-              <span className="text-muted-foreground">格數</span>
-              <span className="tabular-nums">{slotsUsed} / {totalSlots}</span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
+        {/* === Header Bar === */}
+        <div className="mb-6 relative rounded-2xl overflow-hidden -mx-6 md:-mx-12">
+          <img src="/images/inventory-title-bg.png" alt="" className="w-full h-auto block" />
+          <div
+            className="absolute inset-0 px-6 flex items-center justify-between"
+            style={{
+              textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div className="flex items-center gap-3">
               <div
-                className="h-full rounded-full bg-jade transition-all duration-500"
-                style={{ width: `${(slotsUsed / totalSlots) * 100}%` }}
-              />
+                className="flex h-11 w-11 items-center justify-center rounded-full"
+                style={{
+                  background: "radial-gradient(circle, rgba(62,207,165,0.2) 0%, rgba(26,74,58,0.3) 100%)",
+                  boxShadow: "0 0 10px rgba(62,207,165,0.2), inset 0 0 6px rgba(0,0,0,0.3)",
+                  border: "1px solid rgba(62,207,165,0.3)",
+                }}
+              >
+                <span className="text-xl">🎒</span>
+              </div>
+              <div>
+                <h1
+                  className="font-heading text-xl font-bold sm:text-2xl"
+                  style={{
+                    background: "linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))",
+                  }}
+                >
+                  {isZh ? "儲物袋" : "Inventory"}
+                </h1>
+                <p className="text-xs text-white/50">
+                  {isZh ? "管理你的物資與資源" : "Manage your supplies and resources"}
+                </p>
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-heading"
+              style={{
+                background: "linear-gradient(135deg, rgba(200,60,60,0.15), rgba(120,30,30,0.25))",
+                border: "1px solid rgba(200,60,60,0.3)",
+                boxShadow: "0 0 6px rgba(200,60,60,0.1)",
+                color: "#f87171",
+              }}
+            >
+              天道值 {daoPoints.toLocaleString()}
             </div>
           </div>
-          <Badge variant="outline" className="border-spirit-gold/30 text-spirit-gold tabular-nums">
-            {slotsUsed}/{totalSlots}
-          </Badge>
         </div>
 
-        <Card className="scroll-surface">
+        {/* Slot usage bar */}
+        <div className="mb-6 -mx-6 md:-mx-12">
+          <div
+            className="relative h-7 w-full overflow-hidden rounded-full"
+            style={{
+              background: "linear-gradient(90deg, rgba(0,0,0,0.5), rgba(20,20,20,0.4))",
+              boxShadow: "inset 0 1px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            {(() => {
+              const pct = totalSlots > 0 ? (slotsUsed / totalSlots) * 100 : 0;
+              return (
+                <>
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(pct, 2)}%`,
+                      background: pct >= 90
+                        ? "linear-gradient(90deg, #7f1d1d, #dc2626, #f87171)"
+                        : "linear-gradient(90deg, #1a4a3a, #3ecfa5, #6ee7b7)",
+                      boxShadow: pct >= 90
+                        ? "0 0 8px rgba(248,113,113,0.5), 0 0 20px rgba(248,113,113,0.15)"
+                        : "0 0 8px rgba(62,207,165,0.5), 0 0 20px rgba(62,207,165,0.15)",
+                    }}
+                  >
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%)",
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2 text-sm tabular-nums"
+                    style={{
+                      textShadow: "0 0 1px #000, 0 0 4px #000, 0 1px 6px rgba(0,0,0,0.9)",
+                      color: "#fff",
+                    }}
+                  >
+                    <span
+                      className="font-heading font-bold"
+                      style={{
+                        color: pct >= 90 ? "#f87171" : "#fbbf24",
+                        textShadow: `0 0 1px #000, 0 0 4px #000, 0 0 10px ${pct >= 90 ? "rgba(248,113,113,0.4)" : "rgba(212,166,67,0.4)"}, 0 1px 6px rgba(0,0,0,0.9)`,
+                      }}
+                    >
+                      {isZh ? "格數" : "Slots"}
+                    </span>
+                    <span className="font-bold">
+                      {slotsUsed} / {totalSlots}
+                    </span>
+                    <span className="font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>({pct.toFixed(1)}%)</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        <Card className="scroll-surface -mx-6 md:-mx-12">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-heading text-lg">物品</CardTitle>
@@ -179,7 +256,9 @@ export function InventoryClient({
                         <Tooltip key={item.item_type}>
                           <TooltipTrigger
                             onClick={sacrificeMode ? () => toggleItem(item) : undefined}
-                            className={`flex w-full flex-col items-center gap-1 rounded-lg border p-3 transition-all ${
+                            className={`flex w-full flex-col items-center gap-1 rounded-lg border transition-all ${
+                              display?.tags.includes("equipment") ? "p-1.5" : "p-3"
+                            } ${
                               sacrificeMode
                                 ? isSelected
                                   ? "border-cinnabar bg-cinnabar-dim/40 scale-105 shadow-md"
@@ -187,9 +266,13 @@ export function InventoryClient({
                                 : "border-border/50 bg-card/60"
                             }`}
                           >
-                              <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
-                                {display?.icon ?? "○"}
-                              </span>
+                              {display?.image ? (
+                                <img src={display.image} alt="" className={`${display.tags.includes("equipment") ? "w-12 h-12" : "w-8 h-8"} object-contain`} />
+                              ) : (
+                                <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
+                                  {display?.icon ?? "○"}
+                                </span>
+                              )}
                               <span className="text-[10px] tabular-nums text-muted-foreground">
                                 {isSelected ? `${selectedQty}/${item.quantity}` : `x${item.quantity.toLocaleString()}`}
                               </span>
@@ -236,7 +319,11 @@ export function InventoryClient({
                       return (
                         <div key={itemType} className="flex items-center justify-between rounded-lg bg-muted/20 px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span className={display?.color ?? ""}>{display?.icon ?? "○"}</span>
+                            {display?.image ? (
+                              <img src={display.image} alt="" className="w-5 h-5 object-contain" />
+                            ) : (
+                              <span className={display?.color ?? ""}>{display?.icon ?? "○"}</span>
+                            )}
                             <span className="text-sm font-medium">{display ? (isZh ? display.nameZh : display.nameEn) : itemType}</span>
                           </div>
                           <div className="flex items-center gap-2">
