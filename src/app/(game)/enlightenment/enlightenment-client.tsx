@@ -282,7 +282,21 @@ export function EnlightenmentClient({
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       {currentTarget ? (
                         <>
-                          <span className="text-5xl drop-shadow-lg">{currentTarget.kind === "book" ? (ITEMS[currentTarget.item_type]?.icon ?? "📖") : "📜"}</span>
+                          {currentTarget.kind === "book" ? (() => {
+                            const m = ITEMS[currentTarget.item_type];
+                            return m?.image ? (
+                              <img src={m.image} alt="" className="w-12 h-12 object-contain drop-shadow-lg" />
+                            ) : (
+                              <span className="text-5xl drop-shadow-lg">{m?.icon ?? "📖"}</span>
+                            );
+                          })() : (() => {
+                            const m = ITEMS[(currentTarget as { technique_slug: string }).technique_slug];
+                            return m?.image ? (
+                              <img src={m.image} alt="" className="w-12 h-12 object-contain drop-shadow-lg" />
+                            ) : (
+                              <span className="text-5xl drop-shadow-lg">📜</span>
+                            );
+                          })()}
                           <span className="text-xs font-heading text-spirit-gold mt-2 truncate max-w-[70%] text-glow-gold">{targetLabel}</span>
                           {isEnlightening && <span className="text-[10px] text-spirit-gold/60 mt-0.5 tabular-nums">{Math.round(actionProgress * 100)}%</span>}
                         </>
@@ -411,6 +425,7 @@ export function EnlightenmentClient({
                               const tech = TECHNIQUES[t.technique_slug];
                               if (!tech) return null;
                               const cfg = CATEGORY_LABELS[tech.category];
+                              const meta = ITEMS[t.technique_slug];
                               return (
                                 <button
                                   key={t.technique_slug}
@@ -418,7 +433,11 @@ export function EnlightenmentClient({
                                   onClick={() => selectTarget({ kind: "technique", technique_slug: t.technique_slug })}
                                   className="w-full flex items-center gap-3 rounded-lg border border-border/30 bg-muted/5 px-4 py-3 text-sm hover:border-jade/40 hover:bg-jade/5 transition-all duration-200 group"
                                 >
-                                  <span className="text-2xl group-hover:scale-110 transition-transform">📜</span>
+                                  {meta?.image ? (
+                                    <img src={meta.image} alt="" className="w-7 h-7 object-contain group-hover:scale-110 transition-transform" />
+                                  ) : (
+                                    <span className="text-2xl group-hover:scale-110 transition-transform">📜</span>
+                                  )}
                                   <div className="flex-1 text-left min-w-0">
                                     <span className="font-heading truncate block">{isZh ? tech.nameZh : tech.nameEn}</span>
                                     <span className={`text-[10px] ${cfg.color}`}>{isZh ? cfg.zh : cfg.en}</span>
@@ -513,7 +532,11 @@ export function EnlightenmentClient({
                           onClick={() => learnBook(inv.item_type)}
                           className="group relative aspect-square rounded-md border border-jade/30 bg-jade/5 flex flex-col items-center justify-center text-center transition-all hover:border-jade/60 hover:bg-jade/10"
                         >
-                          <span className="text-[clamp(0.6rem,3vw,1rem)] leading-none">{meta.icon}</span>
+                          {meta.image ? (
+                            <img src={meta.image} alt="" className="w-6 h-6 object-contain" />
+                          ) : (
+                            <span className="text-[clamp(0.6rem,3vw,1rem)] leading-none">{meta.icon}</span>
+                          )}
                           <span className="text-[clamp(5px,1.2vw,8px)] font-heading leading-none truncate w-full px-px mt-0.5">
                             {isZh ? meta.nameZh : meta.nameEn}
                           </span>
@@ -576,7 +599,16 @@ export function EnlightenmentClient({
                             isMaxed ? "border-spirit-gold/50 bg-spirit-gold/10" : `${cfg.border} ${cfg.bg}`
                           }`}
                         >
-                          <span className="text-[clamp(0.6rem,3vw,1rem)] leading-none">{isMaxed ? "🌟" : "📜"}</span>
+                          {isMaxed ? (
+                            <span className="text-lg leading-none">🌟</span>
+                          ) : (() => {
+                            const m = slug ? ITEMS[slug] : null;
+                            return m?.image ? (
+                              <img src={m.image} alt="" className="w-10 h-10 object-contain" />
+                            ) : (
+                              <span className="text-lg leading-none">📜</span>
+                            );
+                          })()}
                           <span className="text-[clamp(5px,1.2vw,8px)] font-heading leading-none truncate w-full px-px mt-0.5">
                             {isZh ? tech!.nameZh : tech!.nameEn}
                           </span>
