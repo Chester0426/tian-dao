@@ -5,6 +5,7 @@ export interface Monster {
   nameZh: string;
   nameEn: string;
   icon: string;
+  image: string;
   hp: number;
   atk: number;
   def: number;
@@ -39,6 +40,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         nameZh: "醉漢",
         nameEn: "Drunkard",
         icon: "🍺",
+        image: "/images/monsters/monster-drunkard.png",
         hp: 50,
         atk: 1,
         def: 0,
@@ -51,6 +53,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         nameZh: "流氓",
         nameEn: "Thug",
         icon: "🗡️",
+        image: "/images/monsters/monster-thug.png.png",
         hp: 140,
         atk: 5,
         def: 4,
@@ -74,6 +77,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         nameZh: "劫匪",
         nameEn: "Bandit",
         icon: "🏴",
+        image: "/images/monsters/monster-bandit.png",
         hp: 120,
         atk: 4,
         def: 2,
@@ -86,6 +90,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         nameZh: "匪首",
         nameEn: "Bandit Leader",
         icon: "⚔️",
+        image: "/images/monsters/monster-bandit-leader.png",
         hp: 200,
         atk: 8,
         def: 5,
@@ -109,6 +114,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         nameZh: "山賊",
         nameEn: "Mountain Bandit",
         icon: "🏔️",
+        image: "/images/monsters/monster-mountain-bandit.png",
         hp: 180,
         atk: 7,
         def: 4,
@@ -121,6 +127,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         nameZh: "寨主",
         nameEn: "Mountain King",
         icon: "👑",
+        image: "/images/monsters/monster-mountain-king.png",
         hp: 300,
         atk: 12,
         def: 8,

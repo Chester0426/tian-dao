@@ -74,7 +74,11 @@ export default function AdventurePage() {
               {/* Monster or empty */}
               {gameState.isCombating && gameState.combatMonster ? (
                 <div className="text-center space-y-2.5">
-                  <div className="text-7xl">{gameState.combatMonster.icon}</div>
+                  <div className="text-7xl flex items-center justify-center">
+                    {gameState.combatMonster.image
+                      ? <img src={gameState.combatMonster.image} alt={isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn} className="w-full h-full object-contain" />
+                      : gameState.combatMonster.icon}
+                  </div>
                   <p className="font-heading text-base">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</p>
                   <div className="relative h-6 w-full overflow-hidden rounded-full bg-muted/30">
                     <div className="h-full rounded-full bg-gradient-to-r from-cinnabar to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
@@ -416,7 +420,11 @@ export default function AdventurePage() {
                   <div key={monster.id}>
                     {idx > 0 && <Separator />}
                     <div className="grid grid-cols-[60px_1fr_auto] gap-3 items-center px-2 py-3">
-                      <div className="text-center text-3xl">{monster.icon}</div>
+                      <div className="text-center text-3xl flex items-center justify-center h-12 w-[60px]">
+                        {monster.image
+                          ? <img src={monster.image} alt={isZh ? monster.nameZh : monster.nameEn} className="w-full h-full object-contain" />
+                          : monster.icon}
+                      </div>
                       <div>
                         <p className="font-heading text-sm font-bold">{isZh ? monster.nameZh : monster.nameEn}</p>
                         <div className="flex items-center gap-1 mt-1">

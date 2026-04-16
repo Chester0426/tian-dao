@@ -222,12 +222,12 @@ export function CharactersClient({
                     </button>
                   </div>
                 ) : (
-                  <div
-                    className="inline-flex items-center justify-center text-xs text-black bg-contain bg-center bg-no-repeat"
-                    style={{ backgroundImage: "url('/images/btn-bg3.png')", width: '120px', height: '30px' }}
-                  >
-                    {t("char_save")} {slot}
-                  </div>
+                   <Button
+                        className="mt-auto w-full font-heading bg-cover bg-center border-0 shadow-none bg-transparent text-white"
+                        style={{ backgroundImage: "url('/images/btn-bg2.png')" }}
+                      >
+                        {t("char_lockedBtn")}
+                      </Button>
                 )}
 
                 <Card
@@ -249,8 +249,8 @@ export function CharactersClient({
                     }}
                   />
                   {/* Slot number overlay — centered on red gem at top */}
-                  <div className="absolute z-20 left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: "5%", width: "50px", height: "30px" }}>
-                    <span className="font-heading text-xl" style={{ lineHeight: 1, fontWeight: 900, color: "#000" }}>
+                  <div className="absolute z-20 left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: "7%", width: "50px", height: "30px" }}>
+                    <span className="font-heading text-xl" style={{ lineHeight: 1, fontWeight: 900, color: "#fff", textShadow: "0 0 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6)" }}>
                       {["", "一", "二", "三"][slot]}
                     </span>
                   </div>
@@ -260,17 +260,11 @@ export function CharactersClient({
                   {isEmpty && slot > 1 ? (
                     <>
                       {/* Locked slot */}
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/10 border border-dashed border-border/20">
+                      {/* <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/10 border border-dashed border-border/20">
                         <span className="text-3xl text-muted-foreground/20">🔒</span>
-                      </div>
+                      </div> */}
                       {/* Locked label hidden per new card design */}
-                      <Button
-                        disabled
-                        className="mt-auto w-full font-heading bg-cover bg-center border-0 shadow-none bg-transparent text-white"
-                        style={{ backgroundImage: "url('/images/btn-bg2.png')" }}
-                      >
-                        {t("char_lockedBtn")}
-                      </Button>
+                     
                     </>
                   ) : isEmpty ? (
                     <>
