@@ -57,8 +57,15 @@ export default async function GameGroupLayout({
           if (p.monster_id) combatInit = { monsterId: p.monster_id };
         }
 
-        // Offline rewards now computed via client-triggered API (mount + visibility).
-        // SSR path removed to avoid double-award on internal navigation.
+        // SSR offline rewards — computed once per page load, optimistic lock prevents double-award
+        if (latestSession && !latestSession.ended_at) {
+          const { computeOfflineRewards } = await import("@/lib/offline-rewards");
+          offlineRewardsInit = await computeOfflineRewards(supabase, user.id, slot);
+          // If combat resulted in death, clear combatInit so client doesn't auto-resume
+          if (offlineRewardsInit?.combat?.died) {
+            combatInit = null;
+          }
+        }
 
         if (sessionRes.data?.mine_id) {
           miningStatus = { isMining: true, mineId: sessionRes.data.mine_id };
@@ -125,6 +132,7 @@ export default async function GameGroupLayout({
       <MiningProvider initialStatus={miningStatus} initialState={initialState}>
         <GlobalGameUI />
         <GameLayout isAdmin={isAdmin}>{children}</GameLayout>
+
       </MiningProvider>
     </SingleTabGuard>
   );

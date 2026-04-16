@@ -3,7 +3,7 @@
 // body: { slot_id: "helmet", item_type: null } to unequip
 // body: { switch_set: 2 } to switch active set (1 or 2)
 import { NextRequest, NextResponse } from "next/server";
-import { getItem, type EquipSlotId } from "@/lib/items";
+import { getItem, hasTag, type EquipSlotId } from "@/lib/items";
 import { z } from "zod";
 
 const VALID_SLOTS: EquipSlotId[] = ["helmet", "shoulder", "cape", "necklace", "main-hand", "off-hand", "chest", "gloves", "pants", "accessory", "ring", "boots"];
@@ -78,25 +78,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove from inventory
-    if (inv.quantity > 1) {
-      await supabase.from("inventory_items").update({ quantity: inv.quantity - 1 }).eq("id", inv.id);
-    } else {
+    if (hasTag(body.item_type, "equipment") || inv.quantity <= 1) {
       await supabase.from("inventory_items").delete().eq("id", inv.id);
+    } else {
+      await supabase.from("inventory_items").update({ quantity: inv.quantity - 1 }).eq("id", inv.id);
     }
 
-    // Return old item to inventory
+    // Return old equipment to inventory (each piece = 1 row)
     if (currentlyEquipped) {
-      const { data: existingInv } = await supabase
-        .from("inventory_items")
-        .select("id, quantity")
-        .eq("user_id", user.id).eq("slot", slot)
-        .eq("item_type", currentlyEquipped)
-        .maybeSingle();
-      if (existingInv) {
-        await supabase.from("inventory_items").update({ quantity: existingInv.quantity + 1 }).eq("id", existingInv.id);
-      } else {
-        await supabase.from("inventory_items").insert({ user_id: user.id, slot, item_type: currentlyEquipped, quantity: 1 });
-      }
+      await supabase.from("inventory_items").insert({ user_id: user.id, slot, item_type: currentlyEquipped, quantity: 1 });
     }
 
     equipment[body.slot_id] = body.item_type;
@@ -105,17 +95,22 @@ export async function POST(request: NextRequest) {
     if (!currentlyEquipped) {
       return NextResponse.json({ error: "Nothing equipped" }, { status: 400 });
     }
-    const { data: existingInv } = await supabase
+    // Check inventory space
+    const { count: rowCount } = await supabase
       .from("inventory_items")
-      .select("id, quantity")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("slot", slot);
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("inventory_slots")
       .eq("user_id", user.id).eq("slot", slot)
-      .eq("item_type", currentlyEquipped)
-      .maybeSingle();
-    if (existingInv) {
-      await supabase.from("inventory_items").update({ quantity: existingInv.quantity + 1 }).eq("id", existingInv.id);
-    } else {
-      await supabase.from("inventory_items").insert({ user_id: user.id, slot, item_type: currentlyEquipped, quantity: 1 });
+      .single();
+    const maxSlots = prof?.inventory_slots ?? 20;
+    if ((rowCount ?? 0) >= maxSlots) {
+      return NextResponse.json({ error: "儲物袋已滿，請先整理儲物袋", error_en: "Inventory full" }, { status: 400 });
     }
+    // Equipment never stacks — always new row
+    await supabase.from("inventory_items").insert({ user_id: user.id, slot, item_type: currentlyEquipped, quantity: 1 });
     delete equipment[body.slot_id];
   }
 

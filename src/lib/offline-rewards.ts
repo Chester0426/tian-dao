@@ -18,7 +18,7 @@ export interface OfflineRewardResult {
   session_type: "mining" | "meditate" | "combat";
   drops: { item_type: string; quantity: number }[];
   xp_gained: { mining: number; mastery: number; body: number; qi?: number };
-  combat?: { kills: number; died: boolean };
+  combat?: { kills: number; died: boolean; monster_id?: string };
 }
 
 /**
@@ -128,6 +128,7 @@ export async function computeOfflineRewards(
     for (let i = 0; i < totalKills; i++) {
       const killSlots: { item_type: string; quantity: number }[] = [];
       for (const drop of monster.drops) {
+        if (Math.random() > (drop.rate ?? 1)) continue;
         const isEquip = hasTag(drop.item_type, "equipment");
         for (let j = 0; j < drop.quantity; j++) {
           if (isEquip) {
@@ -169,7 +170,7 @@ export async function computeOfflineRewards(
       session_type: "combat",
       drops: monster.drops.map((d) => ({ item_type: d.item_type, quantity: d.quantity * totalKills })),
       xp_gained: { mining: 0, mastery: 0, body: totalBodyXp },
-      combat: { kills: totalKills, died },
+      combat: { kills: totalKills, died, monster_id: payload.monster_id },
     };
   }
 

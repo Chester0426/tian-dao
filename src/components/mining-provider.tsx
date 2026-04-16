@@ -7,6 +7,7 @@ import { PLAYER_ATTACK_INTERVAL, calcCombatRound } from "@/lib/combat-sim";
 import { ITEMS, hasTag, getItem } from "@/lib/items";
 import { computeStats } from "@/lib/stats";
 import type { InventoryItem } from "@/lib/types";
+import type { OfflineRewardResult } from "@/lib/offline-rewards";
 import { useI18n } from "@/lib/i18n";
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ export interface PendingOfflineRewards {
   drops: Record<string, number>;
   xp_gained: { mining: number; mastery: number; body: number; qi?: number };
   activity: string;
-  combat?: { kills: number; died: boolean };
+  combat?: { kills: number; died: boolean; monster_id?: string };
 }
 
 export interface GameState {
@@ -105,6 +106,8 @@ export interface GameState {
   combatMonster: Monster | null;
   playerHp: number;
   playerMaxHp: number;
+  playerAtk: number;
+  playerDef: number;
   monsterHp: number;
   combatPlayerProgress: number;
   combatMonsterProgress: number;
@@ -237,14 +240,15 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
   // --- Offline rewards (system 2) ---
   const [pendingOfflineRewards, setPendingOfflineRewards] = useState<PendingOfflineRewards | null>(() => {
-    const init = initialState?.offlineRewards;
+    const init = initialState?.offlineRewards as OfflineRewardResult | null | undefined;
     if (!init) return null;
     return {
       minutes_away: init.minutes_away,
       total_actions: 0,
       drops: Object.fromEntries(init.drops.map((d) => [d.item_type, d.quantity])),
       xp_gained: { mining: init.xp_gained.mining ?? 0, mastery: init.xp_gained.mastery ?? 0, body: init.xp_gained.body ?? 0, qi: init.xp_gained.qi },
-      activity: init.session_type === "meditate" ? "冥想" : "挖礦",
+      activity: init.session_type === "combat" ? "遊歷" : init.session_type === "meditate" ? "冥想" : "挖礦",
+      combat: init.combat,
     };
   });
 
@@ -613,12 +617,14 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
   // Visibility handler — flush pending on hide; on show, trigger unified offline reward check
   const syncMeditationRef = useRef<() => void>(() => {});
+  const syncCombatRef = useRef<() => void>(() => {});
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
         hiddenAtRef.current = Date.now();
         if (isMiningRef.current) syncToServer();
         if (isMeditatingRef.current) syncMeditationRef.current();
+        if (isCombatingRef.current) syncCombatRef.current();
       } else if (hiddenAtRef.current) {
         hiddenAtRef.current = null;
         setNotifications([]);
@@ -631,20 +637,30 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
           .then((data) => {
             if (!data) return;
             const xp = data.xp_gained ?? {};
-            const hasAnyGain = (xp.mining > 0) || (xp.qi > 0);
+            const hasAnyGain = (xp.mining > 0) || (xp.qi > 0) || (xp.body > 0) || (data.combat?.kills > 0) || (data.combat?.died) || (data.drops?.length > 0);
             if (!hasAnyGain) return;
+            // If combat resulted in death, stop the RAF loop
+            if (data.combat?.died) {
+              setIsCombating(false);
+              setCombatMonster(null);
+              combatMonsterRef.current = null;
+            }
             setPendingOfflineRewards({
               minutes_away: data.minutes_away,
               total_actions: 0,
               drops: Object.fromEntries((data.drops ?? []).map((d: { item_type: string; quantity: number }) => [d.item_type, d.quantity])),
               xp_gained: { mining: xp.mining ?? 0, mastery: xp.mastery ?? 0, body: xp.body ?? 0, qi: xp.qi },
-              activity: data.session_type === "meditate" ? "冥想" : "挖礦",
+              activity: data.session_type === "combat" ? "遊歷" : data.session_type === "meditate" ? "冥想" : "挖礦",
+              combat: data.combat,
             });
           })
           .catch(() => {});
         accumulatedRef.current = 0;
         lastTickRef.current = Date.now();
         meditationTickStartRef.current = Date.now();
+        // Reset combat RAF timestamps so it doesn't process stale elapsed time
+        combatPlayerTickRef.current = Date.now();
+        combatMonsterTickRef.current = Date.now();
       }
     };
 
@@ -657,8 +673,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     if (offlineCheckedRef.current) return;
     offlineCheckedRef.current = true;
 
-    // Only skip if neither activity is active
-    if (!initialStatus.isMining && !(initialState?.isMeditating)) return;
+    // Only skip if no activity is active
+    if (!initialStatus.isMining && !(initialState?.isMeditating) && !(initialState?.combatMonsterId)) return;
 
     // Call API immediately — offlineCheckedRef above already prevents duplicate calls within the same mount
     fetch("/api/game/offline-rewards", {
@@ -669,14 +685,21 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       .then((data) => {
         if (!data) return;
         const xp = data.xp_gained ?? {};
-        const hasAnyGain = (xp.mining ?? 0) > 0 || (xp.qi ?? 0) > 0 || (data.drops?.length ?? 0) > 0;
+        const hasAnyGain = (xp.mining ?? 0) > 0 || (xp.qi ?? 0) > 0 || (xp.body ?? 0) > 0 || (data.combat?.kills > 0) || (data.combat?.died) || (data.drops?.length ?? 0) > 0;
         if (hasAnyGain) {
+          // If combat resulted in death, stop the auto-resumed RAF loop
+          if (data.combat?.died) {
+            setIsCombating(false);
+            setCombatMonster(null);
+            combatMonsterRef.current = null;
+          }
           setPendingOfflineRewards({
             minutes_away: data.minutes_away,
             total_actions: 0,
             drops: Object.fromEntries((data.drops ?? []).map((d: { item_type: string; quantity: number }) => [d.item_type, d.quantity])),
             xp_gained: { mining: xp.mining ?? 0, mastery: xp.mastery ?? 0, body: xp.body ?? 0, qi: xp.qi },
-            activity: data.session_type === "meditate" ? "冥想" : "挖礦",
+            activity: data.session_type === "combat" ? "遊歷" : data.session_type === "meditate" ? "冥想" : "挖礦",
+            combat: data.combat,
           });
         }
       })
@@ -869,20 +892,33 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }).catch(() => {});
   }, [syncMeditation]);
 
-  // --- Consumable state ---
-  const [consumableSlots, setConsumableSlots] = useState<(string | null)[]>([null, null, null]);
-  const [activeConsumableIdx, setActiveConsumableIdxState] = useState(0);
+  // --- Consumable state (persisted in localStorage) ---
+  const [consumableSlots, setConsumableSlots] = useState<(string | null)[]>(() => {
+    if (typeof window === "undefined") return [null, null, null];
+    try {
+      const saved = localStorage.getItem("consumableSlots");
+      return saved ? JSON.parse(saved) : [null, null, null];
+    } catch { return [null, null, null]; }
+  });
+  const [activeConsumableIdx, setActiveConsumableIdxState] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      return parseInt(localStorage.getItem("activeConsumableIdx") ?? "0", 10);
+    } catch { return 0; }
+  });
 
   const setConsumableSlot = useCallback((idx: number, itemType: string | null) => {
     setConsumableSlots((prev) => {
       const next = [...prev];
       next[idx] = itemType;
+      try { localStorage.setItem("consumableSlots", JSON.stringify(next)); } catch {}
       return next;
     });
   }, []);
 
   const setActiveConsumableIdx = useCallback((idx: number) => {
     setActiveConsumableIdxState(idx);
+    try { localStorage.setItem("activeConsumableIdx", String(idx)); } catch {}
   }, []);
 
   const consumeItem = useCallback(() => {
@@ -979,6 +1015,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       combatPendingRef.current.body_xp += toSync.body_xp;
     });
   }, []);
+  syncCombatRef.current = syncCombat;
 
   // Combat RAF loop
   useEffect(() => {
@@ -1026,7 +1063,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         if (monsterHpRef2.current <= 0) {
           addCombatLog(isZhNow ? `${monster.nameZh}被擊敗！` : `${monster.nameEn} defeated!`, "text-jade");
           setCombatKillCount((c) => c + 1);
-          addNotification(monster.icon, isZhNow ? `${monster.nameZh} 擊敗` : `${monster.nameEn} defeated`, 1, "text-cinnabar");
+          addNotification("⚔️", isZhNow ? `擊敗 ${monster.nameZh}` : `Defeated ${monster.nameEn}`, 0, "text-cinnabar");
 
           // Drops → loot box (per-kill slots)
           setCombatLootSlots((prev) => {
@@ -1038,6 +1075,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
             }
             const killSlots: { item_type: string; quantity: number }[] = [];
             for (const drop of monster.drops) {
+              // Roll for drop rate
+              if (Math.random() > (drop.rate ?? 1)) continue;
               const isEquip = hasTag(drop.item_type, "equipment");
               for (let i = 0; i < drop.quantity; i++) {
                 if (next.length + killSlots.length >= 100) {
@@ -1053,11 +1092,9 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
                 }
               }
             }
-            if (killSlots.length > 0) {
-              for (const drop of monster.drops) {
-                const meta = ITEMS[drop.item_type];
-                if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, drop.quantity, meta.color);
-              }
+            for (const ks of killSlots) {
+              const meta = ITEMS[ks.item_type];
+              if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, ks.quantity, meta.color);
             }
             next.push(...killSlots);
             saveCombatLoot(next);
@@ -1195,20 +1232,48 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     for (const slot of combatLootRef.current) {
       aggregated[slot.item_type] = (aggregated[slot.item_type] ?? 0) + slot.quantity;
     }
-    try {
-      const res = await fetch("/api/game/collect-loot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: aggregated }),
-      });
-      const data = await res.json();
-      if (!res.ok) return { ok: false, error: data.error ?? "Failed" };
-      setCombatLootSlots([]);
-      saveCombatLoot([]);
-      return { ok: true };
-    } catch {
-      return { ok: false, error: "Network error" };
-    }
+    // Optimistic: clear loot box and add to inventory immediately
+    const prevLoot = combatLootRef.current;
+    setCombatLootSlots([]);
+    combatLootRef.current = [];
+    saveCombatLoot([]);
+    setInventory((prev) => {
+      let next = [...prev];
+      for (const [itemType, qty] of Object.entries(aggregated)) {
+        const isEquip = hasTag(itemType, "equipment");
+        if (isEquip) {
+          for (let i = 0; i < qty; i++) {
+            next = [...next, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: itemType, quantity: 1, created_at: "" }];
+          }
+        } else {
+          const existing = next.find((it) => it.item_type === itemType);
+          if (existing) {
+            next = next.map((it) => it.item_type === itemType ? { ...it, quantity: it.quantity + qty } : it);
+          } else {
+            next = [...next, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: itemType, quantity: qty, created_at: "" }];
+          }
+        }
+      }
+      return next;
+    });
+    // Background sync
+    fetch("/api/game/collect-loot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: aggregated }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        // Rollback on server error
+        setCombatLootSlots(prevLoot);
+        combatLootRef.current = prevLoot;
+        saveCombatLoot(prevLoot);
+      }
+    }).catch(() => {
+      setCombatLootSlots(prevLoot);
+      combatLootRef.current = prevLoot;
+      saveCombatLoot(prevLoot);
+    });
+    return { ok: true };
   }, [saveCombatLoot]);
 
   // --- Context value ---
@@ -1224,7 +1289,10 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     activeEquipmentSet: initialState?.activeEquipmentSet ?? 1,
     bodyLevel: initialState?.bodyLevel ?? 1,
     lootBox: initialState?.lootBox ?? [],
-    isCombating, combatMonster, playerHp, playerMaxHp: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp,
+    isCombating, combatMonster, playerHp,
+    playerMaxHp: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp,
+    playerAtk: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).atk,
+    playerDef: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).def,
     monsterHp, combatPlayerProgress, combatMonsterProgress, combatKillCount, combatLogs, combatLootSlots,
     consumableSlots, activeConsumableIdx,
     startMining, stopMining, startMeditation, stopMeditation,

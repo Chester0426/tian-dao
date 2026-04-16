@@ -329,18 +329,24 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                             <span className="text-spirit-gold/30 text-xs group-hover:text-spirit-gold/60 transition-colors">+</span>
                           )}
                           {/* Tooltip on hover */}
-                          <div className="pointer-events-none absolute left-1/2 -top-2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border/60 bg-card px-2 py-1 text-[11px] text-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            {equipped
-                              ? (isZh ? "點擊以更換或取消裝填" : "Click to change or unequip")
-                              : (isZh ? "裝填靈石" : "Equip spirit stone")}
-                          </div>
+                          {equipped && equippedMeta ? (
+                            <div className="pointer-events-none absolute left-1/2 -top-2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border/60 bg-card px-2.5 py-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                              <p className="text-sm font-heading">{isZh ? equippedMeta.nameZh : equippedMeta.nameEn}</p>
+                              {equippedMeta.hintZh && <p className="text-xs text-spirit-gold">{isZh ? equippedMeta.hintZh : equippedMeta.hintEn}</p>}
+                              <p className="text-xs text-jade">{isZh ? `每次冥想 +${spiritStoneBonus(equipped)} 靈氣` : `+${spiritStoneBonus(equipped)} qi per tick`}</p>
+                            </div>
+                          ) : (
+                            <div className="pointer-events-none absolute left-1/2 -top-2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border/60 bg-card px-2 py-1 text-[11px] text-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                              {isZh ? "裝填靈石" : "Equip spirit stone"}
+                            </div>
+                          )}
                         </button>
 
-                        {/* Popover */}
+                        {/* Popover — redesigned */}
                         {openSlot === i && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setOpenSlot(null)} />
-                            <div className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-lg border border-border/60 bg-card shadow-xl overflow-hidden">
+                            <div className="absolute left-0 top-full mt-1 z-50 min-w-[200px] rounded-lg border border-border/60 bg-card shadow-xl overflow-hidden">
                               <div className="px-3 py-2 border-b border-border/30 text-[11px] font-heading text-spirit-gold">
                                 {isZh ? "選擇靈石" : "Select Spirit Stone"}
                               </div>
@@ -357,12 +363,16 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                                     key={inv.item_type}
                                     type="button"
                                     onClick={() => equip(i, inv.item_type)}
-                                    className="w-full px-3 py-2 text-left hover:bg-muted/40 transition-colors flex items-center gap-2 text-sm"
+                                    className="group/item relative w-full px-3 py-2.5 text-left hover:bg-spirit-gold/10 transition-colors flex items-center gap-2"
                                   >
-                                    <span className="text-spirit-gold text-base">{meta.icon}</span>
-                                    <span className="flex-1 truncate">{isZh ? meta.nameZh : meta.nameEn}</span>
-                                    <span className="text-[11px] text-jade tabular-nums">+{spiritStoneBonus(inv.item_type)} {isZh ? "點" : "p"}</span>
-                                    <span className="text-[11px] text-muted-foreground tabular-nums">×{inv.quantity}</span>
+                                    <span className="text-lg">{meta.icon}</span>
+                                    <span className="text-sm text-jade font-heading">+{spiritStoneBonus(inv.item_type)}{isZh ? "點靈氣" : " qi"}</span>
+                                    {/* Tooltip on hover */}
+                                    <div className="pointer-events-none absolute left-1/2 -top-1 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border/60 bg-card px-2.5 py-1.5 shadow-lg opacity-0 group-hover/item:opacity-100 transition-opacity z-60">
+                                      <p className="text-sm font-heading">{isZh ? meta.nameZh : meta.nameEn}</p>
+                                      {meta.hintZh && <p className="text-xs text-spirit-gold">{isZh ? meta.hintZh : meta.hintEn}</p>}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground tabular-nums ml-auto">×{inv.quantity}</span>
                                   </button>
                                 );
                               })}
@@ -372,8 +382,8 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                                   onClick={() => equip(i, null)}
                                   className="w-full px-3 py-2 text-left hover:bg-cinnabar/10 transition-colors flex items-center gap-2 text-sm border-t border-border/30 text-cinnabar"
                                 >
-                                  <span className="text-base">🚫</span>
-                                  <span className="flex-1 truncate">{isZh ? "取消裝填" : "Unequip"}</span>
+                                  <span className="text-base">✕</span>
+                                  <span>{isZh ? "取消裝填" : "Unequip"}</span>
                                 </button>
                               )}
                             </div>

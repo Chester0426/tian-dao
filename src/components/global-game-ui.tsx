@@ -7,15 +7,11 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { ITEMS } from "@/lib/items";
 
-const ITEM_INFO: Record<string, { nameZh: string; nameEn: string; icon: string; color: string }> = {
-  coal: { nameZh: "煤", nameEn: "Coal", icon: "◆", color: "text-foreground" },
-  copper_ore: { nameZh: "銅礦", nameEn: "Copper Ore", icon: "◇", color: "text-jade" },
-  spirit_stone_fragment: { nameZh: "靈石碎片", nameEn: "Spirit Stone Fragment", icon: "✦", color: "text-spirit-gold" },
 
-};
 
 export function GlobalGameUI() {
   const gameState = useGameState();
@@ -36,8 +32,8 @@ export function GlobalGameUI() {
               style={{ animation: "drop-float-up 2.5s ease-out forwards" }}
             >
               <span className={`text-base ${n.color}`}>{n.icon}</span>
-              <span className={`font-bold tabular-nums ${n.color}`}>+{n.amount}</span>
-              <span className="text-muted-foreground">{n.label}</span>
+              {n.amount > 0 && <span className={`font-bold tabular-nums ${n.color}`}>+{n.amount}</span>}
+              <span className={n.amount === 0 ? n.color : "text-muted-foreground"}>{n.label}</span>
               {n.total !== undefined && (
                 <span className="text-xs tabular-nums text-muted-foreground/60">{n.total.toLocaleString()}{isZh ? "個" : ""}</span>
               )}
@@ -123,7 +119,7 @@ export function GlobalGameUI() {
                       <span className="font-bold text-cinnabar tabular-nums">
                         {pendingOfflineRewards.combat.kills}
                       </span>
-                      {isZh ? " 隻怪物" : " monsters"}
+                      {isZh ? " 個敵人" : " enemies"}
                     </p>
                     {pendingOfflineRewards.combat.died && (
                       <p className="text-sm text-cinnabar">
@@ -135,7 +131,7 @@ export function GlobalGameUI() {
 
                 {/* Items */}
                 {Object.entries(pendingOfflineRewards.drops).map(([itemType, qty]) => {
-                  const info = ITEM_INFO[itemType];
+                  const info = ITEMS[itemType];
                   return (
                     <p key={itemType} className="text-base">
                       {isZh ? "你獲得了 " : "You gained "}
@@ -166,53 +162,72 @@ export function GlobalGameUI() {
       {/* === Mini combat panel — fixed bottom-right, visible on all pages when fighting === */}
       {gameState.isCombating && gameState.combatMonster && pathname !== "/adventure" && (
         <div className="fixed bottom-4 right-4 md:right-6 z-40 flex items-end gap-2">
-          {/* Consumable button — left of HP panel */}
+          {/* Consumable button — left, same style as retreat */}
           {(() => {
             const activeItem = gameState.consumableSlots[gameState.activeConsumableIdx];
             const meta = activeItem ? ITEMS[activeItem] : null;
-            return meta ? (
-              <button
-                type="button"
-                onClick={gameState.consumeItem}
-                className="rounded-lg border border-jade/30 bg-card/95 backdrop-blur-sm shadow-xl px-3 py-2 flex items-center gap-1.5 hover:border-jade/60 hover:bg-jade/5 transition-colors"
-                title={`${isZh ? meta.nameZh : meta.nameEn} +${meta.healHp} HP`}
-              >
-                <span className="text-lg">{meta.icon}</span>
-                <span className="text-xs text-jade font-heading">+{meta.healHp}</span>
-              </button>
-            ) : null;
+            const invCount = activeItem ? (gameState.inventory.find((i) => i.item_type === activeItem)?.quantity ?? 0) : 0;
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <button
+                      type="button"
+                      onClick={meta ? gameState.consumeItem : undefined}
+                      disabled={!meta}
+                      className="relative rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl p-2.5 text-muted-foreground/70 hover:text-jade hover:border-jade/60 hover:shadow-2xl hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-100 transition-all duration-150 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:scale-100"
+                    >
+                      {meta && invCount > 0 && (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-card border border-border/50 rounded-full px-1.5 text-[11px] tabular-nums text-muted-foreground leading-tight">{invCount}</span>
+                      )}
+                      <span className="text-xl">{meta ? meta.icon : "🍽️"}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {meta ? (
+                      <div>
+                        <p className="font-heading text-sm">{isZh ? meta.nameZh : meta.nameEn}</p>
+                        <p className="text-xs text-jade">{isZh ? `恢復 ${meta.healHp} 點氣血` : `Restore ${meta.healHp} HP`}</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs">{isZh ? "未裝備補品" : "No food equipped"}</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
           })()}
-          {/* Combat HP panel */}
+          {/* Combat HP panel — middle */}
           <div className="w-[240px] rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl overflow-hidden">
             <div className="h-0.5 bg-cinnabar" />
             <div className="px-4 py-3 space-y-2">
-              {/* Player HP */}
+              {/* Player HP — green */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{isZh ? "你" : "You"}</span>
-                  <span className="text-red-400 tabular-nums">{gameState.playerHp}/{gameState.playerMaxHp}</span>
+                  <span className="text-jade tabular-nums">{gameState.playerHp}/{gameState.playerMaxHp}</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted/30">
-                  <div className="h-full rounded-full bg-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
+                  <div className="h-full rounded-full bg-jade transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
                 </div>
               </div>
-              {/* Monster HP */}
+              {/* Monster HP — red */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{isZh ? "敵人" : "Enemy"}</span>
-                  <span className="text-cinnabar tabular-nums">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
+                  <span className="text-red-400 tabular-nums">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted/30">
-                  <div className="h-full rounded-full bg-cinnabar transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
+                  <div className="h-full rounded-full bg-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
                 </div>
               </div>
             </div>
           </div>
-          {/* Retreat button — separate */}
+          {/* Retreat button — right (unchanged position) */}
           <button
             type="button"
             onClick={gameState.stopCombat}
-            className="rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl p-2.5 text-muted-foreground/70 hover:text-cinnabar hover:border-cinnabar/60 transition-colors"
+            className="rounded-lg border border-cinnabar/30 bg-card/95 backdrop-blur-sm shadow-xl p-2.5 text-muted-foreground/70 hover:text-cinnabar hover:border-cinnabar/60 hover:shadow-2xl hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-100 transition-all duration-150"
             title={isZh ? "撤退" : "Retreat"}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -17,5 +17,6 @@ export async function POST(request: NextRequest) {
     session_type: reward.session_type,
     drops: reward.drops,
     xp_gained: reward.xp_gained,
+    combat: reward.combat,
   });
 }

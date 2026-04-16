@@ -213,7 +213,7 @@ export function InventoryClient({
         <Card className="scroll-surface -mx-6 md:-mx-12">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="font-heading text-lg">物品</CardTitle>
+              <CardTitle className="font-heading text-lg flex items-center gap-2">物品 <span className="text-sm text-muted-foreground tabular-nums font-normal">{slotsUsed}/{totalSlots}</span></CardTitle>
               {inventory.length > 0 && !sacrificeMode && (
                 <Button
                   variant="outline"
@@ -266,8 +266,8 @@ export function InventoryClient({
                                 : "border-border/50 bg-card/60"
                             }`}
                           >
-                              {display?.image ? (
-                                <img src={display.image} alt="" className={`${display.tags.includes("equipment") ? "w-12 h-12" : "w-8 h-8"} object-contain`} />
+                              {(display as unknown as Record<string, unknown>)?.image ? (
+                                <img src={(display as unknown as Record<string, string>).image} alt="" className={`${display!.tags.includes("equipment") ? "w-12 h-12" : "w-8 h-8"} object-contain`} />
                               ) : (
                                 <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
                                   {display?.icon ?? "○"}
@@ -319,8 +319,8 @@ export function InventoryClient({
                       return (
                         <div key={itemType} className="flex items-center justify-between rounded-lg bg-muted/20 px-3 py-2">
                           <div className="flex items-center gap-2">
-                            {display?.image ? (
-                              <img src={display.image} alt="" className="w-5 h-5 object-contain" />
+                            {(display as unknown as Record<string, unknown>)?.image ? (
+                              <img src={(display as unknown as Record<string, string>).image} alt="" className="w-5 h-5 object-contain" />
                             ) : (
                               <span className={display?.color ?? ""}>{display?.icon ?? "○"}</span>
                             )}

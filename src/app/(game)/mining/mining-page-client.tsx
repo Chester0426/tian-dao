@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { trackActivate } from "@/lib/events";
 import { useGameState } from "@/components/mining-provider";
 import type { MineData } from "@/components/mining-provider";
@@ -349,38 +350,55 @@ export function MiningPageClient({
                         ⏱ {(3).toFixed(2)} s
                       </p>
                     </div>
+                    <TooltipProvider>
                     <div className="flex items-center gap-1.5 text-xs">
-                      <span
-                        className="rounded-full px-2 py-0.5"
-                        style={{
-                          background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
-                          border: "1px solid rgba(62,207,165,0.25)",
-                          color: "#6ee7b7",
-                        }}
-                      >
-                        XP {mine.xp_mining}
-                      </span>
-                      <span
-                        className="rounded-full px-2 py-0.5"
-                        style={{
-                          background: "linear-gradient(135deg, rgba(200,60,60,0.15), rgba(120,30,30,0.25))",
-                          border: "1px solid rgba(200,60,60,0.25)",
-                          color: "#f87171",
-                        }}
-                      >
-                        🏆 {mine.xp_mastery}
-                      </span>
-                      <span
-                        className="rounded-full px-2 py-0.5"
-                        style={{
-                          background: "linear-gradient(135deg, rgba(200,160,100,0.15), rgba(120,90,50,0.25))",
-                          border: "1px solid rgba(200,160,100,0.25)",
-                          color: "#fbbf24",
-                        }}
-                      >
-                        💪 {mine.xp_body}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span
+                            className="rounded-full px-2 py-0.5 cursor-default"
+                            style={{
+                              background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
+                              border: "1px solid rgba(62,207,165,0.25)",
+                              color: "#6ee7b7",
+                            }}
+                          >
+                            ⛏️ {mine.xp_mining}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{locale === "zh" ? "挖礦經驗" : "Mining XP"}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span
+                            className="rounded-full px-2 py-0.5 cursor-default"
+                            style={{
+                              background: "linear-gradient(135deg, rgba(200,60,60,0.15), rgba(120,30,30,0.25))",
+                              border: "1px solid rgba(200,60,60,0.25)",
+                              color: "#f87171",
+                            }}
+                          >
+                            🏆 {mine.xp_mastery}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{locale === "zh" ? "精通經驗" : "Mastery XP"}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span
+                            className="rounded-full px-2 py-0.5 cursor-default"
+                            style={{
+                              background: "linear-gradient(135deg, rgba(200,160,100,0.15), rgba(120,90,50,0.25))",
+                              border: "1px solid rgba(200,160,100,0.25)",
+                              color: "#fbbf24",
+                            }}
+                          >
+                            💪 {mine.xp_body}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{locale === "zh" ? "煉體經驗" : "Body XP"}</TooltipContent>
+                      </Tooltip>
                     </div>
+                    </TooltipProvider>
                   </div>
 
                   {/* Drop rates + Progress circle row */}

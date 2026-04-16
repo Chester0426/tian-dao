@@ -13,10 +13,14 @@ export function GameSidebar({
   open,
   onCloseAction,
   isAdmin = false,
+  activeTab,
+  onTabChangeAction,
 }: {
   open: boolean;
   onCloseAction: () => void;
   isAdmin?: boolean;
+  activeTab?: string;
+  onTabChangeAction?: (tab: string) => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -111,49 +115,61 @@ export function GameSidebar({
             {!isCollapsed && (
             <div className="space-y-0.5">
               {section.items.map((item) => {
-                const isActive = !item.href.startsWith("#") && (
-                  pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href))
-                );
                 return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={(e) => {
-                      if (item.key === "logout") {
-                        e.preventDefault();
-                        const supabase = createClient();
-                        supabase.auth.signOut().then(() => {
+                  item.href.startsWith("#") || item.key === "switch-char" ? (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={(e) => {
+                        if (item.key === "logout") {
+                          e.preventDefault();
+                          const supabase = createClient();
+                          supabase.auth.signOut().then(() => {
+                            document.cookie = "x-slot=; path=/; max-age=0";
+                            router.push("/login");
+                          });
+                        } else if (item.key === "lang-toggle") {
+                          e.preventDefault();
+                          setLocale(locale === "zh" ? "en" : "zh");
+                        } else if (item.key === "switch-char") {
                           document.cookie = "x-slot=; path=/; max-age=0";
-                          router.push("/login");
-                        });
-                      } else if (item.key === "lang-toggle") {
-                        e.preventDefault();
-                        setLocale(locale === "zh" ? "en" : "zh");
-                      } else if (item.key === "switch-char") {
-                        document.cookie = "x-slot=; path=/; max-age=0";
-                      }
-                      onCloseAction();
-                    }}
-                    className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-                      isActive
-                        ? "bg-cinnabar-dim/50 text-cinnabar border border-cinnabar/20"
-                        : "text-muted-foreground hover:bg-muted/30 hover:text-foreground border border-transparent"
-                    }`}
-                  >
-                    <span className="text-base leading-none">{item.icon}</span>
-                    <span className="flex-1">{item.name}</span>
-                    {item.key === "inventory" && (
-                      <span className="text-sm tabular-nums text-muted-foreground/70">
-                        {slotsUsed}/{totalSlots}
-                      </span>
-                    )}
-                    {item.key === "shop" && (
-                      <span className="text-sm tabular-nums text-spirit-gold">
-                        🪙 0
-                      </span>
-                    )}
-                  </Link>
+                        }
+                        onCloseAction();
+                      }}
+                      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 text-muted-foreground hover:bg-muted/30 hover:text-foreground border border-transparent`}
+                    >
+                      <span className="text-base leading-none">{item.icon}</span>
+                      <span className="flex-1">{item.name}</span>
+                    </Link>
+                  ) : (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => {
+                        const tab = item.href.replace("/", "");
+                        if (onTabChangeAction) onTabChangeAction(tab);
+                        onCloseAction();
+                      }}
+                      className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                        activeTab === item.href.replace("/", "")
+                          ? "bg-cinnabar-dim/50 text-cinnabar border border-cinnabar/20"
+                          : "text-muted-foreground hover:bg-muted/30 hover:text-foreground border border-transparent"
+                      }`}
+                    >
+                      <span className="text-base leading-none">{item.icon}</span>
+                      <span className="flex-1 text-left">{item.name}</span>
+                      {item.key === "inventory" && (
+                        <span className="text-sm tabular-nums text-muted-foreground/70">
+                          {slotsUsed}/{totalSlots}
+                        </span>
+                      )}
+                      {item.key === "shop" && (
+                        <span className="text-sm tabular-nums text-spirit-gold">
+                          🪙 0
+                        </span>
+                      )}
+                    </button>
+                  )
                 );
               })}
             </div>

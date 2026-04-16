@@ -10,7 +10,7 @@ export interface Monster {
   def: number;
   attackSpeed: number; // seconds per attack
   bodyXp: number; // 煉體經驗 per kill
-  drops: { item_type: string; quantity: number }[];
+  drops: { item_type: string; quantity: number; rate: number }[]; // rate: 0-1, 1 = 100%
 }
 
 export interface CombatZone {
@@ -44,7 +44,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         def: 0,
         attackSpeed: 3,
         bodyXp: 5,
-        drops: [{ item_type: "damaged_book", quantity: 1 }],
+        drops: [{ item_type: "damaged_book", quantity: 1, rate: 0.2 }],
       },
       {
         id: "thug",
@@ -56,7 +56,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         def: 4,
         attackSpeed: 3,
         bodyXp: 10,
-        drops: [{ item_type: "damaged_book", quantity: 1 }],
+        drops: [{ item_type: "damaged_book", quantity: 1, rate: 0.2 }],
       },
     ],
   },
@@ -79,7 +79,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         def: 2,
         attackSpeed: 3,
         bodyXp: 8,
-        drops: [{ item_type: "damaged_book", quantity: 1 }],
+        drops: [{ item_type: "damaged_book", quantity: 1, rate: 0.2 }],
       },
       {
         id: "bandit-leader",
@@ -91,7 +91,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         def: 5,
         attackSpeed: 3,
         bodyXp: 20,
-        drops: [{ item_type: "damaged_book", quantity: 1 }],
+        drops: [{ item_type: "damaged_book", quantity: 1, rate: 0.2 }],
       },
     ],
   },
@@ -114,7 +114,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         def: 4,
         attackSpeed: 3,
         bodyXp: 15,
-        drops: [{ item_type: "damaged_book", quantity: 1 }],
+        drops: [{ item_type: "damaged_book", quantity: 1, rate: 0.2 }],
       },
       {
         id: "mountain-king",
@@ -126,7 +126,7 @@ export const COMBAT_ZONES: CombatZone[] = [
         def: 8,
         attackSpeed: 3,
         bodyXp: 35,
-        drops: [{ item_type: "damaged_book", quantity: 1 }],
+        drops: [{ item_type: "damaged_book", quantity: 1, rate: 0.2 }],
       },
     ],
   },
