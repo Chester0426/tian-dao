@@ -186,19 +186,6 @@ export async function POST(req: NextRequest) {
   // Heartbeat via atomic RPC
   await supabase.rpc("sync_heartbeat", { p_user_id: user.id, p_slot: slot, p_type: "mining" });
 
-  // Log sync for anomaly tracking (admin-only table, no RLS read access)
-  await supabase.from("mining_sync_logs").insert({
-    user_id: user.id,
-    slot,
-    mine_id,
-    actions: safeActions,
-    elapsed_ms,
-    drops: safeDrops,
-    xp_mining: safeXp.mining,
-    xp_mastery: safeXp.mastery,
-    xp_body: safeXp.body,
-    anomalies,
-  });
 
   return NextResponse.json({
     synced: true,

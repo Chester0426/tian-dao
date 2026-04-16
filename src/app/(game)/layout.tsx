@@ -110,6 +110,7 @@ export default async function GameGroupLayout({
           equipment: (profile?.equipment_sets ?? {})[String(profile?.active_equipment_set ?? 1)] ?? {},
           bodyLevel: profile?.body_level ?? 1,
           lootBox: profile?.loot_box ?? [],
+          consumableSlots: (profile?.consumable_slots as (string | null)[] | null) ?? [null, null, null],
           combatMonsterId: combatInit?.monsterId ?? null,
           offlineRewards: offlineRewardsInit,
           inventory,

@@ -48,6 +48,9 @@ export function CharactersClient({
   const [deleteTarget, setDeleteTarget] = useState<SlotData | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [namingSlot, setNamingSlot] = useState<number | null>(null);
+  const [characterName, setCharacterName] = useState("");
+  const [nameError, setNameError] = useState("");
   // Offline rewards handled by GlobalGameUI in game layout
 
   // Tick every 30s so "time ago" labels update live on this page
@@ -120,19 +123,22 @@ export function CharactersClient({
       {/* Language toggle */}
       <LanguageToggle />
 
-      <div className="relative z-10 w-full max-w-3xl px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <a href="/">
-            <img src="/images/logo-dao.png" alt="天道" className="mx-auto h-24 w-24 mb-4 rounded-xl cursor-pointer transition-transform hover:scale-105" />
-          </a>
-          <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
-            {locale === "zh" ? "天道" : "Tian Tao"}
-          </h1>
-          <p className="mt-2 text-muted-foreground">{t("char_subtitle")}</p>
+      <div className="relative z-10 w-full max-w-5xl px-4 py-8">
+        {/* Header — Logo + Title on one line */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <a href="/">
+              <img src="/images/logo-dao.png" alt="天道" className="h-16 w-16 rounded-xl cursor-pointer transition-transform hover:scale-105" />
+            </a>
+            <div>
+              <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+                {locale === "zh" ? "天道" : "Tian Tao"}
+              </h1>
+            </div>
+          </div>
 
-          {/* Wallet binding */}
-          <div className="mt-4">
+          {/* Wallet binding + Logout on one line */}
+          <div className="flex items-center justify-center gap-3 mt-4">
             {walletAddress ? (
               <Badge variant="outline" className="border-jade/30 text-jade font-mono text-xs px-3 py-1.5">
                 🔗 {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
@@ -167,26 +173,23 @@ export function CharactersClient({
                   }
                 }}
               >
-                {bindingWallet ? t("char_signing") : t("char_signBind")}
+                {bindingWallet ? t("char_signing") : (locale === "zh" ? "綁定錢包" : "Bind Wallet")}
               </Button>
             ) : (
               <WalletMultiButton style={{ width: "180px", height: "36px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", backgroundImage: "url('/images/btn-bg6.png')", backgroundSize: "100% 100%", backgroundPosition: "center", backgroundRepeat: "no-repeat", border: "none", boxShadow: "none", transition: "none" }} />
             )}
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-white transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              {t("sidebar_logout")}
+            </button>
           </div>
-
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="mt-4 inline-flex items-center justify-center text-sm font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
-            style={{ backgroundImage: "url('/images/btn-bg5.png')", width: '120px', height: '36px' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            {t("sidebar_logout")}
-          </button>
         </div>
 
         {/* 3 Slot Grid */}
@@ -198,16 +201,37 @@ export function CharactersClient({
 
             return (
               <div key={slot} className="flex w-full flex-col items-center gap-2">
-                {/* Slot number — outside card */}
-                <div
-                  className="inline-flex items-center justify-center text-xs text-black bg-contain bg-center bg-no-repeat"
-                  style={{ backgroundImage: "url('/images/btn-bg3.png')", width: '120px', height: '30px' }}
-                >
-                  {t("char_save")} {slot}
-                </div>
+                {/* Top bar: Load + Delete (existing char) or Slot label (empty) */}
+                {!isEmpty ? (
+                  <div className="flex items-center w-full gap-2">
+                    <Button
+                      onClick={() => handleSelectSlot(slot, true, slotData.lastActivity, slotData.lastMineSlug)}
+                      disabled={isLoading}
+                      className="flex-1 h-[36px] font-heading text-sm font-bold bg-transparent bg-cover bg-center bg-no-repeat border-0 shadow-none hover:scale-[1.02] transition-transform text-black"
+                      style={{ backgroundImage: "url('/images/btn-bg3.png')", backgroundSize: "100% 100%" }}
+                    >
+                      {isLoading ? t("char_loading") : t("char_load")}
+                    </Button>
+                    <button
+                      onClick={() => setDeleteTarget(slotData)}
+                      className="h-[36px] w-[36px] rounded-md border border-destructive/40 bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 hover:border-destructive/60 hover:scale-105 transition-all"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M3 4h10M5.5 4V3a1 1 0 011-1h3a1 1 0 011 1v1M6 7v5M10 7v5M4.5 4l.5 9a1 1 0 001 1h4a1 1 0 001-1l.5-9" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="inline-flex items-center justify-center text-xs text-black bg-contain bg-center bg-no-repeat"
+                    style={{ backgroundImage: "url('/images/btn-bg3.png')", width: '120px', height: '30px' }}
+                  >
+                    {t("char_save")} {slot}
+                  </div>
+                )}
 
                 <Card
-                  className={`w-full h-[340px] bg-transparent ring-0 shadow-none relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                  className={`w-full aspect-[3/4] bg-transparent ring-0 shadow-none relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                     isEmpty ? "border-dashed" : ""
                   }`}
                 >
@@ -224,6 +248,13 @@ export function CharactersClient({
                       })`,
                     }}
                   />
+                  {/* Slot number overlay — centered on red gem at top */}
+                  <div className="absolute z-20 left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: "5%", width: "50px", height: "30px" }}>
+                    <span className="font-heading text-xl" style={{ lineHeight: 1, fontWeight: 900, color: "#000" }}>
+                      {["", "一", "二", "三"][slot]}
+                    </span>
+                  </div>
+
                   <CardContent className="relative z-10 flex h-full flex-col items-center justify-center gap-4 py-8">
 
                   {isEmpty && slot > 1 ? (
@@ -249,7 +280,7 @@ export function CharactersClient({
                       </div>
                       <p className="text-sm text-muted-foreground">{t("char_empty")}</p>
                       <Button
-                        onClick={() => handleSelectSlot(slot, false, null, null)}
+                        onClick={() => { setNamingSlot(slot); setCharacterName(""); setNameError(""); }}
                         disabled={isLoading}
                         className="mt-auto w-full font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
                         style={{ backgroundImage: "url('/images/btn-bg1.png')" }}
@@ -259,74 +290,47 @@ export function CharactersClient({
                     </>
                   ) : (
                     <>
+                      {/* Character info — inside card, below jade plate area */}
+                      <div className="flex-1" />
                       <div
-                        className="text-center space-y-1.5 rounded-lg px-3 py-2"
+                        className="text-center space-y-0.5 w-full rounded-lg px-3 py-2"
                         style={{
-                          animation: "ink-fade-in 0.8s ease-out both",
-                          background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 100%)",
-                          textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
+                          background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.7) 100%)",
                         }}
                       >
-                        <p className="font-heading font-bold text-base text-amber-200">
-                          {locale === "zh"
-                            ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
-                            : `Body Refining Realm ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
-                          }
-                        </p>
-                        {lastActivity ? (
+                        {(profile as unknown as { character_name?: string }).character_name && (
                           <p
-                            className="text-sm font-medium text-white/90"
-                            style={{ animation: "ink-fade-in 0.8s ease-out 0.2s both" }}
+                            className="font-bold text-base tracking-[0.15em]"
+                            style={{
+                              fontFamily: "var(--font-heading), serif",
+                              background: "linear-gradient(135deg, #fcd34d, #f59e0b, #d97706)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              filter: "drop-shadow(0 0 4px rgba(245,158,11,0.3))",
+                            }}
                           >
-                            {lastActivity === "meditate"
-                              ? (locale === "zh" ? "🧘 冥想中" : "🧘 Meditating")
-                              : lastActivity === "mining"
-                              ? `⛏️ ${locale === "zh" ? "挖礦中" : "Mining"}${lastMineSlug ? ` · ${MINE_NAMES[lastMineSlug]?.[locale === "zh" ? "zh" : "en"] ?? lastMineSlug}` : ""}`
-                              : lastActivity}
-                          </p>
-                        ) : miningLevel > 0 ? (
-                          <p
-                            className="text-sm font-medium text-white/70"
-                            style={{ animation: "ink-fade-in 0.8s ease-out 0.2s both" }}
-                          >
-                            {locale === "zh" ? "閒置" : "Idle"}
-                          </p>
-                        ) : null}
-                        {lastPlayed && (
-                          <p
-                            className="text-xs text-white/60"
-                            style={{ animation: "ink-fade-in 0.8s ease-out 0.35s both" }}
-                          >
-                            {formatTimeAgo(lastPlayed, locale === "zh")}
+                            {(profile as unknown as { character_name?: string }).character_name}
                           </p>
                         )}
-                      </div>
-
-                      <div className="flex w-full gap-2 mt-auto">
-                        <Button
-                          onClick={() => handleSelectSlot(slot, true, slotData.lastActivity, slotData.lastMineSlug)}
-                          disabled={isLoading}
-                          className="flex-1 font-heading bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-white"
-                          style={{ backgroundImage: "url('/images/btn-bg1.png')" }}
-                        >
-                          {isLoading ? t("char_loading") : t("char_load")}
-                        </Button>
-                        <Button
-                         
-                          size="icon"
-                          onClick={() => setDeleteTarget(slotData)}
-                          className="bg-transparent bg-cover bg-center border-0 shadow-none hover:scale-[1.02] transition-transform text-muted-foreground hover:text-destructive"
-                          style={{ backgroundImage: "url('/images/btn-bg4.png')" }}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <path d="M3 4h10M5.5 4V3a1 1 0 011-1h3a1 1 0 011 1v1M6 7v5M10 7v5M4.5 4l.5 9a1 1 0 001 1h4a1 1 0 001-1l.5-9" />
-                          </svg>
-                        </Button>
+                        <p className="font-heading text-[11px]" style={{ color: "#e8d5a3", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                          {locale === "zh"
+                            ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
+                            : `${profile.realm ?? "Body Refining"} ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
+                          }
+                        </p>
+                        <p className="text-[10px]" style={{ color: lastActivity ? "#6ee7b7" : "rgba(255,255,255,0.4)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                          {lastActivity === "meditate" ? (locale === "zh" ? "🧘 冥想中" : "🧘 Meditating")
+                            : lastActivity === "mining" ? (locale === "zh" ? "⛏️ 挖礦中" : "⛏️ Mining")
+                            : lastActivity === "combat" ? (locale === "zh" ? "⚔️ 戰鬥中" : "⚔️ Fighting")
+                            : (locale === "zh" ? "休息中" : "Resting")}
+                          {lastPlayed && <span style={{ color: "rgba(255,255,255,0.3)" }}> · {formatTimeAgo(lastPlayed, locale === "zh")}</span>}
+                        </p>
                       </div>
                     </>
                   )}
                 </CardContent>
               </Card>
+
               </div>
             );
           })}
@@ -334,6 +338,62 @@ export function CharactersClient({
       </div>
 
       {/* Offline rewards handled by GlobalGameUI in game layout */}
+
+      {/* Naming dialog */}
+      <Dialog open={namingSlot !== null} onOpenChange={() => setNamingSlot(null)}>
+        <DialogContent className="scroll-surface sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-lg">{locale === "zh" ? "為角色取名" : "Name Your Character"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              {locale === "zh" ? "支援中文、日文、英文，1-12 字元" : "Supports Chinese, Japanese, English. 1-12 characters."}
+            </p>
+            <input
+              type="text"
+              value={characterName}
+              onChange={(e) => { setCharacterName(e.target.value); setNameError(""); }}
+              placeholder={locale === "zh" ? "輸入角色名稱" : "Enter character name"}
+              maxLength={12}
+              className="w-full rounded-md border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-jade/30 focus:border-jade/40"
+              autoComplete="off"
+            />
+            {nameError && <p className="text-xs text-cinnabar">{nameError}</p>}
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setNamingSlot(null)}>
+                {locale === "zh" ? "取消" : "Cancel"}
+              </Button>
+              <Button
+                className="flex-1 seal-glow"
+                disabled={!characterName.trim() || loading !== null}
+                onClick={async () => {
+                  if (!namingSlot) return;
+                  setLoading(namingSlot);
+                  try {
+                    await fetch("/api/game/init-profile", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ slot: namingSlot, name: characterName.trim() }),
+                    });
+                    await fetch("/api/game/select-slot", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ slot: namingSlot }),
+                    });
+                    setNamingSlot(null);
+                    router.push("/dashboard");
+                  } catch {
+                    setNameError(locale === "zh" ? "創建失敗，請重試" : "Failed, please retry");
+                    setLoading(null);
+                  }
+                }}
+              >
+                {loading !== null ? (locale === "zh" ? "創建中..." : "Creating...") : (locale === "zh" ? "開始修行" : "Begin")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}>

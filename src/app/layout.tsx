@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Serif_SC, Noto_Sans_SC } from "next/font/google";
+import { Noto_Serif_SC, Noto_Sans_SC, Ma_Shan_Zheng } from "next/font/google";
 import "./globals.css";
 import { RetainTracker } from "@/components/RetainTracker";
 import { Web3Provider } from "@/components/web3-provider";
@@ -9,6 +9,13 @@ const notoSerifSC = Noto_Serif_SC({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: "--font-heading",
+  display: "swap",
+});
+
+const maShanZheng = Ma_Shan_Zheng({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-brush",
   display: "swap",
 });
 
@@ -39,7 +46,7 @@ export default function RootLayout({
       className={`${notoSerifSC.variable} ${notoSansSC.variable} dark`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
+      <body className={`min-h-screen bg-background font-sans text-foreground antialiased ${maShanZheng.variable}`}>
         <RetainTracker />
         <I18nProvider>
           <Web3Provider>

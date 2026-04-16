@@ -1,12 +1,7 @@
 // POST /api/game/collect-loot — move loot box items to inventory
-// Checks inventory space: each unique item type needs at least 1 slot
+// Reads loot_box from DB (not from client) to prevent item fabrication
 import { NextRequest, NextResponse } from "next/server";
 import { hasTag } from "@/lib/items";
-import { z } from "zod";
-
-const schema = z.object({
-  items: z.record(z.string(), z.number().int().min(1)),
-});
 
 export async function POST(request: NextRequest) {
   const { verifyProfile } = await import("@/lib/verify-profile");
@@ -14,26 +9,29 @@ export async function POST(request: NextRequest) {
   if ("error" in vResult) return vResult.error;
   const { user, slot, supabase } = vResult;
 
-  let body;
-  try {
-    body = schema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  // Read loot box from DB — single source of truth
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("loot_box, inventory_slots")
+    .eq("user_id", user.id).eq("slot", slot)
+    .single();
+
+  const lootBox = (profile?.loot_box ?? []) as { item_type: string; quantity: number }[];
+  if (lootBox.length === 0) {
+    return NextResponse.json({ error: "Loot box is empty" }, { status: 400 });
   }
 
-  const lootItems = body.items; // { "damaged_book": 5, "coal": 3 }
+  // Aggregate loot box items
+  const lootItems: Record<string, number> = {};
+  for (const slot_item of lootBox) {
+    lootItems[slot_item.item_type] = (lootItems[slot_item.item_type] ?? 0) + slot_item.quantity;
+  }
 
   // Fetch current inventory
   const { data: inventory } = await supabase
     .from("inventory_items")
     .select("item_type, quantity")
     .eq("user_id", user.id).eq("slot", slot);
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("inventory_slots")
-    .eq("user_id", user.id).eq("slot", slot)
-    .single();
 
   const maxSlots = profile?.inventory_slots ?? 20;
   const currentRowCount = (inventory ?? []).length;
@@ -61,7 +59,6 @@ export async function POST(request: NextRequest) {
   // Add items to inventory
   for (const [itemType, qty] of Object.entries(lootItems)) {
     if (hasTag(itemType, "equipment")) {
-      // Equipment never stacks — one row per piece
       const rows = Array.from({ length: qty }, () => ({
         user_id: user.id, slot, item_type: itemType, quantity: 1,
       }));
@@ -81,6 +78,12 @@ export async function POST(request: NextRequest) {
       }
     }
   }
+
+  // Clear loot box in DB
+  await supabase
+    .from("profiles")
+    .update({ loot_box: [] })
+    .eq("user_id", user.id).eq("slot", slot);
 
   return NextResponse.json({ ok: true, collected: lootItems });
 }

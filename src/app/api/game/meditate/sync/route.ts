@@ -23,15 +23,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  // Type guard: only process if active session is meditate
+  // Type guard + time validation
   const { data: activeSession } = await supabase
     .from("idle_sessions")
-    .select("type")
+    .select("type, last_sync_at, started_at")
     .eq("user_id", user.id).eq("slot", slot)
     .is("ended_at", null)
     .maybeSingle();
   if (!activeSession || activeSession.type !== "meditate") {
     return NextResponse.json({ synced: false, reason: "not_meditating" });
+  }
+
+  // Anti-cheat: max ticks based on time since last sync (1 tick per 10s, 50% tolerance)
+  const lastSync = activeSession.last_sync_at ?? activeSession.started_at;
+  const secondsSinceSync = Math.max(0, (Date.now() - new Date(lastSync).getTime()) / 1000);
+  const maxTicks = Math.ceil(secondsSinceSync / 6.67); // 10s per tick, 50% tolerance
+  const safeTicks = Math.min(body.ticks, maxTicks);
+
+  if (safeTicks < body.ticks) {
+    console.warn(`[MEDITATE ANOMALY] user=${user.id} ticks=${body.ticks} max=${maxTicks} time=${secondsSinceSync.toFixed(0)}s`);
   }
 
   const { data: profile, error: pErr } = await supabase
@@ -44,7 +54,7 @@ export async function POST(request: NextRequest) {
   if (profile.realm !== "練氣") return NextResponse.json({ error: "Only 練氣 can meditate" }, { status: 400 });
 
   const qiArray: (string | null)[] = (profile.qi_array as (string | null)[] | null) ?? [null, null, null, null, null];
-  const requestedTicks = body.ticks;
+  const requestedTicks = safeTicks;
 
   // Determine how many ticks each slot can actually contribute based on inventory
   // Each tick consumes 1 of each equipped stone. If inventory runs out, that slot clears mid-batch.

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hasTag } from "@/lib/items";
 import { getTechnique, MAX_MASTERY_LEVEL } from "@/lib/techniques";
+import { COMBAT_ZONES } from "@/lib/combat";
 import { z } from "zod";
 
 const schema = z.object({
@@ -67,6 +68,18 @@ export async function POST(request: NextRequest) {
       if (learned.mastery_level >= MAX_MASTERY_LEVEL) {
         return NextResponse.json({ error: "Technique maxed" }, { status: 400 });
       }
+    }
+  }
+
+  // Validate combat monster exists
+  if (type === "combat") {
+    const target = body.target as { monster_id?: string } | undefined;
+    if (!target?.monster_id) {
+      return NextResponse.json({ error: "monster_id required" }, { status: 400 });
+    }
+    const validMonster = COMBAT_ZONES.some((z) => z.monsters.some((m) => m.id === target.monster_id));
+    if (!validMonster) {
+      return NextResponse.json({ error: "Invalid monster" }, { status: 400 });
     }
   }
 

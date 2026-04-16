@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  // Type guard: only process if active session is combat
+  // Type guard + time validation
   const { data: activeSession } = await supabase
     .from("idle_sessions")
-    .select("type")
+    .select("type, last_sync_at, started_at")
     .eq("user_id", user.id).eq("slot", slot)
     .is("ended_at", null)
     .maybeSingle();
@@ -37,8 +37,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ synced: false, reason: "not_combat" });
   }
 
-  // Apply body XP
-  if (body.body_xp > 0) {
+  // Anti-cheat: calculate max possible kills based on time since last sync
+  const lastSync = activeSession.last_sync_at ?? activeSession.started_at;
+  const secondsSinceSync = Math.max(0, (Date.now() - new Date(lastSync).getTime()) / 1000);
+  // Fastest possible kill: 1 kill per 3s (player attack interval), allow 50% tolerance
+  const maxKills = Math.ceil(secondsSinceSync / 2);
+  const safeKills = Math.min(body.kills, maxKills);
+  const killRatio = body.kills > 0 ? safeKills / body.kills : 1;
+  const safeBodyXp = Math.floor(body.body_xp * killRatio);
+
+  if (safeKills < body.kills) {
+    console.warn(`[COMBAT ANOMALY] user=${user.id} kills=${body.kills} max=${maxKills} time=${secondsSinceSync.toFixed(0)}s`);
+  }
+
+  // Apply body XP (capped)
+  if (safeBodyXp > 0) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("body_xp")
@@ -47,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (profile) {
       await supabase
         .from("profiles")
-        .update({ body_xp: (profile.body_xp ?? 0) + body.body_xp })
+        .update({ body_xp: (profile.body_xp ?? 0) + safeBodyXp })
         .eq("user_id", user.id).eq("slot", slot);
     }
   }

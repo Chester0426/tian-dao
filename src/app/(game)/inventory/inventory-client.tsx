@@ -202,7 +202,6 @@ export function InventoryClient({
                     <span className="font-bold">
                       {slotsUsed} / {totalSlots}
                     </span>
-                    <span className="font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>({pct.toFixed(1)}%)</span>
                   </div>
                 </>
               );
@@ -267,7 +266,7 @@ export function InventoryClient({
                             }`}
                           >
                               {(display as unknown as Record<string, unknown>)?.image ? (
-                                <img src={(display as unknown as Record<string, string>).image} alt="" className={`${display!.tags.includes("equipment") ? "w-12 h-12" : "w-8 h-8"} object-contain`} />
+                                <img src={(display as unknown as Record<string, string>).image} alt="" className={`${display!.tags.includes("equipment") ? "w-12 h-12" : "w-8 h-8"} object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]`} />
                               ) : (
                                 <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
                                   {display?.icon ?? "○"}
@@ -280,16 +279,57 @@ export function InventoryClient({
                                 <span className="text-[9px] text-cinnabar font-heading">已選</span>
                               )}
                           </TooltipTrigger>
-                          <TooltipContent className="block">
-                            <div className="flex items-center justify-between gap-3">
-                              <span className="font-heading text-sm">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</span>
-                              <span className="text-[11px] text-muted-foreground tabular-nums">×{item.quantity.toLocaleString()}</span>
+                          <TooltipContent className="block p-0 min-w-[200px]">
+                            <div className="flex gap-3 p-3">
+                              {display?.image && (
+                                <div className="shrink-0 w-14 h-14 rounded-md bg-muted/20 border border-border/30 flex items-center justify-center">
+                                  <img src={display.image} alt="" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                {/* 物品名稱 */}
+                                <p className="font-heading text-sm leading-tight">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</p>
+                                {/* 部位 + 境界要求（裝備才顯示） */}
+                                {display?.equipSlot && (
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    {display.requirementZh && <span className="text-spirit-gold/70">{isZh ? display.requirementZh : display.requirementEn}</span>}
+                                    {display.requirementZh && <span className="mx-1 text-muted-foreground/40">|</span>}
+                                    {isZh ? ({
+                                      "helmet": "頭盔", "shoulder": "護肩", "cape": "披風", "necklace": "項鍊",
+                                      "main-hand": "主手", "off-hand": "副手", "chest": "胸甲", "gloves": "手套",
+                                      "pants": "褲子", "accessory": "飾品", "ring": "戒指", "boots": "靴子",
+                                    } as Record<string, string>)[display.equipSlot] ?? display.equipSlot : display.equipSlot}
+                                  </p>
+                                )}
+                                {/* 說明 */}
+                                {display?.hintZh && (
+                                  <p className="text-[11px] text-jade mt-1">{isZh ? display.hintZh : display.hintEn}</p>
+                                )}
+                              </div>
                             </div>
-                            {display?.hintZh && (
-                              <p className="text-[11px] text-jade">{isZh ? display.hintZh : display.hintEn}</p>
+                            {/* 數值區 */}
+                            {(display?.healHp || display?.equipStats) && (
+                              <div className="border-t border-border/30 px-3 py-2 space-y-1">
+                                {display?.healHp && (
+                                  <div className="flex items-center gap-1.5 text-[11px]">
+                                    <span className="text-jade">❤️‍🩹</span>
+                                    <span className="text-jade">{isZh ? `恢復 ${display.healHp} 點氣血` : `Restore ${display.healHp} HP`}</span>
+                                  </div>
+                                )}
+                                {display?.equipStats && (
+                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
+                                    {display.equipStats.hp ? <span className="text-red-400">{isZh ? "氣血" : "HP"} +{display.equipStats.hp}</span> : null}
+                                    {display.equipStats.atk ? <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} +{display.equipStats.atk}</span> : null}
+                                    {display.equipStats.def ? <span className="text-blue-300">{isZh ? "防禦" : "DEF"} +{display.equipStats.def}</span> : null}
+                                    {display.equipStats.mp ? <span className="text-jade">{isZh ? "靈力" : "MP"} +{display.equipStats.mp}</span> : null}
+                                  </div>
+                                )}
+                              </div>
                             )}
                             {sacrificeMode && (
-                              <p className="text-[11px] text-muted-foreground">{isSelected ? (isZh ? "點擊取消" : "Click to deselect") : (isZh ? "點擊選取" : "Click to select")}</p>
+                              <div className="border-t border-border/30 px-3 py-1.5">
+                                <p className="text-[11px] text-muted-foreground">{isSelected ? (isZh ? "點擊取消" : "Click to deselect") : (isZh ? "點擊選取" : "Click to select")}</p>
+                              </div>
                             )}
                           </TooltipContent>
                         </Tooltip>
@@ -320,7 +360,7 @@ export function InventoryClient({
                         <div key={itemType} className="flex items-center justify-between rounded-lg bg-muted/20 px-3 py-2">
                           <div className="flex items-center gap-2">
                             {(display as unknown as Record<string, unknown>)?.image ? (
-                              <img src={(display as unknown as Record<string, string>).image} alt="" className="w-5 h-5 object-contain" />
+                              <img src={(display as unknown as Record<string, string>).image} alt="" className="w-5 h-5 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]" />
                             ) : (
                               <span className={display?.color ?? ""}>{display?.icon ?? "○"}</span>
                             )}

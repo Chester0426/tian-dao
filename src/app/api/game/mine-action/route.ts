@@ -29,7 +29,26 @@ export async function POST(request: NextRequest) {
 
   const { mine_id } = parsed.data;
 
-  // mine-action is pure game logic only. Session management is handled by start-activity.
+  // Cooldown: check last_sync_at — must be at least 2s since last action (3s normal, 33% tolerance)
+  const { data: session } = await supabase
+    .from("idle_sessions")
+    .select("last_sync_at, started_at")
+    .eq("user_id", user.id).eq("slot", slot)
+    .is("ended_at", null)
+    .maybeSingle();
+
+  if (session) {
+    const lastAction = session.last_sync_at ?? session.started_at;
+    const msSinceAction = Date.now() - new Date(lastAction).getTime();
+    if (msSinceAction < 2000) {
+      return NextResponse.json({ error: "Too fast", cooldown_ms: 2000 - msSinceAction }, { status: 429 });
+    }
+    // Update last_sync_at as cooldown marker
+    await supabase.from("idle_sessions")
+      .update({ last_sync_at: new Date().toISOString() })
+      .eq("user_id", user.id).eq("slot", slot)
+      .is("ended_at", null);
+  }
 
   // Fetch mine definition
   const { data: mine, error: mineError } = await supabase

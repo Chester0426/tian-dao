@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase";
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
 import { useState, useCallback } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // NAV_SECTIONS moved inside component to use translations
 
@@ -30,24 +32,24 @@ export function GameSidebar({
   const NAV_SECTIONS = [
     { title: t("sidebar_items"), items: [
       { name: t("sidebar_shop"), href: "/shop", icon: "🏪", key: "shop" },
+      { name: locale === "zh" ? "市集" : "Market", href: "/market", icon: "🏛️", key: "market" },
       { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", key: "inventory" },
+      { name: locale === "zh" ? "排行榜" : "Leaderboard", href: "/leaderboard", icon: "🏆", key: "leaderboard" },
     ]},
-    { title: locale === "zh" ? "戰鬥" : "Combat", items: [
+    { title: locale === "zh" ? "修行" : "Cultivation", items: [
       { name: locale === "zh" ? "境界" : "Realm", href: "/dashboard", icon: "🧘", key: "body" },
       { name: locale === "zh" ? "數值" : "Stats", href: "/stats", icon: "📊", key: "stats" },
+      { name: locale === "zh" ? "參悟" : "Enlightenment", href: "/enlightenment", icon: "📜", key: "enlightenment" },
+    ]},
+    { title: locale === "zh" ? "戰鬥" : "Combat", items: [
       { name: locale === "zh" ? "遊歷" : "Adventure", href: "/adventure", icon: "⚔️", key: "adventure" },
       { name: locale === "zh" ? "秘境" : "Dungeon", href: "/dungeon", icon: "🌀", key: "dungeon" },
     ]},
     { title: t("sidebar_skills"), items: [
-      { name: locale === "zh" ? "參悟" : "Enlightenment", href: "/enlightenment", icon: "📜", key: "enlightenment" },
       { name: t("sidebar_mining"), href: "/mining", icon: "⛏️", key: "mining" },
       { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", key: "herbalism" },
       ...((gameState.realm && gameState.realm !== "煉體") ? [
         { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", key: "alchemy" },
-      ] : []),
-      { name: locale === "zh" ? "烹飪" : "Cooking", href: "/cooking", icon: "🍳", key: "cooking" },
-      { name: locale === "zh" ? "釣魚" : "Fishing", href: "/fishing", icon: "🎣", key: "fishing" },
-      ...((gameState.realm && gameState.realm !== "煉體") ? [
         { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing" },
       ] : []),
     ]},
@@ -55,6 +57,7 @@ export function GameSidebar({
       { name: locale === "zh" ? "回報與建議" : "Feedback", href: "/feedback", icon: "📮", key: "feedback" },
       ...(isAdmin ? [{ name: locale === "zh" ? "回報管理" : "Manage Feedback", href: "/admin/feedback", icon: "🛡️", key: "admin-feedback" }] : []),
       { name: t("sidebar_switchChar"), href: "/characters", icon: "🔄", key: "switch-char" },
+      { name: locale === "zh" ? "更改角色名稱" : "Rename Character", href: "#rename", icon: "✏️", key: "rename" },
       { name: locale === "zh" ? "English" : "中文", href: "#lang", icon: "🌐", key: "lang-toggle" },
       { name: t("sidebar_logout"), href: "#logout", icon: "🚪", key: "logout" },
     ]},
@@ -64,11 +67,16 @@ export function GameSidebar({
   const totalSlots = 20; // TODO: read from profile
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [renameError, setRenameError] = useState("");
+  const [renaming, setRenaming] = useState(false);
   const toggleSection = useCallback((title: string) => {
     setCollapsed((prev) => ({ ...prev, [title]: !prev[title] }));
   }, []);
 
   return (
+    <>
     <aside
       className={`fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r border-border/30 bg-card/80 backdrop-blur-sm lg:w-60 transition-transform duration-200 ${
         open ? "translate-x-0" : "-translate-x-full"
@@ -121,7 +129,12 @@ export function GameSidebar({
                       key={item.name}
                       href={item.href}
                       onClick={(e) => {
-                        if (item.key === "logout") {
+                        if (item.key === "rename") {
+                          e.preventDefault();
+                          setNewName("");
+                          setRenameError("");
+                          setRenameOpen(true);
+                        } else if (item.key === "logout") {
                           e.preventDefault();
                           const supabase = createClient();
                           supabase.auth.signOut().then(() => {
@@ -184,5 +197,62 @@ export function GameSidebar({
         <p className="px-3 text-[10px] text-muted-foreground/40">Tian Tao v0.1</p>
       </div>
     </aside>
+
+    {/* Rename dialog */}
+    <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <DialogContent className="scroll-surface sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-lg">{locale === "zh" ? "更改角色名稱" : "Rename Character"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            {locale === "zh" ? "支援中文、日文、英文，1-12 字元" : "Supports Chinese, Japanese, English. 1-12 characters."}
+          </p>
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => { setNewName(e.target.value); setRenameError(""); }}
+            placeholder={locale === "zh" ? "輸入新名稱" : "Enter new name"}
+            maxLength={12}
+            className="w-full rounded-md border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-jade/30 focus:border-jade/40"
+            autoComplete="off"
+          />
+          {renameError && <p className="text-xs text-cinnabar">{renameError}</p>}
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={() => setRenameOpen(false)}>
+              {locale === "zh" ? "取消" : "Cancel"}
+            </Button>
+            <Button
+              className="flex-1 seal-glow"
+              disabled={!newName.trim() || renaming}
+              onClick={async () => {
+                setRenaming(true);
+                setRenameError("");
+                try {
+                  const res = await fetch("/api/game/rename", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: newName.trim() }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    setRenameError(data.error ?? (locale === "zh" ? "更改失敗" : "Failed"));
+                  } else {
+                    setRenameOpen(false);
+                  }
+                } catch {
+                  setRenameError(locale === "zh" ? "網路錯誤" : "Network error");
+                } finally {
+                  setRenaming(false);
+                }
+              }}
+            >
+              {renaming ? (locale === "zh" ? "更改中..." : "Saving...") : (locale === "zh" ? "確認" : "Confirm")}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   const { data: session } = await supabase
     .from("idle_sessions")
-    .select("id, payload, ended_at")
+    .select("id, payload, ended_at, last_sync_at, started_at")
     .eq("user_id", user.id).eq("slot", slot)
     .eq("type", "enlightenment")
     .is("ended_at", null)
@@ -52,7 +52,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Session missing payload" }, { status: 500 });
   }
 
-  const requestedTicks = body.ticks;
+  // Anti-cheat: max ticks based on time since last sync (1 tick per 5s, 50% tolerance)
+  const lastSync = session.last_sync_at ?? session.started_at;
+  const secondsSinceSync = Math.max(0, (Date.now() - new Date(lastSync).getTime()) / 1000);
+  const maxTicks = Math.ceil(secondsSinceSync / 3.33); // 5s per tick, 50% tolerance
+  const safeTicks = Math.min(body.ticks, maxTicks);
+
+  if (safeTicks < body.ticks) {
+    console.warn(`[ENLIGHTEN ANOMALY] user=${user.id} ticks=${body.ticks} max=${maxTicks} time=${secondsSinceSync.toFixed(0)}s`);
+  }
+
+  const requestedTicks = safeTicks;
   const nowIso = new Date().toISOString();
 
   // === Book path ===

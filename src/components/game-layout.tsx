@@ -18,6 +18,8 @@ import AlchemyPage from "@/app/(game)/alchemy/page";
 import CookingPage from "@/app/(game)/cooking/page";
 import FishingPage from "@/app/(game)/fishing/page";
 import SmithingPage from "@/app/(game)/smithing/page";
+import MarketPage from "@/app/(game)/market/page";
+import LeaderboardPage from "@/app/(game)/leaderboard/page";
 
 const PAGES: Record<string, React.ComponentType> = {
   dashboard: DashboardPage,
@@ -34,6 +36,8 @@ const PAGES: Record<string, React.ComponentType> = {
   cooking: CookingPage,
   fishing: FishingPage,
   smithing: SmithingPage,
+  market: MarketPage,
+  leaderboard: LeaderboardPage,
 };
 
 const TAB_KEYS = Object.keys(PAGES);

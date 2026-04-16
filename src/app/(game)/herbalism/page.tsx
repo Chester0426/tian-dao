@@ -5,6 +5,7 @@ export default function Page() {
         採藥
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">即將開放</p>
+      <p className="mt-3 text-sm text-muted-foreground/70">未來將讓玩家可以採集藥草以及種植藥草煉製仙丹</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@ export default function Page() {
         煉器
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">即將開放</p>
+      <p className="mt-3 text-sm text-muted-foreground/70">未來將讓玩家可以利用礦物打造神兵</p>
     </div>
   );
 }

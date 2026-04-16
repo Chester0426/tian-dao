@@ -131,6 +131,7 @@ interface GameContextValue extends GameState {
   addNotification: (icon: string, label: string, amount: number, color: string, total?: number) => void;
   dismissOfflineRewards: () => void;
   updateInventory: (updater: (prev: InventoryItem[]) => InventoryItem[]) => void;
+  updateEquipmentSet: (setNum: number, sets: Record<string, Record<string, string>>) => void;
 }
 
 const GameContext = createContext<GameContextValue>(null!);
@@ -181,6 +182,7 @@ interface ProviderProps {
     lootBox?: { item_type: string; quantity: number }[];
     combatMonsterId?: string | null;
     qiArray?: (string | null)[];
+    consumableSlots?: (string | null)[];
     offlineRewards?: {
       minutes_away: number;
       session_type: "mining" | "meditate";
@@ -892,33 +894,44 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }).catch(() => {});
   }, [syncMeditation]);
 
-  // --- Consumable state (persisted in localStorage) ---
-  const [consumableSlots, setConsumableSlots] = useState<(string | null)[]>(() => {
-    if (typeof window === "undefined") return [null, null, null];
-    try {
-      const saved = localStorage.getItem("consumableSlots");
-      return saved ? JSON.parse(saved) : [null, null, null];
-    } catch { return [null, null, null]; }
-  });
-  const [activeConsumableIdx, setActiveConsumableIdxState] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    try {
-      return parseInt(localStorage.getItem("activeConsumableIdx") ?? "0", 10);
-    } catch { return 0; }
-  });
+  // --- Equipment set state ---
+  const [equipSetsState, setEquipSetsState] = useState<Record<string, Record<string, string>>>(
+    (initialState?.equipmentSets as Record<string, Record<string, string>>) ?? { "1": {}, "2": {} }
+  );
+  const [activeEquipSetState, setActiveEquipSetState] = useState<number>(
+    (initialState?.activeEquipmentSet as number) ?? 1
+  );
+  const equipSetsRef = useRef(equipSetsState);
+  const activeEquipSetRef = useRef(activeEquipSetState);
+  const updateEquipmentSet = useCallback((setNum: number, sets: Record<string, Record<string, string>>) => {
+    setActiveEquipSetState(setNum);
+    setEquipSetsState(sets);
+    activeEquipSetRef.current = setNum;
+    equipSetsRef.current = sets;
+  }, []);
+
+  // --- Consumable state (synced to DB) ---
+  const [consumableSlots, setConsumableSlots] = useState<(string | null)[]>(
+    (initialState?.consumableSlots as (string | null)[]) ?? [null, null, null]
+  );
+  const [activeConsumableIdx, setActiveConsumableIdxState] = useState(0);
 
   const setConsumableSlot = useCallback((idx: number, itemType: string | null) => {
     setConsumableSlots((prev) => {
       const next = [...prev];
       next[idx] = itemType;
-      try { localStorage.setItem("consumableSlots", JSON.stringify(next)); } catch {}
+      // Sync to DB
+      fetch("/api/game/consumable-slots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consumable_slots: next }),
+      }).catch(() => {});
       return next;
     });
   }, []);
 
   const setActiveConsumableIdx = useCallback((idx: number) => {
     setActiveConsumableIdxState(idx);
-    try { localStorage.setItem("activeConsumableIdx", String(idx)); } catch {}
   }, []);
 
   const consumeItem = useCallback(() => {
@@ -929,7 +942,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
     // Heal player HP (only useful during combat)
     const heal = itemDef.healHp;
-    const maxHp = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp;
+    const maxHp = combatStatsRef.current.hp;
     playerHpRef2.current = Math.min(maxHp, playerHpRef2.current + heal);
     setPlayerHp(playerHpRef2.current);
 
@@ -974,6 +987,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const [combatLootSlots, setCombatLootSlots] = useState<{ item_type: string; quantity: number }[]>(initialState?.lootBox ?? []);
 
   const combatMonsterRef = useRef<Monster | null>(null);
+  const combatStatsRef = useRef(computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }));
   const playerHpRef2 = useRef(0);
   const monsterHpRef2 = useRef(0);
   const combatPlayerTickRef = useRef(0);
@@ -1031,10 +1045,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     const loop = () => {
       const now = Date.now();
       const monster = combatMonsterRef.current!;
-      const round = calcCombatRound(
-        computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }),
-        monster
-      );
+      const round = calcCombatRound(combatStatsRef.current, monster);
       const isZhNow = localeForMedRef.current === "zh";
 
       const pElapsed = now - combatPlayerTickRef.current;
@@ -1107,7 +1118,12 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
           combatPendingRef.current.kills += 1;
           combatPendingRef.current.body_xp += monster.bodyXp;
 
-          // Respawn
+          // Respawn — refresh stats from latest equipment (use refs for fresh values inside RAF)
+          const newStats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsRef.current[String(activeEquipSetRef.current)] ?? {} });
+          combatStatsRef.current = newStats;
+          // Clamp HP to new max (don't exceed, don't drop below current)
+          playerHpRef2.current = Math.min(playerHpRef2.current, newStats.hp);
+          setPlayerHp(playerHpRef2.current);
           monsterHpRef2.current = monster.hp;
           setMonsterHp(monster.hp);
           combatPlayerTickRef.current = now;
@@ -1180,6 +1196,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         const monster = zone.monsters.find((m) => m.id === initialState.combatMonsterId);
         if (monster) {
           const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} });
+          combatStatsRef.current = stats;
           setCombatMonster(monster);
           combatMonsterRef.current = monster;
           monsterHpRef2.current = monster.hp;
@@ -1199,7 +1216,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     if (isMiningRef.current) { syncToServer(); setIsMining(false); setActiveMineId(null); activeMineRef.current = null; setActionProgress(0); }
     if (isMeditatingRef.current) { syncMeditation(); setIsMeditating(false); }
 
-    const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} });
+    const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsRef.current[String(activeEquipSetRef.current)] ?? {} });
+    combatStatsRef.current = stats;
     setCombatMonster(monster);
     combatMonsterRef.current = monster;
     monsterHpRef2.current = monster.hp;
@@ -1284,15 +1302,15 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     bodyStage, bodyXp, realm, inventory,
     notifications, pendingOfflineRewards,
     isMeditating, qiXp, meditationProgress,
-    equipment: initialState?.equipment ?? {},
-    equipmentSets: initialState?.equipmentSets ?? { "1": {}, "2": {} },
-    activeEquipmentSet: initialState?.activeEquipmentSet ?? 1,
+    equipment: equipSetsState[String(activeEquipSetState)] ?? {},
+    equipmentSets: equipSetsState,
+    activeEquipmentSet: activeEquipSetState,
     bodyLevel: initialState?.bodyLevel ?? 1,
     lootBox: initialState?.lootBox ?? [],
     isCombating, combatMonster, playerHp,
-    playerMaxHp: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).hp,
-    playerAtk: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).atk,
-    playerDef: computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: initialState?.equipment ?? {} }).def,
+    playerMaxHp: isCombating ? combatStatsRef.current.hp : computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsState[String(activeEquipSetState)] ?? {} }).hp,
+    playerAtk: isCombating ? combatStatsRef.current.atk : computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsState[String(activeEquipSetState)] ?? {} }).atk,
+    playerDef: isCombating ? combatStatsRef.current.def : computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsState[String(activeEquipSetState)] ?? {} }).def,
     monsterHp, combatPlayerProgress, combatMonsterProgress, combatKillCount, combatLogs, combatLootSlots,
     consumableSlots, activeConsumableIdx,
     startMining, stopMining, startMeditation, stopMeditation,
@@ -1302,6 +1320,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     addNotification,
     dismissOfflineRewards,
     updateInventory: setInventory,
+    updateEquipmentSet,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

@@ -320,7 +320,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                         >
                           {equipped ? (
                             <>
-                              <span className="text-spirit-gold text-lg leading-none">{equippedMeta?.icon ?? "◆"}</span>
+                              <img src={`/images/items/${equipped}.png`} alt="" className="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]" />
                               <span className="absolute bottom-0 right-0.5 text-[9px] font-heading text-spirit-gold tabular-nums">
                                 {invCount}
                               </span>
@@ -365,7 +365,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                                     onClick={() => equip(i, inv.item_type)}
                                     className="group/item relative w-full px-3 py-2.5 text-left hover:bg-spirit-gold/10 transition-colors flex items-center gap-2"
                                   >
-                                    <span className="text-lg">{meta.icon}</span>
+                                    <img src={`/images/items/${inv.item_type}.png`} alt="" className="w-6 h-6 object-contain" />
                                     <span className="text-sm text-jade font-heading">+{spiritStoneBonus(inv.item_type)}{isZh ? "點靈氣" : " qi"}</span>
                                     {/* Tooltip on hover */}
                                     <div className="pointer-events-none absolute left-1/2 -top-1 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border/60 bg-card px-2.5 py-1.5 shadow-lg opacity-0 group-hover/item:opacity-100 transition-opacity z-60">

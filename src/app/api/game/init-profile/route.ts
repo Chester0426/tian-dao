@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const schema = z.object({
   slot: z.number().int().min(1).max(3).default(1),
+  name: z.string().min(1).max(12).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       body_skill_level: 1,
       body_skill_xp: 0,
       inventory_slots: 20,
+      character_name: body.name?.trim() || null,
     });
 
   if (profileError) {

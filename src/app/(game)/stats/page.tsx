@@ -47,7 +47,7 @@ const EQUIPMENT_SLOTS: EquipSlot[] = [
 
 const STAT_DEFS = [
   { key: "hp" as const, name: "氣血", nameEn: "HP", color: "text-red-400", desc: "當氣血歸零時角色死亡", descEn: "Character dies when HP reaches 0" },
-  { key: "mp" as const, name: "法力", nameEn: "MP", color: "text-blue-400", desc: "施展技能的消耗", descEn: "Consumed when using skills" },
+  { key: "mp" as const, name: "法力", nameEn: "MP", color: "text-blue-400", desc: "用於施放法術", descEn: "Used to cast spells" },
   { key: "atk" as const, name: "外功", nameEn: "ATK", color: "text-spirit-gold", desc: "物理攻擊力", descEn: "Physical attack power" },
   { key: "int" as const, name: "內功", nameEn: "INT", color: "text-jade", desc: "法術攻擊力", descEn: "Magical attack power" },
   { key: "def" as const, name: "防禦", nameEn: "DEF", color: "text-blue-300", desc: "減少受到的傷害", descEn: "Reduces damage taken" },
@@ -81,6 +81,7 @@ export default function StatsPage() {
 
   const switchSet = async (setNum: 1 | 2) => {
     setActiveSet(setNum);
+    gameState.updateEquipmentSet(setNum, setsLocal);
     await fetch("/api/game/equip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -120,6 +121,11 @@ export default function StatsPage() {
         }
       }
       return next;
+    });
+    // Sync equipment to provider so combat stats update immediately
+    setSetsLocal((latest) => {
+      gameState.updateEquipmentSet(activeSet, latest);
+      return latest;
     });
     await fetch("/api/game/equip", {
       method: "POST",
@@ -296,7 +302,9 @@ export default function StatsPage() {
                         >
                           <div className="absolute inset-[1px] rounded-[7px] border border-white/[0.03] pointer-events-none" />
                           {equippedItem ? (
-                            <span className="text-xl">{equippedItem.icon}</span>
+                            equippedItem.image
+                              ? <img src={equippedItem.image} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]" />
+                              : <span className="text-xl">{equippedItem.icon}</span>
                           ) : (
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/35 group-hover:text-muted-foreground/60 transition-colors">
                               {slot.icon}
@@ -304,26 +312,38 @@ export default function StatsPage() {
                           )}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[180px] ">
+                      <TooltipContent side="top" className="block p-0 min-w-[200px]">
                         {equippedItem ? (
-                          <div className="space-y-1.5">
-                            <div>
-                              <p className="font-heading text-sm text-spirit-gold">{isZh ? equippedItem.nameZh : equippedItem.nameEn}</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {isZh ? slot.label : slot.labelEn} · {isZh ? equippedItem.requirementZh : equippedItem.requirementEn}
-                              </p>
+                          <>
+                            <div className="flex gap-3 p-3">
+                              {equippedItem.image && (
+                                <div className="shrink-0 w-14 h-14 rounded-md bg-muted/20 border border-border/30 flex items-center justify-center">
+                                  <img src={equippedItem.image} alt="" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-heading text-sm text-spirit-gold">{isZh ? equippedItem.nameZh : equippedItem.nameEn}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  {equippedItem.requirementZh && <span className="text-spirit-gold/70">{isZh ? equippedItem.requirementZh : equippedItem.requirementEn}</span>}
+                                  {equippedItem.requirementZh && <span className="mx-1 text-muted-foreground/40">|</span>}
+                                  {isZh ? slot.label : slot.labelEn}
+                                </p>
+                                {equippedItem.hintZh && (
+                                  <p className="text-[11px] text-jade mt-1">{isZh ? equippedItem.hintZh : equippedItem.hintEn}</p>
+                                )}
+                              </div>
                             </div>
                             {equippedItem.equipStats && (
-                              <div className="text-[11px] border-t border-border/30 pt-1 space-y-0.5">
-                                {equippedItem.equipStats.hp && <p className="text-red-400">+{equippedItem.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
-                                {equippedItem.equipStats.atk && <p className="text-spirit-gold">+{equippedItem.equipStats.atk} {isZh ? "外功" : "ATK"}</p>}
-                                {equippedItem.equipStats.def && <p className="text-blue-300">+{equippedItem.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
-                                {equippedItem.equipStats.mp && <p className="text-blue-400">+{equippedItem.equipStats.mp} {isZh ? "法力" : "MP"}</p>}
+                              <div className="border-t border-border/30 px-3 py-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
+                                {equippedItem.equipStats.hp ? <span className="text-red-400">{isZh ? "氣血" : "HP"} +{equippedItem.equipStats.hp}</span> : null}
+                                {equippedItem.equipStats.atk ? <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} +{equippedItem.equipStats.atk}</span> : null}
+                                {equippedItem.equipStats.def ? <span className="text-blue-300">{isZh ? "防禦" : "DEF"} +{equippedItem.equipStats.def}</span> : null}
+                                {equippedItem.equipStats.mp ? <span className="text-jade">{isZh ? "靈力" : "MP"} +{equippedItem.equipStats.mp}</span> : null}
                               </div>
                             )}
-                          </div>
+                          </>
                         ) : (
-                          <p className="text-xs">{isZh ? slot.label : slot.labelEn}</p>
+                          <p className="text-xs p-2">{isZh ? slot.label : slot.labelEn}</p>
                         )}
                       </TooltipContent>
                     </Tooltip>
@@ -364,27 +384,40 @@ export default function StatsPage() {
                                     onClick={() => equip(slotId, inv.item_type)}
                                     className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
                                   >
-                                    <span className="text-base">{meta.icon}</span>
+                                    {meta.image
+                                      ? <img src={meta.image} alt="" className="w-8 h-8 object-contain" />
+                                      : <span className="text-base">{meta.icon}</span>
+                                    }
                                     <span className="flex-1 text-left font-heading truncate">{isZh ? meta.nameZh : meta.nameEn}</span>
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[180px]">
-                                  <div className="space-y-1.5">
-                                    <div>
-                                      <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
-                                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                                        {isZh ? slot.label : slot.labelEn} · {isZh ? meta.requirementZh : meta.requirementEn}
-                                      </p>
-                                    </div>
-                                    {meta.equipStats && (
-                                      <div className="text-[11px] border-t border-border/30 pt-1 mt-1 space-y-0.5">
-                                        {meta.equipStats.hp && <p className="text-red-400">+{meta.equipStats.hp} {isZh ? "氣血" : "HP"}</p>}
-                                        {meta.equipStats.atk && <p className="text-spirit-gold">+{meta.equipStats.atk} {isZh ? "外功" : "ATK"}</p>}
-                                        {meta.equipStats.def && <p className="text-blue-300">+{meta.equipStats.def} {isZh ? "防禦" : "DEF"}</p>}
-                                        {meta.equipStats.mp && <p className="text-blue-400">+{meta.equipStats.mp} {isZh ? "法力" : "MP"}</p>}
+                                <TooltipContent side="right" className="block p-0 min-w-[200px]">
+                                  <div className="flex gap-3 p-3">
+                                    {meta.image && (
+                                      <div className="shrink-0 w-14 h-14 rounded-md bg-muted/20 border border-border/30 flex items-center justify-center">
+                                        <img src={meta.image} alt="" className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
                                       </div>
                                     )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-heading text-sm text-spirit-gold">{isZh ? meta.nameZh : meta.nameEn}</p>
+                                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        {meta.requirementZh && <span className="text-spirit-gold/70">{isZh ? meta.requirementZh : meta.requirementEn}</span>}
+                                        {meta.requirementZh && <span className="mx-1 text-muted-foreground/40">|</span>}
+                                        {isZh ? slot.label : slot.labelEn}
+                                      </p>
+                                      {meta.hintZh && (
+                                        <p className="text-[11px] text-jade mt-1">{isZh ? meta.hintZh : meta.hintEn}</p>
+                                      )}
+                                    </div>
                                   </div>
+                                  {meta.equipStats && (
+                                    <div className="border-t border-border/30 px-3 py-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
+                                      {meta.equipStats.hp ? <span className="text-red-400">{isZh ? "氣血" : "HP"} +{meta.equipStats.hp}</span> : null}
+                                      {meta.equipStats.atk ? <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} +{meta.equipStats.atk}</span> : null}
+                                      {meta.equipStats.def ? <span className="text-blue-300">{isZh ? "防禦" : "DEF"} +{meta.equipStats.def}</span> : null}
+                                      {meta.equipStats.mp ? <span className="text-jade">{isZh ? "靈力" : "MP"} +{meta.equipStats.mp}</span> : null}
+                                    </div>
+                                  )}
                                 </TooltipContent>
                               </Tooltip>
                             );

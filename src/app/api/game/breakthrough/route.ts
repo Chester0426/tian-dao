@@ -106,13 +106,19 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const { error: upErr } = await supabase
+    // Optimistic lock on qi_level
+    const { data: qiResult, error: upErr } = await supabase
       .from("profiles")
       .update(updateData)
       .eq("user_id", user.id)
-      .eq("slot", slot);
+      .eq("slot", slot)
+      .eq("qi_level", curLvl)
+      .select("id");
     if (upErr) {
       return NextResponse.json({ error: "Failed", detail: upErr.message }, { status: 500 });
+    }
+    if (!qiResult || qiResult.length === 0) {
+      return NextResponse.json({ error: "Breakthrough already processed" }, { status: 409 });
     }
 
     try {
@@ -242,11 +248,14 @@ export async function POST(request: NextRequest) {
     };
   }
 
-  const { error: updateError } = await supabase
+  // Optimistic lock: only update if level hasn't changed (prevents race condition double-upgrade)
+  const { data: updateResult, error: updateError } = await supabase
     .from("profiles")
     .update(updateData)
     .eq("user_id", user.id)
-    .eq("slot", slot);
+    .eq("slot", slot)
+    .eq(levelField, currentLevel)
+    .select("id");
 
   if (updateError) {
     console.error("breakthrough update error:", updateError.message, updateError.code, updateError.details);
@@ -254,6 +263,10 @@ export async function POST(request: NextRequest) {
       error: "Failed to perform breakthrough",
       detail: updateError.message,
     }, { status: 500 });
+  }
+
+  if (!updateResult || updateResult.length === 0) {
+    return NextResponse.json({ error: "Breakthrough already processed" }, { status: 409 });
   }
 
   const resultRealm = nextRealm ?? realm;
