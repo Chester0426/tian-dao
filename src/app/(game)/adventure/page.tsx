@@ -53,7 +53,9 @@ export default function AdventurePage() {
             <div className="grid grid-cols-[1fr_auto_1fr] gap-5 items-center">
               {/* Player */}
               <div className="text-center space-y-2.5">
-                <div className="text-7xl">🧘</div>
+                <div className="flex items-center justify-center h-[180px]">
+                  <img src="/images/adventure/me.png" alt={isZh ? "你" : "You"} className="h-full object-contain" />
+                </div>
                 <p className="font-heading text-base">{isZh ? "你" : "You"}</p>
                 <div className="relative h-6 w-full overflow-hidden rounded-full bg-muted/30">
                   <div className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
@@ -74,10 +76,10 @@ export default function AdventurePage() {
               {/* Monster or empty */}
               {gameState.isCombating && gameState.combatMonster ? (
                 <div className="text-center space-y-2.5">
-                  <div className="text-7xl flex items-center justify-center">
+                  <div className="flex items-center justify-center h-[180px]">
                     {gameState.combatMonster.image
-                      ? <img src={gameState.combatMonster.image} alt={isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn} className="w-full h-full object-contain" />
-                      : gameState.combatMonster.icon}
+                      ? <img src={gameState.combatMonster.image} alt={isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn} className="h-full object-contain" />
+                      : <span className="text-7xl">{gameState.combatMonster.icon}</span>}
                   </div>
                   <p className="font-heading text-base">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</p>
                   <div className="relative h-6 w-full overflow-hidden rounded-full bg-muted/30">
