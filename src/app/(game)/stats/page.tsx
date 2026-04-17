@@ -149,7 +149,7 @@ export default function StatsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 items-start">
         {/* Left — Stats */}
-        <Card className="scroll-surface">
+        <Card className="scroll-surface" style={{ background: "rgba(15,15,15,0.85)", backdropFilter: "blur(8px)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-heading text-lg">{isZh ? "屬性" : "Attributes"}</CardTitle>
@@ -217,7 +217,7 @@ export default function StatsPage() {
         </Card>
 
         {/* Right — Equipment */}
-        <Card className="scroll-surface">
+        <Card className="scroll-surface" style={{ background: "rgba(15,15,15,0.85)", backdropFilter: "blur(8px)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-heading text-lg">{isZh ? "裝備" : "Equipment"}</CardTitle>
@@ -235,7 +235,7 @@ export default function StatsPage() {
             {showEquipStats && (
               <>
                 <div className="fixed inset-0 z-40 bg-background/50 backdrop-blur-sm" onClick={() => setShowEquipStats(false)} />
-                <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[280px] rounded-xl border border-border/50 bg-card shadow-2xl overflow-hidden">
+                <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[280px] rounded-xl border border-border/50 shadow-2xl overflow-hidden" style={{ background: "rgba(15,15,15,0.9)", backdropFilter: "blur(8px)" }}>
                   <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
                   <div className="px-5 py-4 space-y-3">
                     <h3 className="font-heading text-base font-bold text-spirit-gold text-center">{isZh ? "裝備數值加總" : "Equipment Stats Total"}</h3>
@@ -352,7 +352,7 @@ export default function StatsPage() {
                     {isOpen && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setOpenSlot(null)} />
-                        <div className="absolute left-0 top-full mt-1 z-50 min-w-[160px] rounded-lg border border-border/60 bg-card shadow-xl overflow-hidden">
+                        <div className="absolute left-0 top-full mt-1 z-50 min-w-[160px] rounded-lg border border-border/60 shadow-xl overflow-hidden" style={{ background: "rgba(15,15,15,0.9)", backdropFilter: "blur(8px)" }}>
                           <div className="px-3 py-2 border-b border-border/30 text-[11px] font-heading text-spirit-gold">
                             {isZh ? slot.label : slot.labelEn}
                           </div>
