@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { GameSidebar } from "./game-sidebar";
 
 // Direct imports — all loaded upfront for instant tab switching
@@ -50,14 +50,22 @@ export function GameLayout({
   isAdmin?: boolean;
   initialTab?: string;
 }) {
-  const tabFromUrl = typeof window !== "undefined"
-    ? window.location.pathname.replace("/", "").split("/")[0] || "dashboard"
-    : initialTab;
-  const resolvedTab = tabFromUrl && Object.keys(PAGES).includes(tabFromUrl) ? tabFromUrl : (initialTab ?? "dashboard");
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(resolvedTab);
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set([resolvedTab]));
+  const [activeTab, setActiveTab] = useState(initialTab ?? "dashboard");
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set([initialTab ?? "dashboard"]));
+
+  // Resolve tab from URL on client only — avoids hydration mismatch
+  useEffect(() => {
+    const urlTab = window.location.pathname.replace("/", "").split("/")[0] || "dashboard";
+    const resolved = Object.keys(PAGES).includes(urlTab) ? urlTab : (initialTab ?? "dashboard");
+    setActiveTab(resolved);
+    setMountedTabs(prev => {
+      if (prev.has(resolved)) return prev;
+      const next = new Set(prev);
+      next.add(resolved);
+      return next;
+    });
+  }, [initialTab]);
 
   const switchTab = useCallback((tab: string) => {
     setActiveTab(tab);

@@ -4,6 +4,7 @@ import "./globals.css";
 import { RetainTracker } from "@/components/RetainTracker";
 import { Web3Provider } from "@/components/web3-provider";
 import { I18nProvider } from "@/lib/i18n";
+import { BgmPlayer } from "@/components/bgm-player";
 
 const notoSerifSC = Noto_Serif_SC({
   subsets: ["latin"],
@@ -48,6 +49,7 @@ export default function RootLayout({
     >
       <body className={`min-h-screen bg-background font-sans text-foreground antialiased ${maShanZheng.variable}`}>
         <RetainTracker />
+        <BgmPlayer />
         <I18nProvider>
           <Web3Provider>
             {children}

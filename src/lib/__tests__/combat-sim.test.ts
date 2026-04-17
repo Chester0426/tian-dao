@@ -9,7 +9,7 @@ function makeStats(overrides: Partial<Stats> = {}): Stats {
 
 function makeMonster(overrides: Partial<Monster> = {}): Monster {
   return {
-    id: "test", nameZh: "測試怪", nameEn: "Test Monster", icon: "👹",
+    id: "test", nameZh: "測試怪", nameEn: "Test Monster", icon: "👹", image: "",
     hp: 30, atk: 5, def: 0, attackSpeed: 2, bodyXp: 10,
     drops: [{ item_type: "coal", quantity: 1, rate: 1 }],
     ...overrides,
