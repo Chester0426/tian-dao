@@ -57,15 +57,22 @@ export default function AdventurePage() {
                   <img src="/images/adventure/me.png" alt={isZh ? "你" : "You"} className="h-full object-contain" />
                 </div>
                 <p className="font-heading text-base">{isZh ? "你" : "You"}</p>
-                <div className="relative h-6 w-full overflow-hidden rounded-full bg-muted/30">
-                  <div className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%` }} />
-                  <span className="absolute inset-0 flex items-center justify-center text-xs tabular-nums font-heading text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{gameState.playerHp}/{gameState.playerMaxHp}</span>
+                {/* Player HP bar — jade style */}
+                <div className="relative w-full" style={{ height: "22px" }}>
+                  <div className="absolute inset-0 rounded-sm" style={{ background: "linear-gradient(180deg, rgba(30,60,40,0.9) 0%, rgba(20,40,28,0.95) 100%)", border: "1px solid rgba(62,207,165,0.4)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }} />
+                  <div className="absolute inset-[2px] rounded-sm overflow-hidden">
+                    <div className="h-full transition-all duration-200" style={{ width: `${Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100)}%`, background: "linear-gradient(180deg, #6ee7b7 0%, #34d399 40%, #059669 100%)", boxShadow: "0 0 8px rgba(52,211,153,0.5)" }} />
+                  </div>
+                  <span className="absolute inset-0 flex items-center justify-center text-xs tabular-nums font-heading" style={{ color: "#fff", textShadow: "0 0 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.8)" }}>{gameState.playerHp}/{gameState.playerMaxHp}</span>
                 </div>
                 {gameState.isCombating && (
                   <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">{isZh ? "攻擊" : "Attack"} 3.0s</p>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted/20">
-                      <div className="h-full rounded-full bg-spirit-gold/70" style={{ width: `${gameState.combatPlayerProgress * 100}%` }} />
+                    <p className="text-xs" style={{ color: "rgba(252,211,77,0.7)" }}>{isZh ? "聚氣" : "Focus"} 3.0s</p>
+                    <div className="relative w-full" style={{ height: "10px" }}>
+                      <div className="absolute inset-0 rounded-sm" style={{ background: "rgba(20,16,8,0.8)", border: "1px solid rgba(252,211,77,0.3)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }} />
+                      <div className="absolute inset-[1px] rounded-sm overflow-hidden">
+                        <div className="h-full transition-all duration-200" style={{ width: `${gameState.combatPlayerProgress * 100}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -82,14 +89,21 @@ export default function AdventurePage() {
                       : <span className="text-7xl">{gameState.combatMonster.icon}</span>}
                   </div>
                   <p className="font-heading text-base">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</p>
-                  <div className="relative h-6 w-full overflow-hidden rounded-full bg-muted/30">
-                    <div className="h-full rounded-full bg-gradient-to-r from-cinnabar to-red-400 transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%` }} />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs tabular-nums font-heading text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
+                  {/* Monster HP bar — cinnabar style */}
+                  <div className="relative w-full" style={{ height: "22px" }}>
+                    <div className="absolute inset-0 rounded-sm" style={{ background: "linear-gradient(180deg, rgba(60,20,20,0.9) 0%, rgba(40,14,14,0.95) 100%)", border: "1px solid rgba(220,38,38,0.4)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }} />
+                    <div className="absolute inset-[2px] rounded-sm overflow-hidden">
+                      <div className="h-full transition-all duration-200" style={{ width: `${Math.max(0, (gameState.monsterHp / gameState.combatMonster.hp) * 100)}%`, background: "linear-gradient(180deg, #fca5a5 0%, #ef4444 40%, #b91c1c 100%)", boxShadow: "0 0 8px rgba(239,68,68,0.5)" }} />
+                    </div>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs tabular-nums font-heading" style={{ color: "#fff", textShadow: "0 0 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.8)" }}>{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">{isZh ? "攻擊" : "Attack"} {gameState.combatMonster.attackSpeed}s</p>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted/20">
-                      <div className="h-full rounded-full bg-cinnabar/70" style={{ width: `${gameState.combatMonsterProgress * 100}%` }} />
+                    <p className="text-xs" style={{ color: "rgba(252,211,77,0.7)" }}>{isZh ? "蓄力" : "Charge"} {gameState.combatMonster.attackSpeed}s</p>
+                    <div className="relative w-full" style={{ height: "10px" }}>
+                      <div className="absolute inset-0 rounded-sm" style={{ background: "rgba(20,16,8,0.8)", border: "1px solid rgba(252,211,77,0.3)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }} />
+                      <div className="absolute inset-[1px] rounded-sm overflow-hidden">
+                        <div className="h-full transition-all duration-200" style={{ width: `${gameState.combatMonsterProgress * 100}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
+                      </div>
                     </div>
                   </div>
                 </div>
