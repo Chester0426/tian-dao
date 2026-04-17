@@ -201,7 +201,7 @@ export function InventoryClient({
           </div>
         </div>
 
-        <Card className="scroll-surface -mx-6 md:-mx-12">
+        <Card className="scroll-surface -mx-6 md:-mx-12" style={{ background: "rgba(15,15,15,0.85)", backdropFilter: "blur(8px)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-heading text-lg flex items-center gap-2">物品 <span className="text-sm text-muted-foreground tabular-nums font-normal">{slotsUsed}/{totalSlots}</span></CardTitle>
