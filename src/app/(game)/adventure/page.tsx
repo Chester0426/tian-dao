@@ -34,8 +34,9 @@ export default function AdventurePage() {
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+    <div className="min-h-screen relative">
+    <div className="pointer-events-none absolute inset-0 bg-black/40" />
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <header className="mb-6">
           <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
             {isZh ? "遊歷" : "Adventure"}
@@ -47,7 +48,7 @@ export default function AdventurePage() {
         </header>
 
         {/* Combat panel — always visible */}
-        <Card className="scroll-surface mb-6 overflow-visible">
+        <Card className="scroll-surface mb-6 overflow-visible bg-card/60 backdrop-blur-sm" style={{ background: "transparent" }}>
           <div className={`h-1 rounded-t-lg bg-gradient-to-r ${gameState.isCombating ? "from-cinnabar/60 via-cinnabar to-cinnabar/60" : "from-muted/40 via-muted/60 to-muted/40"}`} />
           <CardContent className="pt-6 pb-6 space-y-5">
             <div className="grid grid-cols-[1fr_auto_1fr] gap-5 items-center">
@@ -166,7 +167,7 @@ export default function AdventurePage() {
                           </div>
                           {/* 3 slots dropdown */}
                           {consumableDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-border/50 bg-card shadow-xl py-2 px-2 space-y-1.5">
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-border/50 backdrop-blur-sm shadow-xl py-2 px-2 space-y-1.5" style={{ background: "rgba(0,0,0,0.6)" }}>
                               {gameState.consumableSlots.map((si, idx) => {
                                 const sm = si ? ITEMS[si] : null;
                                 const sc = si ? (gameState.inventory.find((i) => i.item_type === si)?.quantity ?? 0) : 0;
@@ -328,7 +329,7 @@ export default function AdventurePage() {
         </Card>
 
         {/* Loot box — separate card, always visible */}
-        <Card className="scroll-surface mb-6 overflow-hidden">
+        <Card className="scroll-surface mb-6 overflow-hidden bg-card/60 backdrop-blur-sm" style={{ background: "transparent" }}>
           <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between mb-1">
@@ -403,7 +404,7 @@ export default function AdventurePage() {
         {/* Zone cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
         {COMBAT_ZONES.map((zone) => (
-          <Card key={zone.id} className="scroll-surface overflow-hidden">
+          <Card key={zone.id} className="scroll-surface overflow-hidden bg-card/60 backdrop-blur-sm" style={{ background: "transparent" }}>
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-2 pb-3">
               <button

@@ -100,14 +100,7 @@ export function InventoryClient({
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* === Header Bar === */}
-        <div className="mb-6 relative rounded-2xl overflow-hidden -mx-6 md:-mx-12">
-          <img src="/images/inventory-title-bg.png" alt="" className="w-full h-auto block" />
-          <div
-            className="absolute inset-0 px-6 flex items-center justify-between"
-            style={{
-              textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
-            }}
-          >
+        <div className="mb-6 px-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-full"
@@ -147,7 +140,6 @@ export function InventoryClient({
             >
               天道值 {daoPoints.toLocaleString()}
             </div>
-          </div>
         </div>
 
         {/* Slot usage bar */}

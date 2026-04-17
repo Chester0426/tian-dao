@@ -42,6 +42,24 @@ const PAGES: Record<string, React.ComponentType> = {
 
 const TAB_KEYS = Object.keys(PAGES);
 
+// Tab background images mapping (pc, mobile)
+const TAB_BG: Record<string, { pc: string; mobile: string }> = {
+  shop: { pc: "/images/bg-shop.png", mobile: "/images/bg-shop-m.png" },
+  market: { pc: "/images/bg-market.png", mobile: "/images/bg-market-m.png" },
+  inventory: { pc: "/images/bg-inventory.png", mobile: "/images/bg-inventory-m.png" },
+  leaderboard: { pc: "/images/bg-leaderboard.png", mobile: "/images/bg-leaderboard-m.png" },
+  dashboard: { pc: "/images/bg-dashboard.png", mobile: "/images/bg-dashboard-m.png" },
+  stats: { pc: "/images/bg-stats.png", mobile: "/images/bg-stats-m.png" },
+  enlightenment: { pc: "/images/bg-enlightenment.png", mobile: "/images/bg-enlightenment-m.png" },
+  adventure: { pc: "/images/bg-adventure.png", mobile: "/images/bg-adventure-m.png" },
+  dungeon: { pc: "/images/bg-dungeon.png", mobile: "/images/bg-dungeon-m.png" },
+  mining: { pc: "/images/bg-mining.png", mobile: "/images/bg-mining-m.png" },
+  herbalism: { pc: "/images/bg-herbalism.png", mobile: "/images/bg-herbalism-m.png" },
+  alchemy: { pc: "/images/bg-alchemy.png", mobile: "/images/bg-alchemy-m.png" },
+  smithing: { pc: "/images/bg-smithing.png", mobile: "/images/bg-smithing-m.png" },
+  feedback: { pc: "/images/bg-feedback.png", mobile: "/images/bg-feedback-m.png" },
+};
+
 export function GameLayout({
   isAdmin = false,
   initialTab = "dashboard",
@@ -78,8 +96,23 @@ export function GameLayout({
     window.history.replaceState(null, "", `/${tab}`);
   }, []);
 
+  const currentBg = TAB_BG[activeTab];
+
   return (
-    <div className="flex min-h-screen ink-wash-bg ink-noise">
+    <div className="flex min-h-screen ink-wash-bg ink-noise relative">
+      {/* Dynamic page background */}
+      {currentBg && (
+        <>
+          <div
+            className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:block hidden"
+            style={{ backgroundImage: `url('${currentBg.pc}')`, opacity: 0.3 }}
+          />
+          <div
+            className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:hidden block"
+            style={{ backgroundImage: `url('${currentBg.mobile}')`, opacity: 0.3 }}
+          />
+        </>
+      )}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-background/60 backdrop-blur-sm md:hidden"
