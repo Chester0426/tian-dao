@@ -117,7 +117,7 @@ export function InventoryClient({
                   border: "1px solid rgba(62,207,165,0.3)",
                 }}
               >
-                <span className="text-xl">🎒</span>
+                <img src="/images/inventory/bag.png" alt="Inventory" className="h-7 w-7 object-contain" />
               </div>
               <div>
                 <h1
