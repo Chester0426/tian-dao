@@ -187,7 +187,7 @@ export function MiningPageClient({
                   border: "1px solid rgba(62,207,165,0.3)",
                 }}
               >
-                <img src="/images/pickaxe.png" alt="" className="w-6 h-6 object-contain" />
+                <img src="/images/nav-items/nav-mining.png" alt="" className="w-8 h-8 object-contain" />
               </div>
               <div>
                 <h1

@@ -130,9 +130,12 @@ export function DashboardClient({
         >
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                {isZh ? "境界" : "Realm"}
-              </h1>
+              <div className="flex items-center gap-3">
+                <img src="/images/nav-items/nav-dashboard.png" alt="" className="h-12 w-12 object-contain" />
+                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+                  {isZh ? "境界" : "Realm"}
+                </h1>
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {isZh ? "修煉突破，踏上更高境界" : "Cultivate and break through to higher realms"}
               </p>

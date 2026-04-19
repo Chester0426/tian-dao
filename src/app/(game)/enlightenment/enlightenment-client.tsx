@@ -223,8 +223,8 @@ export function EnlightenmentClient({
         {/* Page header — matches mining layout: left title + right badges + XP bar */}
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-spirit-gold/10 border border-spirit-gold/20">
-              <span className="text-xl">📜</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-spirit-gold/10 border border-spirit-gold/20">
+              <img src="/images/nav-items/nav-enlightenment.png" alt="" className="h-9 w-9 object-contain" />
             </div>
             <div>
               <h1 className="font-heading text-xl font-bold sm:text-2xl">{isZh ? "參悟" : "Enlightenment"}</h1>

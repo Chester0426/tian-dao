@@ -110,7 +110,7 @@ export function InventoryClient({
                   border: "1px solid rgba(62,207,165,0.3)",
                 }}
               >
-                <img src="/images/inventory/bag.png" alt="Inventory" className="h-7 w-7 object-contain" />
+                <img src="/images/nav-items/nav-inventory.png" alt="Inventory" className="h-9 w-9 object-contain" />
               </div>
               <div>
                 <h1

@@ -31,30 +31,30 @@ export function GameSidebar({
 
   const NAV_SECTIONS = [
     { title: t("sidebar_items"), items: [
-      { name: t("sidebar_shop"), href: "/shop", icon: "🏪", key: "shop", pcBgImage: "/images/bg-shop.png", mobileBgImage: "/images/bg-shop-m.png" },
-      { name: locale === "zh" ? "市集" : "Market", href: "/market", icon: "🏛️", key: "market", pcBgImage: "/images/bg-market.png", mobileBgImage: "/images/bg-market-m.png" },
-      { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", key: "inventory", pcBgImage: "/images/bg-inventory.png", mobileBgImage: "/images/bg-inventory-m.png" },
-      { name: locale === "zh" ? "排行榜" : "Leaderboard", href: "/leaderboard", icon: "🏆", key: "leaderboard", pcBgImage: "/images/bg-leaderboard.png", mobileBgImage: "/images/bg-leaderboard-m.png" },
+      { name: t("sidebar_shop"), href: "/shop", icon: "🏪", iconUrl: "/images/nav-items/nav-shop.png", key: "shop", pcBgImage: "/images/bg-shop.png", mobileBgImage: "/images/bg-shop-m.png" },
+      { name: locale === "zh" ? "市集" : "Market", href: "/market", icon: "🏛️", iconUrl: "/images/nav-items/nav-market.png", key: "market", pcBgImage: "/images/bg-market.png", mobileBgImage: "/images/bg-market-m.png" },
+      { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", iconUrl: "/images/nav-items/nav-inventory.png", key: "inventory", pcBgImage: "/images/bg-inventory.png", mobileBgImage: "/images/bg-inventory-m.png" },
+      { name: locale === "zh" ? "排行榜" : "Leaderboard", href: "/leaderboard", icon: "🏆", iconUrl: "/images/nav-items/nav-leaderboard.png", key: "leaderboard", pcBgImage: "/images/bg-leaderboard.png", mobileBgImage: "/images/bg-leaderboard-m.png" },
     ]},
     { title: locale === "zh" ? "修行" : "Cultivation", items: [
-      { name: locale === "zh" ? "境界" : "Realm", href: "/dashboard", icon: "🧘", key: "body", pcBgImage: "/images/bg-dashboard.png", mobileBgImage: "/images/bg-dashboard-m.png" },
-      { name: locale === "zh" ? "數值" : "Stats", href: "/stats", icon: "📊", key: "stats", pcBgImage: "/images/bg-stats.png", mobileBgImage: "/images/bg-stats-m.png" },
-      { name: locale === "zh" ? "參悟" : "Enlightenment", href: "/enlightenment", icon: "📜", key: "enlightenment", pcBgImage: "/images/bg-enlightenment.png", mobileBgImage: "/images/bg-enlightenment-m.png" },
+      { name: locale === "zh" ? "境界" : "Realm", href: "/dashboard", icon: "🧘", iconUrl: "/images/nav-items/nav-dashboard.png", key: "body", pcBgImage: "/images/bg-dashboard.png", mobileBgImage: "/images/bg-dashboard-m.png" },
+      { name: locale === "zh" ? "數值" : "Stats", href: "/stats", icon: "📊", iconUrl: "/images/nav-items/nav-stats.png", key: "stats", pcBgImage: "/images/bg-stats.png", mobileBgImage: "/images/bg-stats-m.png" },
+      { name: locale === "zh" ? "參悟" : "Enlightenment", href: "/enlightenment", icon: "📜", iconUrl: "/images/nav-items/nav-enlightenment.png", key: "enlightenment", pcBgImage: "/images/bg-enlightenment.png", mobileBgImage: "/images/bg-enlightenment-m.png" },
     ]},
     { title: locale === "zh" ? "戰鬥" : "Combat", items: [
-      { name: locale === "zh" ? "遊歷" : "Adventure", href: "/adventure", icon: "⚔️", key: "adventure", pcBgImage: "/images/bg-adventure.png", mobileBgImage: "/images/bg-adventure-m.png" },
-      { name: locale === "zh" ? "秘境" : "Dungeon", href: "/dungeon", icon: "🌀", key: "dungeon", pcBgImage: "/images/bg-dungeon.png", mobileBgImage: "/images/bg-dungeon-m.png" },
+      { name: locale === "zh" ? "遊歷" : "Adventure", href: "/adventure", icon: "⚔️", iconUrl: "/images/nav-items/nav-adventure.png", key: "adventure", pcBgImage: "/images/bg-adventure.png", mobileBgImage: "/images/bg-adventure-m.png" },
+      { name: locale === "zh" ? "秘境" : "Dungeon", href: "/dungeon", icon: "🌀", iconUrl: "/images/nav-items/nav-dungeon.png", key: "dungeon", pcBgImage: "/images/bg-dungeon.png", mobileBgImage: "/images/bg-dungeon-m.png" },
     ]},
     { title: t("sidebar_skills"), items: [
-      { name: t("sidebar_mining"), href: "/mining", icon: "⛏️", key: "mining", pcBgImage: "/images/bg-mining.png", mobileBgImage: "/images/bg-mining-m.png" },
-      { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", key: "herbalism", pcBgImage: "/images/bg-herbalism.png", mobileBgImage: "/images/bg-herbalism-m.png" },
+      { name: t("sidebar_mining"), href: "/mining", icon: "⛏️", iconUrl: "/images/nav-items/nav-mining.png", key: "mining", pcBgImage: "/images/bg-mining.png", mobileBgImage: "/images/bg-mining-m.png" },
+      { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", iconUrl: "/images/nav-items/nav-herbalism.png", key: "herbalism", pcBgImage: "/images/bg-herbalism.png", mobileBgImage: "/images/bg-herbalism-m.png" },
       ...((gameState.realm && gameState.realm !== "煉體") ? [
         { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", key: "alchemy", pcBgImage: "/images/bg-alchemy.png", mobileBgImage: "/images/bg-alchemy-m.png" },
         { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing", pcBgImage: "/images/bg-smithing.png", mobileBgImage: "/images/bg-smithing-m.png" },
       ] : []),
     ]},
     { title: locale === "zh" ? "系統" : "System", items: [
-      { name: locale === "zh" ? "回報與建議" : "Feedback", href: "/feedback", icon: "📮", key: "feedback" },
+      { name: locale === "zh" ? "回報與建議" : "Feedback", href: "/feedback", icon: "📮", iconUrl: "/images/nav-items/nav-feedback.png", key: "feedback" },
       ...(isAdmin ? [{ name: locale === "zh" ? "回報管理" : "Manage Feedback", href: "/admin/feedback", icon: "🛡️", key: "admin-feedback" }] : []),
       { name: t("sidebar_switchChar"), href: "/characters", icon: "🔄", key: "switch-char" },
       { name: locale === "zh" ? "更改角色名稱" : "Rename Character", href: "#rename", icon: "✏️", key: "rename" },
@@ -151,7 +151,11 @@ export function GameSidebar({
                       }}
                       className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 text-muted-foreground hover:bg-muted/30 hover:text-foreground border border-transparent`}
                     >
-                      <span className="text-base leading-none">{item.icon}</span>
+                      {item.iconUrl ? (
+                        <img src={item.iconUrl} alt={item.name} className="h-5 w-5 object-contain" />
+                      ) : (
+                        <span className="text-base leading-none">{item.icon}</span>
+                      )}
                       <span className="flex-1">{item.name}</span>
                     </Link>
                   ) : (
@@ -169,7 +173,11 @@ export function GameSidebar({
                           : "text-muted-foreground hover:bg-muted/30 hover:text-foreground border border-transparent"
                       }`}
                     >
-                      <span className="text-base leading-none">{item.icon}</span>
+                      {item.iconUrl ? (
+                        <img src={item.iconUrl} alt={item.name} className="h-5 w-5 object-contain" />
+                      ) : (
+                        <span className="text-base leading-none">{item.icon}</span>
+                      )}
                       <span className="flex-1 text-left">{item.name}</span>
                       {item.key === "inventory" && (
                         <span className="text-sm tabular-nums text-muted-foreground/70">

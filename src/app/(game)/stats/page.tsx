@@ -138,9 +138,12 @@ export default function StatsPage() {
     <TooltipProvider>
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <header className="mb-6">
-        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-          {isZh ? "數值" : "Stats"}
-        </h1>
+        <div className="flex items-center gap-3">
+          <img src="/images/nav-items/nav-stats.png" alt="" className="h-12 w-12 object-contain" />
+          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+            {isZh ? "數值" : "Stats"}
+          </h1>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {isZh ? "角色屬性與裝備" : "Character attributes and equipment"}
         </p>

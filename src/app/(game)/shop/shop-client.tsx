@@ -44,9 +44,12 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <header className="mb-6 animate-[ink-fade-in_0.6s_ease-out]">
-          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-            商店
-          </h1>
+          <div className="flex items-center gap-3">
+            <img src="/images/nav-items/nav-shop.png" alt="商店" className="h-12 w-12 object-contain" />
+            <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+              商店
+            </h1>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             使用天道碎片（TTAO）購買升級
           </p>
