@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Separator } from "@/components/ui/separator";
 import { useI18n } from "@/lib/i18n";
 
 const REALM_DISPLAY: Record<string, { zh: string; en: string; color: string }> = {
@@ -42,11 +43,12 @@ export default function LeaderboardPage() {
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <header className="mb-6">
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-          🏆 {isZh ? "排行榜" : "Leaderboard"}
+          {isZh ? "排行榜" : "Leaderboard"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isZh ? "境界排名 · 前十名" : "Realm Ranking · Top 10"}
         </p>
+        <Separator className="mt-4" />
       </header>
 
       {loading ? (

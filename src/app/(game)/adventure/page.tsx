@@ -48,7 +48,7 @@ export default function AdventurePage() {
         </header>
 
         {/* Combat panel — always visible */}
-        <Card className="scroll-surface mb-6 overflow-visible bg-card/60 backdrop-blur-sm" style={{ background: "transparent" }}>
+        <Card className="scroll-surface mb-6 overflow-visible">
           <div className={`h-1 rounded-t-lg bg-gradient-to-r ${gameState.isCombating ? "from-cinnabar/60 via-cinnabar to-cinnabar/60" : "from-muted/40 via-muted/60 to-muted/40"}`} />
           <CardContent className="pt-6 pb-6 space-y-5">
             <div className="grid grid-cols-[1fr_auto_1fr] gap-5 items-center">
@@ -329,7 +329,7 @@ export default function AdventurePage() {
         </Card>
 
         {/* Loot box — separate card, always visible */}
-        <Card className="scroll-surface mb-6 overflow-hidden bg-card/60 backdrop-blur-sm" style={{ background: "transparent" }}>
+        <Card className="scroll-surface mb-6 overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-spirit-gold/60 via-spirit-gold to-spirit-gold/60" />
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between mb-1">
@@ -404,7 +404,7 @@ export default function AdventurePage() {
         {/* Zone cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
         {COMBAT_ZONES.map((zone) => (
-          <Card key={zone.id} className="scroll-surface overflow-hidden bg-card/60 backdrop-blur-sm" style={{ background: "transparent" }}>
+          <Card key={zone.id} className="scroll-surface overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-cinnabar/60 via-cinnabar to-cinnabar/60" />
             <CardContent className="pt-2 pb-3">
               <button

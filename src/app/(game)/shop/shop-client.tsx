@@ -50,6 +50,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
           <p className="mt-1 text-sm text-muted-foreground">
             使用天道碎片（TTAO）購買升級
           </p>
+          <Separator className="mt-4" />
         </header>
 
         <div className="mb-6 flex items-center gap-3">
@@ -98,7 +99,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
             </CardContent>
           </Card>
 
-          <Card className="scroll-surface border-dashed opacity-50">
+          <Card className="scroll-surface border-dashed">
             <CardHeader>
               <CardTitle className="font-heading text-lg text-muted-foreground">更多商品</CardTitle>
               <CardDescription>即將推出...</CardDescription>
