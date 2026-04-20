@@ -72,6 +72,15 @@ export function GameLayout({
   const [activeTab, setActiveTab] = useState(initialTab ?? "dashboard");
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set([initialTab ?? "dashboard"]));
 
+  // Preload all background images
+  useEffect(() => {
+    const urls = Object.values(TAB_BG).flatMap(bg => [bg.pc, bg.mobile]);
+    urls.forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
+
   // Resolve tab from URL on client only — avoids hydration mismatch
   useEffect(() => {
     const urlTab = window.location.pathname.replace("/", "").split("/")[0] || "dashboard";
