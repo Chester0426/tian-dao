@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
@@ -24,7 +24,6 @@ export function GameSidebar({
   activeTab?: string;
   onTabChangeAction?: (tab: string) => void;
 }) {
-  const pathname = usePathname();
   const router = useRouter();
   const gameState = useGameState();
   const { locale, setLocale, t } = useI18n();
