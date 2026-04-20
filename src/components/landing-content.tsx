@@ -33,6 +33,34 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 const DEV_LOG = [
+  { date: "04/16", items: [
+    { zh: "所有技能 sync API 加入時間差反作弊驗算", en: "Anti-cheat time-based validation on all skill sync APIs" },
+    { zh: "戰利品系統改為伺服器端驗證", en: "Loot system switched to server-side verification" },
+    { zh: "突破加入 optimistic lock 防止併發重複升級", en: "Breakthrough optimistic lock prevents concurrent double-upgrade" },
+    { zh: "角色命名系統：創建時取名，支援中/日/英文，敏感詞過濾", en: "Character naming: name on create, CN/JP/EN support, profanity filter" },
+    { zh: "境界排行榜：前 10 名排名", en: "Realm leaderboard: top 10 ranking" },
+    { zh: "補品欄位改為資料庫持久化，跨裝置同步", en: "Consumable slots synced to database, cross-device" },
+    { zh: "所有 23 個物品補齊說明文字", en: "Item descriptions for all 23 items" },
+    { zh: "BGM 背景音樂播放器", en: "BGM background music player" },
+    { zh: "側欄分類重整為修行、戰鬥、技能", en: "Sidebar reorganized: Cultivation, Combat, Skills" },
+    { zh: "裝備說明統一格式：圖片、名稱、部位、境界要求、數值", en: "Equipment tooltip: image, name, slot, requirement, stats" },
+    { zh: "怪物與玩家角色改用專屬圖片", en: "Monster and player images replace emoji" },
+    { zh: "戰鬥條採用仙俠風格重新設計", en: "Combat bars redesigned with xianxia aesthetic" },
+    { zh: "角色選擇頁全面重新排版", en: "Character select page fully redesigned" },
+  ]},
+  { date: "04/14", items: [
+    { zh: "遊歷系統 v1（3 個區域、怪物列表、戰鬥 UI）", en: "Adventure system v1 (3 zones, monster list, combat UI)" },
+    { zh: "戰鬥掛機（離線模擬、統一公式）", en: "Combat idle (offline simulation, unified formula)" },
+    { zh: "戰利品箱（100 格、裝備不堆疊）", en: "Loot box (100 slots, equipment no-stack)" },
+    { zh: "補品系統（3 格、進食回血）", en: "Consumable system (3 slots, eat to heal)" },
+    { zh: "裝備套裝系統（2 套切換）", en: "Equipment set system (2 sets with switch)" },
+    { zh: "戰鬥移至 provider 層級，跨頁面持續", en: "Combat moved to provider level, persists across pages" },
+    { zh: "戰鬥離線獎勵通知（SSR 秒出）", en: "Combat offline rewards notification (SSR instant)" },
+    { zh: "裝備不可堆疊邏輯修正", en: "Equipment no-stacking logic fix" },
+    { zh: "收取戰利品 optimistic UI（秒收）", en: "Collect loot optimistic UI (instant)" },
+    { zh: "全局迷你戰鬥面板（右下角）", en: "Global mini combat panel (bottom-right)" },
+    { zh: "挖礦頁仙俠風格重設計", en: "Mining page xianxia-style redesign" },
+  ]},
   { date: "04/12", items: [
     { zh: "離線系統優化", en: "Offline system optimization" },
     { zh: "裝備欄系統", en: "Equipment panel system" },

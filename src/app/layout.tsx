@@ -28,9 +28,9 @@ const notoSansSC = Noto_Sans_SC({
 });
 
 export const metadata: Metadata = {
-  title: "天道 — 掛機也能登仙 | Tian Dao",
+  title: "天道 — 掛機也能登仙 | Tian Tao",
   description:
-    "修仙主題放置 RPG：挖礦、修煉、突破境界，24 小時不停歇。你的資源，未來可上鏈交易。",
+    "一念成道 — 修仙主題放置 RPG，掛機也能登仙",
   icons: {
     icon: "/images/favicon.png",
   },

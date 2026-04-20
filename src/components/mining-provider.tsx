@@ -101,6 +101,8 @@ export interface GameState {
   // Consumables
   consumableSlots: (string | null)[]; // 3 slots, item_type or null
   activeConsumableIdx: number; // which slot is currently selected (0-2)
+  // Enlightenment
+  isEnlightening: boolean;
   // Combat
   isCombating: boolean;
   combatMonster: Monster | null;
@@ -116,7 +118,16 @@ export interface GameState {
   combatLootSlots: { item_type: string; quantity: number }[];
 }
 
+export interface ActivitySwitchConfirm {
+  from: string; // current activity name
+  to: string; // target activity name
+  onConfirm: () => void;
+}
+
 interface GameContextValue extends GameState {
+  activitySwitchConfirm: ActivitySwitchConfirm | null;
+  dismissActivitySwitch: () => void;
+  setDontAskActivitySwitch: (v: boolean) => void;
   startMining: (mine: MineData) => void;
   stopMining: () => void;
   startMeditation: () => void;
@@ -132,6 +143,9 @@ interface GameContextValue extends GameState {
   dismissOfflineRewards: () => void;
   updateInventory: (updater: (prev: InventoryItem[]) => InventoryItem[]) => void;
   updateEquipmentSet: (setNum: number, sets: Record<string, Record<string, string>>) => void;
+  setEnlightening: (v: boolean) => void;
+  registerEnlightenmentSync: (fn: () => void) => void;
+  requestActivitySwitch: (targetName: string, onConfirm: () => void) => void;
 }
 
 const GameContext = createContext<GameContextValue>(null!);
@@ -183,6 +197,7 @@ interface ProviderProps {
     combatMonsterId?: string | null;
     qiArray?: (string | null)[];
     consumableSlots?: (string | null)[];
+    userPreferences?: Record<string, unknown>;
     offlineRewards?: {
       minutes_away: number;
       session_type: "mining" | "meditate";
@@ -837,11 +852,46 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialState?.qiXp]);
 
+  // --- Enlightenment state (tracked for mutual exclusion) ---
+  const [isEnlightening, setIsEnlightening] = useState(false);
+  const isEnlighteningRef = useRef(false);
+  isEnlighteningRef.current = isEnlightening;
+  const syncEnlightenmentRef = useRef<() => void>(() => {});
+  const setEnlightening = useCallback((v: boolean) => { setIsEnlightening(v); isEnlighteningRef.current = v; }, []);
+
+  // --- Activity switch confirmation ---
+  const [activitySwitchConfirm, setActivitySwitchConfirm] = useState<ActivitySwitchConfirm | null>(null);
+  const dismissActivitySwitch = useCallback(() => setActivitySwitchConfirm(null), []);
+  const [dontAskSwitch, setDontAskSwitchState] = useState(() => {
+    return (initialState?.userPreferences as Record<string, unknown>)?.dontAskActivitySwitch === true;
+  });
+  const dontAskSwitchRef = useRef(dontAskSwitch);
+  const setDontAskActivitySwitch = useCallback((v: boolean) => {
+    setDontAskSwitchState(v);
+    dontAskSwitchRef.current = v;
+    fetch("/api/game/user-preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dontAskActivitySwitch: v }),
+    }).catch(() => {});
+  }, []);
+  const shouldAskSwitch = useCallback(() => {
+    return !dontAskSwitchRef.current;
+  }, []);
+  const getActiveActivityName = useCallback((): string | null => {
+    if (isMiningRef.current) return locale === "zh" ? "挖礦" : "Mining";
+    if (isMeditatingRef.current) return locale === "zh" ? "冥想" : "Meditation";
+    if (isEnlighteningRef.current) return locale === "zh" ? "參悟" : "Enlightenment";
+    if (isCombatingRef.current) return locale === "zh" ? "戰鬥" : "Combat";
+    return null;
+  }, [locale]);
+
   // --- Actions ---
-  const startMining = useCallback((mine: MineData) => {
+  const _doStartMining = useCallback((mine: MineData) => {
     if (isMeditatingRef.current) syncMeditation();
     if (isCombatingRef.current) { syncCombat(); setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
     setIsMeditating(false);
+    if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
     activeMineRef.current = mine;
     setActiveMineId(mine.id);
     setIsMining(true);
@@ -867,7 +917,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }).catch(() => {});
   }, [syncToServer]);
 
-  const startMeditation = useCallback(() => {
+  const _doStartMeditation = useCallback(() => {
     if (isMiningRef.current) {
       syncToServer();
       setIsMining(false);
@@ -876,6 +926,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       setActionProgress(0);
     }
     if (isCombatingRef.current) { syncCombat(); setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
+    if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
     setIsMeditating(true);
     fetch("/api/game/start-activity", {
       method: "POST",
@@ -964,7 +1015,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     });
 
     const isZhNow = localeForMedRef.current === "zh";
-    addNotification(itemDef.icon, isZhNow ? `${itemDef.nameZh} +${heal} HP` : `${itemDef.nameEn} +${heal} HP`, heal, "text-jade");
+    // No notification for consumable — HP bar update is enough feedback
 
     // Server sync
     fetch("/api/game/consume", {
@@ -1211,10 +1262,11 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const startCombat = useCallback((monster: Monster) => {
+  const _doStartCombat = useCallback((monster: Monster) => {
     // Stop other activities
     if (isMiningRef.current) { syncToServer(); setIsMining(false); setActiveMineId(null); activeMineRef.current = null; setActionProgress(0); }
     if (isMeditatingRef.current) { syncMeditation(); setIsMeditating(false); }
+    if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
 
     const stats = computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsRef.current[String(activeEquipSetRef.current)] ?? {} });
     combatStatsRef.current = stats;
@@ -1313,14 +1365,48 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     playerDef: isCombating ? combatStatsRef.current.def : computeStats({ bodyLevel: initialState?.bodyLevel ?? 1, equipment: equipSetsState[String(activeEquipSetState)] ?? {} }).def,
     monsterHp, combatPlayerProgress, combatMonsterProgress, combatKillCount, combatLogs, combatLootSlots,
     consumableSlots, activeConsumableIdx,
-    startMining, stopMining, startMeditation, stopMeditation,
-    startCombat, stopCombat, collectCombatLoot,
+    activitySwitchConfirm, dismissActivitySwitch, setDontAskActivitySwitch,
+    startMining: useCallback((mine: MineData) => {
+      const current = getActiveActivityName();
+      if (current && shouldAskSwitch()) {
+        const targetName = locale === "zh" ? "挖礦" : "Mining";
+        setActivitySwitchConfirm({ from: current, to: targetName, onConfirm: () => { setActivitySwitchConfirm(null); _doStartMining(mine); } });
+      } else { _doStartMining(mine); }
+    }, [getActiveActivityName, shouldAskSwitch, _doStartMining, locale]),
+    stopMining,
+    startMeditation: useCallback(() => {
+      const current = getActiveActivityName();
+      if (current && shouldAskSwitch()) {
+        const targetName = locale === "zh" ? "冥想" : "Meditation";
+        setActivitySwitchConfirm({ from: current, to: targetName, onConfirm: () => { setActivitySwitchConfirm(null); _doStartMeditation(); } });
+      } else { _doStartMeditation(); }
+    }, [getActiveActivityName, shouldAskSwitch, _doStartMeditation, locale]),
+    stopMeditation,
+    startCombat: useCallback((monster: Monster) => {
+      const current = getActiveActivityName();
+      if (current && shouldAskSwitch()) {
+        const targetName = locale === "zh" ? "戰鬥" : "Combat";
+        setActivitySwitchConfirm({ from: current, to: targetName, onConfirm: () => { setActivitySwitchConfirm(null); _doStartCombat(monster); } });
+      } else { _doStartCombat(monster); }
+    }, [getActiveActivityName, shouldAskSwitch, _doStartCombat, locale]),
+    stopCombat, collectCombatLoot,
     setConsumableSlot, setActiveConsumableIdx, consumeItem,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
     addNotification,
     dismissOfflineRewards,
     updateInventory: setInventory,
     updateEquipmentSet,
+    isEnlightening,
+    setEnlightening,
+    registerEnlightenmentSync: useCallback((fn: () => void) => { syncEnlightenmentRef.current = fn; }, []),
+    requestActivitySwitch: useCallback((targetName: string, onConfirm: () => void) => {
+      const current = getActiveActivityName();
+      if (current && shouldAskSwitch()) {
+        setActivitySwitchConfirm({ from: current, to: targetName, onConfirm: () => { setActivitySwitchConfirm(null); onConfirm(); } });
+      } else {
+        onConfirm();
+      }
+    }, [getActiveActivityName, shouldAskSwitch]),
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

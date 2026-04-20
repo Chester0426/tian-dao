@@ -71,6 +71,30 @@ export function EnlightenmentClient({
   const rafRef = useRef<number | null>(null);
   const pendingTicksRef = useRef(0);
 
+  // Register sync function so provider can flush ticks when stopping enlightenment
+  useEffect(() => {
+    gameState.registerEnlightenmentSync(() => {
+      if (pendingTicksRef.current > 0) {
+        fetch("/api/game/enlightenment/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticks: pendingTicksRef.current }),
+        }).catch(() => {});
+        pendingTicksRef.current = 0;
+      }
+      setIsEnlightening(false);
+      setCurrentTarget(null);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync with provider — when another activity stops enlightenment
+  useEffect(() => {
+    if (!gameState.isEnlightening && isEnlightening) {
+      setIsEnlightening(false);
+      setCurrentTarget(null);
+    }
+  }, [gameState.isEnlightening, isEnlightening]);
+
   const learnedMap = new Map(initialLearned.map((t) => [t.technique_slug, t]));
   // Regular books (破損書籍 etc.) — excludes technique books (those go through "learn" flow)
   const regularBooks = inventory.filter((i) => hasTag(i.item_type, "book") && !TECHNIQUES[i.item_type] && i.quantity > 0);
@@ -170,11 +194,13 @@ export function EnlightenmentClient({
   };
 
   // Step 2: begin enlightenment (user clicks "開始參悟")
-  const startEnlightenment = async () => {
+  const _doStartEnlightenment = async () => {
     if (!currentTarget) return;
     if (gameState.isMining) gameState.stopMining();
     if (gameState.isMeditating) gameState.stopMeditation();
+    if (gameState.isCombating) gameState.stopCombat();
     setIsEnlightening(true);
+    gameState.setEnlightening(true);
     pendingTicksRef.current = 0;
     await fetch("/api/game/start-activity", {
       method: "POST",
@@ -184,28 +210,39 @@ export function EnlightenmentClient({
     });
   };
 
+  const startEnlightenment = () => {
+    if (!currentTarget) return;
+    gameState.requestActivitySwitch(
+      isZh ? "參悟" : "Enlightenment",
+      () => _doStartEnlightenment(),
+    );
+  };
+
   // Remove target from slot
   const clearTarget = () => {
     if (isEnlightening) return;
     setCurrentTarget(null);
   };
 
-  const stopEnlightenment = async () => {
-    if (pendingTicksRef.current > 0) {
-      await fetch("/api/game/enlightenment/sync", {
+  const stopEnlightenment = () => {
+    // Instant UI update
+    setIsEnlightening(false);
+    gameState.setEnlightening(false);
+    setCurrentTarget(null);
+    // Background sync
+    const ticks = pendingTicksRef.current;
+    pendingTicksRef.current = 0;
+    if (ticks > 0) {
+      fetch("/api/game/enlightenment/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticks: pendingTicksRef.current }),
+        body: JSON.stringify({ ticks }),
       }).catch(() => {});
-      pendingTicksRef.current = 0;
     }
-    setIsEnlightening(false);
-    setCurrentTarget(null);
-    await fetch("/api/game/stop-activity", {
+    fetch("/api/game/stop-activity", {
       method: "POST",
       keepalive: true,
-    });
-    router.refresh();
+    }).catch(() => {});
   };
 
   const byCategory = { cultivation: [] as string[], skill: [] as string[], refinement: [] as string[] };

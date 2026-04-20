@@ -8,7 +8,7 @@ export function BgmPlayer() {
   const pathname = usePathname();
   const howlRef = useRef<Howl | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.3);
+  const [volume, setVolume] = useState(0.1);
   const [showSlider, setShowSlider] = useState(false);
   const userToggled = useRef(false); // user manually clicked the audio button
 
@@ -28,7 +28,7 @@ export function BgmPlayer() {
     howlRef.current = new Howl({
       src: ["/audio/bgm.mp3"],
       loop: true,
-      volume: 0.3,
+      volume: 0.1,
       html5: true,
     });
 

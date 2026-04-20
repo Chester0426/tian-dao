@@ -111,6 +111,7 @@ export default async function GameGroupLayout({
           bodyLevel: profile?.body_level ?? 1,
           lootBox: profile?.loot_box ?? [],
           consumableSlots: (profile?.consumable_slots as (string | null)[] | null) ?? [null, null, null],
+          userPreferences: (profile as unknown as { user_preferences?: Record<string, unknown> })?.user_preferences ?? {},
           combatMonsterId: combatInit?.monsterId ?? null,
           offlineRewards: offlineRewardsInit,
           inventory,

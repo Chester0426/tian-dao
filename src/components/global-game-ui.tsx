@@ -3,6 +3,7 @@
 import { useGameState } from "@/components/mining-provider";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -180,7 +181,10 @@ export function GlobalGameUI() {
                       {meta && invCount > 0 && (
                         <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-card border border-border/50 rounded-full px-1.5 text-[11px] tabular-nums text-muted-foreground leading-tight">{invCount}</span>
                       )}
-                      <span className="text-xl">{meta ? meta.icon : "🍽️"}</span>
+                      {meta?.image
+                        ? <img src={meta.image} alt="" className="w-6 h-6 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]" />
+                        : <span className="text-xl">{meta ? meta.icon : "🍽️"}</span>
+                      }
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -238,6 +242,50 @@ export function GlobalGameUI() {
           </button>
         </div>
       )}
+
+      {/* === Activity switch confirmation dialog === */}
+      <Dialog open={!!gameState.activitySwitchConfirm} onOpenChange={() => gameState.dismissActivitySwitch()}>
+        <DialogContent className="scroll-surface sm:max-w-sm" showCloseButton={false}>
+          {gameState.activitySwitchConfirm && (() => {
+            const { from, to, onConfirm } = gameState.activitySwitchConfirm;
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const [dontAsk, setDontAsk] = useState(false);
+            return (
+              <div className="flex flex-col items-center text-center space-y-4 py-4">
+                <div className="text-4xl">⚠️</div>
+                <h2 className="font-heading text-lg font-bold">
+                  {isZh ? "切換技能" : "Switch Activity"}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {isZh
+                    ? `切換到「${to}」將停止當前的「${from}」，確定嗎？`
+                    : `Switching to "${to}" will stop "${from}". Continue?`}
+                </p>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dontAsk}
+                    onChange={(e) => setDontAsk(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  {isZh ? "不再顯示此提示" : "Don't show this again"}
+                </label>
+                <div className="flex gap-3 w-full">
+                  <Button variant="outline" className="flex-1" onClick={() => gameState.dismissActivitySwitch()}>
+                    {isZh ? "取消" : "Cancel"}
+                  </Button>
+                  <Button className="flex-1 seal-glow" onClick={() => {
+                    if (dontAsk) gameState.setDontAskActivitySwitch(true);
+                    onConfirm();
+                  }}>
+                    {isZh ? "確定切換" : "Switch"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

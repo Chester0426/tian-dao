@@ -71,11 +71,11 @@ export default function AdventurePage() {
                 </div>
                 {gameState.isCombating && (
                   <div className="space-y-0.5">
-                    <p className="text-xs" style={{ color: "rgba(252,211,77,0.7)" }}>{isZh ? "聚氣" : "Focus"} 3.0s</p>
+                    <p className="text-xs" style={{ color: "rgba(252,211,77,0.7)" }}>{isZh ? "攻擊間隔" : "Attack Interval"} 3.0s</p>
                     <div className="relative w-full" style={{ height: "10px" }}>
                       <div className="absolute inset-0 rounded-sm" style={{ background: "rgba(20,16,8,0.8)", border: "1px solid rgba(252,211,77,0.3)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }} />
                       <div className="absolute inset-[1px] rounded-sm overflow-hidden">
-                        <div className="h-full transition-all duration-200" style={{ width: `${gameState.combatPlayerProgress * 100}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
+                        <div className="h-full" style={{ width: `${gameState.combatPlayerProgress * 100}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
                       </div>
                     </div>
                   </div>
@@ -102,11 +102,11 @@ export default function AdventurePage() {
                     <span className="absolute inset-0 flex items-center justify-center text-xs tabular-nums font-heading" style={{ color: "#fff", textShadow: "0 0 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.8)" }}>{gameState.monsterHp}/{gameState.combatMonster.hp}</span>
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-xs" style={{ color: "rgba(252,211,77,0.7)" }}>{isZh ? "蓄力" : "Charge"} {gameState.combatMonster.attackSpeed}s</p>
+                    <p className="text-xs" style={{ color: "rgba(252,211,77,0.7)" }}>{isZh ? "攻擊間隔" : "Attack Interval"} {gameState.combatMonster.attackSpeed.toFixed(1)}s</p>
                     <div className="relative w-full" style={{ height: "10px" }}>
                       <div className="absolute inset-0 rounded-sm" style={{ background: "rgba(20,16,8,0.8)", border: "1px solid rgba(252,211,77,0.3)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }} />
                       <div className="absolute inset-[1px] rounded-sm overflow-hidden">
-                        <div className="h-full transition-all duration-200" style={{ width: `${gameState.combatMonsterProgress * 100}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
+                        <div className="h-full" style={{ width: `${gameState.combatMonsterProgress * 100}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
                       </div>
                     </div>
                   </div>
