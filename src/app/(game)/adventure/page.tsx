@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,50 @@ export default function AdventurePage() {
   const [lootBoxCollapsed, setLootBoxCollapsed] = useState(false);
   const [consumableDropdownOpen, setConsumableDropdownOpen] = useState(false);
   const [consumablePickerIdx, setConsumablePickerIdx] = useState<number | null>(null);
+
+  // 0 = no hit, 1 = light, 2 = medium, 3 = heavy
+  const [playerHitLevel, setPlayerHitLevel] = useState(0);
+  const [monsterHitLevel, setMonsterHitLevel] = useState(0);
+  const [clashEffect, setClashEffect] = useState<"player" | "monster" | null>(null);
+  const lastLogIdRef = useRef(0);
+
+  const parseDmgLevel = (text: string, maxHp: number): number => {
+    // Extract damage number: "造成 15 點傷害", "deal 15 to", "deals 15 to"
+    const match = text.match(/(?:造成|deal|deals)\s*(\d+)/);
+    if (!match) return 1;
+    const dmg = parseInt(match[1], 10);
+    if (maxHp <= 0) return 1;
+    const ratio = dmg / maxHp;
+    if (ratio >= 0.3) return 3; // heavy — >30% max HP
+    if (ratio >= 0.15) return 2; // medium — >15% max HP
+    return 1; // light
+  };
+
+  useEffect(() => {
+    const logs = gameState.combatLogs;
+    if (logs.length === 0) return;
+
+    const newLogs = logs.filter((l) => l.id > lastLogIdRef.current);
+    if (newLogs.length === 0) return;
+    lastLogIdRef.current = newLogs[newLogs.length - 1].id;
+
+    for (const log of newLogs) {
+      // Player took damage (monster hit player)
+      if (log.text.includes("對你造成") || (log.text.includes("deals") && log.text.includes("to you"))) {
+        const level = parseDmgLevel(log.text, gameState.playerMaxHp);
+        setPlayerHitLevel(level);
+        setClashEffect("player");
+        setTimeout(() => { setPlayerHitLevel(0); setClashEffect(null); }, 500);
+      }
+      // Monster took damage (player hit monster)
+      if (log.text.includes("你對") || log.text.includes("You deal")) {
+        const level = parseDmgLevel(log.text, gameState.combatMonster?.hp ?? 100);
+        setMonsterHitLevel(level);
+        setClashEffect("monster");
+        setTimeout(() => { setMonsterHitLevel(0); setClashEffect(null); }, 500);
+      }
+    }
+  }, [gameState.combatLogs]);
 
   const handleCollect = async () => {
     setCollecting(true);
@@ -56,10 +100,35 @@ export default function AdventurePage() {
           <CardContent className="pt-6 pb-6 space-y-5">
             <div className="grid grid-cols-[1fr_auto_1fr] gap-5 items-center">
               {/* Player */}
-              <div className="text-center space-y-2.5">
-                <div className="flex items-center justify-center h-[180px]">
-                  <img src="/images/adventure/me.png" alt={isZh ? "你" : "You"} className="h-full object-contain" />
+              <div className="text-center space-y-2.5 relative">
+                {/* Combat aura when fighting */}
+                {gameState.isCombating && (
+                  <div className="absolute left-1/2 top-[90px] w-[70%] h-[50%] rounded-full pointer-events-none" style={{
+                    background: "radial-gradient(circle, oklch(0.65 0.15 160 / 12%) 0%, transparent 70%)",
+                    animation: "combat-aura 2.5s ease-in-out infinite",
+                  }} />
+                )}
+                <div className="flex items-center justify-center h-[180px]" style={playerHitLevel > 0 ? {
+                  animation: `combat-hit-shake ${playerHitLevel >= 3 ? "0.5s" : playerHitLevel >= 2 ? "0.4s" : "0.3s"} ease-out`,
+                  filter: playerHitLevel >= 3 ? "brightness(1.8) saturate(2)" : playerHitLevel >= 2 ? "brightness(1.4) saturate(1.5)" : undefined,
+                } : undefined}>
+                  <img src="/images/adventure/me.png" alt={isZh ? "你" : "You"} className="h-full object-contain" style={playerHitLevel > 0 ? {
+                    filter: playerHitLevel >= 3 ? "brightness(1.8) saturate(2) drop-shadow(0 0 20px rgba(220,38,38,0.9))" : playerHitLevel >= 2 ? "brightness(1.4) saturate(1.5) drop-shadow(0 0 12px rgba(220,38,38,0.7))" : "brightness(1.2) drop-shadow(0 0 8px rgba(220,38,38,0.5))",
+                  } : undefined} />
                 </div>
+                {/* Player hit qi burst — size scales with level */}
+                {playerHitLevel > 0 && (
+                  <div className="absolute left-1/2 top-[90px] rounded-full pointer-events-none" style={{
+                    width: playerHitLevel >= 3 ? 120 : playerHitLevel >= 2 ? 96 : 72,
+                    height: playerHitLevel >= 3 ? 120 : playerHitLevel >= 2 ? 96 : 72,
+                    background: playerHitLevel >= 3
+                      ? "radial-gradient(circle, rgba(220,38,38,0.6) 0%, rgba(220,38,38,0.2) 40%, transparent 70%)"
+                      : playerHitLevel >= 2
+                        ? "radial-gradient(circle, rgba(220,38,38,0.4) 0%, rgba(220,38,38,0.1) 50%, transparent 70%)"
+                        : "radial-gradient(circle, rgba(220,38,38,0.2) 0%, transparent 70%)",
+                    animation: "combat-qi-burst 0.5s ease-out forwards",
+                  }} />
+                )}
                 <p className="font-heading text-base">{isZh ? "你" : "You"}</p>
                 {/* Player HP bar — jade style */}
                 <div className="relative w-full" style={{ height: "22px" }}>
@@ -82,16 +151,67 @@ export default function AdventurePage() {
                 )}
               </div>
 
-              <div className="text-3xl font-heading text-cinnabar/40">⚔️</div>
+              <div className="relative flex items-center justify-center">
+                <span className={`text-3xl font-heading transition-all duration-300 ${gameState.isCombating ? "text-cinnabar/70 scale-110" : "text-cinnabar/40"}`}>⚔️</span>
+                {/* Clash flash on hit — scales with damage level */}
+                {clashEffect && (() => {
+                  const level = clashEffect === "player" ? playerHitLevel : monsterHitLevel;
+                  const size = level >= 3 ? 80 : level >= 2 ? 56 : 40;
+                  const slashW = level >= 3 ? 120 : level >= 2 ? 80 : 56;
+                  return (
+                    <>
+                      <div className="absolute left-1/2 top-1/2 rounded-full pointer-events-none" style={{
+                        width: size, height: size,
+                        background: level >= 3
+                          ? "radial-gradient(circle, rgba(252,211,77,1) 0%, rgba(212,166,67,0.5) 40%, transparent 70%)"
+                          : level >= 2
+                            ? "radial-gradient(circle, rgba(252,211,77,0.8) 0%, rgba(212,166,67,0.3) 40%, transparent 70%)"
+                            : "radial-gradient(circle, rgba(252,211,77,0.5) 0%, transparent 70%)",
+                        animation: "combat-clash-flash 0.5s ease-out forwards",
+                      }} />
+                      <div className="absolute left-1/2 top-1/2 pointer-events-none" style={{
+                        width: slashW, height: level >= 3 ? 3 : 2,
+                        background: "linear-gradient(90deg, transparent, rgba(252,211,77,0.9), transparent)",
+                        animation: "combat-slash 0.4s ease-out forwards",
+                        transformOrigin: "center",
+                      }} />
+                    </>
+                  );
+                })()}
+              </div>
 
               {/* Monster or empty */}
               {gameState.isCombating && gameState.combatMonster ? (
-                <div className="text-center space-y-2.5">
-                  <div className="flex items-center justify-center h-[180px]">
+                <div className="text-center space-y-2.5 relative">
+                  {/* Monster combat aura */}
+                  <div className="absolute left-1/2 top-[90px] w-[70%] h-[50%] rounded-full pointer-events-none" style={{
+                    background: "radial-gradient(circle, oklch(0.55 0.22 25 / 10%) 0%, transparent 70%)",
+                    animation: "combat-aura 2.5s ease-in-out infinite",
+                  }} />
+                  <div className="flex items-center justify-center h-[180px]" style={monsterHitLevel > 0 ? {
+                    animation: `combat-hit-shake ${monsterHitLevel >= 3 ? "0.5s" : monsterHitLevel >= 2 ? "0.4s" : "0.3s"} ease-out`,
+                  } : undefined}>
                     {gameState.combatMonster.image
-                      ? <img src={gameState.combatMonster.image} alt={isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn} className="h-full object-contain" />
-                      : <span className="text-7xl">{gameState.combatMonster.icon}</span>}
+                      ? <img src={gameState.combatMonster.image} alt={isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn} className="h-full object-contain" style={monsterHitLevel > 0 ? {
+                          filter: monsterHitLevel >= 3 ? "brightness(1.8) saturate(2) drop-shadow(0 0 20px rgba(252,211,77,0.9))" : monsterHitLevel >= 2 ? "brightness(1.4) saturate(1.5) drop-shadow(0 0 12px rgba(252,211,77,0.7))" : "brightness(1.2) drop-shadow(0 0 8px rgba(252,211,77,0.5))",
+                        } : undefined} />
+                      : <span className="text-7xl" style={monsterHitLevel > 0 ? {
+                          filter: monsterHitLevel >= 3 ? "brightness(1.8) saturate(2) drop-shadow(0 0 20px rgba(252,211,77,0.9))" : monsterHitLevel >= 2 ? "brightness(1.4) saturate(1.5) drop-shadow(0 0 12px rgba(252,211,77,0.7))" : "brightness(1.2) drop-shadow(0 0 8px rgba(252,211,77,0.5))",
+                        } : undefined}>{gameState.combatMonster.icon}</span>}
                   </div>
+                  {/* Monster hit qi burst — size scales with level */}
+                  {monsterHitLevel > 0 && (
+                    <div className="absolute left-1/2 top-[90px] rounded-full pointer-events-none" style={{
+                      width: monsterHitLevel >= 3 ? 120 : monsterHitLevel >= 2 ? 96 : 72,
+                      height: monsterHitLevel >= 3 ? 120 : monsterHitLevel >= 2 ? 96 : 72,
+                      background: monsterHitLevel >= 3
+                        ? "radial-gradient(circle, rgba(252,211,77,0.6) 0%, rgba(252,211,77,0.2) 40%, transparent 70%)"
+                        : monsterHitLevel >= 2
+                          ? "radial-gradient(circle, rgba(252,211,77,0.4) 0%, rgba(252,211,77,0.1) 50%, transparent 70%)"
+                          : "radial-gradient(circle, rgba(252,211,77,0.2) 0%, transparent 70%)",
+                      animation: "combat-qi-burst 0.5s ease-out forwards",
+                    }} />
+                  )}
                   <p className="font-heading text-base">{isZh ? gameState.combatMonster.nameZh : gameState.combatMonster.nameEn}</p>
                   {/* Monster HP bar — cinnabar style */}
                   <div className="relative w-full" style={{ height: "22px" }}>

@@ -494,6 +494,68 @@
     100% { opacity: 0; transform: translateY(-24px) scale(1); }
 }
 
+/* Qi spiral inward — particle orbits and shrinks into center */
+@keyframes qi-spiral-in {
+    0%   { opacity: 0; transform: translate(-50%, -50%) rotate(var(--start-angle)) translateX(90px) scale(1); }
+    10%  { opacity: 1; }
+    80%  { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 360deg)) translateX(10px) scale(0.2); }
+}
+
+/* Qi orbit glow — particles orbit at fixed radius with pulsing brightness */
+@keyframes qi-orbit-glow {
+    0%   { opacity: 0.3; transform: translate(-50%, -50%) rotate(var(--start-angle)) translateX(60px) scale(0.8); }
+    25%  { opacity: 1; transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 90deg)) translateX(60px) scale(1.3); }
+    50%  { opacity: 0.5; transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 180deg)) translateX(60px) scale(0.9); }
+    75%  { opacity: 1; transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 270deg)) translateX(60px) scale(1.2); }
+    100% { opacity: 0.3; transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 360deg)) translateX(60px) scale(0.8); }
+}
+
+/* Qi sparkle — brief flash at random positions */
+@keyframes qi-sparkle {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+    40%  { opacity: 0.8; transform: translate(-50%, -50%) scale(0.8); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+}
+
+/* Combat — sword clash effects */
+@keyframes combat-hit-shake {
+    0%   { transform: translateX(0); }
+    10%  { transform: translateX(-8px); }
+    20%  { transform: translateX(7px); }
+    30%  { transform: translateX(-5px); }
+    40%  { transform: translateX(4px); }
+    50%  { transform: translateX(-2px); }
+    60%  { transform: translateX(1px); }
+    100% { transform: translateX(0); }
+}
+
+@keyframes combat-clash-flash {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    40%  { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+@keyframes combat-slash {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scaleX(0); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scaleX(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scaleX(1.5); }
+}
+
+@keyframes combat-qi-burst {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    30%  { opacity: 0.6; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+}
+
+@keyframes combat-aura {
+    0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+    50%      { opacity: 0.35; transform: translate(-50%, -50%) scale(1.05); }
+}
+
 /* Custom scrollbar — thin dark track, minimal visibility */
 ::-webkit-scrollbar {
     width: 4px;

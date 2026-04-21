@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { trackActivate } from "@/lib/events";
 import { useGameState } from "@/components/mining-provider";
@@ -170,52 +171,27 @@ export function MiningPageClient({
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 
         {/* === Header Bar === */}
-        <div className="mb-5 relative rounded-2xl overflow-hidden -mx-6 md:-mx-12">
-          <img src="/images/mining-title-bg.png" alt="" className="w-full h-auto block" />
-          <div
-            className="absolute inset-0 px-6 flex items-center justify-center gap-6"
-            style={{
-              textShadow: "0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)",
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-full"
-                style={{
-                  background: "radial-gradient(circle, rgba(62,207,165,0.2) 0%, rgba(26,74,58,0.3) 100%)",
-                  boxShadow: "0 0 10px rgba(62,207,165,0.2), inset 0 0 6px rgba(0,0,0,0.3)",
-                  border: "1px solid rgba(62,207,165,0.3)",
-                }}
-              >
-                <img src="/images/nav-items/nav-mining.png" alt="" className="w-8 h-8 object-contain" />
-              </div>
-              <div>
-                <h1
-                  className="font-heading text-xl font-bold sm:text-2xl"
-                  style={{
-                    background: "linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))",
-                  }}
-                >
+        <header className="mb-6 -mx-6 md:-mx-12">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <img src="/images/nav-items/nav-mining.png" alt="" className="h-12 w-12 object-contain" />
+                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
                   {t("mining_title")}
                 </h1>
               </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {locale === "zh" ? "深入礦脈，採集天地靈石" : "Delve into mineral veins, harvest spiritual stones"}
+              </p>
             </div>
-            <div
-              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-heading"
-              style={{
-                background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
-                border: "1px solid rgba(62,207,165,0.3)",
-                boxShadow: "0 0 6px rgba(62,207,165,0.1)",
-                color: "#6ee7b7",
-              }}
-            >
+            <Badge variant="outline" className="border-jade/40 bg-jade text-white font-heading px-3 py-1.5 text-sm">
               {t("mining_skillLevel")} {miningLevel}
-            </div>
+            </Badge>
           </div>
-        </div>
+          <div className="relative mt-4">
+            <Separator />
+          </div>
+        </header>
 
         {/* Skill XP bar — spirit qi vein style with XP text */}
         <div className="mb-6 -mx-6 md:-mx-12">
