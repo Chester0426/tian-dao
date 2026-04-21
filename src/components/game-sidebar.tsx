@@ -48,17 +48,17 @@ export function GameSidebar({
       { name: t("sidebar_mining"), href: "/mining", icon: "⛏️", iconUrl: "/images/nav-items/nav-mining.png", key: "mining", pcBgImage: "/images/bg-mining.png", mobileBgImage: "/images/bg-mining-m.png" },
       { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", iconUrl: "/images/nav-items/nav-herbalism.png", key: "herbalism", pcBgImage: "/images/bg-herbalism.png", mobileBgImage: "/images/bg-herbalism-m.png" },
       ...((gameState.realm && gameState.realm !== "煉體") ? [
-        { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", key: "alchemy", pcBgImage: "/images/bg-alchemy.png", mobileBgImage: "/images/bg-alchemy-m.png" },
-        { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", key: "smithing", pcBgImage: "/images/bg-smithing.png", mobileBgImage: "/images/bg-smithing-m.png" },
+        { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", iconUrl: "/images/nav-items/nav-alchemy.png", key: "alchemy", pcBgImage: "/images/bg-alchemy.png", mobileBgImage: "/images/bg-alchemy-m.png" },
+        { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", iconUrl: "/images/nav-items/nav-smithing.png", key: "smithing", pcBgImage: "/images/bg-smithing.png", mobileBgImage: "/images/bg-smithing-m.png" },
       ] : []),
     ]},
     { title: locale === "zh" ? "系統" : "System", items: [
       { name: locale === "zh" ? "回報與建議" : "Feedback", href: "/feedback", icon: "📮", iconUrl: "/images/nav-items/nav-feedback.png", key: "feedback" },
       ...(isAdmin ? [{ name: locale === "zh" ? "回報管理" : "Manage Feedback", href: "/admin/feedback", icon: "🛡️", key: "admin-feedback" }] : []),
-      { name: t("sidebar_switchChar"), href: "/characters", icon: "🔄", key: "switch-char" },
-      { name: locale === "zh" ? "更改角色名稱" : "Rename Character", href: "#rename", icon: "✏️", key: "rename" },
-      { name: locale === "zh" ? "English" : "中文", href: "#lang", icon: "🌐", key: "lang-toggle" },
-      { name: t("sidebar_logout"), href: "#logout", icon: "🚪", key: "logout" },
+      { name: t("sidebar_switchChar"), href: "/characters", icon: "🔄", iconUrl: "/images/nav-items/nav-switch-char.png", key: "switch-char" },
+      { name: locale === "zh" ? "更改角色名稱" : "Rename Character", href: "#rename", icon: "✏️", iconUrl: "/images/nav-items/nav-rename.png", key: "rename" },
+      { name: locale === "zh" ? "English" : "中文", href: "#lang", icon: "🌐", iconUrl: "/images/nav-items/nav-lang-toggle.png", key: "lang-toggle" },
+      { name: t("sidebar_logout"), href: "#logout", icon: "🚪", iconUrl: "/images/nav-items/nav-logout.png", key: "logout" },
     ]},
   ];
 
