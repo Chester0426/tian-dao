@@ -452,12 +452,12 @@ export default function AdventurePage() {
                           <span className="text-red-400 text-xs font-heading">{monster.hp}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-1.5">
+                      <div className="flex flex-col gap-1.5 w-[80px]">
                         <Button
                           size="sm"
                           onClick={() => gameState.startCombat(monster)}
                           disabled={gameState.isCombating}
-                          className="bg-cinnabar/80 hover:bg-cinnabar text-white font-heading px-6"
+                          className="w-full bg-cinnabar/80 hover:bg-cinnabar text-white font-heading"
                         >
                           {isZh ? "戰鬥" : "Fight"}
                         </Button>
@@ -465,7 +465,7 @@ export default function AdventurePage() {
                           size="sm"
                           variant="outline"
                           onClick={() => setShowDrops(showDrops === monster.id ? null : monster.id)}
-                          className="font-heading px-6 text-blue-400 border-blue-400/30 hover:bg-blue-400/10"
+                          className="w-full font-heading text-blue-400 border-blue-400/30 hover:bg-blue-400/10"
                         >
                           {isZh ? "掉落物" : "Drops"}
                         </Button>

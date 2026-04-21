@@ -70,15 +70,25 @@ export function GameLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab ?? "dashboard");
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set([initialTab ?? "dashboard"]));
+  const [loading, setLoading] = useState(true);
 
-  // Preload all background images
+  // Preload all background images + mount all tabs
   useEffect(() => {
     const urls = Object.values(TAB_BG).flatMap(bg => [bg.pc, bg.mobile]);
+    let loaded = 0;
+    const total = urls.length;
+    const checkDone = () => {
+      loaded++;
+      if (loaded >= total) setLoading(false);
+    };
     urls.forEach(src => {
-      const img = new Image();
+      const img = new window.Image();
+      img.onload = checkDone;
+      img.onerror = checkDone;
       img.src = src;
     });
+    // Fallback: max 3s loading
+    setTimeout(() => setLoading(false), 3000);
   }, []);
 
   // Resolve tab from URL on client only — avoids hydration mismatch
@@ -86,22 +96,10 @@ export function GameLayout({
     const urlTab = window.location.pathname.replace("/", "").split("/")[0] || "dashboard";
     const resolved = Object.keys(PAGES).includes(urlTab) ? urlTab : (initialTab ?? "dashboard");
     setActiveTab(resolved);
-    setMountedTabs(prev => {
-      if (prev.has(resolved)) return prev;
-      const next = new Set(prev);
-      next.add(resolved);
-      return next;
-    });
   }, [initialTab]);
 
   const switchTab = useCallback((tab: string) => {
     setActiveTab(tab);
-    setMountedTabs(prev => {
-      if (prev.has(tab)) return prev;
-      const next = new Set(prev);
-      next.add(tab);
-      return next;
-    });
     window.history.replaceState(null, "", `/${tab}`);
   }, []);
 
@@ -150,11 +148,20 @@ export function GameLayout({
           </button>
           <span className="ml-3 font-heading text-sm font-bold">天道</span>
         </div>
+        {/* Loading screen */}
+        {loading && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
+            <img src="/images/logo-dao.png" alt="天道" className="h-24 w-24 rounded-xl mb-6" style={{ animation: "pulse 2s ease-in-out infinite" }} />
+            <p className="font-heading text-lg text-spirit-gold tracking-widest">天 道</p>
+            <div className="mt-4 w-32 h-1 rounded-full bg-muted/30 overflow-hidden">
+              <div className="h-full bg-spirit-gold/60 rounded-full" style={{ animation: "loading-bar 1.5s ease-in-out infinite" }} />
+            </div>
+          </div>
+        )}
         {TAB_KEYS.map(tab => {
-          if (!mountedTabs.has(tab)) return null;
           const Page = PAGES[tab];
           return (
-            <div key={tab} style={{ display: tab === activeTab ? "block" : "none" }}>
+            <div key={tab} style={{ display: tab === activeTab && !loading ? "block" : "none" }}>
               <Page />
             </div>
           );

@@ -63,6 +63,25 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  if (type === "tao") {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, character_name, dao_points")
+      .order("dao_points", { ascending: false })
+      .limit(10);
+
+    if (!profiles) return NextResponse.json({ leaderboard: [] });
+
+    return NextResponse.json({
+      leaderboard: (profiles as { user_id: string; character_name: string | null; dao_points: number }[]).map((p, i) => ({
+        rank: i + 1,
+        name: p.character_name ?? `user-${p.user_id.slice(0, 6)}`,
+        level: p.dao_points,
+        isMe: p.user_id === user.id,
+      })),
+    });
+  }
+
   // Default: realm
   const { data: profiles } = await supabase
     .from("profiles")

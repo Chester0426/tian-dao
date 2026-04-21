@@ -115,7 +115,7 @@ export function InventoryClient({
               </p>
             </div>
             <Badge variant="outline" className="border-cinnabar/40 bg-cinnabar text-white font-heading px-3 py-1.5 text-sm">
-              {isZh ? "天道值" : "Dao"} {daoPoints.toLocaleString()}
+              {isZh ? "天道值" : "TAO Points"} {daoPoints.toLocaleString()}
             </Badge>
           </div>
           <div className="relative mt-4">
@@ -193,7 +193,7 @@ export function InventoryClient({
                   onClick={() => setSacrificeMode(true)}
                   className="font-heading border-cinnabar/30 text-cinnabar hover:bg-cinnabar-dim hover:text-cinnabar"
                 >
-                  獻祭
+                  {isZh ? "獻祭" : "Sacrifice"}
                 </Button>
               )}
               {sacrificeMode && (
@@ -203,7 +203,7 @@ export function InventoryClient({
                   onClick={exitSacrificeMode}
                   className="text-muted-foreground"
                 >
-                  取消
+                  {isZh ? "取消" : "Cancel"}
                 </Button>
               )}
             </div>
@@ -211,7 +211,7 @@ export function InventoryClient({
           <CardContent>
             {sacrificeMode && (
               <p className="mb-4 text-sm text-cinnabar/80">
-                點選要獻祭的物品，再按下方確認
+                {isZh ? "點選要獻祭的物品，再按下方確認" : "Select items to sacrifice, then confirm below"}
               </p>
             )}
 
@@ -324,7 +324,7 @@ export function InventoryClient({
                 {sacrificeMode && totalSelected > 0 && (
                   <div className="mt-6 space-y-3">
                     <Separator />
-                    <h3 className="text-sm font-medium text-muted-foreground">獻祭清單</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">{isZh ? "獻祭清單" : "Sacrifice List"}</h3>
                     {Object.entries(selections).map(([itemType, qty]) => {
                       const item = inventory.find((i) => i.item_type === itemType);
                       if (!item) return null;
@@ -351,7 +351,7 @@ export function InventoryClient({
                             >+</Button>
                             <Button variant="ghost" size="sm" className="text-[10px] h-6 px-1.5"
                               onClick={() => updateQuantity(itemType, item.quantity)}
-                            >全部</Button>
+                            >{isZh ? "全部" : "All"}</Button>
                           </div>
                         </div>
                       );
@@ -361,7 +361,7 @@ export function InventoryClient({
 
                     <div className="rounded-lg bg-cinnabar-dim/30 border border-cinnabar/15 p-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">獲得天道值</span>
+                        <span className="text-muted-foreground">{isZh ? "獲得天道值" : "TAO Points earned"}</span>
                         <span className="font-heading font-bold text-cinnabar tabular-nums">+{totalDaoGained.toLocaleString()}</span>
                       </div>
                     </div>
@@ -371,7 +371,9 @@ export function InventoryClient({
                       onClick={handleConfirmSacrifice}
                       disabled={sacrificing}
                     >
-                      {sacrificing ? "獻祭中..." : `確認獻祭（共 ${totalSelected} 個物品）`}
+                      {sacrificing
+                        ? (isZh ? "獻祭中..." : "Sacrificing...")
+                        : (isZh ? `確認獻祭（共 ${totalSelected} 個物品）` : `Confirm (${totalSelected} items)`)}
                     </Button>
                   </div>
                 )}

@@ -22,6 +22,7 @@ const TABS = [
   { key: "realm", zh: "境界", en: "Realm" },
   { key: "mining", zh: "挖礦", en: "Mining" },
   { key: "body", zh: "煉體", en: "Body" },
+  { key: "tao", zh: "天道值", en: "TAO Points" },
 ];
 
 interface Entry {
@@ -127,8 +128,10 @@ export default function LeaderboardPage() {
                     {isZh ? rd.zh : rd.en}
                   </span>
                 )}
-                <span className="text-sm tabular-nums text-muted-foreground w-16 text-right">
-                  {activeTab === "realm" && entry.level >= 9 && entry.realm === "煉體"
+                <span className="text-sm tabular-nums text-muted-foreground w-20 text-right">
+                  {activeTab === "tao"
+                    ? `🪙 ${entry.level.toLocaleString()}`
+                    : activeTab === "realm" && entry.level >= 9 && entry.realm === "煉體"
                     ? (isZh ? "巔峰" : "Peak")
                     : activeTab === "realm" && entry.level >= 13 && entry.realm === "練氣"
                     ? (isZh ? "巔峰" : "Peak")

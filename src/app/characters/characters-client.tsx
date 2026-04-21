@@ -250,7 +250,7 @@ export function CharactersClient({
                   />
                   {/* Slot number overlay — centered on red gem at top */}
                   <div className="absolute z-20 left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: "7%", width: "50px", height: "30px" }}>
-                    <span className="font-heading text-xl" style={{ lineHeight: 1, fontWeight: 900, color: "#fff", textShadow: "0 0 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6)" }}>
+                    <span className="font-heading text-xl" style={{ lineHeight: 1, fontWeight: 900, color: "#000" }}>
                       {["", "一", "二", "三"][slot]}
                     </span>
                   </div>
@@ -309,7 +309,7 @@ export function CharactersClient({
                         <p className="font-heading text-[11px]" style={{ color: "#e8d5a3", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
                           {locale === "zh"
                             ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
-                            : `${profile.realm ?? "Body Refining"} ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
+                            : `${({"煉體":"Body Refining","練氣":"Qi Condensation","築基":"Foundation","金丹":"Golden Core","元嬰":"Nascent Soul"} as Record<string,string>)[profile.realm] ?? "Body Refining"} ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
                           }
                         </p>
                         <p className="text-[10px]" style={{ color: lastActivity ? "#6ee7b7" : "rgba(255,255,255,0.4)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
@@ -404,7 +404,7 @@ export function CharactersClient({
                 <p className="font-heading font-bold text-destructive">
                   {locale === "zh"
                     ? `${(deleteTarget.profile.realm ?? "煉體")}期 ${deleteTarget.profile.realm_level >= 9 ? "巔峰" : (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage) + " 級"}`
-                    : `Body Refining Realm ${deleteTarget.profile.realm_level >= 9 ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
+                    : `${({"煉體":"Body Refining","練氣":"Qi Condensation","築基":"Foundation","金丹":"Golden Core","元嬰":"Nascent Soul"} as Record<string,string>)[deleteTarget.profile.realm] ?? "Body Refining"} ${deleteTarget.profile.realm_level >= 9 ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
                   }
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
