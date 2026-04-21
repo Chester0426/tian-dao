@@ -33,6 +33,18 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 const DEV_LOG = [
+  { date: "04/20", items: [
+    { zh: "技能切換確認系統：四大技能統一互斥機制", en: "Activity switch confirmation: unified mutual exclusion for all 4 skills" },
+    { zh: "參悟系統完全整合至 Provider 互斥架構", en: "Enlightenment fully integrated into provider mutual exclusion" },
+    { zh: "用戶偏好設定改為資料庫持久化", en: "User preferences stored in database" },
+    { zh: "排行榜新增境界、挖礦、煉體多維度排名", en: "Leaderboard: realm, mining, body multi-tab ranking" },
+    { zh: "排行榜支援所有玩家顯示（含未命名用戶）", en: "Leaderboard shows all players including unnamed" },
+    { zh: "背景音樂靜音狀態持久化", en: "BGM mute state persisted across sessions" },
+    { zh: "各頁面新增專屬背景圖與導航圖示", en: "Page-specific backgrounds and nav icons" },
+    { zh: "全部圖片資源 PNG 壓縮優化", en: "All PNG image assets optimized" },
+    { zh: "戰鬥攻擊間隔讀條動畫優化", en: "Combat attack interval bar animation optimized" },
+    { zh: "戰鬥小視窗補品改用物品圖片", en: "Mini combat panel consumable uses item image" },
+  ]},
   { date: "04/16", items: [
     { zh: "所有技能 sync API 加入時間差反作弊驗算", en: "Anti-cheat time-based validation on all skill sync APIs" },
     { zh: "戰利品系統改為伺服器端驗證", en: "Loot system switched to server-side verification" },

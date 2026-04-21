@@ -10,7 +10,10 @@ export function BgmPlayer() {
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(0.1);
   const [showSlider, setShowSlider] = useState(false);
-  const userToggled = useRef(false); // user manually clicked the audio button
+  const userToggled = useRef(false);
+  const isMuted = useRef(() => {
+    try { return localStorage.getItem("bgmMuted") === "1"; } catch { return false; }
+  });
 
   // Position by page type
   // - Landing (/): inside navbar area, offset right past the nav items
@@ -32,9 +35,9 @@ export function BgmPlayer() {
       html5: true,
     });
 
-    // Auto-play on first user click (once), unless user already toggled manually
+    // Auto-play on first user click (once), unless user muted or toggled manually
     const autoPlay = () => {
-      if (userToggled.current) return;
+      if (userToggled.current || isMuted.current()) return;
       howlRef.current?.play();
       setPlaying(true);
       document.removeEventListener("click", autoPlay);
@@ -63,9 +66,11 @@ export function BgmPlayer() {
     if (playing) {
       howlRef.current.pause();
       setPlaying(false);
+      try { localStorage.setItem("bgmMuted", "1"); } catch {}
     } else {
       howlRef.current.play();
       setPlaying(true);
+      try { localStorage.setItem("bgmMuted", "0"); } catch {}
     }
   }, [playing]);
 
