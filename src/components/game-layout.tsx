@@ -78,9 +78,16 @@ export function GameLayout({
     const urls = Object.values(TAB_BG).flatMap(bg => [bg.pc, bg.mobile]);
     let loaded = 0;
     const total = urls.length;
+    const startTime = Date.now();
+    const MIN_SPLASH_MS = 3000;
+
     const checkDone = () => {
       loaded++;
-      if (loaded >= total) setReady(true);
+      if (loaded >= total) {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+        setTimeout(() => setReady(true), remaining);
+      }
     };
     urls.forEach(src => {
       const img = new window.Image();
@@ -88,9 +95,16 @@ export function GameLayout({
       img.onerror = checkDone;
       img.src = src;
     });
-    // Fallback: max 3s
-    setTimeout(() => setReady(true), 3000);
+    // Fallback: max 5s
+    setTimeout(() => setReady(true), 5000);
   }, []);
+
+  // Auto-enter when ready (no click needed)
+  useEffect(() => {
+    if (!ready) return;
+    const timer = setTimeout(() => setEntered(true), 600);
+    return () => clearTimeout(timer);
+  }, [ready]);
 
   // Resolve tab from URL on client only — avoids hydration mismatch
   useEffect(() => {
@@ -149,23 +163,73 @@ export function GameLayout({
           </button>
           <span className="ml-3 font-heading text-sm font-bold">天道</span>
         </div>
-        {/* Loading screen */}
+        {/* Loading screen — xianxia cultivation entrance */}
         {!entered && (
-          <div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background cursor-pointer"
-            onClick={() => { if (ready) setEntered(true); }}
-          >
-            <img src="/images/logo-dao.png" alt="天道" className="h-24 w-24 rounded-xl mb-6" style={{ animation: "pulse 2s ease-in-out infinite" }} />
-            <p className="font-heading text-lg text-spirit-gold tracking-widest">天 道</p>
-            {!ready ? (
-              <div className="mt-4 w-32 h-1 rounded-full bg-muted/30 overflow-hidden">
-                <div className="h-full bg-spirit-gold/60 rounded-full" style={{ animation: "loading-bar 1.5s ease-in-out infinite" }} />
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
+            {/* Outer qi circle — rotating rune marks */}
+            <svg className="absolute" width="280" height="280" viewBox="0 0 280 280" style={{ animation: "dao-ring-rotate 20s linear infinite" }}>
+              {Array.from({ length: 8 }).map((_, i) => {
+                const a = (i * 45 * Math.PI) / 180;
+                return <line key={i} x1={140 + 128 * Math.cos(a)} y1={140 + 128 * Math.sin(a)} x2={140 + 135 * Math.cos(a)} y2={140 + 135 * Math.sin(a)} stroke="#d4a643" strokeWidth="1.5" opacity="0.25" />;
+              })}
+              <circle cx="140" cy="140" r="132" fill="none" stroke="#d4a643" strokeWidth="0.5" opacity="0.15" strokeDasharray="4 10" />
+            </svg>
+            {/* Counter-rotating inner ring */}
+            <svg className="absolute" width="280" height="280" viewBox="0 0 280 280" style={{ animation: "dao-ring-rotate-reverse 15s linear infinite" }}>
+              <circle cx="140" cy="140" r="122" fill="none" stroke="#d4a643" strokeWidth="0.3" opacity="0.12" strokeDasharray="2 14" />
+              {Array.from({ length: 12 }).map((_, i) => {
+                const a = (i * 30 * Math.PI) / 180;
+                return <circle key={i} cx={140 + 122 * Math.cos(a)} cy={140 + 122 * Math.sin(a)} r="1" fill="#d4a643" opacity="0.2" />;
+              })}
+            </svg>
+            {/* Pulsing qi aura */}
+            <div className="absolute w-48 h-48 rounded-full pointer-events-none" style={{
+              background: "radial-gradient(circle, oklch(0.78 0.155 80 / 12%) 0%, oklch(0.78 0.155 80 / 4%) 50%, transparent 70%)",
+              animation: "qi-aura-pulse 2.5s ease-in-out infinite",
+            }} />
+            {/* Logo */}
+            <img src="/images/logo-dao.png" alt="天道" className="relative z-10 h-20 w-20 rounded-xl mb-5" style={{
+              filter: "drop-shadow(0 0 12px rgba(212,166,67,0.4))",
+              animation: "pulse 2.5s ease-in-out infinite",
+            }} />
+            {/* Title */}
+            <p className="relative z-10 font-heading text-xl text-spirit-gold tracking-[0.3em] mb-8 text-glow-gold">天 道</p>
+            {/* Circular progress ring */}
+            <div className="relative z-10 w-16 h-16">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(212,166,67,0.12)" strokeWidth="2.5" />
+                <circle
+                  cx="32" cy="32" r="28"
+                  fill="none"
+                  stroke="url(#splash-grad)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 28}`}
+                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - (ready ? 1 : 0.6))}`}
+                  style={{
+                    filter: "drop-shadow(0 0 4px rgba(212,166,67,0.6))",
+                    transition: "stroke-dashoffset 0.8s ease-out",
+                  }}
+                />
+                <defs>
+                  <linearGradient id="splash-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#d4a643" />
+                    <stop offset="100%" stopColor="#f0d080" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              {/* Center dot */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-spirit-gold" style={{
+                  boxShadow: "0 0 8px rgba(212,166,67,0.8), 0 0 16px rgba(212,166,67,0.4)",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }} />
               </div>
-            ) : (
-              <p className="mt-6 text-sm text-muted-foreground animate-pulse">
-                點擊任意處進入
-              </p>
-            )}
+            </div>
+            {/* Status text */}
+            <p className="relative z-10 mt-5 text-xs text-spirit-gold/50 font-heading tracking-widest">
+              {ready ? "靈氣匯聚" : "引氣入體"}
+            </p>
           </div>
         )}
         {TAB_KEYS.map(tab => {
