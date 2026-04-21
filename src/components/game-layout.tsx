@@ -70,7 +70,8 @@ export function GameLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab ?? "dashboard");
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [entered, setEntered] = useState(false);
 
   // Preload all background images + mount all tabs
   useEffect(() => {
@@ -79,7 +80,7 @@ export function GameLayout({
     const total = urls.length;
     const checkDone = () => {
       loaded++;
-      if (loaded >= total) setLoading(false);
+      if (loaded >= total) setReady(true);
     };
     urls.forEach(src => {
       const img = new window.Image();
@@ -87,8 +88,8 @@ export function GameLayout({
       img.onerror = checkDone;
       img.src = src;
     });
-    // Fallback: max 3s loading
-    setTimeout(() => setLoading(false), 3000);
+    // Fallback: max 3s
+    setTimeout(() => setReady(true), 3000);
   }, []);
 
   // Resolve tab from URL on client only — avoids hydration mismatch
@@ -149,19 +150,28 @@ export function GameLayout({
           <span className="ml-3 font-heading text-sm font-bold">天道</span>
         </div>
         {/* Loading screen */}
-        {loading && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
+        {!entered && (
+          <div
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background cursor-pointer"
+            onClick={() => { if (ready) setEntered(true); }}
+          >
             <img src="/images/logo-dao.png" alt="天道" className="h-24 w-24 rounded-xl mb-6" style={{ animation: "pulse 2s ease-in-out infinite" }} />
             <p className="font-heading text-lg text-spirit-gold tracking-widest">天 道</p>
-            <div className="mt-4 w-32 h-1 rounded-full bg-muted/30 overflow-hidden">
-              <div className="h-full bg-spirit-gold/60 rounded-full" style={{ animation: "loading-bar 1.5s ease-in-out infinite" }} />
-            </div>
+            {!ready ? (
+              <div className="mt-4 w-32 h-1 rounded-full bg-muted/30 overflow-hidden">
+                <div className="h-full bg-spirit-gold/60 rounded-full" style={{ animation: "loading-bar 1.5s ease-in-out infinite" }} />
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-muted-foreground animate-pulse">
+                點擊任意處進入
+              </p>
+            )}
           </div>
         )}
         {TAB_KEYS.map(tab => {
           const Page = PAGES[tab];
           return (
-            <div key={tab} style={{ display: tab === activeTab && !loading ? "block" : "none" }}>
+            <div key={tab} style={{ display: tab === activeTab && entered ? "block" : "none" }}>
               <Page />
             </div>
           );
