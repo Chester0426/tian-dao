@@ -268,10 +268,10 @@ export function EnlightenmentClient({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-spirit-gold/30 text-spirit-gold font-heading px-3 py-1 text-sm">
+            <Badge variant="outline" className="border-spirit-gold/40 bg-spirit-gold text-white font-heading px-3 py-1 text-sm">
               {isZh ? "參悟等級" : "Enlightenment Lv"} {enlightenmentLevel}
             </Badge>
-            <Badge variant="outline" className="border-border/40 text-muted-foreground tabular-nums px-3 py-1 text-sm">
+            <Badge variant="outline" className="border-border/50 bg-card text-foreground tabular-nums px-3 py-1 text-sm">
               XP {(enlightenmentXp - melvorXpForLevel(enlightenmentLevel)).toLocaleString()} / {(melvorXpForLevel(enlightenmentLevel + 1) - melvorXpForLevel(enlightenmentLevel)).toLocaleString()}
             </Badge>
           </div>

@@ -140,7 +140,7 @@ export function CharactersClient({
           {/* Wallet binding + Logout on one line */}
           <div className="flex items-center justify-center gap-3 mt-4">
             {walletAddress ? (
-              <Badge variant="outline" className="border-jade/30 text-jade font-mono text-xs px-3 py-1.5">
+              <Badge variant="outline" className="border-jade/40 bg-jade text-white font-mono text-xs px-3 py-1.5">
                 🔗 {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
               </Badge>
             ) : connected && publicKey && signMessage ? (

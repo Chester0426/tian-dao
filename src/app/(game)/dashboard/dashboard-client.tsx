@@ -140,7 +140,7 @@ export function DashboardClient({
                 {isZh ? "修煉突破，踏上更高境界" : "Cultivate and break through to higher realms"}
               </p>
             </div>
-            <Badge variant="outline" className="font-heading text-jade border-jade/30 bg-jade/5 px-3 py-1.5 text-sm">
+            <Badge variant="outline" className="font-heading text-white border-jade/40 bg-jade px-3 py-1.5 text-sm">
               {isZh ? (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameZh ?? profile.realm) : (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameEn ?? profile.realm)} · {levelLabel}
             </Badge>
           </div>
