@@ -318,20 +318,52 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                   />
                 </svg>
 
-                {/* Floating qi particles */}
+                {/* Floating qi particles — spiral inward + orbit glow + sparkles */}
                 {meditating && (
                   <div className="absolute inset-0 pointer-events-none">
-                    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    {/* Layer 1: 6 particles spiraling inward from outer edge */}
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
                       <div
-                        key={i}
+                        key={`spiral-${i}`}
                         className="absolute left-1/2 top-1/2 rounded-full"
                         style={{
-                          width: "6px",
-                          height: "6px",
-                          background: i % 2 === 0 ? "#6fe0c8" : "#5aa8ff",
-                          boxShadow: `0 0 8px ${i % 2 === 0 ? "rgba(111,224,200,0.7)" : "rgba(90,168,255,0.7)"}, 0 0 16px ${i % 2 === 0 ? "rgba(111,224,200,0.3)" : "rgba(90,168,255,0.3)"}`,
-                          transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-75px)`,
-                          animation: `qi-particle-rise 2.8s ease-in-out ${i * 0.35}s infinite`,
+                          width: "7px",
+                          height: "7px",
+                          background: i % 3 === 0 ? "#6fe0c8" : i % 3 === 1 ? "#5aa8ff" : "#80e8d0",
+                          boxShadow: `0 0 10px ${i % 3 === 0 ? "rgba(111,224,200,0.8)" : "rgba(90,168,255,0.8)"}, 0 0 20px ${i % 3 === 0 ? "rgba(111,224,200,0.4)" : "rgba(90,168,255,0.4)"}, 0 0 30px ${i % 3 === 0 ? "rgba(111,224,200,0.15)" : "rgba(90,168,255,0.15)"}`,
+                          ["--start-angle" as string]: `${i * 60}deg`,
+                          animation: `qi-spiral-in 3s ease-in-out ${i * 0.5}s infinite`,
+                        }}
+                      />
+                    ))}
+                    {/* Layer 2: 4 particles orbiting at mid-radius with pulsing glow */}
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={`orbit-${i}`}
+                        className="absolute left-1/2 top-1/2 rounded-full"
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          background: "#b0f0e0",
+                          boxShadow: "0 0 6px rgba(160,240,220,0.6), 0 0 14px rgba(111,224,200,0.3)",
+                          ["--start-angle" as string]: `${i * 90 + 45}deg`,
+                          animation: `qi-orbit-glow 2.2s linear ${i * 0.55}s infinite`,
+                        }}
+                      />
+                    ))}
+                    {/* Layer 3: 3 sparkle flashes scattered around the figure */}
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={`sparkle-${i}`}
+                        className="absolute rounded-full"
+                        style={{
+                          width: "4px",
+                          height: "4px",
+                          background: "#fff",
+                          boxShadow: "0 0 8px rgba(255,255,255,0.9), 0 0 16px rgba(111,224,200,0.5)",
+                          left: ["35%", "60%", "45%"][i],
+                          top: ["40%", "55%", "30%"][i],
+                          animation: `qi-sparkle 2s ease-in-out ${i * 0.7 + 0.3}s infinite`,
                         }}
                       />
                     ))}
