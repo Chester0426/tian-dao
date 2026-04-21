@@ -272,7 +272,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
 
                 {/* Seated figure — smaller when meditating to leave room for aura */}
                 <img
-                  src="/images/bt-figure.png"
+                  src="/images/adventure/me.png"
                   alt=""
                   className={`absolute object-contain opacity-85 transition-all duration-500 ${meditating ? "inset-[12%] w-[76%] h-[76%]" : "inset-0 w-full h-full"}`}
                   style={{
