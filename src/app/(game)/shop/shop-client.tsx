@@ -58,7 +58,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
 
         <div className="mb-6 flex items-center gap-3">
           <span className="text-sm text-muted-foreground">持有天道碎片:</span>
-          <Badge variant="outline" className="border-jade/30 text-jade font-heading text-base px-3 py-1">
+          <Badge variant="outline" className="border-jade/40 bg-jade text-white font-heading text-base px-3 py-1">
             🪙 {spiritStones.toLocaleString()}
           </Badge>
         </div>

@@ -216,41 +216,127 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
             {/* Left: seated figure + orbit + button — occupies left half */}
             <div className="flex flex-col items-center gap-3">
               <div className="relative w-full aspect-square max-w-[260px]">
+                {/* Qi aura — multi-layer pulsing glow behind the figure */}
+                {meditating && (
+                  <>
+                    <div
+                      className="absolute left-1/2 top-1/2 w-[90%] h-[90%] rounded-full pointer-events-none"
+                      style={{
+                        background: "radial-gradient(circle, oklch(0.65 0.15 160 / 25%) 0%, oklch(0.65 0.15 160 / 8%) 50%, transparent 70%)",
+                        animation: "qi-aura-pulse 3s ease-in-out infinite",
+                      }}
+                    />
+                    <div
+                      className="absolute left-1/2 top-1/2 w-[70%] h-[70%] rounded-full pointer-events-none"
+                      style={{
+                        background: "radial-gradient(circle, oklch(0.65 0.15 160 / 18%) 0%, oklch(0.65 0.15 160 / 5%) 60%, transparent 80%)",
+                        animation: "qi-aura-pulse 2.4s ease-in-out 0.5s infinite",
+                      }}
+                    />
+                    <div
+                      className="absolute left-1/2 top-1/2 w-[50%] h-[50%] rounded-full pointer-events-none"
+                      style={{
+                        background: "radial-gradient(circle, oklch(0.65 0.15 160 / 12%) 0%, transparent 70%)",
+                        animation: "qi-aura-pulse 2s ease-in-out 1s infinite",
+                      }}
+                    />
+                  </>
+                )}
+
+                {/* Outer rotating orbit — meridian lines */}
+                {meditating && (
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 260" style={{ animation: "qi-orbit 25s linear infinite" }}>
+                    {Array.from({ length: 12 }).map((_, i) => {
+                      const a = (i * 30 * Math.PI) / 180;
+                      return (
+                        <g key={i}>
+                          <line x1={130 + 110 * Math.cos(a)} y1={130 + 110 * Math.sin(a)} x2={130 + 120 * Math.cos(a)} y2={130 + 120 * Math.sin(a)} stroke="#6fe0c8" strokeWidth="1.5" opacity="0.3" />
+                          <line x1={130 + 114 * Math.cos(a - 0.06)} y1={130 + 114 * Math.sin(a - 0.06)} x2={130 + 114 * Math.cos(a + 0.06)} y2={130 + 114 * Math.sin(a + 0.06)} stroke="#6fe0c8" strokeWidth="0.5" opacity="0.2" />
+                        </g>
+                      );
+                    })}
+                    <circle cx="130" cy="130" r="118" fill="none" stroke="#6fe0c8" strokeWidth="0.4" opacity="0.15" strokeDasharray="3 10" />
+                  </svg>
+                )}
+
+                {/* Counter-rotating inner orbit — acupoint dots */}
+                {meditating && (
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 260" style={{ animation: "qi-orbit-reverse 18s linear infinite" }}>
+                    <circle cx="130" cy="130" r="108" fill="none" stroke="#6fe0c8" strokeWidth="0.3" opacity="0.12" strokeDasharray="2 14" />
+                    {Array.from({ length: 16 }).map((_, i) => {
+                      const a = (i * 22.5 * Math.PI) / 180;
+                      return <circle key={i} cx={130 + 108 * Math.cos(a)} cy={130 + 108 * Math.sin(a)} r="1" fill="#6fe0c8" opacity="0.25" />;
+                    })}
+                  </svg>
+                )}
+
+                {/* Seated figure — smaller when meditating to leave room for aura */}
                 <img
                   src="/images/bt-figure.png"
                   alt=""
-                  className="absolute inset-0 w-full h-full object-contain opacity-85"
+                  className={`absolute object-contain opacity-85 transition-all duration-500 ${meditating ? "inset-[12%] w-[76%] h-[76%]" : "inset-0 w-full h-full"}`}
                   style={{
+                    left: meditating ? "12%" : "0",
+                    top: meditating ? "12%" : "0",
                     filter: meditating ? "drop-shadow(0 0 14px rgba(80,200,180,0.55))" : "none",
-                    transition: "filter 0.4s ease",
                   }}
                 />
+
+                {/* Main progress ring */}
                 <svg
                   className="absolute inset-0 w-full h-full -rotate-90"
-                  viewBox="0 0 100 100"
+                  viewBox="0 0 260 260"
                 >
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(120,180,170,0.18)" strokeWidth="2" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="46"
-                    fill="none"
-                    stroke="url(#qi-grad)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 46}`}
-                    strokeDashoffset={`${2 * Math.PI * 46 * (1 - actionProgress)}`}
-                    style={{
-                      filter: meditating ? "drop-shadow(0 0 4px rgba(100,220,200,0.8))" : "none",
-                    }}
-                  />
                   <defs>
                     <linearGradient id="qi-grad" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#6fe0c8" />
+                      <stop offset="50%" stopColor="#80e8d0" />
                       <stop offset="100%" stopColor="#5aa8ff" />
                     </linearGradient>
+                    <radialGradient id="qi-center-glow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#6fe0c8" stopOpacity="0.06" />
+                      <stop offset="100%" stopColor="#6fe0c8" stopOpacity="0" />
+                    </radialGradient>
                   </defs>
+                  {/* Track */}
+                  <circle cx="130" cy="130" r="100" fill="none" stroke="rgba(120,180,170,0.12)" strokeWidth="2.5" />
+                  {/* Progress arc */}
+                  <circle
+                    cx="130"
+                    cy="130"
+                    r="100"
+                    fill="none"
+                    stroke="url(#qi-grad)"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 100}`}
+                    strokeDashoffset={`${2 * Math.PI * 100 * (1 - actionProgress)}`}
+                    style={{
+                      filter: meditating ? "drop-shadow(0 0 8px rgba(100,220,200,0.7))" : "none",
+                      transition: "stroke-dashoffset 0.1s linear",
+                    }}
+                  />
                 </svg>
+
+                {/* Floating qi particles */}
+                {meditating && (
+                  <>
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      <div
+                        key={i}
+                        className="absolute left-1/2 top-1/2 rounded-full"
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          background: i % 2 === 0 ? "#6fe0c8" : "#5aa8ff",
+                          boxShadow: `0 0 8px ${i % 2 === 0 ? "rgba(111,224,200,0.7)" : "rgba(90,168,255,0.7)"}, 0 0 16px ${i % 2 === 0 ? "rgba(111,224,200,0.3)" : "rgba(90,168,255,0.3)"}`,
+                          transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-75px)`,
+                          animation: `qi-particle-rise 2.8s ease-in-out ${i * 0.35}s infinite`,
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
               </div>
               <Button
                 size="sm"
