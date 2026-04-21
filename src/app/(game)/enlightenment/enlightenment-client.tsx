@@ -42,10 +42,6 @@ const CATEGORY_LABELS: Record<TechniqueCategory, { zh: string; en: string; color
   refinement: { zh: "修煉類", en: "Refinement", color: "text-spirit-gold", border: "border-spirit-gold/30", bg: "bg-spirit-gold/5", accent: "bg-spirit-gold" },
 };
 
-/* Large ring radius for the workshop */
-const RING_R = 72;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
-
 export function EnlightenmentClient({
   enlightenmentXp,
   enlightenmentLevel,
@@ -302,40 +298,128 @@ export function EnlightenmentClient({
                   <button
                     type="button"
                     onClick={() => { if (!isEnlightening) setSelectionOpen(!selectionOpen); }}
-                    className={`relative w-full aspect-square max-w-[150px] rounded-full transition-all duration-300 ${!isEnlightening && !currentTarget ? "hover:scale-[1.02]" : ""}`}
+                    className={`relative w-full aspect-square max-w-[180px] rounded-full transition-all duration-300 ${!isEnlightening && !currentTarget ? "hover:scale-[1.02]" : ""}`}
                   >
+                    {/* Outer aura — visible when enlightening */}
                     {isEnlightening && (
-                      <div className="absolute inset-[-12px] rounded-full opacity-40" style={{ background: "radial-gradient(circle, var(--spirit-gold-dim) 0%, transparent 70%)", animation: "qi-pulse 3s ease-in-out infinite" }} />
+                      <div className="absolute inset-[-20px] rounded-full" style={{ background: "radial-gradient(circle, oklch(0.78 0.155 80 / 15%) 0%, oklch(0.78 0.155 80 / 5%) 50%, transparent 75%)", animation: "qi-pulse 3s ease-in-out infinite" }} />
                     )}
-                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 160 160">
-                      <circle cx="80" cy="80" r="78" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-spirit-gold/10" />
-                      <circle cx="80" cy="80" r={RING_R} fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/15" />
+
+                    {/* Rotating rune ring — outer decorative ring with 八卦 tick marks */}
+                    {isEnlightening && (
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200" style={{ animation: "dao-ring-rotate 20s linear infinite" }}>
+                        {Array.from({ length: 8 }).map((_, i) => {
+                          const a = (i * 45 * Math.PI) / 180;
+                          return (
+                            <g key={i}>
+                              <line x1={100 + 88 * Math.cos(a)} y1={100 + 88 * Math.sin(a)} x2={100 + 95 * Math.cos(a)} y2={100 + 95 * Math.sin(a)} stroke="#d4a643" strokeWidth="1.5" opacity="0.4" />
+                              <line x1={100 + 90 * Math.cos(a - 0.08)} y1={100 + 90 * Math.sin(a - 0.08)} x2={100 + 90 * Math.cos(a + 0.08)} y2={100 + 90 * Math.sin(a + 0.08)} stroke="#d4a643" strokeWidth="0.5" opacity="0.25" />
+                            </g>
+                          );
+                        })}
+                        <circle cx="100" cy="100" r="92" fill="none" stroke="#d4a643" strokeWidth="0.5" opacity="0.2" strokeDasharray="4 8" />
+                      </svg>
+                    )}
+
+                    {/* Counter-rotating inner rune ring */}
+                    {isEnlightening && (
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200" style={{ animation: "dao-ring-rotate-reverse 15s linear infinite" }}>
+                        <circle cx="100" cy="100" r="84" fill="none" stroke="#d4a643" strokeWidth="0.3" opacity="0.15" strokeDasharray="2 12" />
+                        {Array.from({ length: 24 }).map((_, i) => {
+                          const a = (i * 15 * Math.PI) / 180;
+                          return <circle key={i} cx={100 + 84 * Math.cos(a)} cy={100 + 84 * Math.sin(a)} r="0.8" fill="#d4a643" opacity="0.2" />;
+                        })}
+                      </svg>
+                    )}
+
+                    {/* Main progress SVG */}
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 200 200">
+                      <defs>
+                        <linearGradient id="en-grad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#d4a643" />
+                          <stop offset="50%" stopColor="#f0d080" />
+                          <stop offset="100%" stopColor="#d4a643" />
+                        </linearGradient>
+                        <radialGradient id="en-center-glow" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#d4a643" stopOpacity="0.08" />
+                          <stop offset="100%" stopColor="#d4a643" stopOpacity="0" />
+                        </radialGradient>
+                      </defs>
+                      {/* Center glow */}
+                      <circle cx="100" cy="100" r="60" fill="url(#en-center-glow)" />
+                      {/* Track circle */}
+                      <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" strokeWidth="2" className="text-spirit-gold/10" />
+                      {/* Progress arc */}
                       {isEnlightening && (
-                        <circle cx="80" cy="80" r={RING_R} fill="none" stroke="url(#en-grad)" strokeWidth="4" strokeDasharray={`${actionProgress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`} strokeLinecap="round" style={{ filter: "drop-shadow(0 0 6px rgba(212,166,67,0.6))" }} />
+                        <circle
+                          cx="100" cy="100" r="78"
+                          fill="none"
+                          stroke="url(#en-grad)"
+                          strokeWidth="3.5"
+                          strokeDasharray={`${actionProgress * 2 * Math.PI * 78} ${2 * Math.PI * 78}`}
+                          strokeLinecap="round"
+                          style={{
+                            animation: "dao-glow 2s ease-in-out infinite",
+                            transition: "stroke-dasharray 0.1s linear",
+                          }}
+                        />
                       )}
-                      {Array.from({ length: 12 }).map((_, i) => { const a = (i * 30 * Math.PI) / 180; return <line key={i} x1={80+75*Math.cos(a)} y1={80+75*Math.sin(a)} x2={80+78*Math.cos(a)} y2={80+78*Math.sin(a)} stroke="currentColor" strokeWidth="1" className="text-spirit-gold/15" />; })}
-                      <defs><linearGradient id="en-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#d4a643" /><stop offset="100%" stopColor="#e8c56a" /></linearGradient></defs>
+                      {/* Static tick marks when idle */}
+                      {!isEnlightening && Array.from({ length: 12 }).map((_, i) => {
+                        const a = (i * 30 * Math.PI) / 180;
+                        return <line key={i} x1={100 + 82 * Math.cos(a)} y1={100 + 82 * Math.sin(a)} x2={100 + 86 * Math.cos(a)} y2={100 + 86 * Math.sin(a)} stroke="currentColor" strokeWidth="1" className="text-spirit-gold/15" />;
+                      })}
                     </svg>
+
+                    {/* Floating qi particles */}
+                    {isEnlightening && (
+                      <>
+                        {[0, 1, 2, 3, 4, 5].map((i) => (
+                          <div
+                            key={i}
+                            className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full bg-spirit-gold"
+                            style={{
+                              transform: `translate(-50%, -50%) rotate(${i * 60}deg) translateY(-55px)`,
+                              animation: `dao-particle-float 2.5s ease-in-out ${i * 0.4}s infinite`,
+                            }}
+                          />
+                        ))}
+                      </>
+                    )}
+
+                    {/* Center content */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       {currentTarget ? (
                         <>
                           {currentTarget.kind === "book" ? (() => {
                             const m = ITEMS[currentTarget.item_type];
                             return m?.image ? (
-                              <img src={m.image} alt="" className="w-12 h-12 object-contain drop-shadow-lg" />
+                              <img src={m.image} alt="" className={`w-14 h-14 object-contain ${isEnlightening ? "drop-shadow-[0_0_10px_rgba(212,166,67,0.5)]" : "drop-shadow-lg"}`} />
                             ) : (
-                              <span className="text-5xl drop-shadow-lg">{m?.icon ?? "📖"}</span>
+                              <span className={`text-5xl ${isEnlightening ? "drop-shadow-[0_0_10px_rgba(212,166,67,0.5)]" : "drop-shadow-lg"}`}>{m?.icon ?? "📖"}</span>
                             );
                           })() : (() => {
                             const m = ITEMS[(currentTarget as { technique_slug: string }).technique_slug];
                             return m?.image ? (
-                              <img src={m.image} alt="" className="w-12 h-12 object-contain drop-shadow-lg" />
+                              <img src={m.image} alt="" className={`w-14 h-14 object-contain ${isEnlightening ? "drop-shadow-[0_0_10px_rgba(212,166,67,0.5)]" : "drop-shadow-lg"}`} />
                             ) : (
-                              <span className="text-5xl drop-shadow-lg">📜</span>
+                              <span className={`text-5xl ${isEnlightening ? "drop-shadow-[0_0_10px_rgba(212,166,67,0.5)]" : "drop-shadow-lg"}`}>📜</span>
                             );
                           })()}
                           <span className="text-xs font-heading text-spirit-gold mt-2 truncate max-w-[70%] text-glow-gold">{targetLabel}</span>
-                          {isEnlightening && <span className="text-[10px] text-spirit-gold/60 mt-0.5 tabular-nums">{Math.round(actionProgress * 100)}%</span>}
+                          {isEnlightening && (
+                            <div className="mt-2 w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(212,166,67,0.25)" }}>
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${actionProgress * 100}%`,
+                                  background: "linear-gradient(90deg, #d4a643, #f0d080)",
+                                  boxShadow: "0 0 8px rgba(212,166,67,0.6)",
+                                  transition: "width 0.1s linear",
+                                }}
+                              />
+                            </div>
+                          )}
                         </>
                       ) : (
                         <>

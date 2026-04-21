@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { InventoryItem } from "@/lib/types";
 import { getItem } from "@/lib/items";
@@ -100,47 +101,27 @@ export function InventoryClient({
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* === Header Bar === */}
-        <div className="mb-6 px-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-full"
-                style={{
-                  background: "radial-gradient(circle, rgba(62,207,165,0.2) 0%, rgba(26,74,58,0.3) 100%)",
-                  boxShadow: "0 0 10px rgba(62,207,165,0.2), inset 0 0 6px rgba(0,0,0,0.3)",
-                  border: "1px solid rgba(62,207,165,0.3)",
-                }}
-              >
-                <img src="/images/nav-items/nav-inventory.png" alt="Inventory" className="h-9 w-9 object-contain" />
-              </div>
-              <div>
-                <h1
-                  className="font-heading text-xl font-bold sm:text-2xl"
-                  style={{
-                    background: "linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))",
-                  }}
-                >
+        <header className="mb-6 -mx-6 md:-mx-12">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <img src="/images/nav-items/nav-inventory.png" alt="" className="h-12 w-12 object-contain" />
+                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
                   {isZh ? "儲物袋" : "Inventory"}
                 </h1>
-                <p className="text-xs text-white/50">
-                  {isZh ? "管理你的物資與資源" : "Manage your supplies and resources"}
-                </p>
               </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isZh ? "管理你的物資與資源" : "Manage your supplies and resources"}
+              </p>
             </div>
-            <div
-              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-heading"
-              style={{
-                background: "linear-gradient(135deg, rgba(200,60,60,0.15), rgba(120,30,30,0.25))",
-                border: "1px solid rgba(200,60,60,0.3)",
-                boxShadow: "0 0 6px rgba(200,60,60,0.1)",
-                color: "#f87171",
-              }}
-            >
-              天道值 {daoPoints.toLocaleString()}
-            </div>
-        </div>
+            <Badge variant="outline" className="border-cinnabar/40 bg-cinnabar text-white font-heading px-3 py-1.5 text-sm">
+              {isZh ? "天道值" : "Dao"} {daoPoints.toLocaleString()}
+            </Badge>
+          </div>
+          <div className="relative mt-4">
+            <Separator />
+          </div>
+        </header>
 
         {/* Slot usage bar */}
         <div className="mb-6 -mx-6 md:-mx-12">
