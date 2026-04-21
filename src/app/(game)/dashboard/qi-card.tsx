@@ -320,7 +320,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
 
                 {/* Floating qi particles */}
                 {meditating && (
-                  <>
+                  <div className="absolute inset-0 pointer-events-none">
                     {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
                       <div
                         key={i}
@@ -335,7 +335,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                         }}
                       />
                     ))}
-                  </>
+                  </div>
                 )}
               </div>
               <Button
