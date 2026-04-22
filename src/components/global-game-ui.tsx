@@ -16,7 +16,7 @@ import { ITEMS } from "@/lib/items";
 
 export function GlobalGameUI() {
   const gameState = useGameState();
-  const { notifications, pendingOfflineRewards, dismissOfflineRewards, hasEntered } = gameState;
+  const { notifications, pendingOfflineRewards, dismissOfflineRewards, hasEntered, offlineLoading } = gameState;
   const pathname = usePathname();
   const { locale } = useI18n();
   const isZh = locale === "zh";
@@ -42,6 +42,16 @@ export function GlobalGameUI() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* === Offline loading indicator === */}
+      {offlineLoading && hasEntered && !pendingOfflineRewards && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl bg-card/95 border border-spirit-gold/30 px-6 py-4 shadow-xl">
+            <div className="h-5 w-5 rounded-full border-2 border-spirit-gold/40 border-t-spirit-gold animate-spin" />
+            <span className="text-spirit-gold font-heading text-base">{isZh ? "計算離線獎勵中..." : "Calculating rewards..."}</span>
+          </div>
         </div>
       )}
 

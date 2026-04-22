@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +19,8 @@ interface BreakthroughDialogProps {
   isRealmTransition?: boolean;
   successRate?: number; // 0-100, undefined = always 100% (legacy body path)
   onCancel: () => void;
+  onSuccess?: (data: { realm: string; new_level: number; leftover_xp: number }) => void;
+  onResult?: (data: Record<string, unknown>) => void;
 }
 
 function getLevelLabel(level: number, realm: string = "煉體"): string {
@@ -99,6 +100,8 @@ export function BreakthroughDialog({
   isRealmTransition = false,
   successRate,
   onCancel,
+  onSuccess,
+  onResult,
 }: BreakthroughDialogProps) {
   const [phase, setPhase] = useState<
     "confirm" | "breaking" | "success" | "failed" | "demo_ended"
@@ -106,7 +109,6 @@ export function BreakthroughDialog({
   const [open, setOpen] = useState(true);
   const [animProgress, setAnimProgress] = useState(0);
   const [errorDetail, setErrorDetail] = useState("");
-  const router = useRouter();
   const { locale } = useI18n();
   const isZh = locale === "zh";
 
@@ -147,12 +149,13 @@ export function BreakthroughDialog({
   useEffect(() => {
     if (phase === "success") {
       const timer = setTimeout(() => {
-        setOpen(false);
-        onCancel();
+        // Set flag to skip loading screen on reload
+        sessionStorage.setItem("skip-splash", "1");
+        window.location.reload();
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [phase, onCancel]);
+  }, [phase]);
 
   const handleBreakthrough = async () => {
     setPhase("breaking");
@@ -163,33 +166,31 @@ export function BreakthroughDialog({
       fetch("/api/game/breakthrough", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-      }).then(async (res): Promise<"success" | "failed" | "demo_ended"> => {
+      }).then(async (res): Promise<{ phase: "success" | "failed" | "demo_ended"; data?: Record<string, unknown> }> => {
         const text = await res.text();
         if (res.ok) {
-          // Qi path returns 200 with success:false on roll fail — check body
           try {
             const data = JSON.parse(text);
             if (data && data.success === false) {
-              router.refresh();
-              return "failed";
+              return { phase: "failed", data };
             }
+            return { phase: "success", data };
           } catch {}
-          router.refresh();
-          return "success";
+          return { phase: "success" };
         }
         try {
           const data = JSON.parse(text);
-          if (data.error === "demo_ended") return "demo_ended";
+          if (data.error === "demo_ended") return { phase: "demo_ended" };
           setErrorDetail(`${res.status} ${data.error}${data.detail ? " - " + data.detail : ""}`);
         } catch {
           setErrorDetail(`${res.status} ${text.slice(0, 100)}`);
         }
-        return "failed";
-      }).catch((err): "failed" => {
+        return { phase: "failed" };
+      }).catch((err): { phase: "failed"; data?: Record<string, unknown> } => {
         setErrorDetail(`Network: ${err.message}`);
-        return "failed";
+        return { phase: "failed" };
       }),
-      // 5-second animation
+      // 3-second animation
       new Promise<void>((resolve) => {
         const start = Date.now();
         const duration = 3000;
@@ -204,7 +205,15 @@ export function BreakthroughDialog({
       }),
     ]);
 
-    setPhase(apiResult);
+    setPhase(apiResult.phase);
+    if (apiResult.data && onResult) onResult(apiResult.data);
+    if (apiResult.phase === "success" && onSuccess && apiResult.data) {
+      onSuccess({
+        realm: (apiResult.data.realm ?? apiResult.data.new_realm) as string,
+        new_level: apiResult.data.new_level as number,
+        leftover_xp: apiResult.data.leftover_xp as number,
+      });
+    }
   };
 
   return (
@@ -213,8 +222,7 @@ export function BreakthroughDialog({
       onOpenChange={(nextOpen) => {
         if (!nextOpen && phase !== "breaking") {
           setOpen(false);
-          if (phase === "success") window.location.reload();
-          else onCancel();
+          onCancel();
         }
       }}
     >

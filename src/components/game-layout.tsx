@@ -75,9 +75,18 @@ export function GameLayout({
   const isZh = locale === "zh";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab ?? "dashboard");
-  const [ready, setReady] = useState(false);
-  const [entered, setEntered] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
+  const skipSplash = typeof window !== "undefined" && sessionStorage.getItem("skip-splash") === "1";
+  const [ready, setReady] = useState(skipSplash);
+  const [entered, setEntered] = useState(skipSplash);
+  const [loadProgress, setLoadProgress] = useState(skipSplash ? 100 : 0);
+
+  // Clear skip-splash flag and set hasEntered if skipping
+  useEffect(() => {
+    if (skipSplash) {
+      sessionStorage.removeItem("skip-splash");
+      gameState.setHasEntered(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Preload all background images + mount all tabs
   useEffect(() => {
@@ -180,16 +189,16 @@ export function GameLayout({
             <svg className="absolute" width="280" height="280" viewBox="0 0 280 280" style={{ animation: "dao-ring-rotate 20s linear infinite" }}>
               {Array.from({ length: 8 }).map((_, i) => {
                 const a = (i * 45 * Math.PI) / 180;
-                return <line key={i} x1={140 + 128 * Math.cos(a)} y1={140 + 128 * Math.sin(a)} x2={140 + 135 * Math.cos(a)} y2={140 + 135 * Math.sin(a)} stroke="#d4a643" strokeWidth="1.5" opacity="0.25" />;
+                return <line key={i} x1={140 + 126 * Math.cos(a)} y1={140 + 126 * Math.sin(a)} x2={140 + 136 * Math.cos(a)} y2={140 + 136 * Math.sin(a)} stroke="#d4a643" strokeWidth="3" opacity="0.3" />;
               })}
-              <circle cx="140" cy="140" r="132" fill="none" stroke="#d4a643" strokeWidth="0.5" opacity="0.15" strokeDasharray="4 10" />
+              <circle cx="140" cy="140" r="132" fill="none" stroke="#d4a643" strokeWidth="1" opacity="0.2" strokeDasharray="4 10" />
             </svg>
             {/* Counter-rotating inner ring */}
             <svg className="absolute" width="280" height="280" viewBox="0 0 280 280" style={{ animation: "dao-ring-rotate-reverse 15s linear infinite" }}>
-              <circle cx="140" cy="140" r="122" fill="none" stroke="#d4a643" strokeWidth="0.3" opacity="0.12" strokeDasharray="2 14" />
+              <circle cx="140" cy="140" r="122" fill="none" stroke="#d4a643" strokeWidth="0.6" opacity="0.15" strokeDasharray="2 14" />
               {Array.from({ length: 12 }).map((_, i) => {
                 const a = (i * 30 * Math.PI) / 180;
-                return <circle key={i} cx={140 + 122 * Math.cos(a)} cy={140 + 122 * Math.sin(a)} r="1" fill="#d4a643" opacity="0.2" />;
+                return <circle key={i} cx={140 + 122 * Math.cos(a)} cy={140 + 122 * Math.sin(a)} r="1.5" fill="#d4a643" opacity="0.25" />;
               })}
             </svg>
             {/* Pulsing qi aura */}
@@ -232,7 +241,7 @@ export function GameLayout({
               </svg>
               {/* Center percentage */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs tabular-nums text-spirit-gold/70 font-heading">{loadProgress}%</span>
+                <span className="text-sm font-bold tabular-nums text-spirit-gold font-heading">{loadProgress}%</span>
               </div>
             </div>
             {/* Status text */}

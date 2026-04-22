@@ -88,6 +88,7 @@ export interface GameState {
   inventory: InventoryItem[];
   notifications: Notification[];
   pendingOfflineRewards: PendingOfflineRewards | null;
+  offlineLoading: boolean;
   isMeditating: boolean;
   qiXp: number;
   meditationProgress: number;
@@ -146,6 +147,7 @@ interface GameContextValue extends GameState {
   requestActivitySwitch: (targetName: string, onConfirm: () => void) => void;
   hasEntered: boolean;
   setHasEntered: (v: boolean) => void;
+  applyBreakthrough: (data: { realm: string; new_level: number; leftover_xp: number }) => void;
 }
 
 const GameContext = createContext<GameContextValue>(null!);
@@ -259,6 +261,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const [hasEntered, setHasEntered] = useState(false);
 
   // --- Offline rewards (system 2) ---
+  const [offlineLoading, setOfflineLoading] = useState(false);
   const [pendingOfflineRewards, setPendingOfflineRewards] = useState<PendingOfflineRewards | null>(() => {
     const init = initialState?.offlineRewards as OfflineRewardResult | null | undefined;
     if (!init) return null;
@@ -645,16 +648,20 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         if (isMiningRef.current) syncToServer();
         if (isMeditatingRef.current) syncMeditationRef.current();
         if (isCombatingRef.current) syncCombatRef.current();
+        // Always update heartbeat so last_sync_at is accurate for offline reward calculation
+        navigator.sendBeacon("/api/game/heartbeat", "");
       } else if (hiddenAtRef.current) {
         hiddenAtRef.current = null;
         setNotifications([]);
         // Unified offline reward check — server decides based on last_sync_at
+        setOfflineLoading(true);
         fetch("/api/game/offline-rewards", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         })
           .then((res) => res.ok ? res.json() : null)
           .then((data) => {
+            setOfflineLoading(false);
             if (!data) return;
             const xp = data.xp_gained ?? {};
             const hasAnyGain = (xp.mining > 0) || (xp.qi > 0) || (xp.body > 0) || (data.combat?.kills > 0) || (data.combat?.died) || (data.drops?.length > 0);
@@ -674,7 +681,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
               combat: data.combat,
             });
           })
-          .catch(() => {});
+          .catch(() => { setOfflineLoading(false); });
         accumulatedRef.current = 0;
         lastTickRef.current = Date.now();
         meditationTickStartRef.current = Date.now();
@@ -1355,7 +1362,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     miningLevel, miningXp, miningXpMax,
     masteryLevels, masteryXps, masteryXpMaxs,
     bodyStage, bodyXp, realm, inventory,
-    notifications, pendingOfflineRewards,
+    notifications, pendingOfflineRewards, offlineLoading,
     isMeditating, qiXp, meditationProgress,
     equipment: equipSetsState[String(activeEquipSetState)] ?? {},
     equipmentSets: equipSetsState,
@@ -1412,6 +1419,12 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }, [getActiveActivityName, shouldAskSwitch]),
     hasEntered,
     setHasEntered,
+    applyBreakthrough: useCallback((data: { realm: string; new_level: number; leftover_xp: number }) => {
+      setRealm(data.realm);
+      setBodyStage(data.new_level);
+      bodyStageRef.current = data.new_level;
+      setBodyXp(data.leftover_xp);
+    }, []),
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
