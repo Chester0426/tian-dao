@@ -63,15 +63,22 @@ export function DashboardClient({
   const { locale } = useI18n();
   const isZh = locale === "zh";
 
-  const currentRealmIdx = REALMS_DISPLAY.findIndex((r) => r.id === profile.realm);
-  const currentLevel = profile.realm === "煉體" ? profile.body_level : profile.realm_level;
+  // Local profile override — updated after breakthrough so UI reflects immediately
+  const [profileOverride, setProfileOverride] = useState<Partial<Profile>>({});
+  const p = { ...profile, ...profileOverride };
+
+  const liveRealm = p.realm;
+  const liveLevel = liveRealm === "煉體" ? p.body_level : p.realm_level;
+
+  const currentRealmIdx = REALMS_DISPLAY.findIndex((r) => r.id === liveRealm);
+  const currentLevel = liveLevel;
 
   const liveBodyXp = gameState.bodyXp ?? xpCurrent;
   const liveXpProgress = xpRequired > 0 ? Math.min((liveBodyXp / xpRequired) * 100, 100) : xpProgress;
 
   // Breakthrough logic only applies to 煉體 (other realms have their own systems)
-  const isInBodyTempering = profile.realm === "煉體";
-  const peakLevel = isInBodyTempering ? 9 : profile.realm === "練氣" ? 13 : 5;
+  const isInBodyTempering = liveRealm === "煉體";
+  const peakLevel = isInBodyTempering ? 9 : liveRealm === "練氣" ? 13 : 5;
   const isPeakToNextRealm = isInBodyTempering && currentLevel >= peakLevel && currentRealmIdx < REALMS_DISPLAY.length - 1;
   const liveBreakthroughReady = isInBodyTempering && !isPeakToNextRealm && liveXpProgress >= 100;
   const canBreakToNextRealm = isPeakToNextRealm && liveXpProgress >= 100;
@@ -114,7 +121,7 @@ export function DashboardClient({
 
   useEffect(() => { setMounted(true); }, []);
 
-  const levelLabel = getRealmLevelLabel(profile.realm, currentLevel, locale);
+  const levelLabel = getRealmLevelLabel(liveRealm, currentLevel, locale);
 
   return (
     <div className="min-h-screen">
@@ -141,7 +148,7 @@ export function DashboardClient({
               </p>
             </div>
             <Badge variant="outline" className="font-heading text-white border-jade/40 bg-jade px-3 py-1.5 text-sm">
-              {isZh ? (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameZh ?? profile.realm) : (REALMS_DISPLAY.find(r => r.id === profile.realm)?.nameEn ?? profile.realm)} · {levelLabel}
+              {isZh ? (REALMS_DISPLAY.find(r => r.id === liveRealm)?.nameZh ?? liveRealm) : (REALMS_DISPLAY.find(r => r.id === liveRealm)?.nameEn ?? liveRealm)} · {levelLabel}
             </Badge>
           </div>
           <div className="relative mt-4">
@@ -193,8 +200,8 @@ export function DashboardClient({
         </div>
 
         {/* Current Realm Card (練氣) */}
-        {profile.realm === "練氣" && (
-          <QiCard profile={profile} mounted={mounted} onBreakthroughClick={() => setShowBreakthrough(true)} />
+        {liveRealm === "練氣" && (
+          <QiCard profile={p} mounted={mounted} onBreakthroughClick={() => setShowBreakthrough(true)} />
         )}
         {/* Body Tempering (煉體) Card */}
         <Card
@@ -210,11 +217,11 @@ export function DashboardClient({
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h2 className="font-heading text-xl font-bold">
-                  {isZh ? "煉體期" : "Body Refining Realm"} <span className="text-spirit-gold">{getRealmLevelLabel("煉體", profile.body_level, locale)}</span>
+                  {isZh ? "煉體期" : "Body Refining Realm"} <span className="text-spirit-gold">{getRealmLevelLabel("煉體", p.body_level, locale)}</span>
                 </h2>
                 {!bodyCollapsed && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {profile.body_level >= 10
+                    {p.body_level >= 10
                       ? (isZh ? "繼續淬煉肉體獲得更加強大的能力" : "Continue tempering for greater power")
                       : (isZh ? "強化肉體 — 透過挖礦或戰鬥淬煉肉體" : "Strengthen your body through mining or combat")}
                   </p>
@@ -302,9 +309,9 @@ export function DashboardClient({
                 <>
                   <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? "累積成長" : "Total Growth"}</p>
                   <div className="flex gap-4 text-xs mb-3">
-                    <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+{(profile.body_level - 1) * 10}</span></span>
-                    <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+{profile.body_level - 1}</span></span>
-                    <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+{profile.body_level - 1}</span></span>
+                    <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+{(p.body_level - 1) * 10}</span></span>
+                    <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+{p.body_level - 1}</span></span>
+                    <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+{p.body_level - 1}</span></span>
                   </div>
                   <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? `突破至 ${REALMS_DISPLAY[currentRealmIdx + 1]?.nameZh ?? "下一境界"}` : `Break to ${REALMS_DISPLAY[currentRealmIdx + 1]?.nameEn ?? "Next Realm"}`}</p>
                   <div className="flex gap-4 text-xs mb-2">
@@ -316,13 +323,13 @@ export function DashboardClient({
                 </>
               ) : (
                 <>
-                  {profile.body_level > 1 && (
+                  {p.body_level > 1 && (
                     <>
                       <p className="text-xs font-medium text-spirit-gold mb-2">{isZh ? "累積成長" : "Total Growth"}</p>
                       <div className="flex gap-4 text-xs mb-2">
-                        <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+{(profile.body_level - 1) * 10}</span></span>
-                        <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+{profile.body_level - 1}</span></span>
-                        <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+{profile.body_level - 1}</span></span>
+                        <span className="text-red-400">{isZh ? "氣血" : "HP"} <span className="font-heading">+{(p.body_level - 1) * 10}</span></span>
+                        <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} <span className="font-heading">+{p.body_level - 1}</span></span>
+                        <span className="text-white/70">{isZh ? "防禦" : "DEF"} <span className="font-heading">+{p.body_level - 1}</span></span>
                       </div>
                       {isPostBodyTempering && (
                         <p className="text-xs text-jade mb-3">{isZh ? "已解鎖：煉丹、煉器、煉體巔峰系統" : "Unlocked: Alchemy, Smithing, Body Refining Peak System"}</p>
@@ -346,15 +353,15 @@ export function DashboardClient({
 
       {/* Breakthrough Dialog */}
       {showBreakthrough && (() => {
-        const isQi = profile.realm === "練氣";
-        const qiLvl = profile.qi_level || 1;
+        const isQi = liveRealm === "練氣";
+        const qiLvl = p.qi_level || 1;
         const qiFailBonus = (profile.qi_fail_bonus ?? {})[String(qiLvl)] ?? 0;
         const qiRate = Math.min(100, qiBaseRate(qiLvl) + qiFailBonus);
         const qiIsPeak = isQi && qiLvl >= 13;
         return (
           <BreakthroughDialog
             currentStage={isQi ? qiLvl : currentLevel}
-            currentRealm={profile.realm}
+            currentRealm={liveRealm}
             nextRealm={
               qiIsPeak ? "築基"
               : isPeakToNextRealm ? REALMS_DISPLAY[currentRealmIdx + 1]?.id
@@ -363,6 +370,35 @@ export function DashboardClient({
             isRealmTransition={qiIsPeak || isPeakToNextRealm}
             successRate={isQi ? qiRate : undefined}
             onCancel={() => setShowBreakthrough(false)}
+            onResult={(data) => {
+              // Update profile override with any data from API (success or failure)
+              setProfileOverride(prev => {
+                const next = { ...prev };
+                if (data.leftover_xp !== undefined) next.qi_xp = data.leftover_xp as number;
+                if (data.new_fail_bonus !== undefined) {
+                  const lvl = String(data.from_level ?? p.qi_level);
+                  next.qi_fail_bonus = { ...(prev.qi_fail_bonus ?? p.qi_fail_bonus ?? {}), [lvl]: data.new_fail_bonus as number };
+                }
+                if (data.new_level !== undefined) {
+                  next.qi_level = data.new_level as number;
+                  next.realm_level = data.new_level as number;
+                }
+                if (data.new_realm) next.realm = data.new_realm as Profile["realm"];
+                if (data.realm) next.realm = data.realm as Profile["realm"];
+                return next;
+              });
+            }}
+            onSuccess={(data) => {
+              setProfileOverride(prev => ({
+                ...prev,
+                realm: data.realm as Profile["realm"],
+                realm_level: data.new_level,
+                body_level: data.realm === "煉體" ? data.new_level : (prev.body_level ?? p.body_level),
+                qi_level: data.realm === "練氣" ? data.new_level : (prev.qi_level ?? p.qi_level),
+                body_xp: data.leftover_xp,
+              }));
+              gameState.applyBreakthrough(data);
+            }}
           />
         );
       })()}

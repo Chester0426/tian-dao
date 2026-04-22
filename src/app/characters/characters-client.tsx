@@ -250,8 +250,8 @@ export function CharactersClient({
                   />
                   {/* Slot number overlay — centered on red gem at top */}
                   <div className="absolute z-20 left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: "7%", width: "50px", height: "30px" }}>
-                    <span className="font-heading text-xl" style={{ lineHeight: 1, fontWeight: 900, color: "#000" }}>
-                      {["", "一", "二", "三"][slot]}
+                    <span className="font-heading text-2xl" style={{ lineHeight: 1, fontWeight: 900, color: "#000", WebkitTextStroke: "1px #000" }}>
+                      {["", "壹", "貳", "參"][slot]}
                     </span>
                   </div>
 
