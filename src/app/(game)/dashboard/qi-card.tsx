@@ -274,7 +274,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                 <img
                   src="/images/adventure/me.png"
                   alt=""
-                  className={`absolute object-contain opacity-85 transition-all duration-500 ${meditating ? "inset-[12%] w-[76%] h-[76%]" : "inset-0 w-full h-full"}`}
+                  className={`absolute object-contain opacity-85 transition-all duration-500 z-20 ${meditating ? "inset-[12%] w-[76%] h-[76%]" : "inset-0 w-full h-full"}`}
                   style={{
                     left: meditating ? "12%" : "0",
                     top: meditating ? "12%" : "0",
@@ -284,7 +284,7 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
 
                 {/* Main progress ring */}
                 <svg
-                  className="absolute inset-0 w-full h-full -rotate-90"
+                  className="absolute inset-0 w-full h-full -rotate-90 z-10"
                   viewBox="0 0 260 260"
                 >
                   <defs>
@@ -313,7 +313,6 @@ export function QiCard({ profile, mounted, onBreakthroughClick }: QiCardProps) {
                     strokeDashoffset={`${2 * Math.PI * 100 * (1 - actionProgress)}`}
                     style={{
                       filter: meditating ? "drop-shadow(0 0 8px rgba(100,220,200,0.7))" : "none",
-                      transition: "stroke-dashoffset 0.1s linear",
                     }}
                   />
                 </svg>

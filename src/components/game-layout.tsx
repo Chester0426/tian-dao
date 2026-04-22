@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { GameSidebar } from "./game-sidebar";
+import { useGameState } from "./mining-provider";
+import { useI18n } from "@/lib/i18n";
 
 // Direct imports — all loaded upfront for instant tab switching
 import DashboardPage from "@/app/(game)/dashboard/page-client";
@@ -68,10 +70,14 @@ export function GameLayout({
   isAdmin?: boolean;
   initialTab?: string;
 }) {
+  const gameState = useGameState();
+  const { locale } = useI18n();
+  const isZh = locale === "zh";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab ?? "dashboard");
   const [ready, setReady] = useState(false);
   const [entered, setEntered] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
 
   // Preload all background images + mount all tabs
   useEffect(() => {
@@ -83,6 +89,7 @@ export function GameLayout({
 
     const checkDone = () => {
       loaded++;
+      setLoadProgress(Math.round((loaded / total) * 100));
       if (loaded >= total) {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
@@ -99,12 +106,15 @@ export function GameLayout({
     setTimeout(() => setReady(true), 5000);
   }, []);
 
-  // Auto-enter when ready (no click needed)
+  // Auto-enter when ready
   useEffect(() => {
     if (!ready) return;
-    const timer = setTimeout(() => setEntered(true), 600);
+    const timer = setTimeout(() => {
+      setEntered(true);
+      gameState.setHasEntered(true);
+    }, 600);
     return () => clearTimeout(timer);
-  }, [ready]);
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Resolve tab from URL on client only — avoids hydration mismatch
   useEffect(() => {
@@ -193,8 +203,10 @@ export function GameLayout({
               animation: "pulse 2.5s ease-in-out infinite",
             }} />
             {/* Title */}
-            <p className="relative z-10 font-heading text-xl text-spirit-gold tracking-[0.3em] mb-8 text-glow-gold">天 道</p>
-            {/* Circular progress ring */}
+            <p className="relative z-10 font-heading text-xl text-spirit-gold tracking-[0.3em] mb-8 text-glow-gold">
+              {isZh ? "天 道" : "TIAN DAO"}
+            </p>
+            {/* Circular progress ring with percentage */}
             <div className="relative z-10 w-16 h-16">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
                 <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(212,166,67,0.12)" strokeWidth="2.5" />
@@ -205,10 +217,10 @@ export function GameLayout({
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeDasharray={`${2 * Math.PI * 28}`}
-                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - (ready ? 1 : 0.6))}`}
+                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - loadProgress / 100)}`}
                   style={{
                     filter: "drop-shadow(0 0 4px rgba(212,166,67,0.6))",
-                    transition: "stroke-dashoffset 0.8s ease-out",
+                    transition: "stroke-dashoffset 0.3s ease-out",
                   }}
                 />
                 <defs>
@@ -218,17 +230,14 @@ export function GameLayout({
                   </linearGradient>
                 </defs>
               </svg>
-              {/* Center dot */}
+              {/* Center percentage */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-spirit-gold" style={{
-                  boxShadow: "0 0 8px rgba(212,166,67,0.8), 0 0 16px rgba(212,166,67,0.4)",
-                  animation: "pulse 1.5s ease-in-out infinite",
-                }} />
+                <span className="text-xs tabular-nums text-spirit-gold/70 font-heading">{loadProgress}%</span>
               </div>
             </div>
             {/* Status text */}
             <p className="relative z-10 mt-5 text-xs text-spirit-gold/50 font-heading tracking-widest">
-              {ready ? "靈氣匯聚" : "引氣入體"}
+              {ready ? (isZh ? "靈氣匯聚" : "Qi Gathered") : (isZh ? "引氣入體" : "Channeling Qi")}
             </p>
           </div>
         )}

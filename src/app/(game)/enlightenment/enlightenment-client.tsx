@@ -360,7 +360,6 @@ export function EnlightenmentClient({
                           strokeLinecap="round"
                           style={{
                             animation: "dao-glow 2s ease-in-out infinite",
-                            transition: "stroke-dasharray 0.1s linear",
                           }}
                         />
                       )}

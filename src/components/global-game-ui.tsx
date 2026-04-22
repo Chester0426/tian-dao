@@ -16,7 +16,7 @@ import { ITEMS } from "@/lib/items";
 
 export function GlobalGameUI() {
   const gameState = useGameState();
-  const { notifications, pendingOfflineRewards, dismissOfflineRewards } = gameState;
+  const { notifications, pendingOfflineRewards, dismissOfflineRewards, hasEntered } = gameState;
   const pathname = usePathname();
   const { locale } = useI18n();
   const isZh = locale === "zh";
@@ -32,7 +32,9 @@ export function GlobalGameUI() {
               className="flex items-center gap-2 rounded-lg bg-card/95 border border-border/50 px-3 py-1.5 text-sm backdrop-blur-sm shadow-lg"
               style={{ animation: "drop-float-up 2.5s ease-out forwards" }}
             >
-              <span className={`text-base ${n.color}`}>{n.icon}</span>
+              {n.image
+                ? <img src={n.image} alt="" className="h-5 w-5 object-contain" />
+                : <span className={`text-base ${n.color}`}>{n.icon}</span>}
               {n.amount > 0 && <span className={`font-bold tabular-nums ${n.color}`}>+{n.amount}</span>}
               <span className={n.amount === 0 ? n.color : "text-muted-foreground"}>{n.label}</span>
               {n.total !== undefined && (
@@ -44,12 +46,21 @@ export function GlobalGameUI() {
       )}
 
       {/* === System 2: Melvor-style offline rewards dialog === */}
-      <Dialog open={!!pendingOfflineRewards} onOpenChange={() => dismissOfflineRewards()}>
+      <Dialog open={!!pendingOfflineRewards && hasEntered} onOpenChange={() => dismissOfflineRewards()}>
         <DialogContent className="scroll-surface sm:max-w-sm" showCloseButton={false}>
           {pendingOfflineRewards && (
             <div className="flex flex-col items-center text-center space-y-5 py-4">
-              {/* Icon */}
-              <img src="/images/logo-dao.png" alt="" className="h-16 w-16 rounded-xl" />
+              {/* Activity icon */}
+              <img
+                src={
+                  pendingOfflineRewards.activity === "挖礦" ? "/images/nav-items/nav-mining.png"
+                  : pendingOfflineRewards.activity === "遊歷" ? "/images/nav-items/nav-adventure.png"
+                  : pendingOfflineRewards.activity === "參悟" ? "/images/nav-items/nav-enlightenment.png"
+                  : "/images/nav-items/nav-dashboard.png"
+                }
+                alt=""
+                className="h-16 w-16 object-contain"
+              />
 
               {/* Welcome back */}
               <h2 className="font-heading text-2xl font-bold">
@@ -140,7 +151,9 @@ export function GlobalGameUI() {
                         {(qty as number).toLocaleString()}
                       </span>
                       {isZh ? " 個 " : " "}
-                      <span className={info?.color ?? ""}>{info?.icon ?? "○"}</span>
+                      {info?.image
+                        ? <img src={info.image} alt="" className="inline h-5 w-5 object-contain align-text-bottom" />
+                        : <span className={info?.color ?? ""}>{info?.icon ?? "○"}</span>}
                       {" "}
                       <span className="font-medium">{info ? (isZh ? info.nameZh : info.nameEn) : itemType}</span>
                     </p>

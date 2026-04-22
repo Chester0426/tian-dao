@@ -11,6 +11,7 @@ import type { MineData } from "@/components/mining-provider";
 import type { InventoryItem } from "@/lib/types";
 import type { MineInfo } from "./page";
 import { useI18n } from "@/lib/i18n";
+import { ITEMS } from "@/lib/items";
 
 // ---------------------------------------------------------------------------
 // Item display (icon + rarity are language-independent, name uses i18n)
@@ -299,35 +300,45 @@ export function MiningPageClient({
                 isActive ? "ring-2 ring-jade/60" : ""
               }`}>
                   <img src="/images/mining-card-bg1.png" alt="" className="w-full h-auto block" />
+
                   <div
-                    className="absolute flex flex-col space-y-4 rounded-xl"
+                    className="absolute flex flex-col space-y-3 rounded-xl"
                     style={{
-                      top: '20%', bottom: '20%', left: '5%', right: '5%',
+                      top: '50%', left: '5%', right: '5%',
+                      transform: 'translateY(-50%)',
                       background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.40) 100%)",
                       padding: '16px',
                       textShadow: "0 1px 4px rgba(0,0,0,0.8)",
                     }}
                   >
-                  {/* Mine header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-baseline gap-2">
-                      <p
-                        className="font-heading text-base font-bold"
-                        style={{
-                          background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
-                        }}
-                      >
-                        {MINE_NAMES[mine.slug]?.[locale] ?? mine.name}
-                      </p>
-                      <p className="text-xs text-white/50">
-                        ⏱ {(3).toFixed(2)} s
-                      </p>
-                    </div>
+                  {/* Mine name */}
+                  <div className="flex items-center justify-center gap-2">
+                    <p
+                      className="font-heading text-lg font-bold whitespace-nowrap"
+                      style={{
+                        background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))",
+                      }}
+                    >
+                      {MINE_NAMES[mine.slug]?.[locale] ?? mine.name}
+                    </p>
+                    <p
+                      className="text-xs font-bold whitespace-nowrap"
+                      style={{
+                        background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      ⏱ {(3).toFixed(2)} s
+                    </p>
+                  </div>
+
+                  {/* XP badges */}
+                  <div className="flex items-center justify-center gap-1.5 text-xs">
                     <TooltipProvider>
-                    <div className="flex items-center gap-1.5 text-xs">
                       <Tooltip>
                         <TooltipTrigger>
                           <span
@@ -373,7 +384,6 @@ export function MiningPageClient({
                         </TooltipTrigger>
                         <TooltipContent>{locale === "zh" ? "煉體經驗" : "Body XP"}</TooltipContent>
                       </Tooltip>
-                    </div>
                     </TooltipProvider>
                   </div>
 
@@ -392,9 +402,11 @@ export function MiningPageClient({
                               style={{ background: "rgba(0,0,0,0.2)" }}
                             >
                               <div className="flex items-center gap-2">
-                                <span style={{ color: rarityColor, textShadow: `0 0 6px ${rarityColor}40` }}>
-                                  {info?.icon ?? "○"}
-                                </span>
+                                {ITEMS[entry.item_type]?.image
+                                  ? <img src={ITEMS[entry.item_type].image} alt="" className="h-5 w-5 object-contain" />
+                                  : <span style={{ color: rarityColor, textShadow: `0 0 6px ${rarityColor}40` }}>
+                                      {info?.icon ?? "○"}
+                                    </span>}
                                 <span className="text-white/80">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
                               </div>
                               <span className="tabular-nums text-white/50 text-xs">{(entry.probability * 100).toFixed(0)}%</span>
@@ -476,10 +488,10 @@ export function MiningPageClient({
                     </div>
                   )}
 
-                  {/* Action button — pushed to bottom */}
+                  {/* Action button */}
                   <button
                     onClick={() => handleSelectMine(mine)}
-                    className="mt-auto relative w-full hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer"
+                    className="relative w-full hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer"
                   >
                     <img
                       src={isActive ? "/images/mining-btn-bg2.png" : "/images/mining-btn-bg1.png"}

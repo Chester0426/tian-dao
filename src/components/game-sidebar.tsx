@@ -29,7 +29,7 @@ export function GameSidebar({
   const { locale, setLocale, t } = useI18n();
 
   const NAV_SECTIONS = [
-    { title: t("sidebar_items"), items: [
+    { title: locale === "zh" ? "外事" : "Affairs", items: [
       { name: t("sidebar_shop"), href: "/shop", icon: "🏪", iconUrl: "/images/nav-items/nav-shop.png", key: "shop", pcBgImage: "/images/bg-shop.png", mobileBgImage: "/images/bg-shop-m.png" },
       { name: locale === "zh" ? "市集" : "Market", href: "/market", icon: "🏛️", iconUrl: "/images/nav-items/nav-market.png", key: "market", pcBgImage: "/images/bg-market.png", mobileBgImage: "/images/bg-market-m.png" },
       { name: t("sidebar_inventory"), href: "/inventory", icon: "🎒", iconUrl: "/images/nav-items/nav-inventory.png", key: "inventory", pcBgImage: "/images/bg-inventory.png", mobileBgImage: "/images/bg-inventory-m.png" },

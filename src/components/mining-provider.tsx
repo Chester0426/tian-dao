@@ -14,11 +14,8 @@ import { useI18n } from "@/lib/i18n";
 // Item display names (for notifications)
 // ---------------------------------------------------------------------------
 
-const ITEM_NAMES: Record<string, { nameZh: string; nameEn: string; icon: string; color: string }> = {
-  coal: { nameZh: "煤", nameEn: "Coal", icon: "◆", color: "text-foreground" },
-  copper_ore: { nameZh: "銅礦", nameEn: "Copper Ore", icon: "◇", color: "text-jade" },
-  spirit_stone_fragment: { nameZh: "靈石碎片", nameEn: "Spirit Stone Fragment", icon: "✦", color: "text-spirit-gold" },
-};
+// Use central ITEMS registry for names, icons, images, and colors
+import { ITEMS as ITEM_NAMES } from "@/lib/items";
 
 // ---------------------------------------------------------------------------
 // Loot tables
@@ -58,6 +55,7 @@ export interface MineData {
 export interface Notification {
   id: number;
   icon: string;
+  image?: string;
   label: string;
   amount: number;
   total?: number;
@@ -139,13 +137,15 @@ interface GameContextValue extends GameState {
   setActiveConsumableIdx: (idx: number) => void;
   consumeItem: () => void;
   updateQiArray: (next: (string | null)[]) => void;
-  addNotification: (icon: string, label: string, amount: number, color: string, total?: number) => void;
+  addNotification: (icon: string, label: string, amount: number, color: string, total?: number, image?: string) => void;
   dismissOfflineRewards: () => void;
   updateInventory: (updater: (prev: InventoryItem[]) => InventoryItem[]) => void;
   updateEquipmentSet: (setNum: number, sets: Record<string, Record<string, string>>) => void;
   setEnlightening: (v: boolean) => void;
   registerEnlightenmentSync: (fn: () => void) => void;
   requestActivitySwitch: (targetName: string, onConfirm: () => void) => void;
+  hasEntered: boolean;
+  setHasEntered: (v: boolean) => void;
 }
 
 const GameContext = createContext<GameContextValue>(null!);
@@ -254,6 +254,9 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   // --- Notifications (system 1) ---
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const notifIdRef = useRef(0);
+
+  // --- Loading screen gate ---
+  const [hasEntered, setHasEntered] = useState(false);
 
   // --- Offline rewards (system 2) ---
   const [pendingOfflineRewards, setPendingOfflineRewards] = useState<PendingOfflineRewards | null>(() => {
@@ -370,10 +373,10 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   }, [notifications]);
 
   // --- Add notification helper ---
-  const addNotification = useCallback((icon: string, label: string, amount: number, color: string, total?: number) => {
+  const addNotification = useCallback((icon: string, label: string, amount: number, color: string, total?: number, image?: string) => {
     const id = ++notifIdRef.current * 1000 + Math.floor(Math.random() * 1000);
     const timestamp = Date.now();
-    setNotifications((prev) => [...prev.slice(-10), { id, icon, label, amount, total, color, timestamp }]);
+    setNotifications((prev) => [...prev.slice(-10), { id, icon, image, label, amount, total, color, timestamp }]);
   }, []);
 
   // --- Local mine action (system 1: produces notifications) ---
@@ -471,7 +474,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       const itemInfo = ITEM_NAMES[droppedItem];
       const itemName = itemInfo ? (isZh ? itemInfo.nameZh : itemInfo.nameEn) : droppedItem;
       // Always show drop
-      addNotification(itemInfo?.icon ?? "○", itemName, qty, itemInfo?.color ?? "text-foreground", newTotal);
+      addNotification(itemInfo?.icon ?? "○", itemName, qty, itemInfo?.color ?? "text-foreground", newTotal, itemInfo?.image);
       // XP notifications
       addNotification("⛏️", isZh ? "挖礦經驗" : "Mining XP", mine.xp_mining, "text-blue-400");
 
@@ -1156,7 +1159,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
             }
             for (const ks of killSlots) {
               const meta = ITEMS[ks.item_type];
-              if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, ks.quantity, meta.color);
+              if (meta) addNotification(meta.icon, isZhNow ? meta.nameZh : meta.nameEn, ks.quantity, meta.color, undefined, meta.image);
             }
             next.push(...killSlots);
             saveCombatLoot(next);
@@ -1407,6 +1410,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         onConfirm();
       }
     }, [getActiveActivityName, shouldAskSwitch]),
+    hasEntered,
+    setHasEntered,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
