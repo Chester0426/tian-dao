@@ -33,8 +33,8 @@ export function GlobalGameUI() {
               style={{ animation: "drop-float-up 2.5s ease-out forwards" }}
             >
               {n.image
-                ? <img src={n.image} alt="" className="h-5 w-5 object-contain" />
-                : <span className={`text-base ${n.color}`}>{n.icon}</span>}
+                ? <img src={n.image} alt="" className="h-4 w-4 object-contain" />
+                : <span className={`text-sm ${n.color}`}>{n.icon}</span>}
               {n.amount > 0 && <span className={`font-bold tabular-nums ${n.color}`}>+{n.amount}</span>}
               <span className={n.amount === 0 ? n.color : "text-muted-foreground"}>{n.label}</span>
               {n.total !== undefined && (

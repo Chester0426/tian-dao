@@ -9,6 +9,8 @@ import { MiningPageClient } from "./mining-page-client";
 export interface MineInfo {
   id: string;
   name: string;
+  name_zh?: string;
+  name_en?: string;
   slug: string;
   required_level: number;
   rock_base_hp: number;
@@ -16,6 +18,8 @@ export interface MineInfo {
   xp_mining: number;
   xp_mastery: number;
   xp_body: number;
+  main_drop: string;
+  companion_drops: { item: string; chance: number }[];
 }
 
 export default async function MiningPage() {
@@ -25,9 +29,10 @@ export default async function MiningPage() {
     return (
       <MiningPageClient
         mines={[{
-          id: "demo", name: "枯竭礦脈", slug: "depleted_vein",
+          id: "demo", name: "Coal Mine", name_zh: "煤礦場", name_en: "Coal Mine", slug: "coal_mine",
           required_level: 1, rock_base_hp: 1, respawn_seconds: 5,
           xp_mining: 5, xp_mastery: 3, xp_body: 5,
+          main_drop: "coal", companion_drops: [{ item: "spirit_stone_fragment", chance: 0.01 }],
         }]}
         miningLevel={1}
         miningXp={0}

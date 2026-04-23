@@ -18,26 +18,17 @@ import { useI18n } from "@/lib/i18n";
 import { ITEMS as ITEM_NAMES } from "@/lib/items";
 
 // ---------------------------------------------------------------------------
-// Loot tables
+// Loot: main_drop + companion_drops
 // ---------------------------------------------------------------------------
 
-const LOOT_TABLES: Record<string, { item_type: string; probability: number }[]> = {
-  depleted_vein: [
-    { item_type: "coal", probability: 0.5 },
-    { item_type: "copper_ore", probability: 0.35 },
-    { item_type: "spirit_stone_fragment", probability: 0.15 },
-  ],
-};
+interface CompanionDrop { item: string; chance: number }
 
-function rollLoot(slug: string): string {
-  const table = LOOT_TABLES[slug] ?? LOOT_TABLES["depleted_vein"];
-  const roll = Math.random();
-  let cumulative = 0;
-  for (const entry of table) {
-    cumulative += entry.probability;
-    if (roll <= cumulative) return entry.item_type;
+function rollLoot(mine: MineData): { main: string; companions: string[] } {
+  const companions: string[] = [];
+  for (const cd of mine.companion_drops ?? []) {
+    if (Math.random() < cd.chance) companions.push(cd.item);
   }
-  return table[table.length - 1].item_type;
+  return { main: mine.main_drop, companions };
 }
 
 // ---------------------------------------------------------------------------
@@ -50,6 +41,10 @@ export interface MineData {
   xp_mining: number;
   xp_mastery: number;
   xp_body: number;
+  main_drop: string;
+  companion_drops: CompanionDrop[];
+  rock_base_hp: number;
+  respawn_seconds: number;
 }
 
 export interface Notification {
@@ -82,6 +77,10 @@ export interface GameState {
   masteryLevels: Record<string, number>;
   masteryXps: Record<string, number>;
   masteryXpMaxs: Record<string, number>;
+  rockHp: number;
+  rockMaxHp: number;
+  respawnProgress: number;
+  rockHpMap: Record<string, number>;
   bodyStage: number;
   bodyXp: number;
   realm: string;
@@ -162,7 +161,7 @@ export function useMining() {
   return {
     isMining: ctx.isMining,
     startMining: (mineId: string) => {
-      ctx.startMining({ id: mineId, slug: "depleted_vein", xp_mining: 5, xp_mastery: 3, xp_body: 5 });
+      ctx.startMining({ id: mineId, slug: "coal_mine", xp_mining: 5, xp_mastery: 3, xp_body: 5, main_drop: "coal", companion_drops: [], rock_base_hp: 1, respawn_seconds: 5 });
     },
     stopMining: ctx.stopMining,
     pauseBackground: () => {},
@@ -292,6 +291,24 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   masteryLevelsRef.current = masteryLevels;
   masteryXpMaxsRef.current = masteryXpMaxs;
 
+  // --- Rock HP system (per-mine) ---
+  const [rockHpMap, setRockHpMap] = useState<Record<string, number>>({});
+  const [rockHp, setRockHp] = useState(1);
+  const [rockMaxHp, setRockMaxHp] = useState(1);
+  const [respawnProgress, setRespawnProgress] = useState(0);
+  const rockHpRef = useRef(1);
+  const rockHpMapRef = useRef<Record<string, number>>({});
+  const respawningRef = useRef(false);
+  const respawnAccRef = useRef(0);
+
+  // Helper: update rockHp + persist to per-mine map
+  const updateRockHp = useCallback((mineId: string, hp: number) => {
+    rockHpRef.current = hp;
+    setRockHp(hp);
+    rockHpMapRef.current = { ...rockHpMapRef.current, [mineId]: hp };
+    setRockHpMap(rockHpMapRef.current);
+  }, []);
+
   // --- Sync ---
   const pendingRef = useRef({ actions: 0, elapsed_ms: 0, drops: {} as Record<string, number>, xp: { mining: 0, mastery: 0, body: 0 } });
 
@@ -387,26 +404,31 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     const mine = activeMineRef.current;
     if (!mine) return;
 
-    const droppedItem = rollLoot(mine.slug);
+    const { main, companions } = rollLoot(mine);
     const mastery = masteryLevelsRef.current[mine.id] ?? 0;
     const isDouble = Math.random() < getMasteryDoubleDropChance(mastery);
-    const qty = isDouble ? 2 : 1;
+    const mainQty = isDouble ? 2 : 1;
 
-    // Update inventory — calculate total from ref (always current)
-    const currentQty = inventoryRef.current.find((i) => i.item_type === droppedItem)?.quantity ?? 0;
-    const newTotal = currentQty + qty;
-    setInventory((prev) => {
-      const existing = prev.find((i) => i.item_type === droppedItem);
-      if (existing) {
-        return prev.map((i) => i.item_type === droppedItem ? { ...i, quantity: existing.quantity + qty } : i);
-      }
-      return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: droppedItem, quantity: qty, created_at: "" }];
-    });
+    // Collect all drops: main + companions
+    const allDrops: Record<string, number> = { [main]: mainQty };
+    for (const comp of companions) {
+      allDrops[comp] = (allDrops[comp] ?? 0) + 1;
+    }
+
+    // Update inventory for all drops
+    for (const [itemType, qty] of Object.entries(allDrops)) {
+      setInventory((prev) => {
+        const existing = prev.find((i) => i.item_type === itemType);
+        if (existing) {
+          return prev.map((i) => i.item_type === itemType ? { ...i, quantity: existing.quantity + qty } : i);
+        }
+        return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: 1, item_type: itemType, quantity: qty, created_at: "" }];
+      });
+    }
 
     // Track level-ups for notifications
     let miningLeveledUp = false;
     let masteryLeveledUp = false;
-    const bodyGainedXp = true;
 
     // Update mining XP
     setMiningXp((prev) => {
@@ -438,7 +460,6 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     // Update body XP — auto-breakthrough at 巔峰 only if not in 煉體 anymore
     setBodyXp((prev) => {
       let newXp = prev + mine.xp_body;
-      // Auto-breakthrough only if past 煉體 realm (i.e., 練氣 or higher)
       if (realmRef.current !== "煉體") {
         let breakthroughs = 0;
         while (bodyStageRef.current >= 9 && breakthroughs < 50) {
@@ -450,7 +471,6 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
           bodyStageRef.current = newLevel;
           breakthroughs++;
         }
-        // Single call — server cascades on its side
         if (breakthroughs > 0) {
           fetch("/api/game/breakthrough", {
             method: "POST",
@@ -466,7 +486,9 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     const p = pendingRef.current;
     p.actions += 1;
     p.elapsed_ms += 3000;
-    p.drops[droppedItem] = (p.drops[droppedItem] ?? 0) + qty;
+    for (const [itemType, qty] of Object.entries(allDrops)) {
+      p.drops[itemType] = (p.drops[itemType] ?? 0) + qty;
+    }
     p.xp.mining += mine.xp_mining;
     p.xp.mastery += mine.xp_mastery;
     p.xp.body += mine.xp_body;
@@ -474,19 +496,21 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     // === SYSTEM 1: Dynamic notifications (only meaningful ones) ===
     if (!document.hidden) {
       const isZh = localeRef.current === "zh";
-      const itemInfo = ITEM_NAMES[droppedItem];
-      const itemName = itemInfo ? (isZh ? itemInfo.nameZh : itemInfo.nameEn) : droppedItem;
-      // Always show drop
-      addNotification(itemInfo?.icon ?? "○", itemName, qty, itemInfo?.color ?? "text-foreground", newTotal, itemInfo?.image);
+      // Show main drop
+      const mainInfo = ITEM_NAMES[main];
+      const mainTotal = inventoryRef.current.find((i) => i.item_type === main)?.quantity ?? mainQty;
+      addNotification(mainInfo?.icon ?? "○", mainInfo ? (isZh ? mainInfo.nameZh : mainInfo.nameEn) : main, mainQty, mainInfo?.color ?? "text-foreground", mainTotal, mainInfo?.image);
+      // Show companion drops
+      for (const comp of companions) {
+        const compInfo = ITEM_NAMES[comp];
+        const compTotal = inventoryRef.current.find((i) => i.item_type === comp)?.quantity ?? 1;
+        addNotification(compInfo?.icon ?? "✦", compInfo ? (isZh ? compInfo.nameZh : compInfo.nameEn) : comp, 1, compInfo?.color ?? "text-spirit-gold", compTotal, compInfo?.image);
+      }
       // XP notifications
       addNotification("⛏️", isZh ? "挖礦經驗" : "Mining XP", mine.xp_mining, "text-blue-400");
-
-      if (mine.xp_mastery > 0) {
-      }
-      if (bodyGainedXp && mine.xp_body > 0) {
+      if (mine.xp_body > 0) {
         addNotification("💪", isZh ? "煉體經驗" : "Body Refining XP", mine.xp_body, "text-spirit-gold");
       }
-      // Level-up notifications
       if (miningLeveledUp) {
         addNotification("🎉", isZh ? `挖礦升級 Lv.${miningLevelRef.current + 1}` : `Mining Up Lv.${miningLevelRef.current + 1}`, 1, "text-blue-400");
       }
@@ -496,6 +520,38 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     }
   }, [addNotification]);
 
+  // --- HP regen when not mining (1 HP per 10s) ---
+  const regenRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (isMining) {
+      if (regenRef.current) { clearInterval(regenRef.current); regenRef.current = null; }
+      return;
+    }
+    // Start regen timer — regen all mines in the map
+    regenRef.current = setInterval(() => {
+      const updated = { ...rockHpMapRef.current };
+      let changed = false;
+      for (const [mineId, hp] of Object.entries(updated)) {
+        // Increment by 1 each 10s; displayside caps at mineMaxHp via Math.min
+        if (hp < 100) { // safe upper bound, display clamps to actual max
+          updated[mineId] = hp + 1;
+          changed = true;
+        }
+      }
+      if (changed) {
+        rockHpMapRef.current = updated;
+        setRockHpMap(updated);
+        // Also sync the active mine's ref + state
+        const mine = activeMineRef.current;
+        if (mine && updated[mine.id] !== undefined) {
+          rockHpRef.current = updated[mine.id];
+          setRockHp(updated[mine.id]);
+        }
+      }
+    }, 10000);
+    return () => { if (regenRef.current) clearInterval(regenRef.current); };
+  }, [isMining]);
+
   // --- Mining tick ---
   useEffect(() => {
     if (!isMining) {
@@ -503,6 +559,35 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       return;
     }
 
+    // Always reset all progress when starting/switching mines
+    respawningRef.current = false;
+    respawnAccRef.current = 0;
+    accumulatedRef.current = 0;
+    setRespawnProgress(0);
+    setActionProgress(0);
+
+    const mine = activeMineRef.current;
+    if (mine) {
+      const mastery = masteryLevelsRef.current[mine.id] ?? 0;
+      const maxHp = mine.rock_base_hp + mastery;
+      setRockMaxHp(maxHp);
+      // Load HP from map
+      const savedHp = rockHpMapRef.current[mine.id];
+      if (savedHp !== undefined && savedHp > 0) {
+        rockHpRef.current = Math.min(savedHp, maxHp);
+        setRockHp(rockHpRef.current);
+      } else if (savedHp !== undefined && savedHp <= 0) {
+        // Rock was depleted — enter respawn phase from scratch
+        rockHpRef.current = 0;
+        setRockHp(0);
+        respawningRef.current = true;
+        respawnAccRef.current = 0;
+        setRespawnProgress(0);
+      } else {
+        // First time mining this — full HP
+        updateRockHp(mine.id, maxHp);
+      }
+    }
     lastTickRef.current = Date.now();
     accumulatedRef.current = 0;
 
@@ -513,26 +598,59 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       const delta = now - lastTickRef.current;
       lastTickRef.current = now;
 
-      // If delta > 200ms, tab was in background (throttled).
-      // Reset instead of processing accumulated time — prevents burst of actions.
       if (delta > 200) {
         accumulatedRef.current = 0;
+        respawnAccRef.current = 0;
         return;
       }
 
+      const currentMine = activeMineRef.current;
+      if (!currentMine) return;
+      const respawnMs = currentMine.respawn_seconds * 1000;
+
+      // Respawning phase — searching for new vein
+      if (respawningRef.current) {
+        respawnAccRef.current += delta;
+        setRespawnProgress(Math.min((respawnAccRef.current / respawnMs) * 100, 100));
+        if (respawnAccRef.current >= respawnMs) {
+          // New rock found — reset HP
+          const m = masteryLevelsRef.current[currentMine.id] ?? 0;
+          const maxHp = currentMine.rock_base_hp + m;
+          updateRockHp(currentMine.id, maxHp);
+          setRockMaxHp(maxHp);
+          respawningRef.current = false;
+          respawnAccRef.current = 0;
+          setRespawnProgress(0);
+          accumulatedRef.current = 0;
+          setActionProgress(0);
+        }
+        return;
+      }
+
+      // Mining phase — each 3s hit: drop loot + reduce HP
       accumulatedRef.current += delta;
 
       if (accumulatedRef.current >= 3000) {
         accumulatedRef.current -= 3000;
-        setActionProgress(0);
         doLocalMineAction();
+        updateRockHp(currentMine.id, rockHpRef.current - 1);
+
+        if (rockHpRef.current <= 0) {
+          // Rock depleted — start searching for new vein
+          respawningRef.current = true;
+          respawnAccRef.current = 0;
+          setRespawnProgress(0);
+          setActionProgress(0);
+        } else {
+          setActionProgress(0);
+        }
       } else {
         setActionProgress((accumulatedRef.current / 3000) * 100);
       }
     }, 50);
 
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
-  }, [isMining, doLocalMineAction]);
+  }, [isMining, activeMineId, doLocalMineAction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // === SYSTEM 2: Unified offline rewards (visibility + page load) ===
   const hiddenAtRef = useRef<number | null>(null);
@@ -545,8 +663,11 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
     const drops: Record<string, number> = {};
     for (let i = 0; i < totalActions; i++) {
-      const item = rollLoot(mine.slug);
-      drops[item] = (drops[item] ?? 0) + 1;
+      const { main, companions } = rollLoot(mine);
+      drops[main] = (drops[main] ?? 0) + 1;
+      for (const comp of companions) {
+        drops[comp] = (drops[comp] ?? 0) + 1;
+      }
     }
 
     return {
@@ -906,6 +1027,10 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     setActiveMineId(mine.id);
     setIsMining(true);
     accumulatedRef.current = 0;
+    setActionProgress(0);
+    respawningRef.current = false;
+    respawnAccRef.current = 0;
+    setRespawnProgress(0);
     // Single unified call — server handles mutual exclusion via requested_at
     fetch("/api/game/start-activity", {
       method: "POST",
@@ -918,8 +1043,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const stopMining = useCallback(() => {
     syncToServer();
     setIsMining(false);
-    setActiveMineId(null);
-    activeMineRef.current = null;
+    // Keep activeMineId so HP regen and UI tracking continue
     setActionProgress(0);
     fetch("/api/game/stop-activity", {
       method: "POST",
@@ -1359,6 +1483,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   // --- Context value ---
   const value: GameContextValue = {
     isMining, activeMineId, actionProgress,
+    rockHp, rockMaxHp, respawnProgress, rockHpMap,
     miningLevel, miningXp, miningXpMax,
     masteryLevels, masteryXps, masteryXpMaxs,
     bodyStage, bodyXp, realm, inventory,
@@ -1378,8 +1503,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
     activitySwitchConfirm, dismissActivitySwitch, setDontAskActivitySwitch,
     startMining: useCallback((mine: MineData) => {
       const current = getActiveActivityName();
-      if (current && shouldAskSwitch()) {
-        const targetName = locale === "zh" ? "挖礦" : "Mining";
+      const targetName = locale === "zh" ? "挖礦" : "Mining";
+      if (current && current !== targetName && shouldAskSwitch()) {
         setActivitySwitchConfirm({ from: current, to: targetName, onConfirm: () => { setActivitySwitchConfirm(null); _doStartMining(mine); } });
       } else { _doStartMining(mine); }
     }, [getActiveActivityName, shouldAskSwitch, _doStartMining, locale]),

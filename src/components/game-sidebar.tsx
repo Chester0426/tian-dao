@@ -178,6 +178,11 @@ export function GameSidebar({
                         <span className="text-base leading-none">{item.icon}</span>
                       )}
                       <span className="flex-1 text-left">{item.name}</span>
+                      {item.key === "mining" && (
+                        <span className="text-sm tabular-nums text-muted-foreground/70">
+                          Lv.{gameState.miningLevel}
+                        </span>
+                      )}
                       {item.key === "inventory" && (
                         <span className="text-sm tabular-nums text-muted-foreground/70">
                           {slotsUsed}/{totalSlots}

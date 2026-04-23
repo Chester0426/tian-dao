@@ -217,7 +217,7 @@ export function InventoryClient({
 
             {inventory.length > 0 ? (
               <>
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
                   <TooltipProvider>
                     {inventory.map((item) => {
                       const display = getItem(item.item_type);
@@ -228,9 +228,7 @@ export function InventoryClient({
                         <Tooltip key={item.item_type}>
                           <TooltipTrigger
                             onClick={sacrificeMode ? () => toggleItem(item) : undefined}
-                            className={`flex w-full flex-col items-center gap-1 rounded-lg border transition-all ${
-                              display?.tags.includes("equipment") ? "p-1.5" : "p-3"
-                            } ${
+                            className={`flex w-full flex-col items-center justify-between rounded-lg border transition-all p-2 aspect-square ${
                               sacrificeMode
                                 ? isSelected
                                   ? "border-cinnabar bg-cinnabar-dim/40 scale-105 shadow-md"
@@ -238,14 +236,16 @@ export function InventoryClient({
                                 : "border-border/50 bg-card/60"
                             }`}
                           >
-                              {(display as unknown as Record<string, unknown>)?.image ? (
-                                <img src={(display as unknown as Record<string, string>).image} alt="" className={`${display!.tags.includes("equipment") ? "w-12 h-12" : "w-8 h-8"} object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]`} />
-                              ) : (
-                                <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
-                                  {display?.icon ?? "○"}
-                                </span>
-                              )}
-                              <span className="text-[10px] tabular-nums text-muted-foreground">
+                              <div className="flex-1 flex items-center justify-center">
+                                {(display as unknown as Record<string, unknown>)?.image ? (
+                                  <img src={(display as unknown as Record<string, string>).image} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]" />
+                                ) : (
+                                  <span className={`text-2xl ${display?.color ?? "text-foreground"}`}>
+                                    {display?.icon ?? "○"}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] tabular-nums text-muted-foreground text-center w-full">
                                 {isSelected ? `${selectedQty}/${item.quantity}` : `x${item.quantity.toLocaleString()}`}
                               </span>
                               {isSelected && (

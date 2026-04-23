@@ -109,25 +109,21 @@ export async function POST(request: NextRequest) {
     mastery = newMastery;
   }
 
-  // Parse loot table from JSONB
-  const lootTable = mine.loot_table as { item_type: string; probability: number }[];
+  // Roll loot: main drop (always) + companion drops (per chance)
+  const mainDrop = (mine.main_drop as string) ?? "coal";
+  const companionDrops = (mine.companion_drops as { item: string; chance: number }[]) ?? [];
 
-  // Roll loot
-  const roll = Math.random();
-  let cumulative = 0;
-  let droppedItem = lootTable[lootTable.length - 1].item_type;
-  for (const entry of lootTable) {
-    cumulative += entry.probability;
-    if (roll <= cumulative) {
-      droppedItem = entry.item_type;
-      break;
-    }
-  }
-
-  // Check double drop (b-05)
   const doubleDropChance = getMasteryDoubleDropChance(mastery.level);
   const isDoubleDrop = Math.random() < doubleDropChance;
-  const dropQuantity = isDoubleDrop ? 2 : 1;
+  const mainQty = isDoubleDrop ? 2 : 1;
+
+  // Collect all drops
+  const allDrops: Record<string, number> = { [mainDrop]: mainQty };
+  for (const cd of companionDrops) {
+    if (Math.random() < cd.chance) {
+      allDrops[cd.item] = (allDrops[cd.item] ?? 0) + 1;
+    }
+  }
 
   // Check inventory capacity
   const { data: inventory } = await supabase
@@ -135,38 +131,36 @@ export async function POST(request: NextRequest) {
     .select("id, item_type")
     .eq("user_id", user.id).eq("slot", slot);
 
-  const existingSlot = inventory?.find((item: { id: string; item_type: string }) => item.item_type === droppedItem);
   const slotsUsed = new Set(inventory?.map((item: { id: string; item_type: string }) => item.item_type) ?? []).size;
-
-  if (!existingSlot && slotsUsed >= profile.inventory_slots) {
-    // Inventory full, new item type (b-09)
+  const newItemTypes = Object.keys(allDrops).filter(
+    (it) => !inventory?.find((inv: { item_type: string }) => inv.item_type === it)
+  );
+  if (newItemTypes.length > 0 && slotsUsed + newItemTypes.length > profile.inventory_slots) {
     return NextResponse.json({
       error: "Inventory full",
       inventory_full: true,
-      would_drop: droppedItem,
+      would_drop: mainDrop,
     }, { status: 409 });
   }
 
-  // Add item to inventory (upsert: increment quantity if exists)
-  if (existingSlot) {
-    const { error: updateError } = await supabase.rpc("increment_item_quantity", {
-      p_item_type: droppedItem,
-      p_quantity: dropQuantity,
-      p_slot: slot,
-    });
-    if (updateError) {
-      console.error("inventory update error:", updateError.message);
-      return NextResponse.json({ error: "Failed to update inventory" }, { status: 500 });
-    }
-  } else {
-    const { error: insertError } = await supabase
-      .from("inventory_items")
-      .insert({ user_id: user.id, slot, item_type: droppedItem, quantity: dropQuantity });
-    if (insertError) {
-      console.error("inventory insert error:", insertError.message);
-      return NextResponse.json({ error: "Failed to add to inventory" }, { status: 500 });
+  // Add all drops to inventory
+  for (const [itemType, qty] of Object.entries(allDrops)) {
+    const existingSlot = inventory?.find((item: { id: string; item_type: string }) => item.item_type === itemType);
+    if (existingSlot) {
+      await supabase.rpc("increment_item_quantity", {
+        p_item_type: itemType,
+        p_quantity: qty,
+        p_slot: slot,
+      });
+    } else {
+      await supabase
+        .from("inventory_items")
+        .insert({ user_id: user.id, slot, item_type: itemType, quantity: qty });
     }
   }
+
+  const droppedItem = mainDrop;
+  const dropQuantity = mainQty;
 
   // Award XP (mining skill, mastery, 煉體)
   const xpMining = mine.xp_mining as number;

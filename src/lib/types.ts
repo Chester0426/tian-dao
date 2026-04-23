@@ -161,16 +161,11 @@ const BODY_XP_TABLE: Record<number, number> = {
 
 // Mine display names by slug
 export const MINE_NAMES: Record<string, { zh: string; en: string }> = {
-  depleted_vein: { zh: "枯竭礦脈", en: "Depleted Vein" },
-  red_copper_vein: { zh: "赤銅礦脈", en: "Red Copper Vein" },
-  vein_3: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_4: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_5: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_6: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_7: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_8: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_9: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_10: { zh: "XX 礦脈", en: "XX Vein" },
+  coal_mine: { zh: "煤礦場", en: "Coal Mine" },
+  copper_mine: { zh: "銅礦場", en: "Copper Mine" },
+  tin_mine: { zh: "錫礦場", en: "Tin Mine" },
+  iron_mine: { zh: "鐵礦場", en: "Iron Mine" },
+  silver_mine: { zh: "銀礦場", en: "Silver Mine" },
 };
 
 // Spirit stone bonuses (per-tick qi added while equipped in 聚靈陣).

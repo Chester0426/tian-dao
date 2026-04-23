@@ -184,10 +184,11 @@ export async function computeOfflineRewards(
 
   if (!mine || !profile || !miningSkill) return null;
 
-  const masteryLevel = mastery?.level ?? 1;
+  const masteryLevel = mastery?.level ?? 0;
   const rockMaxHp = (mine.rock_base_hp as number) + masteryLevel;
 
-  const cycleDuration = rockMaxHp * ACTION_INTERVAL_SECONDS + ROCK_RESPAWN_SECONDS;
+  const mineRespawnSeconds = (mine.respawn_seconds as number) ?? ROCK_RESPAWN_SECONDS;
+  const cycleDuration = rockMaxHp * ACTION_INTERVAL_SECONDS + mineRespawnSeconds;
   const fullCycles = Math.floor(effectiveSeconds / cycleDuration);
   const remainderSeconds = effectiveSeconds % cycleDuration;
   const remainderActions = Math.min(
@@ -197,14 +198,18 @@ export async function computeOfflineRewards(
   const totalActions = fullCycles * rockMaxHp + remainderActions;
   if (totalActions <= 0) return null;
 
-  const lootTable = (mine.loot_table as { item_type: string; probability: number }[]) ?? [];
+  const mainDrop = (mine.main_drop as string) ?? "coal";
+  const companionDrops = (mine.companion_drops as { item: string; chance: number }[]) ?? [];
   const doubleDropChance = getMasteryDoubleDropChance(masteryLevel);
   const dropMultiplier = 1 + doubleDropChance;
 
   const drops: Record<string, number> = {};
-  for (const entry of lootTable) {
-    const quantity = Math.floor(totalActions * entry.probability * dropMultiplier);
-    if (quantity > 0) drops[entry.item_type] = quantity;
+  // Main drop: 1 per action, scaled by double-drop chance
+  drops[mainDrop] = Math.floor(totalActions * dropMultiplier);
+  // Companion drops: each independently rolled per action
+  for (const cd of companionDrops) {
+    const quantity = Math.floor(totalActions * cd.chance);
+    if (quantity > 0) drops[cd.item] = (drops[cd.item] ?? 0) + quantity;
   }
 
   const xpMiningTotal = totalActions * (mine.xp_mining as number);

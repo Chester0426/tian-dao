@@ -75,7 +75,7 @@ export default async function GameGroupLayout({
         const skill = skillRes.data as MiningSkill | null;
         const masteries = (masteryRes.data as MineMastery[]) ?? [];
         const inventory = (inventoryRes.data as InventoryItem[]) ?? [];
-        const minesData = (mineRes.data as { id: string; slug: string; xp_mining: number; xp_mastery: number; xp_body: number }[]) ?? [];
+        const minesData = (mineRes.data as { id: string; slug: string; xp_mining: number; xp_mastery: number; xp_body: number; main_drop: string; companion_drops: { item: string; chance: number }[]; rock_base_hp: number; respawn_seconds: number }[]) ?? [];
 
         const level = skill?.level ?? 1;
         const totalXp = skill?.xp ?? 0;
@@ -121,6 +121,10 @@ export default async function GameGroupLayout({
             xp_mining: activeMineData.xp_mining,
             xp_mastery: activeMineData.xp_mastery,
             xp_body: activeMineData.xp_body,
+            main_drop: activeMineData.main_drop ?? "coal",
+            companion_drops: activeMineData.companion_drops ?? [],
+            rock_base_hp: activeMineData.rock_base_hp ?? 1,
+            respawn_seconds: activeMineData.respawn_seconds ?? 5,
           } : undefined,
         };
       }

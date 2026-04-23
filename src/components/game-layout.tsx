@@ -146,11 +146,11 @@ export function GameLayout({
         <>
           <div
             className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:block hidden"
-            style={{ backgroundImage: `url('${currentBg.pc}')`, opacity: 0.3 }}
+            style={{ backgroundImage: `url('${currentBg.pc}')`, opacity: 0 }}
           />
           <div
             className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:hidden block"
-            style={{ backgroundImage: `url('${currentBg.mobile}')`, opacity: 0.3 }}
+            style={{ backgroundImage: `url('${currentBg.mobile}')`, opacity: 0 }}
           />
         </>
       )}

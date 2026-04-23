@@ -105,13 +105,49 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
             </CardContent>
           </Card>
 
-          <Card className="scroll-surface border-dashed">
+          <Card className="scroll-surface border-spirit-gold/40">
             <CardHeader>
-              <CardTitle className="font-heading text-lg text-muted-foreground">{isZh ? "更多商品" : "More Items"}</CardTitle>
-              <CardDescription>{isZh ? "即將推出..." : "Coming soon..."}</CardDescription>
+              <CardTitle className="font-heading text-xl text-spirit-gold text-glow-gold">
+                {isZh ? "天道 — 完整版" : "TIAN TAO — Full Version"}
+              </CardTitle>
+              <CardDescription className="text-base font-heading text-spirit-gold/80">10 USDC {isZh ? "一次買斷" : "One-time Purchase"}</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center justify-center py-12">
-              <span className="text-3xl text-muted-foreground/30">🔮</span>
+            <CardContent className="space-y-5">
+              <div className="rounded-lg bg-muted/30 p-4 space-y-2.5">
+                {[
+                  isZh ? "練氣 6 級之後所有境界內容" : "All realm content beyond Qi Condensation Level 6",
+                  isZh ? "技能等級上限解鎖至 Lv.500" : "Skill level cap unlocked to Lv.500",
+                  isZh ? "採藥、煉丹、釣魚" : "Herbalism, Alchemy, Fishing",
+                  isZh ? "秘境挑戰" : "Dungeon Challenges",
+                  isZh ? "市集交易" : "Marketplace Trading",
+                  isZh ? "煉器進階配方" : "Advanced Smithing Recipes",
+                  isZh ? "後續所有版本更新" : "All future updates",
+                ].map((item, i) => (
+                  <p key={i} className="text-sm flex items-start gap-2">
+                    <span className="text-spirit-gold shrink-0">✦</span>
+                    <span>{item}</span>
+                  </p>
+                ))}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {isZh ? "元嬰之後的境界與內容將於未來資料片推出" : "Post-Nascent Soul content will be available in future expansions"}
+              </p>
+
+              <p className="text-xs text-jade italic">
+                {isZh
+                  ? "你的每一分支持，都將用於開發更多玩法與內容，並回饋至天道生態中的每位修士。"
+                  : "Every bit of your support goes toward developing new content and giving back to every cultivator in the Tian Tao ecosystem."}
+              </p>
+
+              <div className="space-y-1.5">
+                <Button className="w-full seal-glow font-heading" disabled>
+                  {isZh ? "踏入仙途 — 10 USDC" : "Enter the Immortal Path — 10 USDC"}
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  {isZh ? "即將開放" : "Coming Soon"}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

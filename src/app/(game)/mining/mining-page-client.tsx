@@ -17,50 +17,10 @@ import { ITEMS } from "@/lib/items";
 // Item display (icon + rarity are language-independent, name uses i18n)
 // ---------------------------------------------------------------------------
 
-const ITEM_META: Record<string, { icon: string; rarity: "common" | "uncommon" | "rare"; zhName: string; enName: string }> = {
-  coal: { icon: "◆", rarity: "common", zhName: "煤", enName: "Coal" },
-  copper_ore: { icon: "◇", rarity: "uncommon", zhName: "銅礦", enName: "Copper Ore" },
-  spirit_stone_fragment: { icon: "✦", rarity: "rare", zhName: "靈石碎片", enName: "Spirit Stone" },
-};
-
 function getItemName(itemType: string, locale: string): string {
-  const meta = ITEM_META[itemType];
-  if (!meta) return itemType;
-  return locale === "en" ? meta.enName : meta.zhName;
-}
-
-// Mine names
-const MINE_NAMES: Record<string, { zh: string; en: string }> = {
-  depleted_vein: { zh: "枯竭礦脈", en: "Depleted Vein" },
-  red_copper_vein: { zh: "赤銅礦脈", en: "Red Copper Vein" },
-  vein_3: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_4: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_5: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_6: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_7: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_8: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_9: { zh: "XX 礦脈", en: "XX Vein" },
-  vein_10: { zh: "XX 礦脈", en: "XX Vein" },
-};
-
-// Loot table per mine (TODO: fetch from DB)
-const LOOT_TABLES: Record<string, { item_type: string; probability: number }[]> = {
-  depleted_vein: [
-    { item_type: "coal", probability: 0.5 },
-    { item_type: "copper_ore", probability: 0.35 },
-    { item_type: "spirit_stone_fragment", probability: 0.15 },
-  ],
-};
-
-function rollLoot(mineSlug: string): string {
-  const table = LOOT_TABLES[mineSlug] ?? LOOT_TABLES["depleted_vein"];
-  const roll = Math.random();
-  let cumulative = 0;
-  for (const entry of table) {
-    cumulative += entry.probability;
-    if (roll <= cumulative) return entry.item_type;
-  }
-  return table[table.length - 1].item_type;
+  const info = ITEMS[itemType];
+  if (!info) return itemType;
+  return locale === "en" ? info.nameEn : info.nameZh;
 }
 
 import { getMasteryDoubleDropChance, melvorXpForLevel } from "@/lib/types";
@@ -157,7 +117,7 @@ export function MiningPageClient({
       return;
     }
 
-    globalStartMine({ id: mine.id, slug: mine.slug, xp_mining: mine.xp_mining, xp_mastery: mine.xp_mastery, xp_body: mine.xp_body });
+    globalStartMine({ id: mine.id, slug: mine.slug, xp_mining: mine.xp_mining, xp_mastery: mine.xp_mastery, xp_body: mine.xp_body, main_drop: mine.main_drop, companion_drops: mine.companion_drops, rock_base_hp: mine.rock_base_hp, respawn_seconds: mine.respawn_seconds });
 
     if (!firedActivateRef.current) {
       trackActivate({ action: "started_mining" });
@@ -246,270 +206,173 @@ export function MiningPageClient({
         </div>
 
         {/* === Mine Grid === */}
-        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr -mx-6 md:-mx-12">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 auto-rows-fr">
           {mines.map((mine) => {
             const isLocked = miningLevel < mine.required_level;
             const isActive = activeMine === mine.id && isMining;
             const mastery = masteryLevels[mine.id] ?? 0;
-            const lootTable = LOOT_TABLES[mine.slug] ?? LOOT_TABLES["depleted_vein"];
+            // Build display entries: main drop (100%) + companion drops
+            const lootDisplayEntries = [
+              { item_type: mine.main_drop, probability: 1.0 },
+              ...mine.companion_drops.map((cd) => ({ item_type: cd.item, probability: cd.chance })),
+            ];
             const circumference = 2 * Math.PI * 38; // SVG circle r=38
 
             // === LOCKED MINE CARD ===
             if (isLocked) {
               return (
-                <div key={mine.id} className="relative rounded-2xl overflow-hidden">
-                  <img src="/images/mining-card-bg2.png" alt="" className="w-full h-auto block" />
-                  <div
-                    className="absolute flex flex-col items-center justify-between rounded-xl"
-                    style={{
-                      top: '20%', bottom: '20%', left: '5%', right: '5%',
-                      background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.40) 100%)",
-                      padding: '16px',
-                      textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-                    }}
-                  >
-                    {/* Header — locked label */}
-                    <div className="flex items-center justify-center pt-2">
-                      <p className="font-heading text-base font-bold text-white/40">
-                        {t("mining_locked")}
-                      </p>
+                <div
+                  key={mine.id}
+                  className="rounded-xl border border-border/20 opacity-50 cursor-not-allowed"
+                  style={{ background: "linear-gradient(180deg, rgba(30,35,30,0.95) 0%, rgba(20,25,20,0.98) 100%)" }}
+                >
+                  <div className="p-3 space-y-2.5">
+                    <div className="text-center space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground">{locale === "zh" ? "未發現" : "Undiscovered"}</p>
+                      <p className="font-heading text-sm font-bold text-white/40">???</p>
                     </div>
-
-                    {/* Centered icon */}
-                    <div className="flex-1 flex items-center justify-center opacity-50">
-                      <img src="/images/pickaxe.png" alt="" className="w-24 h-24 object-contain" />
+                    <div className="flex justify-center">
+                      <img src="/images/pickaxe.png" alt="" className="w-12 h-12 object-contain opacity-30" />
                     </div>
-
-                    {/* Disabled button at bottom */}
-                    <button
-                      disabled
-                      className="relative w-full cursor-not-allowed opacity-70"
-                    >
-                      <img src="/images/mining-btn-bg3.png" alt="" className="w-full h-auto block" />
-                      <span className="absolute inset-0 flex items-center justify-center font-heading font-bold text-sm text-white">
-                        {t("mining_needLevel", { n: mine.required_level })}
-                      </span>
-                    </button>
+                    <p className="text-center text-[10px] text-white/30">
+                      {t("mining_needLevel", { n: mine.required_level })}
+                    </p>
                   </div>
                 </div>
               );
             }
 
-            return (
-              <div key={mine.id} className={`relative rounded-2xl overflow-hidden transition-all duration-200 ${
-                isActive ? "ring-2 ring-jade/60" : ""
-              }`}>
-                  <img src="/images/mining-card-bg1.png" alt="" className="w-full h-auto block" />
+            const mineMaxHp = mine.rock_base_hp + mastery;
+            const savedHp = gameState.rockHpMap[mine.id];
+            const currentRockHp = savedHp !== undefined ? Math.min(savedHp, mineMaxHp) : mineMaxHp;
+            const currentRockMaxHp = mineMaxHp;
+            const rockHpPct = currentRockMaxHp > 0 ? (currentRockHp / currentRockMaxHp) * 100 : 100;
+            const masteryXpPct = masteryXpMaxs[mine.id] ? Math.min((masteryXps[mine.id] ?? 0) / masteryXpMaxs[mine.id] * 100, 100) : 0;
 
-                  <div
-                    className="absolute flex flex-col space-y-3 rounded-xl"
-                    style={{
-                      top: '50%', left: '5%', right: '5%',
-                      transform: 'translateY(-50%)',
-                      background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.40) 100%)",
-                      padding: '16px',
-                      textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-                    }}
-                  >
-                  {/* Mine name */}
-                  <div className="flex items-center justify-center gap-2">
-                    <p
-                      className="font-heading text-lg font-bold whitespace-nowrap"
-                      style={{
-                        background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))",
-                      }}
-                    >
-                      {MINE_NAMES[mine.slug]?.[locale] ?? mine.name}
-                    </p>
-                    <p
-                      className="text-xs font-bold whitespace-nowrap"
-                      style={{
-                        background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                      }}
-                    >
-                      ⏱ {(3).toFixed(2)} s
+            return (
+              <div
+                key={mine.id}
+                onClick={() => handleSelectMine(mine)}
+                className={`rounded-xl border transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99] ${
+                  isActive ? "border-jade/50 ring-1 ring-jade/30" : "border-border/30 hover:border-border/50"
+                }`}
+                style={{ background: "linear-gradient(180deg, rgba(30,35,30,0.95) 0%, rgba(20,25,20,0.98) 100%)" }}
+              >
+                <div className="p-3 space-y-2.5">
+                  {/* Header: title */}
+                  <div className="text-center space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground">{locale === "zh" ? "採礦" : "Mining"}</p>
+                    <p className="font-heading text-sm font-bold text-spirit-gold text-glow-gold">
+                      {(locale === "zh" ? mine.name_zh : mine.name_en) ?? mine.name}
                     </p>
                   </div>
 
-                  {/* XP badges */}
-                  <div className="flex items-center justify-center gap-1.5 text-xs">
+                  {/* Stat badges row */}
+                  <div className="grid grid-cols-4 gap-1 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                     <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span
-                            className="rounded-full px-2 py-0.5 cursor-default"
-                            style={{
-                              background: "linear-gradient(135deg, rgba(62,207,165,0.15), rgba(26,74,58,0.25))",
-                              border: "1px solid rgba(62,207,165,0.25)",
-                              color: "#6ee7b7",
-                            }}
-                          >
-                            ⛏️ {mine.xp_mining}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{locale === "zh" ? "挖礦經驗" : "Mining XP"}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span
-                            className="rounded-full px-2 py-0.5 cursor-default"
-                            style={{
-                              background: "linear-gradient(135deg, rgba(200,60,60,0.15), rgba(120,30,30,0.25))",
-                              border: "1px solid rgba(200,60,60,0.25)",
-                              color: "#f87171",
-                            }}
-                          >
-                            🏆 {mine.xp_mastery}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{locale === "zh" ? "精通經驗" : "Mastery XP"}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span
-                            className="rounded-full px-2 py-0.5 cursor-default"
-                            style={{
-                              background: "linear-gradient(135deg, rgba(200,160,100,0.15), rgba(120,90,50,0.25))",
-                              border: "1px solid rgba(200,160,100,0.25)",
-                              color: "#fbbf24",
-                            }}
-                          >
-                            💪 {mine.xp_body}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{locale === "zh" ? "煉體經驗" : "Body XP"}</TooltipContent>
-                      </Tooltip>
+                      {([
+                        { icon: "⛏️", value: String(mine.xp_mining), tip: locale === "zh" ? "挖礦經驗" : "Mining XP", color: "text-jade" },
+                        { icon: "🏆", value: String(mine.xp_mastery), tip: locale === "zh" ? "精通經驗" : "Mastery XP", color: "text-cinnabar" },
+                        { icon: "💪", value: String(mine.xp_body), tip: locale === "zh" ? "煉體經驗" : "Body XP", color: "text-spirit-gold" },
+                        { icon: "⏱", value: "3.0s", tip: locale === "zh" ? "所需時間" : "Time Required", color: "text-white/60" },
+                      ] as const).map((stat) => (
+                        <Tooltip key={stat.tip}>
+                          <TooltipTrigger>
+                            <div className="flex flex-col items-center gap-0.5 py-1 cursor-default rounded" style={{ background: "rgba(255,255,255,0.04)" }}>
+                              <span className={`${stat.color} text-[11px]`}>{stat.icon}</span>
+                              <span className="tabular-nums text-[10px] text-white/80">{stat.value}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>{stat.tip}</TooltipContent>
+                        </Tooltip>
+                      ))}
                     </TooltipProvider>
                   </div>
 
-                  {/* Drop rates + Progress circle row */}
-                  {(
-                    <div className="flex items-center gap-4">
-                      {/* Drop rates */}
-                      <div className="flex-1 space-y-2">
-                        {lootTable.map((entry) => {
-                          const info = ITEM_META[entry.item_type];
-                          const rarityColor = info?.rarity === "rare" ? "#fbbf24" : info?.rarity === "uncommon" ? "#6ee7b7" : "rgba(255,255,255,0.7)";
-                          return (
-                            <div
-                              key={entry.item_type}
-                              className="flex items-center justify-between text-sm rounded-md px-2 py-0.5"
-                              style={{ background: "rgba(0,0,0,0.2)" }}
-                            >
-                              <div className="flex items-center gap-2">
-                                {ITEMS[entry.item_type]?.image
-                                  ? <img src={ITEMS[entry.item_type].image} alt="" className="h-5 w-5 object-contain" />
-                                  : <span style={{ color: rarityColor, textShadow: `0 0 6px ${rarityColor}40` }}>
-                                      {info?.icon ?? "○"}
-                                    </span>}
-                                <span className="text-white/80">{getItemName(entry.item_type, locale) ?? entry.item_type}</span>
-                              </div>
-                              <span className="tabular-nums text-white/50 text-xs">{(entry.probability * 100).toFixed(0)}%</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                  {/* Rock image */}
+                  <div className="flex justify-center">
+                    <img src="/images/pickaxe.png" alt="" className="w-12 h-12 object-contain" style={{ filter: isActive ? "drop-shadow(0 0 8px rgba(62,207,165,0.5))" : "none" }} />
+                  </div>
 
-                      {/* Circular progress — spirit qi ring */}
-                      <div
-                        className="relative flex-shrink-0 rounded-full"
-                        style={{
-                          width: '88px', height: '88px',
-                          boxShadow: isActive
-                            ? "0 0 12px rgba(62,207,165,0.3), 0 0 24px rgba(62,207,165,0.1), inset 0 0 8px rgba(0,0,0,0.4)"
-                            : "inset 0 0 8px rgba(0,0,0,0.4)",
-                          background: "radial-gradient(circle, rgba(20,30,25,0.6) 0%, rgba(10,15,12,0.8) 100%)",
-                        }}
-                      >
-                        <svg width="88" height="88" viewBox="0 0 88 88" className="-rotate-90">
-                          <circle cx="44" cy="44" r="38" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
-                          {isActive && (
-                            <circle cx="44" cy="44" r="38" fill="none"
-                              stroke="url(#qiGradient)" strokeWidth="4"
-                              strokeDasharray={`${(actionProgress / 100) * circumference} ${circumference}`}
-                              strokeLinecap="round"
-                              style={{ filter: "drop-shadow(0 0 4px rgba(62,207,165,0.6))" }}
-                            />
-                          )}
-                          <defs>
-                            <linearGradient id="qiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#1a4a3a" />
-                              <stop offset="50%" stopColor="#3ecfa5" />
-                              <stop offset="100%" stopColor="#6ee7b7" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <img src="/images/pickaxe.png" alt="" className="w-8 h-8 object-contain" style={{ filter: isActive ? "drop-shadow(0 0 6px rgba(62,207,165,0.5))" : "none" }} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Mastery with XP */}
-                  {(
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-white/70">
-                          🏆 {t("mining_mastery")} <span className="font-bold" style={{ color: "#f87171", textShadow: "0 0 6px rgba(248,113,113,0.3)" }}>{mastery}</span>
-                        </span>
-                        <span className="tabular-nums text-white/50">
-                          {(masteryXps[mine.id] ?? 0).toLocaleString()} / {(masteryXpMaxs[mine.id] ?? 83).toLocaleString()}
-                        </span>
-                      </div>
-                      <div
-                        className="h-1.5 w-full overflow-hidden rounded-full"
-                        style={{
-                          background: "rgba(0,0,0,0.3)",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.4)",
-                        }}
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-300 relative"
-                          style={{
-                            width: `${masteryXpMaxs[mine.id] ? Math.min((masteryXps[mine.id] ?? 0) / masteryXpMaxs[mine.id] * 100, 100) : 0}%`,
-                            background: "linear-gradient(90deg, #7f1d1d, #dc2626, #f87171)",
-                            boxShadow: "0 0 6px rgba(248,113,113,0.4), 0 0 12px rgba(248,113,113,0.15)",
-                          }}
-                        >
-                          <div
-                            className="absolute inset-0 rounded-full"
-                            style={{
-                              background: "linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action button */}
-                  <button
-                    onClick={() => handleSelectMine(mine)}
-                    className="relative w-full hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer"
-                  >
-                    <img
-                      src={isActive ? "/images/mining-btn-bg2.png" : "/images/mining-btn-bg1.png"}
-                      alt=""
-                      className="w-full h-auto block"
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center font-heading font-bold text-sm text-white">
-                      {isActive ? t("mining_stopMining") : t("mining_startMining")}
-                    </span>
-                  </button>
-
-                  {isLocked && (
-                    <p className="text-center text-xs text-white/40">
-                      {t("mining_levelUp", { n: mine.required_level })}
+                  {/* Rock HP bar — also shows respawn progress (filling back up) */}
+                  <div className="space-y-1">
+                    <p className="text-center text-xs tabular-nums text-white/60">
+                      {isActive && gameState.respawnProgress > 0
+                        ? `${Math.round(gameState.respawnProgress * currentRockMaxHp / 100)} / ${currentRockMaxHp}`
+                        : `${currentRockHp} / ${currentRockMaxHp}`}
                     </p>
-                  )}
+                    <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "rgba(0,0,0,0.4)" }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-150"
+                        style={{
+                          width: isActive && gameState.respawnProgress > 0
+                            ? `${gameState.respawnProgress}%`
+                            : `${rockHpPct}%`,
+                          background: isActive && gameState.respawnProgress > 0
+                            ? "linear-gradient(90deg, #92400e, #d97706, #fbbf24)"
+                            : rockHpPct > 50
+                              ? "linear-gradient(90deg, #dc2626, #f87171)"
+                              : rockHpPct > 25
+                                ? "linear-gradient(90deg, #d97706, #fbbf24)"
+                                : "linear-gradient(90deg, #7f1d1d, #dc2626)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mining action progress bar */}
+                  <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "rgba(0,0,0,0.4)" }}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: isActive && gameState.respawnProgress <= 0 ? `${actionProgress}%` : "0%",
+                        background: "linear-gradient(90deg, #1a4a3a, #3ecfa5, #6ee7b7)",
+                        boxShadow: isActive ? "0 0 6px rgba(62,207,165,0.5)" : "none",
+                      }}
+                    />
+                  </div>
+
+                  {/* Drop list */}
+                  <div className="space-y-1">
+                    {lootDisplayEntries.map((entry) => {
+                      const info = ITEMS[entry.item_type];
+                      return (
+                        <div key={entry.item_type} className="flex items-center justify-between text-xs rounded px-2 py-0.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          <div className="flex items-center gap-1.5">
+                            {info?.image
+                              ? <img src={info.image} alt="" className="h-4 w-4 object-contain" />
+                              : <span className={info?.color ?? "text-white/70"}>{info?.icon ?? "○"}</span>}
+                            <span className="text-white/70">{getItemName(entry.item_type, locale)}</span>
+                          </div>
+                          <span className="tabular-nums text-white/40">{entry.probability >= 1 ? "100%" : `${(entry.probability * 100).toFixed(0)}%`}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+
+                  {/* Mastery */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-white/60">
+                        🏆 <span className="font-bold text-cinnabar">{mastery}</span>
+                      </span>
+                      <span className="tabular-nums text-white/40">
+                        {(masteryXps[mine.id] ?? 0).toLocaleString()} / {(masteryXpMaxs[mine.id] ?? 83).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "rgba(0,0,0,0.3)" }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${masteryXpPct}%`,
+                          background: "linear-gradient(90deg, #1a4a3a, #3ecfa5)",
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
+              </div>
             );
           })}
         </div>
