@@ -294,7 +294,7 @@ export function CharactersClient({
                       >
                         {(profile as unknown as { character_name?: string }).character_name && (
                           <p
-                            className="font-bold text-base tracking-[0.15em]"
+                            className="font-bold text-lg tracking-[0.15em]"
                             style={{
                               fontFamily: "var(--font-heading), serif",
                               background: "linear-gradient(135deg, #fcd34d, #f59e0b, #d97706)",
@@ -306,13 +306,13 @@ export function CharactersClient({
                             {(profile as unknown as { character_name?: string }).character_name}
                           </p>
                         )}
-                        <p className="font-heading text-[11px]" style={{ color: "#e8d5a3", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                        <p className="font-heading text-[13px]" style={{ color: "#e8d5a3", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
                           {locale === "zh"
-                            ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= 9 ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
-                            : `${({"煉體":"Body Refining","練氣":"Qi Condensation","築基":"Foundation","金丹":"Golden Core","元嬰":"Nascent Soul"} as Record<string,string>)[profile.realm] ?? "Body Refining"} ${profile.realm_level >= 9 ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
+                            ? `${(profile.realm ?? "煉體")}期 ${profile.realm_level >= (profile.realm === "練氣" ? 13 : 9) ? "巔峰" : (profile.realm_level ?? profile.cultivation_stage) + " 級"}`
+                            : `${({"煉體":"Body Refining","練氣":"Qi Condensation","築基":"Foundation","金丹":"Golden Core","元嬰":"Nascent Soul"} as Record<string,string>)[profile.realm] ?? "Body Refining"} ${profile.realm_level >= (profile.realm === "練氣" ? 13 : 9) ? "Peak" : "Lv." + (profile.realm_level ?? profile.cultivation_stage)}`
                           }
                         </p>
-                        <p className="text-[10px]" style={{ color: lastActivity ? "#6ee7b7" : "rgba(255,255,255,0.4)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                        <p className="text-xs" style={{ color: lastActivity ? "#6ee7b7" : "rgba(255,255,255,0.4)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
                           {lastActivity === "meditate" ? (locale === "zh" ? "🧘 冥想中" : "🧘 Meditating")
                             : lastActivity === "mining" ? (locale === "zh" ? "⛏️ 挖礦中" : "⛏️ Mining")
                             : lastActivity === "combat" ? (locale === "zh" ? "⚔️ 戰鬥中" : "⚔️ Fighting")
@@ -403,8 +403,8 @@ export function CharactersClient({
               <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 text-sm">
                 <p className="font-heading font-bold text-destructive">
                   {locale === "zh"
-                    ? `${(deleteTarget.profile.realm ?? "煉體")}期 ${deleteTarget.profile.realm_level >= 9 ? "巔峰" : (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage) + " 級"}`
-                    : `${({"煉體":"Body Refining","練氣":"Qi Condensation","築基":"Foundation","金丹":"Golden Core","元嬰":"Nascent Soul"} as Record<string,string>)[deleteTarget.profile.realm] ?? "Body Refining"} ${deleteTarget.profile.realm_level >= 9 ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
+                    ? `${(deleteTarget.profile.realm ?? "煉體")}期 ${deleteTarget.profile.realm_level >= (deleteTarget.profile.realm === "練氣" ? 13 : 9) ? "巔峰" : (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage) + " 級"}`
+                    : `${({"煉體":"Body Refining","練氣":"Qi Condensation","築基":"Foundation","金丹":"Golden Core","元嬰":"Nascent Soul"} as Record<string,string>)[deleteTarget.profile.realm] ?? "Body Refining"} ${deleteTarget.profile.realm_level >= (deleteTarget.profile.realm === "練氣" ? 13 : 9) ? "Peak" : "Lv." + (deleteTarget.profile.realm_level ?? deleteTarget.profile.cultivation_stage)}`
                   }
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">

@@ -388,13 +388,12 @@ export function BreakthroughDialog({
   useEffect(() => {
     if (phase === "success") {
       const timer = setTimeout(() => {
-        // Set flag to skip loading screen on reload
-        sessionStorage.setItem("skip-splash", "1");
-        window.location.reload();
+        setOpen(false);
+        onCancel();
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [phase]);
+  }, [phase, onCancel]);
 
   const handleBreakthrough = async () => {
     setPhase("breaking");
