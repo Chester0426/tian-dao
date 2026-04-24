@@ -268,7 +268,7 @@ export function MiningPageClient({
                   </div>
 
                   {/* Stat badges row */}
-                  <div className="grid grid-cols-4 gap-1 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div className="grid grid-cols-4 gap-1.5 rounded-lg p-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                     <TooltipProvider>
                       {([
                         { icon: "⛏️", value: String(mine.xp_mining), tip: locale === "zh" ? "挖礦經驗" : "Mining XP", color: "text-jade" },
@@ -278,9 +278,9 @@ export function MiningPageClient({
                       ] as const).map((stat) => (
                         <Tooltip key={stat.tip}>
                           <TooltipTrigger>
-                            <div className="flex flex-col items-center gap-0.5 py-1 cursor-default rounded" style={{ background: "rgba(255,255,255,0.04)" }}>
-                              <span className={`${stat.color} text-[11px]`}>{stat.icon}</span>
-                              <span className="tabular-nums text-[10px] text-white/80">{stat.value}</span>
+                            <div className="flex flex-col items-center gap-1 py-1.5 cursor-default rounded" style={{ background: "rgba(255,255,255,0.04)" }}>
+                              <span className={`${stat.color} text-base`}>{stat.icon}</span>
+                              <span className="tabular-nums text-xs text-white/80">{stat.value}</span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>{stat.tip}</TooltipContent>
@@ -289,9 +289,21 @@ export function MiningPageClient({
                     </TooltipProvider>
                   </div>
 
-                  {/* Rock image */}
-                  <div className="flex justify-center">
-                    <img src="/images/pickaxe.png" alt="" className="w-12 h-12 object-contain" style={{ filter: isActive ? "drop-shadow(0 0 8px rgba(62,207,165,0.5))" : "none" }} />
+                  {/* Ore image — shake + sparkle when mining */}
+                  <div className="flex justify-center relative" style={isActive ? { animation: 'combat-hit-shake 0.4s ease-in-out infinite' } : undefined}>
+                    {ITEMS[mine.main_drop]?.image ? (
+                      <img src={ITEMS[mine.main_drop].image} alt="" className="w-12 h-12 object-contain relative z-10" style={{ filter: isActive ? "drop-shadow(0 0 8px rgba(212,166,67,0.5))" : "none" }} />
+                    ) : (
+                      <span className={`text-2xl relative z-10 ${ITEMS[mine.main_drop]?.color ?? "text-white/60"}`}>{ITEMS[mine.main_drop]?.icon ?? "⛏️"}</span>
+                    )}
+                    {/* Mining impact sparks — only when active */}
+                    {isActive && (
+                      <>
+                        <div className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full pointer-events-none" style={{ animation: 'bt-mine-spark 3s ease-out infinite', animationDelay: '0s' }} />
+                        <div className="absolute top-1/2 left-1/2 w-2.5 h-2.5 rounded-full pointer-events-none" style={{ animation: 'bt-mine-spark 3s ease-out infinite', animationDelay: '1s' }} />
+                        <div className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full pointer-events-none" style={{ animation: 'bt-mine-spark 3s ease-out infinite', animationDelay: '2s' }} />
+                      </>
+                    )}
                   </div>
 
                   {/* Rock HP bar — also shows respawn progress (filling back up) */}

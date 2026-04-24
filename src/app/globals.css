@@ -562,6 +562,25 @@
     100% { opacity: 0; transform: translate(-50%, -50%) scale(2.5); }
 }
 
+/* Mining — gentle rock vibration while mining */
+@keyframes mine-soft-shake {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-1px, 0.5px); }
+    40%  { transform: translate(1px, -0.5px); }
+    60%  { transform: translate(-0.5px, -0.5px); }
+    80%  { transform: translate(0.5px, 0.5px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* Mining — impact spark burst (3s cycle = 1 spark per mining tick) */
+@keyframes bt-mine-spark {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); background: rgba(212,166,67,0.9); box-shadow: 0 0 6px rgba(212,166,67,0.6); }
+    5%   { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+    15%  { opacity: 0.6; transform: translate(-30%, -70%) scale(1); background: rgba(255,225,80,0.7); box-shadow: 0 0 4px rgba(255,225,80,0.4); }
+    30%  { opacity: 0; transform: translate(-20%, -90%) scale(0.5); }
+    100% { opacity: 0; }
+}
+
 /* Custom scrollbar — thin dark track, minimal visibility */
 ::-webkit-scrollbar {
     width: 4px;
