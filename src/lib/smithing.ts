@@ -2,9 +2,12 @@
 
 // === Fuel ===
 export const FUELS = [
-  { item: "coal", heatZh: "煤", heatEn: "Coal", heat: 100, icon: "◆" },
-  { item: "spirit_stone_fragment", heatZh: "靈石碎片", heatEn: "Spirit Stone Fragment", heat: 300, icon: "✦" },
+  { item: "charcoal", heatZh: "木炭", heatEn: "Charcoal", heat: 50, icon: "▪" },
+  { item: "coal", heatZh: "煤", heatEn: "Coal", heat: 1, icon: "◆" },
+  { item: "spirit_stone_fragment", heatZh: "靈石碎片", heatEn: "Spirit Stone Fragment", heat: 3, icon: "✦" },
   { item: "low_spirit_stone", heatZh: "下品靈石", heatEn: "Low Spirit Stone", heat: 800, icon: "✧" },
+  { item: "mid_spirit_stone", heatZh: "中品靈石", heatEn: "Mid Spirit Stone", heat: 1500, icon: "✦" },
+  { item: "fire_crystal", heatZh: "火晶", heatEn: "Fire Crystal", heat: 3000, icon: "🔶" },
 ] as const;
 
 export const MAX_HEAT = 1000;

@@ -3,22 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { InventoryItem } from "@/lib/types";
 import { getItem, ITEMS } from "@/lib/items";
 import { useI18n } from "@/lib/i18n";
 
-type FilterTab = "all" | "ore" | "equipment" | "consumable" | "book" | "other";
+type FilterTab = "all" | "spirit_stone" | "ore" | "consumable" | "book" | "other" | "equipment";
+
+// Sort priority: spirit_stone=0, ore=1, consumable=2, book=3, other(junk)=4, equipment=5(always last)
+const FILTER_SORT_ORDER: Record<FilterTab, number> = {
+  all: -1, spirit_stone: 0, ore: 1, consumable: 2, book: 3, other: 4, equipment: 5,
+};
 
 function getFilterTab(itemType: string): FilterTab {
   const def = ITEMS[itemType];
   if (!def) return "other";
   if (def.tags.includes("equipment")) return "equipment";
+  if (def.tags.includes("spirit_stone")) return "spirit_stone";
   if (def.tags.includes("consumable")) return "consumable";
   if (def.tags.includes("book") || def.tags.includes("tome")) return "book";
-  if (def.tags.includes("spirit_stone")) return "ore";
-  if (!def.tags.length || itemType.endsWith("_ore") || itemType.endsWith("_bar") || ["coal"].includes(itemType)) return "ore";
+  if (def.tags.includes("junk")) return "other";
+  if (itemType.endsWith("_ore") || itemType.endsWith("_bar") || ["coal"].includes(itemType)) return "ore";
   return "other";
 }
 
@@ -41,17 +46,41 @@ export function InventoryClient({
   const [sellQty, setSellQty] = useState(1);
   const [sellQtyInput, setSellQtyInput] = useState("1");
   const [selling, setSelling] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mode, setMode] = useState<"normal" | "sell" | "sacrifice">("normal");
+  const [multiSelect, setMultiSelect] = useState<Record<string, number>>({}); // item_type → selected qty
 
   const slotsUsed = new Set(inventory.map((i) => i.item_type)).size;
 
-  const filteredInventory = filterTab === "all"
+  const filteredInventory = (filterTab === "all"
     ? inventory
-    : inventory.filter((i) => getFilterTab(i.item_type) === filterTab);
+    : inventory.filter((i) => getFilterTab(i.item_type) === filterTab)
+  ).filter((i) => {
+    if (!searchQuery) return true;
+    const def = ITEMS[i.item_type];
+    if (!def) return false;
+    const q = searchQuery.toLowerCase();
+    return def.nameZh.toLowerCase().includes(q) || def.nameEn.toLowerCase().includes(q);
+  });
 
   const selectedInv = selectedItem ? inventory.find((i) => i.item_type === selectedItem) : null;
   const selectedDef = selectedItem ? getItem(selectedItem) : null;
 
   const handleSelectItem = (itemType: string) => {
+    if (mode === "sell" || mode === "sacrifice") {
+      // Multi-select: toggle item, default to full quantity
+      setMultiSelect((prev) => {
+        const next = { ...prev };
+        if (next[itemType]) {
+          delete next[itemType];
+        } else {
+          const item = inventory.find((i) => i.item_type === itemType);
+          next[itemType] = item?.quantity ?? 1;
+        }
+        return next;
+      });
+      return;
+    }
     setSelectedItem(itemType === selectedItem ? null : itemType);
     const item = inventory.find((i) => i.item_type === itemType);
     const q = item?.quantity ?? 1;
@@ -90,11 +119,12 @@ export function InventoryClient({
 
   const TABS: { key: FilterTab; labelZh: string; labelEn: string }[] = [
     { key: "all", labelZh: "全部", labelEn: "All" },
-    { key: "ore", labelZh: "礦石", labelEn: "Ores" },
-    { key: "equipment", labelZh: "裝備", labelEn: "Equip" },
-    { key: "consumable", labelZh: "食物", labelEn: "Food" },
+    { key: "spirit_stone", labelZh: "靈石", labelEn: "Spirit Stones" },
+    { key: "ore", labelZh: "礦物", labelEn: "Ores" },
+    { key: "consumable", labelZh: "補品", labelEn: "Supplies" },
     { key: "book", labelZh: "書籍", labelEn: "Books" },
-    { key: "other", labelZh: "其他", labelEn: "Other" },
+    { key: "other", labelZh: "垃圾", labelEn: "Junk" },
+    { key: "equipment", labelZh: "裝備", labelEn: "Equip" },
   ];
 
   const SLOT_NAMES: Record<string, string> = {
@@ -109,25 +139,89 @@ export function InventoryClient({
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* Top info bar */}
-        <div
-          className="rounded-xl mb-6 px-5 py-4"
-          style={{ background: "rgba(25,30,35,0.85)", border: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/images/nav-items/nav-inventory.png" alt="" className="h-12 w-12 object-contain" />
-              <div>
-                <h1 className="font-heading text-2xl font-bold">{isZh ? "儲物袋" : "Inventory"}</h1>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {isZh ? "空間" : "Space"} <span className="text-white font-bold">{slotsUsed}</span> / {totalSlots}
-                </p>
+        {/* Header — unified style with other skill pages */}
+        <header className="mb-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <img src="/images/nav-items/nav-inventory.png" alt="" className="h-12 w-12 object-contain" />
+                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+                  {isZh ? "儲物袋" : "Inventory"}
+                </h1>
               </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isZh ? `空間 ${slotsUsed} / ${totalSlots}` : `Space ${slotsUsed} / ${totalSlots}`}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-muted-foreground">{isZh ? "銀兩" : "Silver"}</p>
+              <p className="text-xs text-muted-foreground">{isZh ? "銀兩" : "Silver"}</p>
               <p className="font-heading text-lg text-spirit-gold tabular-nums">{daoPoints.toLocaleString()}</p>
             </div>
+          </div>
+          <div className="relative mt-4">
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+          </div>
+        </header>
+
+        {/* Toolbar: mode buttons (left) + search (right) */}
+        <div
+          className="flex items-center gap-2 mb-3 rounded-lg px-3 py-2"
+          style={{ background: "rgba(25,30,35,0.6)", border: "1px solid rgba(255,255,255,0.05)" }}
+        >
+          {/* Mode buttons — left */}
+          <div className="flex gap-1.5 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const sorted = [...inventory].sort((a, b) => {
+                  const tabA = getFilterTab(a.item_type);
+                  const tabB = getFilterTab(b.item_type);
+                  const orderA = FILTER_SORT_ORDER[tabA] ?? 99;
+                  const orderB = FILTER_SORT_ORDER[tabB] ?? 99;
+                  if (orderA !== orderB) return orderA - orderB;
+                  return a.item_type.localeCompare(b.item_type);
+                });
+                setInventory(sorted);
+              }}
+              className="text-xs border-border/40 hover:border-jade/40 hover:bg-jade/10 text-muted-foreground hover:text-jade"
+            >
+              {isZh ? "整理" : "Sort"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setMode(mode === "sell" ? "normal" : "sell"); setMultiSelect({}); setSelectedItem(null); }}
+              className={`text-xs ${
+                mode === "sell"
+                  ? "border-spirit-gold/50 bg-spirit-gold/10 text-spirit-gold"
+                  : "border-border/40 hover:border-spirit-gold/40 hover:bg-spirit-gold/10 text-muted-foreground hover:text-spirit-gold"
+              }`}
+            >
+              {isZh ? "販賣模式" : "Sell Mode"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setMode(mode === "sacrifice" ? "normal" : "sacrifice"); setMultiSelect({}); setSelectedItem(null); }}
+              className={`text-xs ${
+                mode === "sacrifice"
+                  ? "border-cinnabar/50 bg-cinnabar-dim/30 text-cinnabar"
+                  : "border-border/40 hover:border-cinnabar/40 hover:bg-cinnabar-dim/20 text-muted-foreground hover:text-cinnabar"
+              }`}
+            >
+              {isZh ? "獻祭模式" : "Sacrifice Mode"}
+            </Button>
+          </div>
+          {/* Search — right */}
+          <div className="flex-1 min-w-0">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={isZh ? "🔍 搜尋物品..." : "🔍 Search..."}
+              className="w-full bg-transparent text-sm text-foreground text-right placeholder:text-muted-foreground/50 outline-none"
+            />
           </div>
         </div>
 
@@ -162,7 +256,8 @@ export function InventoryClient({
               <TooltipProvider>
                 {filteredInventory.map((item) => {
                   const display = getItem(item.item_type);
-                  const isSelected = selectedItem === item.item_type;
+                  const isMultiSelected = (mode === "sell" || mode === "sacrifice") && !!multiSelect[item.item_type];
+                  const isSelected = mode === "normal" ? selectedItem === item.item_type : isMultiSelected;
                   return (
                     <Tooltip key={item.item_type}>
                       <TooltipTrigger
@@ -210,16 +305,18 @@ export function InventoryClient({
                           </div>
                         </div>
                         {(display?.healHp || display?.equipStats) && (
-                          <div className="border-t border-border/30 px-3 py-2 space-y-1">
+                          <div className="border-t border-border/30 px-3 py-2 space-y-0.5">
                             {display?.healHp && (
-                              <div className="text-[11px] text-jade">+{display.healHp} {isZh ? "氣血" : "HP"}</div>
+                              <p className="text-[11px] text-spirit-gold">{isZh ? `恢復 ${display.healHp} 氣血` : `Restore ${display.healHp} HP`}</p>
                             )}
-                            {display?.equipStats && (
-                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
-                                {display.equipStats.hp ? <span className="text-red-400">{isZh ? "氣血" : "HP"} +{display.equipStats.hp}</span> : null}
-                                {display.equipStats.atk ? <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} +{display.equipStats.atk}</span> : null}
-                                {display.equipStats.def ? <span className="text-blue-300">{isZh ? "防禦" : "DEF"} +{display.equipStats.def}</span> : null}
-                              </div>
+                            {display?.equipStats?.hp && (
+                              <p className="text-[11px] text-spirit-gold">{isZh ? `增加 ${display.equipStats.hp} 氣血` : `+${display.equipStats.hp} HP`}</p>
+                            )}
+                            {display?.equipStats?.atk && (
+                              <p className="text-[11px] text-spirit-gold">{isZh ? `增加 ${display.equipStats.atk} 外功` : `+${display.equipStats.atk} ATK`}</p>
+                            )}
+                            {display?.equipStats?.def && (
+                              <p className="text-[11px] text-spirit-gold">{isZh ? `增加 ${display.equipStats.def} 防禦` : `+${display.equipStats.def} DEF`}</p>
                             )}
                           </div>
                         )}
@@ -237,7 +334,133 @@ export function InventoryClient({
               className="rounded-xl p-5 md:sticky md:top-16"
               style={{ background: "rgba(25,30,35,0.85)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              {selectedInv && selectedDef ? (
+              {/* === SELL / SACRIFICE MODE === */}
+              {(mode === "sell" || mode === "sacrifice") ? (() => {
+                const selectedEntries = Object.entries(multiSelect);
+                const totalQty = selectedEntries.reduce((sum, [, qty]) => sum + qty, 0);
+                const totalSilver = totalQty; // 1:1 ratio for now
+
+                const handleBatchAction = async () => {
+                  if (totalQty <= 0) return;
+                  setSelling(true);
+                  try {
+                    let latestDaoPoints = daoPoints;
+                    for (const [itemType, qty] of selectedEntries) {
+                      if (qty <= 0) continue;
+                      const res = await fetch("/api/game/sacrifice", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ item_type: itemType, quantity: qty }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        latestDaoPoints = data.dao_points_total;
+                      }
+                    }
+                    setDaoPoints(latestDaoPoints);
+                    setInventory((prev) =>
+                      prev
+                        .map((i) => multiSelect[i.item_type] ? { ...i, quantity: i.quantity - multiSelect[i.item_type] } : i)
+                        .filter((i) => i.quantity > 0)
+                    );
+                    setMultiSelect({});
+                    router.refresh();
+                  } catch {
+                    // ignore
+                  } finally {
+                    setSelling(false);
+                  }
+                };
+
+                return (
+                  <div className="space-y-4">
+                    {/* Mode title */}
+                    <div className="text-center">
+                      <p className={`font-heading text-base font-bold ${mode === "sell" ? "text-spirit-gold" : "text-cinnabar"}`}>
+                        {mode === "sell"
+                          ? (isZh ? "販賣模式" : "Sell Mode")
+                          : (isZh ? "獻祭模式" : "Sacrifice Mode")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {isZh ? "點擊左側物品選取/取消" : "Click items on the left to select/deselect"}
+                      </p>
+                    </div>
+
+                    {/* Selected items list */}
+                    {selectedEntries.length > 0 ? (
+                      <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-y-auto">
+                        {selectedEntries.map(([itemType, qty]) => {
+                          const def = getItem(itemType);
+                          if (!def) return null;
+                          return (
+                            <button
+                              key={itemType}
+                              onClick={() => setMultiSelect((prev) => { const next = { ...prev }; delete next[itemType]; return next; })}
+                              className="relative aspect-square rounded-md cursor-pointer hover:brightness-125 transition-all"
+                              style={{
+                                background: "rgba(0,0,0,0.35)",
+                                border: mode === "sell" ? "1px solid rgba(180,160,60,0.4)" : "1px solid rgba(180,60,60,0.4)",
+                              }}
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center p-1">
+                                {def.image ? (
+                                  <img src={def.image} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.2)]" />
+                                ) : (
+                                  <span className={`text-lg ${def.color}`}>{def.icon}</span>
+                                )}
+                              </div>
+                              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[10px] tabular-nums text-white bg-black/60 rounded px-1 leading-tight">
+                                {qty}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-6 text-center">
+                        <p className="text-xs text-muted-foreground/50">
+                          {isZh ? "尚未選擇任何物品" : "No items selected"}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Total */}
+                    {selectedEntries.length > 0 && (
+                      <>
+                        <div
+                          className="flex items-center justify-between text-sm rounded-lg px-3 py-2"
+                          style={{
+                            background: mode === "sell" ? "rgba(180,160,60,0.12)" : "rgba(180,60,60,0.12)",
+                            border: mode === "sell" ? "1px solid rgba(180,160,60,0.2)" : "1px solid rgba(180,60,60,0.2)",
+                          }}
+                        >
+                          <span className="text-muted-foreground">
+                            {mode === "sell" ? (isZh ? "獲得銀兩" : "Silver earned") : (isZh ? "獲得天道值" : "TAO Points")}
+                          </span>
+                          <span className={`font-heading font-bold tabular-nums ${mode === "sell" ? "text-spirit-gold" : "text-cinnabar"}`}>
+                            +{totalSilver.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <Button
+                          className={`w-full font-heading text-sm h-10 ${mode === "sell" ? "seal-glow" : "bg-cinnabar hover:bg-cinnabar/90 text-white"}`}
+                          onClick={handleBatchAction}
+                          disabled={selling}
+                        >
+                          {selling
+                            ? (isZh ? "處理中..." : "Processing...")
+                            : mode === "sell"
+                            ? (isZh ? `確認販售 (${selectedEntries.length} 種物品)` : `Confirm Sell (${selectedEntries.length} items)`)
+                            : (isZh ? `確認獻祭 (${selectedEntries.length} 種物品)` : `Confirm Sacrifice (${selectedEntries.length} items)`)}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                );
+              })()
+
+              /* === NORMAL MODE === */
+              : selectedInv && selectedDef ? (
                 <div className="space-y-4">
                   {/* Item header: image left, info right */}
                   <div
@@ -275,43 +498,26 @@ export function InventoryClient({
                           {isZh ? selectedDef.hintZh : selectedDef.hintEn}
                         </p>
                       )}
+                      {(selectedDef.healHp || selectedDef.equipStats) && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[10px]">
+                          {selectedDef.healHp && (
+                            <span className="text-spirit-gold">{isZh ? `恢復 ${selectedDef.healHp} 氣血` : `Restore ${selectedDef.healHp} HP`}</span>
+                          )}
+                          {selectedDef.equipStats?.hp && (
+                            <span className="text-spirit-gold">{isZh ? `增加 ${selectedDef.equipStats.hp} 氣血` : `+${selectedDef.equipStats.hp} HP`}</span>
+                          )}
+                          {selectedDef.equipStats?.atk && (
+                            <span className="text-spirit-gold">{isZh ? `增加 ${selectedDef.equipStats.atk} 外功` : `+${selectedDef.equipStats.atk} ATK`}</span>
+                          )}
+                          {selectedDef.equipStats?.def && (
+                            <span className="text-spirit-gold">{isZh ? `增加 ${selectedDef.equipStats.def} 防禦` : `+${selectedDef.equipStats.def} DEF`}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  {(selectedDef.healHp || selectedDef.equipStats) && (
-                    <>
-                      <Separator className="opacity-20" />
-                      <div className="space-y-1.5">
-                        {selectedDef.healHp && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{isZh ? "恢復氣血" : "Restore HP"}</span>
-                            <span className="text-jade font-bold">+{selectedDef.healHp}</span>
-                          </div>
-                        )}
-                        {selectedDef.equipStats?.hp && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{isZh ? "氣血" : "HP"}</span>
-                            <span className="text-red-400 font-bold">+{selectedDef.equipStats.hp}</span>
-                          </div>
-                        )}
-                        {selectedDef.equipStats?.atk && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{isZh ? "外功" : "ATK"}</span>
-                            <span className="text-spirit-gold font-bold">+{selectedDef.equipStats.atk}</span>
-                          </div>
-                        )}
-                        {selectedDef.equipStats?.def && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{isZh ? "防禦" : "DEF"}</span>
-                            <span className="text-blue-300 font-bold">+{selectedDef.equipStats.def}</span>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Sell section */}
+                  {/* Sell section (normal mode, single item) */}
                   <div
                     className="rounded-lg p-3 space-y-2"
                     style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.06)" }}
@@ -350,7 +556,6 @@ export function InventoryClient({
                         onClick={() => { setSellQty(selectedInv.quantity); setSellQtyInput(String(selectedInv.quantity)); }}
                       >{isZh ? "全部" : "All"}</Button>
                     </div>
-                    {/* Slider */}
                     <input
                       type="range"
                       min={1}
@@ -373,9 +578,11 @@ export function InventoryClient({
                     </Button>
                   </div>
                 </div>
+
+              /* === EMPTY STATE === */
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <span className="text-3xl text-muted-foreground/20 mb-3">🎒</span>
+                  <img src="/images/nav-items/nav-inventory.png" alt="" className="w-12 h-12 object-contain opacity-20 mb-3" />
                   <p className="text-xs text-muted-foreground/50">
                     {isZh ? "點擊物品查看詳情" : "Click an item for details"}
                   </p>

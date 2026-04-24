@@ -12,7 +12,9 @@ export type ItemTag =
   | "book"         // books (enlightenment inputs: 破損書籍, 小說)
   | "tome"         // 典藏 (learnable technique items dropped from book enlightenment)
   | "equipment"    // equippable gear
-  | "consumable";  // food/potion — heals HP when consumed
+  | "consumable"   // food/potion — heals HP when consumed
+  | "fuel"         // furnace fuel (coal, spirit stones)
+  | "junk";        // junk items (novel, etc.)
 
 // Equipment slot IDs — must match EQUIPMENT_SLOTS in stats/page.tsx
 export type EquipSlotId = "helmet" | "shoulder" | "cape" | "necklace" | "main-hand" | "off-hand" | "chest" | "gloves" | "pants" | "accessory" | "ring" | "boots";
@@ -47,7 +49,7 @@ export const ITEMS: Record<string, ItemDef> = {
     image: "/images/items/coal.png",
     color: "text-foreground",
     hintZh: "常見的燃料礦石", hintEn: "A common fuel ore",
-    tags: [],
+    tags: ["fuel"],
   },
   copper_ore: {
     nameZh: "銅礦",
@@ -92,7 +94,7 @@ export const ITEMS: Record<string, ItemDef> = {
     image: "/images/items/spirit_stone_fragment.png",
     color: "text-spirit-gold",
     hintZh: "蘊含微弱靈氣的碎片", hintEn: "A fragment imbued with faint spiritual energy",
-    tags: ["spirit_stone"],
+    tags: ["spirit_stone", "fuel"],
   },
   low_spirit_stone: {
     nameZh: "下品靈石",
@@ -101,7 +103,23 @@ export const ITEMS: Record<string, ItemDef> = {
     image: "/images/items/low_spirit_stone.png",
     color: "text-spirit-gold",
     hintZh: "凝聚靈氣的下品靈石，冥想效果更佳", hintEn: "A low-grade spirit stone with condensed energy",
-    tags: ["spirit_stone"],
+    tags: ["spirit_stone", "fuel"],
+  },
+  // === Test fuel items (for 6-fuel grid preview) ===
+  mid_spirit_stone: {
+    nameZh: "中品靈石", nameEn: "Mid Spirit Stone", icon: "✦", color: "text-purple-400",
+    hintZh: "蘊含中等靈氣的靈石", hintEn: "A spirit stone with moderate energy",
+    tags: ["spirit_stone", "fuel"],
+  },
+  fire_crystal: {
+    nameZh: "火晶", nameEn: "Fire Crystal", icon: "🔶", color: "text-orange-500",
+    hintZh: "蘊含火焰精華的晶石", hintEn: "A crystal imbued with flame essence",
+    tags: ["fuel"],
+  },
+  charcoal: {
+    nameZh: "木炭", nameEn: "Charcoal", icon: "▪", color: "text-zinc-400",
+    hintZh: "基礎的木製燃料", hintEn: "Basic wood fuel",
+    tags: ["fuel"],
   },
   // === Bars (smelting output) ===
   copper_bar: {
@@ -214,7 +232,7 @@ export const ITEMS: Record<string, ItemDef> = {
     image: "/images/items/novel.png",
     color: "text-muted-foreground",
     hintZh: "凡人消遣的俗世讀物", hintEn: "Mundane reading for mortals",
-    tags: [],
+    tags: ["junk"],
   },
   qi_primer_ten_lectures: {
     nameZh: "引氣入門十講",
