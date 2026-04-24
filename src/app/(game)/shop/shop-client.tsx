@@ -105,7 +105,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
             </CardContent>
           </Card>
 
-          <Card className="scroll-surface border-spirit-gold/40">
+          {false && <Card className="scroll-surface border-spirit-gold/40">
             <CardHeader>
               <CardTitle className="font-heading text-xl text-spirit-gold text-glow-gold">
                 {isZh ? "天道 — 完整版" : "TIAN TAO — Full Version"}
@@ -149,7 +149,7 @@ export function ShopClient({ spiritStones: initialStones, currentSlots: initialS
                 </p>
               </div>
             </CardContent>
-          </Card>
+          </Card>}
         </div>
       </div>
     </div>

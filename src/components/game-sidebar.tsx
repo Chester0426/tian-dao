@@ -47,9 +47,9 @@ export function GameSidebar({
     { title: t("sidebar_skills"), items: [
       { name: t("sidebar_mining"), href: "/mining", icon: "⛏️", iconUrl: "/images/nav-items/nav-mining.png", key: "mining", pcBgImage: "/images/bg-mining.png", mobileBgImage: "/images/bg-mining-m.png" },
       { name: locale === "zh" ? "採藥" : "Herbalism", href: "/herbalism", icon: "🌿", iconUrl: "/images/nav-items/nav-herbalism.png", key: "herbalism", pcBgImage: "/images/bg-herbalism.png", mobileBgImage: "/images/bg-herbalism-m.png" },
+      { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", iconUrl: "/images/nav-items/nav-smithing.png", key: "smithing", pcBgImage: "/images/bg-smithing.png", mobileBgImage: "/images/bg-smithing-m.png" },
       ...((gameState.realm && gameState.realm !== "煉體") ? [
         { name: locale === "zh" ? "煉丹" : "Alchemy", href: "/alchemy", icon: "🧪", iconUrl: "/images/nav-items/nav-alchemy.png", key: "alchemy", pcBgImage: "/images/bg-alchemy.png", mobileBgImage: "/images/bg-alchemy-m.png" },
-        { name: locale === "zh" ? "煉器" : "Smithing", href: "/smithing", icon: "🔨", iconUrl: "/images/nav-items/nav-smithing.png", key: "smithing", pcBgImage: "/images/bg-smithing.png", mobileBgImage: "/images/bg-smithing-m.png" },
       ] : []),
     ]},
     { title: locale === "zh" ? "系統" : "System", items: [

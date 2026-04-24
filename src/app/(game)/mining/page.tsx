@@ -72,11 +72,11 @@ export default async function MiningPage() {
   const masteries = (masteryRes.data as MineMastery[]) ?? [];
   const inventory = (inventoryRes.data as InventoryItem[]) ?? [];
 
-  const { melvorXpForLevel } = await import("@/lib/types");
+  const { melvorXpForLevel, totalMiningXpForLevel, miningXpForLevel } = await import("@/lib/types");
   const level = skill?.level ?? 1;
   const totalXp = skill?.xp ?? 0;
-  const xpInLevel = totalXp - melvorXpForLevel(level);
-  const xpForNext = melvorXpForLevel(level + 1) - melvorXpForLevel(level);
+  const xpInLevel = totalXp - totalMiningXpForLevel(level);
+  const xpForNext = miningXpForLevel(level);
 
   // Build mastery maps: mine_id → { level, xp, xpMax }
   const masteryLevels: Record<string, number> = {};

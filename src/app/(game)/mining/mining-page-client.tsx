@@ -159,7 +159,7 @@ export function MiningPageClient({
           <div
             className="relative h-7 w-full overflow-hidden rounded-full"
             style={{
-              background: "linear-gradient(90deg, rgba(0,0,0,0.5), rgba(20,20,20,0.4))",
+              background: "rgb(10,10,10)",
               boxShadow: "inset 0 1px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03)",
               border: "1px solid rgba(255,255,255,0.05)",
             }}
@@ -288,14 +288,15 @@ export function MiningPageClient({
                     </TooltipProvider>
                   </div>
 
-                  {/* Ore image — shake + sparkle when mining */}
-                  <div className="flex justify-center py-2 relative" style={isActive ? { animation: 'combat-hit-shake 0.4s ease-in-out infinite' } : undefined}>
+                  {/* Ore image — shake + sparkle when mining (not during respawn) */}
+                  {(() => { const isMiningActive = isActive && gameState.respawnProgress <= 0; return (
+                  <div className="flex justify-center py-2 relative" style={isMiningActive ? { animation: 'mine-soft-shake 1s ease-in-out infinite' } : undefined}>
                     {ITEMS[mine.main_drop]?.image ? (
-                      <img src={ITEMS[mine.main_drop].image} alt="" className="w-20 h-20 object-contain relative z-10" style={{ filter: isActive ? "drop-shadow(0 0 8px rgba(212,166,67,0.5))" : "none" }} />
+                      <img src={ITEMS[mine.main_drop].image} alt="" className="w-20 h-20 object-contain relative z-10" style={{ filter: isMiningActive ? "drop-shadow(0 0 8px rgba(212,166,67,0.5))" : "none" }} />
                     ) : (
                       <span className={`text-4xl relative z-10 ${ITEMS[mine.main_drop]?.color ?? "text-white/60"}`}>{ITEMS[mine.main_drop]?.icon ?? "⛏️"}</span>
                     )}
-                    {isActive && (
+                    {isMiningActive && (
                       <>
                         <div className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full pointer-events-none" style={{ animation: 'bt-mine-spark 3s ease-out infinite', animationDelay: '0s' }} />
                         <div className="absolute top-1/2 left-1/2 w-2.5 h-2.5 rounded-full pointer-events-none" style={{ animation: 'bt-mine-spark 3s ease-out infinite', animationDelay: '1s' }} />
@@ -303,6 +304,7 @@ export function MiningPageClient({
                       </>
                     )}
                   </div>
+                  ); })()}
 
                   {/* Rock HP bar — also shows respawn progress (filling back up) */}
                   <div className="space-y-1">

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { getMasteryDoubleDropChance, melvorXpForLevel, bodyXpForStage } from "@/lib/types";
+import { getMasteryDoubleDropChance, melvorXpForLevel, totalMiningXpForLevel, miningXpForLevel, bodyXpForStage } from "@/lib/types";
 import { getSlotFromRequest } from "@/lib/slot-api";
 
 const MineActionSchema = z.object({
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
   // Update mining skill XP and level
   const newMiningXp = miningSkill.xp + xpMining;
   let newMiningLevel = miningSkill.level;
-  while (newMiningLevel < 99 && newMiningXp >= melvorXpForLevel(newMiningLevel + 1)) {
+  while (newMiningLevel < 500 && newMiningXp >= totalMiningXpForLevel(newMiningLevel + 1)) {
     newMiningLevel++;
   }
 
@@ -239,8 +239,8 @@ export async function POST(request: NextRequest) {
       body_skill_level: newBodySkillLevel,
     },
     totals: {
-      mining_xp: newMiningXp - melvorXpForLevel(newMiningLevel),
-      mining_xp_max: melvorXpForLevel(newMiningLevel + 1) - melvorXpForLevel(newMiningLevel),
+      mining_xp: newMiningXp - totalMiningXpForLevel(newMiningLevel),
+      mining_xp_max: miningXpForLevel(newMiningLevel),
       mastery_xp: newMasteryXp - melvorXpForLevel(newMasteryLevel),
       mastery_xp_max: melvorXpForLevel(newMasteryLevel + 1) - melvorXpForLevel(newMasteryLevel),
       body_xp: newBodyXp,

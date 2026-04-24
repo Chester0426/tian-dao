@@ -7,7 +7,7 @@ import { GlobalGameUI } from "@/components/global-game-ui";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { cookies } from "next/headers";
 import type { MiningSkill, MineMastery, InventoryItem, Profile } from "@/lib/types";
-import { melvorXpForLevel } from "@/lib/types";
+import { melvorXpForLevel, totalMiningXpForLevel, miningXpForLevel } from "@/lib/types";
 import type { OfflineRewardResult } from "@/lib/offline-rewards";
 
 export default async function GameGroupLayout({
@@ -94,8 +94,8 @@ export default async function GameGroupLayout({
 
         initialState = {
           miningLevel: level,
-          miningXp: totalXp - melvorXpForLevel(level),
-          miningXpMax: melvorXpForLevel(level + 1) - melvorXpForLevel(level),
+          miningXp: totalXp - totalMiningXpForLevel(level),
+          miningXpMax: miningXpForLevel(level),
           masteryLevels,
           masteryXps,
           masteryXpMaxs,

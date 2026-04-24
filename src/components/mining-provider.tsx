@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
-import { getMasteryDoubleDropChance, melvorXpForLevel, bodyXpForStage, spiritStoneBonus } from "@/lib/types";
+import { getMasteryDoubleDropChance, melvorXpForLevel, miningXpForLevel, totalMiningXpForLevel, bodyXpForStage, spiritStoneBonus } from "@/lib/types";
 import { COMBAT_ZONES, type Monster } from "@/lib/combat";
 import { PLAYER_ATTACK_INTERVAL, calcCombatRound } from "@/lib/combat-sim";
 import { ITEMS, hasTag, getItem } from "@/lib/items";
@@ -435,9 +435,9 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       const newXp = prev + mine.xp_mining;
       if (newXp >= miningXpMaxRef.current) {
         miningLeveledUp = true;
-        setMiningLevel((l) => Math.min(l + 1, 99));
+        setMiningLevel((l) => Math.min(l + 1, 500));
         const nextLevel = miningLevelRef.current + 1;
-        setMiningXpMax(melvorXpForLevel(nextLevel + 1) - melvorXpForLevel(nextLevel));
+        setMiningXpMax(miningXpForLevel(nextLevel));
         return newXp - miningXpMaxRef.current;
       }
       return newXp;
@@ -699,13 +699,13 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
 
     // Apply mining XP with proper level-up calculation
     setMiningXp((prevXpInLevel) => {
-      let totalXp = melvorXpForLevel(miningLevelRef.current) + prevXpInLevel + rewards.xp_gained.mining;
+      let totalXp = totalMiningXpForLevel(miningLevelRef.current) + prevXpInLevel + rewards.xp_gained.mining;
       let newLevel = miningLevelRef.current;
-      while (newLevel < 99 && totalXp >= melvorXpForLevel(newLevel + 1)) {
+      while (newLevel < 500 && totalXp >= totalMiningXpForLevel(newLevel + 1)) {
         newLevel++;
       }
-      const newXpInLevel = totalXp - melvorXpForLevel(newLevel);
-      const newXpMax = melvorXpForLevel(newLevel + 1) - melvorXpForLevel(newLevel);
+      const newXpInLevel = totalXp - totalMiningXpForLevel(newLevel);
+      const newXpMax = miningXpForLevel(newLevel);
       setMiningLevel(newLevel);
       setMiningXpMax(newXpMax);
       return newXpInLevel;

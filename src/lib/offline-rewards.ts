@@ -3,7 +3,7 @@
 // Mining path still goes through /api/game/offline-rewards for its more complex logic.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { melvorXpForLevel, getMasteryDoubleDropChance } from "@/lib/types";
+import { melvorXpForLevel, totalMiningXpForLevel, getMasteryDoubleDropChance } from "@/lib/types";
 import { COMBAT_ZONES } from "@/lib/combat";
 import { computeStats } from "@/lib/stats";
 import { hasTag } from "@/lib/items";
@@ -242,7 +242,7 @@ export async function computeOfflineRewards(
   // Mining XP
   const newMiningXp = miningSkill.xp + xpMiningTotal;
   let newMiningLevel = miningSkill.level;
-  while (newMiningLevel < 99 && newMiningXp >= melvorXpForLevel(newMiningLevel + 1)) {
+  while (newMiningLevel < 500 && newMiningXp >= totalMiningXpForLevel(newMiningLevel + 1)) {
     newMiningLevel++;
   }
 

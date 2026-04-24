@@ -103,6 +103,101 @@ export const ITEMS: Record<string, ItemDef> = {
     hintZh: "凝聚靈氣的下品靈石，冥想效果更佳", hintEn: "A low-grade spirit stone with condensed energy",
     tags: ["spirit_stone"],
   },
+  // === Bars (smelting output) ===
+  copper_bar: {
+    nameZh: "銅錠", nameEn: "Copper Bar", icon: "🟫", color: "text-amber-600",
+    hintZh: "精煉銅礦而成的金屬錠", hintEn: "A metal bar smelted from copper ore",
+    tags: [],
+  },
+  bronze_bar: {
+    nameZh: "青銅錠", nameEn: "Bronze Bar", icon: "🟤", color: "text-amber-700",
+    hintZh: "銅與錫的合金", hintEn: "An alloy of copper and tin",
+    tags: [],
+  },
+  iron_bar: {
+    nameZh: "鐵錠", nameEn: "Iron Bar", icon: "⬛", color: "text-slate-400",
+    hintZh: "堅硬的鐵金屬錠", hintEn: "A sturdy iron metal bar",
+    tags: [],
+  },
+  silver_bar: {
+    nameZh: "銀錠", nameEn: "Silver Bar", icon: "⬜", color: "text-gray-200",
+    hintZh: "閃耀的銀金屬錠", hintEn: "A gleaming silver metal bar",
+    tags: [],
+  },
+  // === Copper Equipment (smithing output) ===
+  copper_sword: {
+    nameZh: "銅劍", nameEn: "Copper Sword", icon: "🗡️", color: "text-amber-600",
+    hintZh: "基礎的銅製武器", hintEn: "A basic copper weapon",
+    tags: ["equipment"], equipSlot: "main-hand" as EquipSlotId,
+    equipStats: { atk: 5 },
+  },
+  copper_shield: {
+    nameZh: "銅盾", nameEn: "Copper Shield", icon: "🛡️", color: "text-amber-600",
+    hintZh: "基礎的銅製盾牌", hintEn: "A basic copper shield",
+    tags: ["equipment"], equipSlot: "off-hand" as EquipSlotId,
+    equipStats: { def: 5, hp: 10 },
+  },
+  copper_helmet: {
+    nameZh: "銅頭盔", nameEn: "Copper Helmet", icon: "🪖", color: "text-amber-600",
+    hintZh: "基礎的銅製頭盔", hintEn: "A basic copper helmet",
+    tags: ["equipment"], equipSlot: "helmet" as EquipSlotId,
+    equipStats: { def: 3, hp: 5 },
+  },
+  copper_shoulder: {
+    nameZh: "銅肩甲", nameEn: "Copper Shoulder", icon: "🛡️", color: "text-amber-600",
+    hintZh: "基礎的銅製護肩", hintEn: "A basic copper shoulder pad",
+    tags: ["equipment"], equipSlot: "shoulder" as EquipSlotId,
+    equipStats: { def: 3 },
+  },
+  copper_chest: {
+    nameZh: "銅胸甲", nameEn: "Copper Chestplate", icon: "👕", color: "text-amber-600",
+    hintZh: "基礎的銅製胸甲", hintEn: "A basic copper chestplate",
+    tags: ["equipment"], equipSlot: "chest" as EquipSlotId,
+    equipStats: { def: 5, hp: 20 },
+  },
+  copper_pants: {
+    nameZh: "銅護腿", nameEn: "Copper Pants", icon: "👖", color: "text-amber-600",
+    hintZh: "基礎的銅製護腿", hintEn: "A basic copper leg armor",
+    tags: ["equipment"], equipSlot: "pants" as EquipSlotId,
+    equipStats: { def: 4, hp: 10 },
+  },
+  copper_gloves: {
+    nameZh: "銅手套", nameEn: "Copper Gloves", icon: "🧤", color: "text-amber-600",
+    hintZh: "基礎的銅製手套", hintEn: "A basic copper gloves",
+    tags: ["equipment"], equipSlot: "gloves" as EquipSlotId,
+    equipStats: { atk: 2, def: 2 },
+  },
+  copper_boots: {
+    nameZh: "銅靴子", nameEn: "Copper Boots", icon: "🥾", color: "text-amber-600",
+    hintZh: "基礎的銅製靴子", hintEn: "A basic copper boots",
+    tags: ["equipment"], equipSlot: "boots" as EquipSlotId,
+    equipStats: { def: 3 },
+  },
+  copper_necklace: {
+    nameZh: "銅項鍊", nameEn: "Copper Necklace", icon: "📿", color: "text-amber-600",
+    hintZh: "基礎的銅製項鍊", hintEn: "A basic copper necklace",
+    tags: ["equipment"], equipSlot: "necklace" as EquipSlotId,
+    equipStats: { hp: 15 },
+  },
+  copper_cape: {
+    nameZh: "銅披風", nameEn: "Copper Cape", icon: "🧣", color: "text-amber-600",
+    hintZh: "基礎的銅製披風", hintEn: "A basic copper cape",
+    tags: ["equipment"], equipSlot: "cape" as EquipSlotId,
+    equipStats: { def: 4 },
+  },
+  copper_ring: {
+    nameZh: "銅戒指", nameEn: "Copper Ring", icon: "💍", color: "text-amber-600",
+    hintZh: "基礎的銅製戒指", hintEn: "A basic copper ring",
+    tags: ["equipment"], equipSlot: "ring" as EquipSlotId,
+    equipStats: { atk: 3 },
+  },
+  copper_accessory: {
+    nameZh: "銅飾品", nameEn: "Copper Accessory", icon: "📿", color: "text-amber-600",
+    hintZh: "基礎的銅製飾品", hintEn: "A basic copper accessory",
+    tags: ["equipment"], equipSlot: "accessory" as EquipSlotId,
+    equipStats: { hp: 10 },
+  },
+  // === Books ===
   damaged_book: {
     nameZh: "破損書籍",
     nameEn: "Damaged Book",

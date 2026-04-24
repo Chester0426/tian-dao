@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { getSlotFromRequest } from "@/lib/slot-api";
-import { melvorXpForLevel } from "@/lib/types";
+import { melvorXpForLevel, totalMiningXpForLevel } from "@/lib/types";
 import { z } from "zod";
 
 const MAX_ACTIONS_PER_SECOND = 0.4; // 1 action per 3s = 0.333/s, allow 20% tolerance
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
   if (skill) {
     const newXp = skill.xp + safeXp.mining;
     let newLevel = skill.level;
-    while (newLevel < 99 && newXp >= melvorXpForLevel(newLevel + 1)) {
+    while (newLevel < 500 && newXp >= totalMiningXpForLevel(newLevel + 1)) {
       newLevel++;
     }
     await supabase

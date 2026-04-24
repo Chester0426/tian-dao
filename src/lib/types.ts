@@ -146,6 +146,29 @@ export function melvorXpForLevel(level: number): number {
   return total;
 }
 
+// Mining XP curve — realm-based formula (Lv.1-500)
+const MINING_REALM_MULTIPLIER = [1, 8, 50, 250, 1000];
+function miningRealmMultiplier(level: number): number {
+  const idx = Math.min(Math.floor((level - 1) / 100), 4);
+  return MINING_REALM_MULTIPLIER[idx];
+}
+
+/** XP needed to go from level N to level N+1 */
+export function miningXpForLevel(level: number): number {
+  const inRealmLevel = ((level - 1) % 100) + 1;
+  return (Math.floor((inRealmLevel * inRealmLevel) / 2) + 6) * miningRealmMultiplier(level);
+}
+
+/** Total XP from Lv.1 to reach Lv.N (cumulative) */
+export function totalMiningXpForLevel(level: number): number {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let l = 1; l < level; l++) {
+    total += miningXpForLevel(l);
+  }
+  return total;
+}
+
 // Custom body tempering XP table (stage 1-9)
 // Based on 2,3,5,7,9,11,13,15 minute progression with 5 XP per 3s action
 const BODY_XP_TABLE: Record<number, number> = {

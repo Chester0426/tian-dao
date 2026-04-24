@@ -33,6 +33,44 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 const DEV_LOG = [
+  { date: "04/24", items: [
+    { zh: "挖礦 UI：礦石圖取代鶴嘴鋤，挖礦搖晃+火花動畫", en: "Mining UI: ore images replace pickaxe, shake + sparkle animation" },
+    { zh: "礦場卡片完全不透明，背景美術透明度系統（ink-wash 70%）", en: "Mine cards fully opaque, background art transparency system" },
+    { zh: "未發現礦場卡片重新設計：居中佈局、大圖標", en: "Locked mine card redesign: centered layout, larger icon" },
+    { zh: "離線獎勵：離開不足 1 分鐘不觸發計算", en: "Offline rewards: skip calculation if away < 60 seconds" },
+    { zh: "挖礦經驗公式重寫：境界分層曲線（Lv.1-500）", en: "Mining XP formula rewrite: realm-based curve (Lv.1-500)" },
+    { zh: "技能等級上限提升至 500", en: "Skill level cap raised to 500" },
+    { zh: "礦場經驗值重新平衡", en: "Mine XP values rebalanced" },
+    { zh: "新增 3 個未解鎖礦場（Lv.125/150/175）", en: "3 additional locked mines added (Lv.125/150/175)" },
+    { zh: "煉器一開始就解鎖", en: "Smithing unlocked from start" },
+    { zh: "側欄顯示挖礦技能等級", en: "Sidebar shows mining skill level" },
+  ]},
+  { date: "04/23", items: [
+    { zh: "挖礦系統重構：5 礦場（煤/銅/錫/鐵/銀）", en: "Mining refactor: 5 mines (coal/copper/tin/iron/silver)" },
+    { zh: "新掉落邏輯：主礦必掉 + 伴生礦機率判定", en: "New drop logic: guaranteed main drop + companion chance" },
+    { zh: "岩石血量系統：HP = 基礎值 + 精通，歸零後 10 秒重生", en: "Rock HP system: HP = base + mastery, 10s respawn on depletion" },
+    { zh: "每礦獨立血量追蹤，停止挖礦後每 10 秒回 1 點", en: "Per-mine HP tracking, regen 1 HP/10s when idle" },
+    { zh: "礦場卡片重設計：點擊開始/停止、屬性方塊、血條+進度條", en: "Mine card redesign: click-to-mine, stat badges, HP bar + progress bar" },
+    { zh: "新物品：錫礦、鐵礦、銀礦、下品靈石", en: "New items: tin ore, iron ore, silver ore, low-grade spirit stone" },
+    { zh: "突破修正：練氣巔峰判定（13 級而非 9 級）", en: "Breakthrough fix: peak detection for Qi Condensation (level 13)" },
+  ]},
+  { date: "04/22", items: [
+    { zh: "突破即時 UI 更新，不再強制重新載入", en: "Breakthrough instant UI update, no forced reload" },
+    { zh: "離線獎勵計算遮罩（計算中禁止操作）", en: "Offline rewards loading overlay with interaction block" },
+    { zh: "進度環修復：冥想/參悟不再倒退動畫", en: "Progress ring fix: meditation/enlightenment no rewind" },
+    { zh: "掉落通知改用正式物品圖片", en: "Drop notifications use official item images" },
+    { zh: "載入畫面：實際進度百分比、中英文文字", en: "Loading screen: real progress %, i18n text" },
+    { zh: "導航圖示更新：無邊距粗體風格", en: "Nav icons updated: no-padding bold style" },
+  ]},
+  { date: "04/21", items: [
+    { zh: "仙俠風格動畫：參悟、冥想、戰鬥特效", en: "Xianxia animations: enlightenment, meditation, combat effects" },
+    { zh: "戰鬥傷害縮放視覺效果", en: "Combat damage-scaled visual effects" },
+    { zh: "載入畫面：修仙法陣旋轉入場，最低 3 秒展示", en: "Loading screen: xianxia qi circle entrance, 3s minimum" },
+    { zh: "全面 i18n 掃描修正所有硬編碼中文", en: "Comprehensive i18n scan fixing all hardcoded Chinese" },
+    { zh: "TAO 排行榜（從 DAO 更名）", en: "TAO leaderboard (renamed from DAO)" },
+    { zh: "所有頁面預載：瞬間切換 Tab", en: "All tabs preloaded for instant switching" },
+    { zh: "Badge 可讀性改善", en: "Badge readability improved" },
+  ]},
   { date: "04/20", items: [
     { zh: "技能切換確認系統：四大技能統一互斥機制", en: "Activity switch confirmation: unified mutual exclusion for all 4 skills" },
     { zh: "參悟系統完全整合至 Provider 互斥架構", en: "Enlightenment fully integrated into provider mutual exclusion" },
