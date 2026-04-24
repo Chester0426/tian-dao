@@ -145,12 +145,12 @@ export function GameLayout({
       {currentBg && (
         <>
           <div
-            className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:block hidden"
-            style={{ backgroundImage: `url('${currentBg.pc}')`, opacity: 0 }}
+            className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:block hidden"
+            style={{ backgroundImage: `url('${currentBg.pc}')`, opacity: 1 }}
           />
           <div
-            className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:hidden block"
-            style={{ backgroundImage: `url('${currentBg.mobile}')`, opacity: 0 }}
+            className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat transition-opacity duration-500 md:hidden block"
+            style={{ backgroundImage: `url('${currentBg.mobile}')`, opacity: 1 }}
           />
         </>
       )}

@@ -772,8 +772,18 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         // Always update heartbeat so last_sync_at is accurate for offline reward calculation
         navigator.sendBeacon("/api/game/heartbeat", "");
       } else if (hiddenAtRef.current) {
+        const awayMs = Date.now() - hiddenAtRef.current;
         hiddenAtRef.current = null;
         setNotifications([]);
+        // Skip offline check if away less than 60 seconds
+        if (awayMs < 60_000) {
+          accumulatedRef.current = 0;
+          lastTickRef.current = Date.now();
+          meditationTickStartRef.current = Date.now();
+          combatPlayerTickRef.current = Date.now();
+          combatMonsterTickRef.current = Date.now();
+          return;
+        }
         // Unified offline reward check — server decides based on last_sync_at
         setOfflineLoading(true);
         fetch("/api/game/offline-rewards", {

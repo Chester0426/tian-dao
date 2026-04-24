@@ -223,20 +223,20 @@ export function MiningPageClient({
               return (
                 <div
                   key={mine.id}
-                  className="rounded-xl border border-border/20 opacity-50 cursor-not-allowed"
-                  style={{ background: "linear-gradient(180deg, rgba(30,35,30,0.95) 0%, rgba(20,25,20,0.98) 100%)" }}
+                  className="rounded-xl border border-border/30 cursor-not-allowed flex items-center justify-center"
+                  style={{ background: "linear-gradient(180deg, rgb(30,35,30) 0%, rgb(20,25,20) 100%)" }}
                 >
-                  <div className="p-3 space-y-2.5">
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[10px] text-muted-foreground">{locale === "zh" ? "未發現" : "Undiscovered"}</p>
-                      <p className="font-heading text-sm font-bold text-white/40">???</p>
+                  <div className="p-6 flex flex-col items-center gap-4">
+                    <img src="/images/pickaxe.png" alt="" className="w-24 h-24 object-contain opacity-20" />
+                    <div className="text-center space-y-1.5">
+                      <p className="font-heading text-xl font-bold text-white/30">???</p>
+                      <p className="text-sm text-white/20">
+                        {locale === "zh" ? "未發現" : "Undiscovered"}
+                      </p>
+                      <p className="text-xs text-white/30">
+                        {t("mining_needLevel", { n: mine.required_level })}
+                      </p>
                     </div>
-                    <div className="flex justify-center">
-                      <img src="/images/pickaxe.png" alt="" className="w-12 h-12 object-contain opacity-30" />
-                    </div>
-                    <p className="text-center text-[10px] text-white/30">
-                      {t("mining_needLevel", { n: mine.required_level })}
-                    </p>
                   </div>
                 </div>
               );
@@ -254,15 +254,14 @@ export function MiningPageClient({
                 key={mine.id}
                 onClick={() => handleSelectMine(mine)}
                 className={`rounded-xl border transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99] ${
-                  isActive ? "border-jade/50 ring-1 ring-jade/30" : "border-border/30 hover:border-border/50"
+                  isActive ? "border-jade/50 ring-1 ring-jade/30" : "border-border/30"
                 }`}
-                style={{ background: "linear-gradient(180deg, rgba(30,35,30,0.95) 0%, rgba(20,25,20,0.98) 100%)" }}
+                style={{ background: "linear-gradient(180deg, rgb(30,35,30) 0%, rgb(20,25,20) 100%)" }}
               >
                 <div className="p-3 space-y-2.5">
                   {/* Header: title */}
-                  <div className="text-center space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground">{locale === "zh" ? "採礦" : "Mining"}</p>
-                    <p className="font-heading text-sm font-bold text-spirit-gold text-glow-gold">
+                  <div className="text-center">
+                    <p className="font-heading text-base font-bold text-spirit-gold text-glow-gold">
                       {(locale === "zh" ? mine.name_zh : mine.name_en) ?? mine.name}
                     </p>
                   </div>
@@ -290,13 +289,12 @@ export function MiningPageClient({
                   </div>
 
                   {/* Ore image — shake + sparkle when mining */}
-                  <div className="flex justify-center relative" style={isActive ? { animation: 'combat-hit-shake 0.4s ease-in-out infinite' } : undefined}>
+                  <div className="flex justify-center py-2 relative" style={isActive ? { animation: 'combat-hit-shake 0.4s ease-in-out infinite' } : undefined}>
                     {ITEMS[mine.main_drop]?.image ? (
-                      <img src={ITEMS[mine.main_drop].image} alt="" className="w-12 h-12 object-contain relative z-10" style={{ filter: isActive ? "drop-shadow(0 0 8px rgba(212,166,67,0.5))" : "none" }} />
+                      <img src={ITEMS[mine.main_drop].image} alt="" className="w-20 h-20 object-contain relative z-10" style={{ filter: isActive ? "drop-shadow(0 0 8px rgba(212,166,67,0.5))" : "none" }} />
                     ) : (
-                      <span className={`text-2xl relative z-10 ${ITEMS[mine.main_drop]?.color ?? "text-white/60"}`}>{ITEMS[mine.main_drop]?.icon ?? "⛏️"}</span>
+                      <span className={`text-4xl relative z-10 ${ITEMS[mine.main_drop]?.color ?? "text-white/60"}`}>{ITEMS[mine.main_drop]?.icon ?? "⛏️"}</span>
                     )}
-                    {/* Mining impact sparks — only when active */}
                     {isActive && (
                       <>
                         <div className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full pointer-events-none" style={{ animation: 'bt-mine-spark 3s ease-out infinite', animationDelay: '0s' }} />
