@@ -14,6 +14,7 @@ export type ItemTag =
   | "equipment"    // equippable gear
   | "consumable"   // food/potion — heals HP when consumed
   | "fuel"         // furnace fuel (coal, spirit stones)
+  | "reagent"      // crafting reagent (bars, etc.)
   | "junk";        // junk items (novel, etc.)
 
 // Equipment slot IDs — must match EQUIPMENT_SLOTS in stats/page.tsx
@@ -124,23 +125,23 @@ export const ITEMS: Record<string, ItemDef> = {
   // === Bars (smelting output) ===
   copper_bar: {
     nameZh: "銅錠", nameEn: "Copper Bar", icon: "🟫", color: "text-amber-600",
-    hintZh: "精煉銅礦而成的金屬錠", hintEn: "A metal bar smelted from copper ore",
-    tags: [],
+    hintZh: "製作材料", hintEn: "Crafting Reagent",
+    tags: ["reagent"],
   },
   bronze_bar: {
     nameZh: "青銅錠", nameEn: "Bronze Bar", icon: "🟤", color: "text-amber-700",
-    hintZh: "銅與錫的合金", hintEn: "An alloy of copper and tin",
-    tags: [],
+    hintZh: "製作材料", hintEn: "Crafting Reagent",
+    tags: ["reagent"],
   },
   iron_bar: {
     nameZh: "鐵錠", nameEn: "Iron Bar", icon: "⬛", color: "text-slate-400",
-    hintZh: "堅硬的鐵金屬錠", hintEn: "A sturdy iron metal bar",
-    tags: [],
+    hintZh: "製作材料", hintEn: "Crafting Reagent",
+    tags: ["reagent"],
   },
   silver_bar: {
     nameZh: "銀錠", nameEn: "Silver Bar", icon: "⬜", color: "text-gray-200",
-    hintZh: "閃耀的銀金屬錠", hintEn: "A gleaming silver metal bar",
-    tags: [],
+    hintZh: "製作材料", hintEn: "Crafting Reagent",
+    tags: ["reagent"],
   },
   // === Copper Equipment (smithing output) ===
   copper_sword: {

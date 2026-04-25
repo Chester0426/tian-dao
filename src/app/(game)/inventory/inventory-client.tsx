@@ -1,24 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { InventoryItem } from "@/lib/types";
 import { getItem, ITEMS } from "@/lib/items";
+import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
 
-type FilterTab = "all" | "spirit_stone" | "ore" | "consumable" | "book" | "other" | "equipment";
+type FilterTab = "all" | "spirit_stone" | "ore" | "reagent" | "consumable" | "book" | "other" | "equipment";
 
-// Sort priority: spirit_stone=0, ore=1, consumable=2, book=3, other(junk)=4, equipment=5(always last)
+// Sort priority
 const FILTER_SORT_ORDER: Record<FilterTab, number> = {
-  all: -1, spirit_stone: 0, ore: 1, consumable: 2, book: 3, other: 4, equipment: 5,
+  all: -1, spirit_stone: 0, ore: 1, reagent: 2, consumable: 3, book: 4, other: 5, equipment: 6,
 };
 
 function getFilterTab(itemType: string): FilterTab {
   const def = ITEMS[itemType];
   if (!def) return "other";
   if (def.tags.includes("equipment")) return "equipment";
+  if (def.tags.includes("reagent")) return "reagent";
   if (def.tags.includes("spirit_stone")) return "spirit_stone";
   if (def.tags.includes("consumable")) return "consumable";
   if (def.tags.includes("book") || def.tags.includes("tome")) return "book";
@@ -39,7 +41,36 @@ export function InventoryClient({
   const router = useRouter();
   const { locale } = useI18n();
   const isZh = locale === "zh";
+  const gameState = useGameState();
+  // Check if player meets equipment requirement (e.g. "煉體期 1 級")
+  const REALM_ORDER = ["煉體", "練氣", "築基", "金丹", "元嬰"];
+  const playerRealmIdx = REALM_ORDER.indexOf(gameState.realm ?? "煉體");
+  const playerLevel = gameState.bodyStage ?? 1;
+
+  const meetsRequirement = (reqZh?: string): boolean => {
+    if (!reqZh) return true;
+    // Parse "煉體期 1 級" → realm="煉體", level=1
+    for (let i = 0; i < REALM_ORDER.length; i++) {
+      if (reqZh.includes(REALM_ORDER[i])) {
+        const levelMatch = reqZh.match(/(\d+)/);
+        const reqLevel = levelMatch ? parseInt(levelMatch[1], 10) : 1;
+        if (playerRealmIdx > i) return true; // higher realm always meets
+        if (playerRealmIdx === i) return playerLevel >= reqLevel;
+        return false;
+      }
+    }
+    return true;
+  };
   const [inventory, setInventory] = useState(initialInventory);
+  // Sync with gameState when inventory changes externally (mining drops, combat loot, etc.)
+  const gameStateInv = useGameState().inventory;
+  const prevGameStateRef = useRef(gameStateInv);
+  useEffect(() => {
+    if (prevGameStateRef.current !== gameStateInv) {
+      setInventory(gameStateInv);
+      prevGameStateRef.current = gameStateInv;
+    }
+  }, [gameStateInv]);
   const [daoPoints, setDaoPoints] = useState(initialDaoPoints);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
@@ -121,10 +152,11 @@ export function InventoryClient({
     { key: "all", labelZh: "全部", labelEn: "All" },
     { key: "spirit_stone", labelZh: "靈石", labelEn: "Spirit Stones" },
     { key: "ore", labelZh: "礦物", labelEn: "Ores" },
+    { key: "reagent", labelZh: "製作材料", labelEn: "Reagent" },
     { key: "consumable", labelZh: "補品", labelEn: "Supplies" },
     { key: "book", labelZh: "書籍", labelEn: "Books" },
-    { key: "other", labelZh: "垃圾", labelEn: "Junk" },
     { key: "equipment", labelZh: "裝備", labelEn: "Equip" },
+    { key: "other", labelZh: "垃圾", labelEn: "Junk" },
   ];
 
   const SLOT_NAMES: Record<string, string> = {
@@ -163,95 +195,86 @@ export function InventoryClient({
           </div>
         </header>
 
-        {/* Toolbar: mode buttons (left) + search (right) */}
-        <div
-          className="flex items-center gap-2 mb-3 rounded-lg px-3 py-2"
-          style={{ background: "rgba(25,30,35,0.6)", border: "1px solid rgba(255,255,255,0.05)" }}
-        >
-          {/* Mode buttons — left */}
-          <div className="flex gap-1.5 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const sorted = [...inventory].sort((a, b) => {
-                  const tabA = getFilterTab(a.item_type);
-                  const tabB = getFilterTab(b.item_type);
-                  const orderA = FILTER_SORT_ORDER[tabA] ?? 99;
-                  const orderB = FILTER_SORT_ORDER[tabB] ?? 99;
-                  if (orderA !== orderB) return orderA - orderB;
-                  return a.item_type.localeCompare(b.item_type);
-                });
-                setInventory(sorted);
-              }}
-              className="text-xs border-border/40 hover:border-jade/40 hover:bg-jade/10 text-muted-foreground hover:text-jade"
-            >
-              {isZh ? "整理" : "Sort"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { setMode(mode === "sell" ? "normal" : "sell"); setMultiSelect({}); setSelectedItem(null); }}
-              className={`text-xs ${
-                mode === "sell"
-                  ? "border-spirit-gold/50 bg-spirit-gold/10 text-spirit-gold"
-                  : "border-border/40 hover:border-spirit-gold/40 hover:bg-spirit-gold/10 text-muted-foreground hover:text-spirit-gold"
-              }`}
-            >
-              {isZh ? "販賣模式" : "Sell Mode"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { setMode(mode === "sacrifice" ? "normal" : "sacrifice"); setMultiSelect({}); setSelectedItem(null); }}
-              className={`text-xs ${
-                mode === "sacrifice"
-                  ? "border-cinnabar/50 bg-cinnabar-dim/30 text-cinnabar"
-                  : "border-border/40 hover:border-cinnabar/40 hover:bg-cinnabar-dim/20 text-muted-foreground hover:text-cinnabar"
-              }`}
-            >
-              {isZh ? "獻祭模式" : "Sacrifice Mode"}
-            </Button>
-          </div>
-          {/* Search — right */}
-          <div className="flex-1 min-w-0">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isZh ? "🔍 搜尋物品..." : "🔍 Search..."}
-              className="w-full bg-transparent text-sm text-foreground text-right placeholder:text-muted-foreground/50 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Filter tabs */}
-        <div
-          className="flex gap-1.5 mb-6 overflow-x-auto rounded-lg px-3 py-2"
-          style={{ background: "rgba(25,30,35,0.6)", border: "1px solid rgba(255,255,255,0.05)" }}
-        >
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilterTab(tab.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                filterTab === tab.key
-                  ? "bg-jade/20 text-jade border border-jade/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent"
-              }`}
-            >
-              {isZh ? tab.labelZh : tab.labelEn}
-            </button>
-          ))}
-        </div>
-
         {/* Main layout */}
         <div className="flex gap-6 flex-col md:flex-row">
-          {/* Left: Item grid */}
+          {/* Left: unified card (toolbar + tabs + grid) */}
           <div
-            className="flex-1 min-w-0 rounded-xl p-4"
+            className="flex-1 min-w-0 rounded-xl overflow-hidden"
             style={{ background: "rgba(25,30,35,0.85)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
+            {/* Toolbar */}
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30">
+              <div className="flex gap-1.5 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const sorted = [...inventory].sort((a, b) => {
+                      const tabA = getFilterTab(a.item_type);
+                      const tabB = getFilterTab(b.item_type);
+                      const orderA = FILTER_SORT_ORDER[tabA] ?? 99;
+                      const orderB = FILTER_SORT_ORDER[tabB] ?? 99;
+                      if (orderA !== orderB) return orderA - orderB;
+                      return a.item_type.localeCompare(b.item_type);
+                    });
+                    setInventory(sorted);
+                  }}
+                  className="text-xs border-border/40 hover:border-jade/40 hover:bg-jade/10 text-muted-foreground hover:text-jade"
+                >
+                  {isZh ? "整理" : "Sort"}
+                </Button>
+                <button
+                  onClick={() => { setMode(mode === "sell" ? "normal" : "sell"); setMultiSelect({}); setSelectedItem(null); }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                    mode === "sell"
+                      ? "bg-spirit-gold/20 text-spirit-gold border border-spirit-gold/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  {isZh ? "販賣模式" : "Sell Mode"}
+                </button>
+                <button
+                  onClick={() => { setMode(mode === "sacrifice" ? "normal" : "sacrifice"); setMultiSelect({}); setSelectedItem(null); }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                    mode === "sacrifice"
+                      ? "bg-cinnabar/20 text-cinnabar border border-cinnabar/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  {isZh ? "獻祭模式" : "Sacrifice Mode"}
+                </button>
+              </div>
+              <div className="flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={isZh ? "搜尋物品..." : "Search..."}
+                  className="w-full text-sm text-foreground text-left placeholder:text-muted-foreground/50 outline-none rounded-md px-2 py-1"
+                  style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)" }}
+                />
+              </div>
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex gap-1.5 px-4 py-2 border-b border-border/30 overflow-x-auto">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilterTab(tab.key)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                    filterTab === tab.key
+                      ? "bg-jade/20 text-jade border border-jade/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  {isZh ? tab.labelZh : tab.labelEn}
+                </button>
+              ))}
+            </div>
+
+            {/* Item grid */}
+            <div className="p-4">
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 lg:grid-cols-8">
               <TooltipProvider>
                 {filteredInventory.map((item) => {
@@ -284,6 +307,7 @@ export function InventoryClient({
                         </span>
                       </TooltipTrigger>
                       <TooltipContent className="block p-0 min-w-[200px]">
+                        {/* Top: image + name + description */}
                         <div className="flex gap-3 p-3">
                           {display?.image && (
                             <div className="shrink-0 w-12 h-12 rounded-md bg-muted/20 border border-border/30 flex items-center justify-center">
@@ -292,31 +316,33 @@ export function InventoryClient({
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-heading text-sm leading-tight">{display ? (isZh ? display.nameZh : display.nameEn) : item.item_type}</p>
-                            {display?.equipSlot && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {display.requirementZh && <span className="text-spirit-gold/70">{isZh ? display.requirementZh : display.requirementEn}</span>}
-                                {display.requirementZh && <span className="mx-1 text-muted-foreground/40">|</span>}
-                                {SLOT_NAMES[display.equipSlot] ?? display.equipSlot}
-                              </p>
-                            )}
                             {display?.hintZh && (
                               <p className="text-[11px] text-jade mt-1">{isZh ? display.hintZh : display.hintEn}</p>
                             )}
                           </div>
                         </div>
-                        {(display?.healHp || display?.equipStats) && (
+                        {/* Below line: slot, requirement, stats */}
+                        {(display?.equipSlot || display?.requirementZh || display?.healHp || display?.equipStats) && (
                           <div className="border-t border-border/30 px-3 py-2 space-y-0.5">
+                            {display?.equipSlot && (
+                              <p className={`text-[11px] ${meetsRequirement(display.requirementZh) ? "text-jade" : "text-red-400"}`}>{isZh ? `部位：${SLOT_NAMES[display.equipSlot] ?? display.equipSlot}` : `Slot: ${SLOT_NAMES[display.equipSlot] ?? display.equipSlot}`}</p>
+                            )}
+                            {display?.requirementZh && (
+                              <p className={`text-[11px] ${meetsRequirement(display.requirementZh) ? "text-jade" : "text-red-400"}`}>
+                                {isZh ? `需求：${display.requirementZh}` : `Requires: ${display.requirementEn}`}
+                              </p>
+                            )}
                             {display?.healHp && (
-                              <p className="text-[11px] text-spirit-gold">{isZh ? `恢復 ${display.healHp} 氣血` : `Restore ${display.healHp} HP`}</p>
+                              <p className="text-[11px] text-jade">{isZh ? `恢復 ${display.healHp} 氣血` : `Restore ${display.healHp} HP`}</p>
                             )}
                             {display?.equipStats?.hp && (
-                              <p className="text-[11px] text-spirit-gold">{isZh ? `增加 ${display.equipStats.hp} 氣血` : `+${display.equipStats.hp} HP`}</p>
+                              <p className="text-[11px] text-white">{isZh ? `+${display.equipStats.hp} 氣血` : `+${display.equipStats.hp} HP`}</p>
                             )}
                             {display?.equipStats?.atk && (
-                              <p className="text-[11px] text-spirit-gold">{isZh ? `增加 ${display.equipStats.atk} 外功` : `+${display.equipStats.atk} ATK`}</p>
+                              <p className="text-[11px] text-white">{isZh ? `+${display.equipStats.atk} 外功` : `+${display.equipStats.atk} ATK`}</p>
                             )}
                             {display?.equipStats?.def && (
-                              <p className="text-[11px] text-spirit-gold">{isZh ? `增加 ${display.equipStats.def} 防禦` : `+${display.equipStats.def} DEF`}</p>
+                              <p className="text-[11px] text-white">{isZh ? `+${display.equipStats.def} 防禦` : `+${display.equipStats.def} DEF`}</p>
                             )}
                           </div>
                         )}
@@ -326,6 +352,7 @@ export function InventoryClient({
                 })}
               </TooltipProvider>
             </div>
+          </div>
           </div>
 
           {/* Right: Detail panel */}
@@ -480,40 +507,46 @@ export function InventoryClient({
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
+                      {/* Name + description */}
                       <p className="font-heading text-sm font-bold leading-tight">
                         {isZh ? selectedDef.nameZh : selectedDef.nameEn}
                       </p>
-                      {selectedDef.equipSlot && (
-                        <span className="inline-block text-[10px] text-spirit-gold/70 bg-spirit-gold/10 rounded px-1.5 py-0.5 mt-1">
-                          {SLOT_NAMES[selectedDef.equipSlot] ?? selectedDef.equipSlot}
-                        </span>
-                      )}
-                      {selectedDef.requirementZh && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {isZh ? selectedDef.requirementZh : selectedDef.requirementEn}
-                        </p>
-                      )}
                       {selectedDef.hintZh && (
-                        <p className="text-[10px] text-jade mt-1 leading-snug">
+                        <p className="text-xs text-jade mt-1 leading-snug">
                           {isZh ? selectedDef.hintZh : selectedDef.hintEn}
                         </p>
                       )}
-                      {(selectedDef.healHp || selectedDef.equipStats) && (
-                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[10px]">
-                          {selectedDef.healHp && (
-                            <span className="text-spirit-gold">{isZh ? `恢復 ${selectedDef.healHp} 氣血` : `Restore ${selectedDef.healHp} HP`}</span>
-                          )}
-                          {selectedDef.equipStats?.hp && (
-                            <span className="text-spirit-gold">{isZh ? `增加 ${selectedDef.equipStats.hp} 氣血` : `+${selectedDef.equipStats.hp} HP`}</span>
-                          )}
-                          {selectedDef.equipStats?.atk && (
-                            <span className="text-spirit-gold">{isZh ? `增加 ${selectedDef.equipStats.atk} 外功` : `+${selectedDef.equipStats.atk} ATK`}</span>
-                          )}
-                          {selectedDef.equipStats?.def && (
-                            <span className="text-spirit-gold">{isZh ? `增加 ${selectedDef.equipStats.def} 防禦` : `+${selectedDef.equipStats.def} DEF`}</span>
-                          )}
-                        </div>
+
+                      {/* Separator line — only in text area, not under image */}
+                      {(selectedDef.equipSlot || selectedDef.requirementZh || selectedDef.healHp || selectedDef.equipStats) && (
+                        <div className="h-px w-full bg-border/30 my-2" />
                       )}
+
+                      {/* Stats below line */}
+                      <div className="space-y-1 text-xs">
+                        {selectedDef.equipSlot && (
+                          <p className={meetsRequirement(selectedDef.requirementZh) ? "text-jade" : "text-red-400"}>
+                            {isZh ? `部位：${SLOT_NAMES[selectedDef.equipSlot] ?? selectedDef.equipSlot}` : `Slot: ${SLOT_NAMES[selectedDef.equipSlot] ?? selectedDef.equipSlot}`}
+                          </p>
+                        )}
+                        {selectedDef.requirementZh && (
+                          <p className={meetsRequirement(selectedDef.requirementZh) ? "text-jade" : "text-red-400"}>
+                            {isZh ? `需求：${selectedDef.requirementZh}` : `Requires: ${selectedDef.requirementEn}`}
+                          </p>
+                        )}
+                        {selectedDef.healHp && (
+                          <p className="text-jade">{isZh ? `恢復 ${selectedDef.healHp} 氣血` : `Restore ${selectedDef.healHp} HP`}</p>
+                        )}
+                        {selectedDef.equipStats?.hp && (
+                          <p className="text-white">{isZh ? `+${selectedDef.equipStats.hp} 氣血` : `+${selectedDef.equipStats.hp} HP`}</p>
+                        )}
+                        {selectedDef.equipStats?.atk && (
+                          <p className="text-white">{isZh ? `+${selectedDef.equipStats.atk} 外功` : `+${selectedDef.equipStats.atk} ATK`}</p>
+                        )}
+                        {selectedDef.equipStats?.def && (
+                          <p className="text-white">{isZh ? `+${selectedDef.equipStats.def} 防禦` : `+${selectedDef.equipStats.def} DEF`}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 

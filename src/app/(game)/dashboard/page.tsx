@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       qi_level: 0, qi_xp: 0, foundation_level: 0, foundation_xp: 0,
       core_level: 0, core_xp: 0, nascent_level: 0, nascent_xp: 0,
       body_skill_level: 1, body_skill_xp: 0,
-      inventory_slots: 20, dao_points: 0,
+      inventory_slots: 20, dao_points: 0, furnace_heat: 0,
       created_at: new Date().toISOString(),
     };
     miningSkill = {
@@ -137,7 +137,7 @@ export default async function DashboardPage() {
         qi_level: 0, qi_xp: 0, foundation_level: 0, foundation_xp: 0,
         core_level: 0, core_xp: 0, nascent_level: 0, nascent_xp: 0,
         body_skill_level: 1, body_skill_xp: 0,
-        inventory_slots: 20, dao_points: 0,
+        inventory_slots: 20, dao_points: 0, furnace_heat: 0,
         created_at: new Date().toISOString(),
       };
     }

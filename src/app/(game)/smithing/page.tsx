@@ -238,14 +238,6 @@ function FurnaceVisual({ active, overlay, overlayLevel }: { active: boolean; ove
       >
         <div className="relative">
           <span className="text-5xl" style={{ filter: active ? "drop-shadow(0 0 12px rgba(249,115,22,0.6))" : "none" }}>🔥</span>
-          {overlay && (
-            <span className="absolute -bottom-1 -right-1 text-xl" style={{ textShadow: "0 0 6px #000" }}>
-              {overlay}
-              {overlayLevel !== undefined && overlayLevel > 0 && (
-                <span className="text-[10px] font-heading font-bold text-spirit-gold ml-0.5">+{overlayLevel}</span>
-              )}
-            </span>
-          )}
         </div>
       </div>
     </div>
@@ -265,7 +257,7 @@ function FuelPanel({
   heat: number;
   inventory: { item_type: string; quantity: number }[];
   locale: string;
-  onAddFuel: (fuelItem: string, heat: number) => void;
+  onAddFuel: (fuelItem: string, heat: number, quantity: number) => void;
 }) {
   const isZh = locale === "zh";
   const [pickedFuel, setPickedFuel] = useState<string | null>(null);
@@ -284,17 +276,23 @@ function FuelPanel({
   const pickedFuelData = pickedFuel ? FUELS.find((f) => f.item === pickedFuel) : null;
 
   const handlePickFuel = (itemType: string) => {
-    setPickedFuel(itemType === pickedFuel ? null : itemType);
+    const next = itemType === pickedFuel ? null : itemType;
+    setPickedFuel(next);
     setFuelQty(1);
     setFuelQtyInput("1");
   };
 
+  // Max fuel addable = min(owned, floor(remaining heat capacity / heat per unit))
+  const remainingHeat = MAX_HEAT - heat;
+  const maxFuelAdd = pickedFuel && pickedInv && pickedFuelData
+    ? Math.min(pickedInv.quantity, Math.max(0, Math.floor(remainingHeat / pickedFuelData.heat)))
+    : 0;
+  const fuelFull = remainingHeat <= 0 || maxFuelAdd <= 0;
+
   const handleAddFuel = () => {
     if (!pickedFuel || !pickedFuelData || fuelQty <= 0) return;
-    for (let i = 0; i < fuelQty; i++) {
-      onAddFuel(pickedFuel, pickedFuelData.heat);
-    }
-    setPickedFuel(null);
+    onAddFuel(pickedFuel, pickedFuelData.heat, fuelQty);
+    // pickedFuel stays selected — only clear if quantity reaches 0 (handled by parent via inventory update)
   };
 
   return (
@@ -349,7 +347,7 @@ function FuelPanel({
                     <TooltipTrigger
                       onClick={() => { handlePickFuel(item.item_type); setShowFuelPicker(false); }}
                       className="relative w-12 h-12 rounded-md cursor-pointer hover:brightness-125"
-                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}
+                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,100,0,0.12)" }}
                     >
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         {def?.image ? (
@@ -379,40 +377,49 @@ function FuelPanel({
           )}
         </div>
 
-        {/* Right: slider + total + add */}
-        {pickedFuel && pickedInv && pickedFuelData ? (
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-heading truncate">{isZh ? pickedDef?.nameZh : pickedDef?.nameEn}</span>
-              <span className="text-xs text-orange-400 shrink-0">+{pickedFuelData.heat}/{isZh ? "個" : "ea"}</span>
-            </div>
-            <p className="text-sm tabular-nums text-orange-400">
-              {fuelQty}x → <span className="font-bold">+{pickedFuelData.heat * fuelQty}</span> {isZh ? "熱值" : "heat"}
-            </p>
-            <div className="flex items-center gap-2">
+        {/* Middle: name + slider */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
+          {pickedFuel && pickedInv && pickedFuelData ? (
+            <>
+              <div className="flex items-baseline justify-between gap-1 mb-1">
+                <span className="text-sm font-heading font-bold truncate text-white">{isZh ? pickedDef?.nameZh : pickedDef?.nameEn}</span>
+                <span className="text-xs text-orange-400 shrink-0 tabular-nums">+{pickedFuelData.heat}/{isZh ? "個" : "ea"}</span>
+              </div>
               <input
                 type="range"
                 min={1}
-                max={pickedInv.quantity}
-                value={fuelQty}
+                max={Math.max(1, maxFuelAdd)}
+                value={Math.min(fuelQty, Math.max(1, maxFuelAdd))}
+                disabled={fuelFull}
                 onChange={(e) => { const v = parseInt(e.target.value, 10); setFuelQty(v); setFuelQtyInput(String(v)); }}
-                className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-orange-500"
-                style={{ background: `linear-gradient(to right, #c2410c ${((fuelQty - 1) / Math.max(pickedInv.quantity - 1, 1)) * 100}%, rgba(255,255,255,0.1) ${((fuelQty - 1) / Math.max(pickedInv.quantity - 1, 1)) * 100}%)` }}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-orange-500 mb-1 disabled:opacity-30"
+                style={{ background: `linear-gradient(to right, #c2410c ${((Math.min(fuelQty, maxFuelAdd) - 1) / Math.max(maxFuelAdd - 1, 1)) * 100}%, rgba(255,255,255,0.1) ${((Math.min(fuelQty, maxFuelAdd) - 1) / Math.max(maxFuelAdd - 1, 1)) * 100}%)` }}
               />
-              <Button
-                size="sm"
-                className="h-9 px-5 text-sm font-heading font-bold bg-orange-800 hover:bg-orange-700 text-white shrink-0"
-                onClick={handleAddFuel}
-              >
-                {isZh ? "添加" : "Add"}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <p className="flex-1 text-[10px] text-muted-foreground/40">
-            {isZh ? "點擊格子選擇燃料" : "Click slot to select fuel"}
-          </p>
-        )}
+              <p className="text-xs tabular-nums text-orange-400">
+                {fuelQty}× → <span className="font-bold">+{pickedFuelData.heat * fuelQty}</span>
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground/40">{isZh ? "← 選擇燃料" : "← Select fuel"}</p>
+          )}
+        </div>
+
+        {/* Right: add button (same size as fuel slot) */}
+        <button
+          onClick={pickedFuel && !fuelFull ? handleAddFuel : undefined}
+          disabled={!pickedFuel || fuelFull}
+          className={`w-16 h-16 rounded-md shrink-0 flex flex-col items-center justify-center font-heading text-sm font-bold transition-all ${
+            pickedFuel && !fuelFull
+              ? "bg-orange-700 hover:bg-orange-600 text-white cursor-pointer shadow-[0_0_8px_rgba(249,115,22,0.3)]"
+              : "opacity-30 cursor-not-allowed text-muted-foreground"
+          }`}
+          style={{
+            border: pickedFuel && !fuelFull ? "1px solid rgba(255,120,30,0.4)" : "1px solid rgba(255,255,255,0.1)",
+            background: pickedFuel && !fuelFull ? undefined : "rgba(0,0,0,0.4)",
+          }}
+        >
+          {fuelFull && pickedFuel ? (isZh ? "已滿" : "Full") : (isZh ? "添加" : "Add")}
+        </button>
       </div>
 
     </div>
@@ -437,8 +444,8 @@ export default function SmithingPage() {
   // Tab state: 2 tabs now
   const [activeTab, setActiveTab] = useState<SmithingTab>("craft");
 
-  // Shared furnace state
-  const [heat, setHeat] = useState(0);
+  // Shared furnace state — persisted via DB
+  const heat = gameState.furnaceHeat;
   const [autoRefuel, setAutoRefuel] = useState(false);
   const [selectedFuel, setSelectedFuel] = useState<string>(FUELS[0].item);
 
@@ -553,11 +560,45 @@ export default function SmithingPage() {
     return () => { if (enhanceTimerRef.current) clearTimeout(enhanceTimerRef.current); };
   }, []);
 
-  // Add fuel handler
-  const handleAddFuel = useCallback((fuelItem: string, heatVal: number) => {
-    setHeat((h) => Math.min(h + heatVal, MAX_HEAT));
+  // Add fuel handler — persists to DB
+  const handleAddFuel = useCallback(async (fuelItem: string, _heatPerUnit: number, quantity: number) => {
+    // Optimistic: compute expected result
+    const fuelDef = FUELS.find((f) => f.item === fuelItem);
+    if (!fuelDef) return;
+    const optimisticAdd = Math.min(quantity * fuelDef.heat, MAX_HEAT - heat);
+    const optimisticQty = Math.ceil(optimisticAdd / fuelDef.heat);
+    // Optimistic UI update
+    gameState.setFurnaceHeat(Math.min(heat + optimisticQty * fuelDef.heat, MAX_HEAT));
+    gameState.updateInventory((prev) =>
+      prev.map((item) =>
+        item.item_type === fuelItem
+          ? { ...item, quantity: item.quantity - optimisticQty }
+          : item
+      ).filter((item) => item.quantity > 0)
+    );
     setSelectedFuel(fuelItem);
-  }, []);
+
+    const res = await fetch("/api/game/smithing/add-fuel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fuel_item: fuelItem, quantity }),
+    });
+    if (!res.ok) {
+      // Revert optimistic on failure
+      gameState.setFurnaceHeat(heat);
+      gameState.updateInventory((prev) => {
+        const existing = prev.find((i) => i.item_type === fuelItem);
+        if (existing) {
+          return prev.map((i) => i.item_type === fuelItem ? { ...i, quantity: i.quantity + optimisticQty } : i);
+        }
+        return [...prev, { item_type: fuelItem, quantity: optimisticQty } as typeof prev[number]];
+      });
+      return;
+    }
+    const data = await res.json();
+    // Reconcile with server truth
+    gameState.setFurnaceHeat(data.heat);
+  }, [gameState, heat]);
 
   // Toggle group expansion
   const toggleGroup = useCallback((groupId: string) => {
@@ -628,27 +669,6 @@ export default function SmithingPage() {
           <XpBar xp={smithingXp} xpMax={smithingXpMax} label={isZh ? "煉器經驗" : "Smithing XP"} />
         </div>
 
-        {/* === Tab Buttons === */}
-        <div className="flex gap-2 mb-6">
-          {([
-            { key: "craft" as SmithingTab, zh: "製作", en: "Craft" },
-            { key: "enhancement" as SmithingTab, zh: "強化", en: "Enhancement" },
-          ]).map((tab) => (
-            <Button
-              key={tab.key}
-              variant={activeTab === tab.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTab(tab.key)}
-              className={`font-heading text-sm ${
-                activeTab === tab.key
-                  ? "bg-jade text-white border-jade hover:bg-jade/90"
-                  : "border-border/50 hover:border-jade/40"
-              }`}
-            >
-              {isZh ? tab.zh : tab.en}
-            </Button>
-          ))}
-        </div>
 
         {/* ================================================================ */}
         {/* TAB 1: CRAFT (merged smelting + forging) */}
@@ -660,20 +680,38 @@ export default function SmithingPage() {
               <div
                 className="w-full md:w-[280px] shrink-0 rounded-xl border overflow-hidden flex flex-col"
                 style={{
-                  background: "linear-gradient(180deg, rgb(30,35,30) 0%, rgb(20,25,20) 100%)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "linear-gradient(180deg, rgb(35,25,25) 0%, rgb(22,15,15) 100%)",
+                  border: "1px solid rgba(255,100,0,0.12)",
                   maxHeight: "600px",
                 }}
               >
-                {/* Search box */}
-                <div className="p-3 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                {/* Tab buttons + Search */}
+                <div className="p-3 border-b space-y-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                  <div className="flex gap-1">
+                    {([
+                      { key: "craft" as SmithingTab, zh: "製作", en: "Craft" },
+                      { key: "enhancement" as SmithingTab, zh: "強化", en: "Enhance" },
+                    ]).map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`flex-1 py-1.5 rounded-md text-sm font-heading font-bold transition-colors ${
+                          activeTab === tab.key
+                            ? "bg-orange-800/60 text-orange-200 border border-orange-600/30"
+                            : "text-muted-foreground hover:text-white hover:bg-white/5 border border-transparent"
+                        }`}
+                      >
+                        {isZh ? tab.zh : tab.en}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={isZh ? "搜尋配方..." : "Search recipes..."}
-                    className="w-full bg-black/40 border rounded-md px-3 py-1.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-jade/50"
-                    style={{ borderColor: "rgba(255,255,255,0.1)" }}
+                    className="w-full bg-black/40 border rounded-md px-3 py-1.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-orange-500/50"
+                    style={{ borderColor: "rgba(255,100,0,0.15)" }}
                   />
                 </div>
 
@@ -802,136 +840,166 @@ export default function SmithingPage() {
                 <div
                   className="rounded-xl border p-4 sm:p-6"
                   style={{
-                    background: "linear-gradient(180deg, rgb(30,35,30) 0%, rgb(20,25,20) 100%)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "linear-gradient(180deg, rgb(35,25,25) 0%, rgb(22,15,15) 100%)",
+                    border: "1px solid rgba(255,100,0,0.12)",
                   }}
                 >
                 {selectedRecipe ? (
-                  <div className="flex flex-col gap-4">
-                    {/* Product preview */}
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-5">
+                    {/* Top row: Product (left) + Materials (right) */}
+                    <div className="flex gap-4 flex-col sm:flex-row">
+                      {/* Left: Product preview */}
                       <div
-                        className="w-20 h-20 rounded-lg flex items-center justify-center shrink-0"
-                        style={{
-                          background: "rgba(0,0,0,0.4)",
-                          border: "2px solid rgba(255,255,255,0.15)",
-                          boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4)",
-                        }}
+                        className="sm:w-1/2 rounded-lg p-3 space-y-3"
+                        style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.06)" }}
                       >
-                        {(() => {
-                          const outputItem = getItem(selectedRecipe.output);
-                          return outputItem?.image ? (
-                            <img src={outputItem.image} alt="" className="w-14 h-14 object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]" />
-                          ) : (
-                            <span className={`text-4xl ${outputItem?.color ?? "text-foreground"}`}>
-                              {outputItem?.icon ?? "○"}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-heading text-lg font-bold truncate">
-                          {isZh ? selectedRecipe.nameZh : selectedRecipe.nameEn}
-                        </p>
-                        {isForging(selectedRecipe) && (
-                          <div className="mt-1 space-y-0.5">
-                            <p className="text-xs text-muted-foreground">
-                              {isZh
-                                ? (SLOT_DISPLAY[selectedRecipe.slot]?.zh ?? selectedRecipe.slot)
-                                : (SLOT_DISPLAY[selectedRecipe.slot]?.en ?? selectedRecipe.slot)}
+                        {/* Top: stat badges (mining page style) */}
+                        <div className="grid grid-cols-4 gap-1 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          <TooltipProvider>
+                          {([
+                            { icon: "🔨", value: `+${selectedRecipe.xp}`, tip: isZh ? "鍛造經驗" : "Smithing XP", color: "text-orange-400" },
+                            { icon: "🏆", value: `+${selectedRecipe.xp}`, tip: isZh ? "精練經驗" : "Mastery XP", color: "text-cinnabar" },
+                            { icon: "💪", value: `+${Math.floor(selectedRecipe.xp * 0.5)}`, tip: isZh ? "煉體經驗" : "Body XP", color: "text-spirit-gold" },
+                            { icon: "⏱", value: `${selectedRecipe.time}s`, tip: isZh ? "所需時間" : "Time", color: "text-white/60" },
+                          ]).map((stat) => (
+                            <Tooltip key={stat.tip}>
+                              <TooltipTrigger className="flex flex-col items-center gap-0.5 py-1 cursor-default rounded w-full" style={{ background: "rgba(255,255,255,0.04)" }}>
+                                <span className={`${stat.color} text-[11px]`}>{stat.icon}</span>
+                                <span className="tabular-nums text-[10px] text-white/80">{stat.value}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>{stat.tip}</TooltipContent>
+                            </Tooltip>
+                          ))}
+                          </TooltipProvider>
+                        </div>
+
+                        {/* Middle: icon + name */}
+                        <div className="flex gap-3 items-center">
+                          <div
+                            className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0"
+                            style={{
+                              background: "rgba(0,0,0,0.4)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                            }}
+                          >
+                            {(() => {
+                              const outputItem = getItem(selectedRecipe.output);
+                              return outputItem?.image ? (
+                                <img src={outputItem.image} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]" />
+                              ) : (
+                                <span className={`text-2xl ${outputItem?.color ?? "text-foreground"}`}>
+                                  {outputItem?.icon ?? "○"}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-heading text-sm font-bold text-white truncate">
+                              {isZh ? selectedRecipe.nameZh : selectedRecipe.nameEn}
                             </p>
-                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
-                              {selectedRecipe.stats.atk != null && selectedRecipe.stats.atk > 0 && (
-                                <span className="text-spirit-gold">{isZh ? "外功" : "ATK"} +{selectedRecipe.stats.atk}</span>
-                              )}
-                              {selectedRecipe.stats.def != null && selectedRecipe.stats.def > 0 && (
-                                <span className="text-blue-300">{isZh ? "防禦" : "DEF"} +{selectedRecipe.stats.def}</span>
-                              )}
-                              {selectedRecipe.stats.hp != null && selectedRecipe.stats.hp > 0 && (
-                                <span className="text-red-400">{isZh ? "氣血" : "HP"} +{selectedRecipe.stats.hp}</span>
-                              )}
-                            </div>
+                            {isForging(selectedRecipe) ? (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {isZh
+                                  ? (SLOT_DISPLAY[selectedRecipe.slot]?.zh ?? selectedRecipe.slot)
+                                  : (SLOT_DISPLAY[selectedRecipe.slot]?.en ?? selectedRecipe.slot)}
+                              </p>
+                            ) : (() => {
+                              const outputDef = getItem(selectedRecipe.output);
+                              return outputDef?.hintZh ? (
+                                <p className="text-[10px] text-jade mt-0.5">{isZh ? outputDef.hintZh : outputDef.hintEn}</p>
+                              ) : null;
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* Bottom: equipment stats */}
+                        {isForging(selectedRecipe) && (
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+                            {selectedRecipe.stats.atk != null && selectedRecipe.stats.atk > 0 && (
+                              <span className="text-spirit-gold font-bold">{isZh ? "外功" : "ATK"} +{selectedRecipe.stats.atk}</span>
+                            )}
+                            {selectedRecipe.stats.def != null && selectedRecipe.stats.def > 0 && (
+                              <span className="text-blue-300 font-bold">{isZh ? "防禦" : "DEF"} +{selectedRecipe.stats.def}</span>
+                            )}
+                            {selectedRecipe.stats.hp != null && selectedRecipe.stats.hp > 0 && (
+                              <span className="text-red-400 font-bold">{isZh ? "氣血" : "HP"} +{selectedRecipe.stats.hp}</span>
+                            )}
                           </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Materials list */}
-                    <div className="space-y-1.5">
-                      <h4 className="font-heading text-sm text-muted-foreground">{isZh ? "所需材料" : "Materials"}</h4>
+                      {/* Right: Materials */}
+                      <div
+                        className="sm:w-1/2 rounded-lg p-3 space-y-2"
+                        style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}
+                      >
+                      <p className="text-xs text-muted-foreground font-heading">{isZh ? "所需材料" : "Materials"}</p>
                       {selectedRecipe.materials.map((mat) => {
                         const matItem = getItem(mat.item);
                         const owned = getInvQty(inventory, mat.item);
                         const enough = owned >= mat.qty * craftQty;
                         return (
-                          <div key={mat.item} className="flex items-center gap-2 text-sm">
-                            <span className={matItem?.color ?? "text-foreground"}>{matItem?.icon ?? "○"}</span>
-                            <span>{isZh ? (matItem?.nameZh ?? mat.item) : (matItem?.nameEn ?? mat.item)}</span>
-                            <span className="tabular-nums">x{mat.qty * craftQty}</span>
-                            <span className={`text-xs tabular-nums ${enough ? "text-jade" : "text-red-400"}`}>
-                              {isZh ? "有" : "own"}: {owned} {enough ? "✅" : "❌"}
+                          <div key={mat.item} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 flex items-center justify-center shrink-0 rounded" style={!matItem?.image ? { background: "rgba(255,255,255,0.08)", border: "1px dashed rgba(255,255,255,0.2)" } : undefined}>
+                                {matItem?.image ? (
+                                  <img src={matItem.image} alt="" className="w-5 h-5 object-contain" />
+                                ) : (
+                                  <span className={`text-[10px] ${matItem?.color ?? "text-foreground"}`}>{matItem?.icon ?? "?"}</span>
+                                )}
+                              </div>
+                              <span className="text-white/80">{isZh ? (matItem?.nameZh ?? mat.item) : (matItem?.nameEn ?? mat.item)}</span>
+                              <span className="text-muted-foreground tabular-nums">×{mat.qty * craftQty}</span>
+                            </div>
+                            <span className={`text-xs tabular-nums font-bold ${enough ? "text-jade" : "text-red-400"}`}>
+                              {owned}
                             </span>
                           </div>
                         );
                       })}
-                      {/* Heat cost row */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <span>🔥</span>
-                        <span>{isZh ? "熱值" : "Heat"}</span>
-                        <span className="tabular-nums">{selectedRecipe.heat * craftQty}</span>
-                        <span className={`text-xs tabular-nums ${heat >= selectedRecipe.heat * craftQty ? "text-jade" : "text-red-400"}`}>
-                          {isZh ? "有" : "have"}: {heat} {heat >= selectedRecipe.heat * craftQty ? "✅" : "❌"}
+                      {/* Heat cost */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                            <span className="text-sm text-orange-400">🔥</span>
+                          </div>
+                          <span className="text-white/80">{isZh ? "熱值" : "Heat"}</span>
+                          <span className="text-muted-foreground tabular-nums">×{selectedRecipe.heat * craftQty}</span>
+                        </div>
+                        <span className={`text-xs tabular-nums font-bold ${heat >= selectedRecipe.heat * craftQty ? "text-jade" : "text-red-400"}`}>
+                          {heat}
                         </span>
                       </div>
                     </div>
-
-                    {/* XP + time */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span>{isZh ? "經驗" : "XP"}: +{selectedRecipe.xp}</span>
-                      <span>{isZh ? "時間" : "Time"}: {selectedRecipe.time}{isZh ? "秒/件" : "s/ea"}</span>
                     </div>
 
-                    {/* Craft quantity selector */}
+                    {/* Craft quantity + max */}
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 border-border/40 hover:border-jade/40"
+                      <span className="text-xs text-muted-foreground shrink-0">{isZh ? "數量" : "Qty"}</span>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-border/40 hover:border-jade/40 text-sm"
                         onClick={() => setCraftQty((q) => Math.max(1, q - 1))}
                         disabled={craftQty <= 1 || craftActive}
-                      >
-                        -
-                      </Button>
+                      >-</Button>
                       <input
-                        type="number"
-                        min={1}
-                        max={Math.max(1, maxCraftQty)}
+                        type="text" inputMode="numeric"
                         value={craftQty}
                         onChange={(e) => {
-                          const v = parseInt(e.target.value) || 1;
+                          const v = parseInt(e.target.value.replace(/\D/g, "")) || 1;
                           setCraftQty(Math.max(1, Math.min(v, Math.max(1, maxCraftQty))));
                         }}
                         disabled={craftActive}
-                        className="w-14 h-8 text-center bg-black/40 border rounded-md text-sm tabular-nums focus:outline-none focus:border-jade/50"
-                        style={{ borderColor: "rgba(255,255,255,0.1)" }}
+                        className="w-12 h-8 text-center rounded-md text-sm tabular-nums font-bold focus:outline-none focus:border-jade/50"
+                        style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.12)" }}
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 border-border/40 hover:border-jade/40"
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-border/40 hover:border-jade/40 text-sm"
                         onClick={() => setCraftQty((q) => Math.min(Math.max(1, maxCraftQty), q + 1))}
                         disabled={craftQty >= maxCraftQty || craftActive}
-                      >
-                        +
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs border-border/40 hover:border-jade/40"
+                      >+</Button>
+                      <Button variant="outline" size="sm" className="h-8 text-xs border-border/40 hover:border-jade/40 ml-auto"
                         onClick={() => setCraftQty(Math.max(1, maxCraftQty))}
                         disabled={craftActive}
                       >
-                        {isZh ? `最大:${maxCraftQty}` : `Max:${maxCraftQty}`}
+                        {isZh ? "最大" : "Max"} {maxCraftQty}
                       </Button>
                     </div>
 
@@ -940,8 +1008,8 @@ export default function SmithingPage() {
 
                     {/* Completed counter */}
                     {craftCount > 0 && (
-                      <p className="text-center text-sm font-heading text-jade">
-                        {isZh ? selectedRecipe.nameZh : selectedRecipe.nameEn} x{craftCount} {isZh ? "已完成" : "completed"}
+                      <p className="text-center text-sm font-heading text-jade tabular-nums">
+                        {isZh ? selectedRecipe.nameZh : selectedRecipe.nameEn} ×{craftCount} {isZh ? "已完成" : "done"}
                       </p>
                     )}
 
@@ -958,18 +1026,18 @@ export default function SmithingPage() {
                       className={`w-full font-heading text-base h-11 ${
                         craftActive
                           ? "bg-red-900 hover:bg-red-800 text-red-200 border border-red-700/50"
-                          : "bg-cinnabar hover:bg-cinnabar/90 text-white"
+                          : "seal-glow text-white"
                       }`}
-                      style={!craftActive ? { boxShadow: "0 0 12px rgba(180,60,30,0.4)" } : undefined}
                     >
                       {craftActive
-                        ? (isZh ? "停止製作" : "Stop Crafting")
+                        ? (isZh ? "停止製作" : "Stop")
                         : (isZh ? "開始製作" : "Start Crafting")}
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-                    {isZh ? "選擇一個配方" : "Select a recipe"}
+                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/40">
+                    <span className="text-3xl mb-2">🔨</span>
+                    <p className="text-sm">{isZh ? "選擇一個配方" : "Select a recipe"}</p>
                   </div>
                 )}
                 </div>
@@ -1013,12 +1081,30 @@ export default function SmithingPage() {
                 <div
                   className="w-full md:w-[280px] shrink-0 rounded-xl border overflow-hidden"
                   style={{
-                    background: "linear-gradient(180deg, rgb(30,35,30) 0%, rgb(20,25,20) 100%)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "linear-gradient(180deg, rgb(35,25,25) 0%, rgb(22,15,15) 100%)",
+                    border: "1px solid rgba(255,100,0,0.12)",
                   }}
                 >
-                  <div className="p-3 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-                    <h3 className="font-heading text-sm text-muted-foreground">{isZh ? "選擇裝備" : "Select Equipment"}</h3>
+                  <div className="p-3 border-b space-y-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                    <div className="flex gap-1">
+                      {([
+                        { key: "craft" as SmithingTab, zh: "製作", en: "Craft" },
+                        { key: "enhancement" as SmithingTab, zh: "強化", en: "Enhance" },
+                      ]).map((tab) => (
+                        <button
+                          key={tab.key}
+                          onClick={() => setActiveTab(tab.key)}
+                          className={`flex-1 py-1.5 rounded-md text-sm font-heading font-bold transition-colors ${
+                            activeTab === tab.key
+                              ? "bg-orange-800/60 text-orange-200 border border-orange-600/30"
+                              : "text-muted-foreground hover:text-white hover:bg-white/5 border border-transparent"
+                          }`}
+                        >
+                          {isZh ? tab.zh : tab.en}
+                        </button>
+                      ))}
+                    </div>
+                    <h3 className="font-heading text-xs text-muted-foreground">{isZh ? "選擇裝備" : "Select Equipment"}</h3>
                   </div>
                   <div className="p-3">
                     {equipmentItems.length === 0 ? (
@@ -1102,8 +1188,8 @@ export default function SmithingPage() {
                   <div
                     className="rounded-xl border p-4 sm:p-6"
                     style={{
-                      background: "linear-gradient(180deg, rgb(30,35,30) 0%, rgb(20,25,20) 100%)",
-                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "linear-gradient(180deg, rgb(35,25,25) 0%, rgb(22,15,15) 100%)",
+                      border: "1px solid rgba(255,100,0,0.12)",
                     }}
                   >
                   {selectedEquipment && selectedItemDef ? (

@@ -114,6 +114,8 @@ export interface GameState {
   combatKillCount: number;
   combatLogs: { id: number; text: string; color: string }[];
   combatLootSlots: { item_type: string; quantity: number }[];
+  furnaceHeat: number;
+  lastSyncAt: number; // timestamp of last successful sync
 }
 
 export interface ActivitySwitchConfirm {
@@ -143,6 +145,8 @@ interface GameContextValue extends GameState {
   updateEquipmentSet: (setNum: number, sets: Record<string, Record<string, string>>) => void;
   setEnlightening: (v: boolean) => void;
   registerEnlightenmentSync: (fn: () => void) => void;
+  setFurnaceHeat: (heat: number) => void;
+  flushAllPending: () => void;
   requestActivitySwitch: (targetName: string, onConfirm: () => void) => void;
   hasEntered: boolean;
   setHasEntered: (v: boolean) => void;
@@ -198,6 +202,7 @@ interface ProviderProps {
     combatMonsterId?: string | null;
     qiArray?: (string | null)[];
     consumableSlots?: (string | null)[];
+    furnaceHeat?: number;
     userPreferences?: Record<string, unknown>;
     offlineRewards?: {
       minutes_away: number;
@@ -256,8 +261,14 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const notifIdRef = useRef(0);
 
+  // --- Furnace heat (smithing) ---
+  const [furnaceHeat, setFurnaceHeat] = useState(initialState?.furnaceHeat ?? 0);
+
   // --- Loading screen gate ---
   const [hasEntered, setHasEntered] = useState(false);
+
+  // --- Sync tracking ---
+  const [lastSyncAt, setLastSyncAt] = useState(0);
 
   // --- Offline rewards (system 2) ---
   const [offlineLoading, setOfflineLoading] = useState(false);
@@ -326,6 +337,7 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mine_id: mine.id, ...toSync }),
       });
+      setLastSyncAt(Date.now());
     } catch {
       const p = pendingRef.current;
       p.actions += toSync.actions;
@@ -1552,6 +1564,8 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
         onConfirm();
       }
     }, [getActiveActivityName, shouldAskSwitch]),
+    furnaceHeat,
+    setFurnaceHeat,
     hasEntered,
     setHasEntered,
     applyBreakthrough: useCallback((data: { realm: string; new_level: number; leftover_xp: number }) => {
@@ -1560,6 +1574,14 @@ export function MiningProvider({ children, initialStatus, initialState }: Provid
       bodyStageRef.current = data.new_level;
       setBodyXp(data.leftover_xp);
     }, []),
+    lastSyncAt,
+    flushAllPending: useCallback(() => {
+      if (isMiningRef.current) syncToServer();
+      if (isMeditatingRef.current) syncMeditationRef.current();
+      if (isCombatingRef.current) syncCombatRef.current();
+      if (isEnlighteningRef.current) syncEnlightenmentRef.current();
+      setLastSyncAt(Date.now());
+    }, [syncToServer]),
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

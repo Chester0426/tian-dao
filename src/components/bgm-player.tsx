@@ -11,6 +11,7 @@ export function BgmPlayer() {
   const [volume, setVolume] = useState(0.1);
   const [showSlider, setShowSlider] = useState(false);
   const userToggled = useRef(false);
+
   const isMuted = useRef(() => {
     try { return localStorage.getItem("bgmMuted") === "1"; } catch { return false; }
   });
@@ -25,7 +26,7 @@ export function BgmPlayer() {
     ? "top-[68px] right-5"
     : isAuthPage
       ? "top-[100px] right-9"
-      : "top-4 right-4";
+      : "top-4 right-[56px]";
 
   useEffect(() => {
     howlRef.current = new Howl({
@@ -95,6 +96,7 @@ export function BgmPlayer() {
           }}
         />
       )}
+      {/* BGM button */}
       <button
         onClick={togglePlay}
         className="flex h-9 w-9 items-center justify-center rounded-full transition-all"
@@ -119,6 +121,7 @@ export function BgmPlayer() {
           </svg>
         )}
       </button>
+
     </div>
   );
 }

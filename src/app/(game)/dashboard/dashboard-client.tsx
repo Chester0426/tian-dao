@@ -369,6 +369,7 @@ export function DashboardClient({
             }
             isRealmTransition={qiIsPeak || isPeakToNextRealm}
             successRate={isQi ? qiRate : undefined}
+            flushAllPending={() => gameState.flushAllPending()}
             onCancel={() => setShowBreakthrough(false)}
             onResult={(data) => {
               // Update profile override with any data from API (success or failure)

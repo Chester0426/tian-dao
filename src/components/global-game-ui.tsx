@@ -3,7 +3,7 @@
 import { useGameState } from "@/components/mining-provider";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,12 +20,61 @@ export function GlobalGameUI() {
   const pathname = usePathname();
   const { locale } = useI18n();
   const isZh = locale === "zh";
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-trigger cloud save animation when lastSyncAt changes (auto sync every 30s)
+  const prevSyncRef = useRef(gameState.lastSyncAt);
+  useEffect(() => {
+    if (gameState.lastSyncAt > 0 && gameState.lastSyncAt !== prevSyncRef.current) {
+      prevSyncRef.current = gameState.lastSyncAt;
+      if (saveStatus === "idle") {
+        setSaveStatus("saving");
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => setSaveStatus("success"), 300);
+        saveTimerRef.current = setTimeout(() => setSaveStatus("idle"), 5300);
+      }
+    }
+  }, [gameState.lastSyncAt, saveStatus]);
 
   return (
     <>
+      {/* Cloud save button — right of BGM */}
+      {hasEntered && (
+        <button
+          onClick={() => {
+            if (saveStatus === "saving") return;
+            setSaveStatus("saving");
+            try { gameState.flushAllPending(); } catch { /* ignore */ }
+            setTimeout(() => setSaveStatus("success"), 500);
+            setTimeout(() => setSaveStatus("idle"), 5500);
+          }}
+          className="fixed top-4 right-4 z-40 flex h-9 w-9 items-center justify-center rounded-full transition-all"
+          style={{
+            background: "rgba(30,20,10,0.6)",
+            border: `1px solid ${saveStatus === "success" ? "rgba(62,207,165,0.6)" : "rgba(212,168,83,0.4)"}`,
+            boxShadow: saveStatus === "success" ? "0 0 8px rgba(62,207,165,0.3)" : "none",
+          }}
+          aria-label="Save"
+        >
+          {saveStatus === "saving" ? (
+            <div className="h-4 w-4 rounded-full border-2 border-spirit-gold/40 border-t-spirit-gold animate-spin" />
+          ) : saveStatus === "success" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ecfa5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+              <polyline points="9 14 12 11 15 14" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+              <polyline points="9 16 12 13 15 16" />
+            </svg>
+          )}
+        </button>
+      )}
       {/* === System 1: Global floating notifications === */}
       {notifications.length > 0 && (
-        <div className="fixed bottom-6 -translate-x-1/2 left-1/2 md:left-[calc((100vw+14rem)/2)] lg:left-[calc((100vw+15rem)/2)] z-50 flex flex-col items-center gap-1 pointer-events-none">
+        <div className="fixed bottom-6 z-50 flex flex-col items-center gap-1 pointer-events-none left-1/2 -translate-x-1/2">
           {notifications.map((n) => (
             <div
               key={n.id}

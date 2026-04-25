@@ -40,6 +40,7 @@ export interface Profile {
   body_skill_xp: number;
   inventory_slots: number;
   dao_points: number;
+  furnace_heat: number;
   created_at: string;
 }
 

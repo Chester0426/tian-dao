@@ -21,6 +21,7 @@ interface BreakthroughDialogProps {
   onCancel: () => void;
   onSuccess?: (data: { realm: string; new_level: number; leftover_xp: number }) => void;
   onResult?: (data: Record<string, unknown>) => void;
+  flushAllPending?: () => void;
 }
 
 function getLevelLabel(level: number, realm: string = "煉體"): string {
@@ -80,8 +81,8 @@ function BreakthroughAnimation({ progress }: { progress: number }) {
 
   return (
     <div
-      className="relative flex items-center justify-center"
-      style={{ width: 280, height: 280, ...shakeStyle }}
+      className="relative flex items-center justify-center mx-auto"
+      style={{ width: 240, height: 240, ...shakeStyle }}
     >
       {/* Layer 2: Multi-layer aura pulse */}
       <div
@@ -341,6 +342,7 @@ export function BreakthroughDialog({
   onCancel,
   onSuccess,
   onResult,
+  flushAllPending,
 }: BreakthroughDialogProps) {
   const [phase, setPhase] = useState<
     "confirm" | "breaking" | "success" | "failed" | "demo_ended"
@@ -401,10 +403,14 @@ export function BreakthroughDialog({
     setErrorDetail("");
 
     const [apiResult] = await Promise.all([
-      fetch("/api/game/breakthrough", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      }).then(async (res): Promise<{ phase: "success" | "failed" | "demo_ended"; data?: Record<string, unknown> }> => {
+      (async () => {
+        // Flush all pending skill data before breakthrough
+        if (flushAllPending) flushAllPending();
+        return fetch("/api/game/breakthrough", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+      })().then(async (res): Promise<{ phase: "success" | "failed" | "demo_ended"; data?: Record<string, unknown> }> => {
         const text = await res.text();
         if (res.ok) {
           try {
@@ -519,7 +525,7 @@ export function BreakthroughDialog({
         )}
 
         {phase === "breaking" && (
-          <div className="flex flex-col items-center justify-center py-4">
+          <div className="flex flex-col items-center justify-center py-4 w-full overflow-hidden">
             <BreakthroughAnimation progress={animProgress} />
             <p className="mt-3 font-heading text-spirit-gold text-sm tracking-widest">
               {isZh

@@ -43,8 +43,8 @@ const CATEGORY_LABELS: Record<TechniqueCategory, { zh: string; en: string; color
 };
 
 export function EnlightenmentClient({
-  enlightenmentXp,
-  enlightenmentLevel,
+  enlightenmentXp: initialXp,
+  enlightenmentLevel: initialLevel,
   learnedTechniques: initialLearned,
   inventory: initialInventory,
 }: Props) {
@@ -53,6 +53,16 @@ export function EnlightenmentClient({
   const router = useRouter();
   const gameState = useGameState();
   const inventory = gameState.inventory.length > 0 ? gameState.inventory : initialInventory;
+
+  // Local XP state — updates immediately on each tick
+  const [enlightenmentXp, setEnlightenmentXp] = useState(initialXp);
+  const [enlightenmentLevel, setEnlightenmentLevel] = useState(initialLevel);
+
+  // Sync from props when they change (e.g. after server refresh)
+  useEffect(() => {
+    setEnlightenmentXp(initialXp);
+    setEnlightenmentLevel(initialLevel);
+  }, [initialXp, initialLevel]);
 
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [learning, setLearning] = useState<string | null>(null);
@@ -111,14 +121,25 @@ export function EnlightenmentClient({
       setActionProgress(p);
       if (p >= 1) {
         pendingTicksRef.current += 1;
+        const xpGain = currentTarget.kind === "book" ? DAMAGED_BOOK_ENLIGHTENMENT_XP : ENLIGHTENMENT_TICK_XP;
         gameState.addNotification(
           "📜",
           currentTarget.kind === "book"
             ? (isZh ? "參悟" : "Enlightenment")
             : (isZh ? TECHNIQUES[(currentTarget as { technique_slug: string }).technique_slug]?.nameZh ?? "功法" : "Technique"),
-          currentTarget.kind === "book" ? DAMAGED_BOOK_ENLIGHTENMENT_XP : ENLIGHTENMENT_TICK_XP,
+          xpGain,
           "text-spirit-gold"
         );
+        // Instantly update local XP + level
+        setEnlightenmentXp((prev) => {
+          const newXp = prev + xpGain;
+          // Check level up
+          const nextLevelXp = melvorXpForLevel(enlightenmentLevel + 1);
+          if (newXp >= nextLevelXp) {
+            setEnlightenmentLevel((l) => l + 1);
+          }
+          return newXp;
+        });
         tickStartRef.current = Date.now();
       }
       rafRef.current = requestAnimationFrame(loop);
