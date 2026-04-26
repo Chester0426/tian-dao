@@ -235,14 +235,14 @@ function BreakthroughAnimation({ progress }: { progress: number }) {
       <img
         src="/images/bt-figure.png" alt=""
         className="absolute inset-0 w-full h-full object-contain"
-        style={{ width: 210, height: 210, left: 35, top: 35 }}
+        style={{ width: 210, height: 210, left: 15, top: 15 }}
       />
 
       {/* Gold fill rising inside the figure — masked by the same shape */}
       <div
         className="absolute pointer-events-none"
         style={{
-          left: 35, top: 35, width: 210, height: 210,
+          left: 15, top: 15, width: 210, height: 210,
           WebkitMaskImage: "url(/images/bt-mask.png)",
           maskImage: "url(/images/bt-mask.png)",
           WebkitMaskSize: "contain",
@@ -282,7 +282,7 @@ function BreakthroughAnimation({ progress }: { progress: number }) {
           <div
             className="absolute pointer-events-none"
             style={{
-              left: 35, top: 35, width: 210, height: 210,
+              left: 15, top: 15, width: 210, height: 210,
               WebkitMaskImage: "url(/images/bt-mask.png)",
               maskImage: "url(/images/bt-mask.png)",
               WebkitMaskSize: "contain",
