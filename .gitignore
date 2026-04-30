@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+
+# Next.js (update if you change stack.framework)
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Sensitive file patterns (defense in depth)
+*.key
+*.pem
+credentials*
+*.secret
+*.token
+service-account*.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Vercel (update if you change stack.hosting)
+.vercel/
+
+# Deploy manifest (infrastructure state — not app code)
+.claude/deploy-manifest.json
+
+# Q-score history (local measurement artifact — not product code)
+.claude/verify-history.jsonl
+
+# Ephemeral skill artifacts (consumed and deleted during PR creation)
+.claude/current-plan.md
+.claude/current-visual-brief.md
+.claude/verify-report.md
+.claude/agent-traces/
+.claude/gate-verdicts/
+.claude/verify-context.json
+.claude/fix-log.md
+.claude/security-merge.json
+.claude/design-ux-merge.json
+.claude/e2e-result.json
+.claude/patterns-saved.json
+externals-decisions.json
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Debug logs
+*.log
+
+# Playwright (update if you change stack.testing)
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth.json
+
+# Lock files from other package managers (this project uses npm)
+pnpm-lock.yaml
+yarn.lock
+.github/workflows/
+.vercel
