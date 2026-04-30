@@ -8,6 +8,7 @@ const schema = z.object({
   address: z.string().min(32).max(44),
   signature: z.string(),
   message: z.string(),
+  nonce: z.string().min(32).max(128),
 });
 
 export async function POST(req: Request) {
@@ -18,7 +19,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { address, signature, message } = body;
+  const { address, signature, message, nonce } = body;
+
+  // Phishing defense: signed message MUST contain the server-issued nonce.
+  // Without this check an attacker could submit a signature obtained on a
+  // phishing site (where they'd ask the user to sign a message of their choice).
+  if (!message.includes(nonce)) {
+    return NextResponse.json({ error: "Nonce missing in signed message" }, { status: 400 });
+  }
 
   // Verify Solana signature
   try {
@@ -34,6 +42,13 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+
+  // Consume nonce — atomically validates existence + age + marks used.
+  // After this call the nonce can never be reused, regardless of outcome.
+  const { data: nonceOk, error: nonceErr } = await admin.rpc("consume_wallet_nonce", { p_nonce: nonce });
+  if (nonceErr || !nonceOk) {
+    return NextResponse.json({ error: "Nonce 已過期或無效，請重新嘗試" }, { status: 401 });
+  }
 
   // Check if this wallet is bound to a user
   const { data: binding, error: bindError } = await admin

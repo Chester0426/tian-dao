@@ -75,25 +75,49 @@ export default function SignupPage() {
     }
     setFormState("submitting");
     try {
+      // Step 2: fetch one-time nonce from server (anti-phishing)
+      const nonceRes = await fetch("/api/auth/wallet-nonce");
+      if (!nonceRes.ok) throw new Error("nonce fetch failed");
+      const { nonce } = await nonceRes.json();
+
+      // Step 3: build SIWE-style message including domain + nonce
       const address = publicKey.toBase58();
-      const message = `天道 Tian Dao 簽名\n錢包: ${address}\n時間: ${Date.now()}`;
+      const domain = typeof window !== "undefined" ? window.location.host : "tiantao.vercel.app";
+      const issuedAt = new Date().toISOString();
+      const message =
+        `${domain} 邀請你登入天道 Tian Dao\n\n` +
+        `Wallet: ${address}\n` +
+        `Nonce: ${nonce}\n` +
+        `Issued At: ${issuedAt}`;
       const messageBytes = new TextEncoder().encode(message);
       const signatureBytes = await signMessage(messageBytes);
       const signature = bs58.encode(signatureBytes);
 
-      // Try login first (existing wallet → existing account)
+      // Step 4: try login first (existing wallet → existing account)
       let res = await fetch("/api/auth/wallet-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature, message }),
+        body: JSON.stringify({ address, signature, message, nonce }),
       });
 
-      // If wallet not bound, fall through to signup
+      // If wallet not bound, fall through to signup. Server consumed the
+      // nonce on the first call, so we need a fresh one.
       if (res.status === 403) {
+        const nonceRes2 = await fetch("/api/auth/wallet-nonce");
+        if (!nonceRes2.ok) throw new Error("nonce fetch failed");
+        const { nonce: nonce2 } = await nonceRes2.json();
+        const message2 =
+          `${domain} 邀請你登入天道 Tian Dao\n\n` +
+          `Wallet: ${address}\n` +
+          `Nonce: ${nonce2}\n` +
+          `Issued At: ${new Date().toISOString()}`;
+        const messageBytes2 = new TextEncoder().encode(message2);
+        const signatureBytes2 = await signMessage(messageBytes2);
+        const signature2 = bs58.encode(signatureBytes2);
         res = await fetch("/api/auth/wallet-signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, signature, message }),
+          body: JSON.stringify({ address, signature: signature2, message: message2, nonce: nonce2 }),
         });
       }
 

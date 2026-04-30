@@ -17,9 +17,8 @@ const schema = z.object({
   address: z.string().min(32).max(44),
   signature: z.string(),
   message: z.string(),
+  nonce: z.string().min(32).max(128),
 });
-
-const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function POST(req: Request) {
   let body;
@@ -29,16 +28,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { address, signature, message } = body;
+  const { address, signature, message, nonce } = body;
 
-  // Replay protection: extract timestamp from message and reject if stale.
-  // Expected message format: "...時間: <ms>" or "...timestamp: <ms>"
-  const tsMatch = message.match(/(?:時間|timestamp):\s*(\d+)/);
-  if (tsMatch) {
-    const ts = Number(tsMatch[1]);
-    if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > REPLAY_WINDOW_MS) {
-      return NextResponse.json({ error: "簽章已過期，請重新嘗試" }, { status: 401 });
-    }
+  // Phishing defense: signed message MUST contain the server-issued nonce.
+  if (!message.includes(nonce)) {
+    return NextResponse.json({ error: "Nonce missing in signed message" }, { status: 400 });
   }
 
   // Verify Solana signature
@@ -55,6 +49,12 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+
+  // Consume nonce — atomically validates existence + age + marks used.
+  const { data: nonceOk, error: nonceErr } = await admin.rpc("consume_wallet_nonce", { p_nonce: nonce });
+  if (nonceErr || !nonceOk) {
+    return NextResponse.json({ error: "Nonce 已過期或無效，請重新嘗試" }, { status: 401 });
+  }
 
   // Reject if wallet already bound — user should use /api/auth/wallet-login instead
   const { data: existing } = await admin

@@ -25,8 +25,18 @@ export default function DevPortalPage() {
     setLoading(true);
     setErrorMessage("");
     try {
+      // Fetch one-time nonce from server (anti-phishing)
+      const nonceRes = await fetch("/api/auth/wallet-nonce");
+      if (!nonceRes.ok) throw new Error("nonce fetch failed");
+      const { nonce } = await nonceRes.json();
+
       const address = publicKey.toBase58();
-      const message = `天道開發者登入\n錢包: ${address}\n時間: ${Date.now()}`;
+      const domain = typeof window !== "undefined" ? window.location.host : "tiantao.vercel.app";
+      const message =
+        `${domain} 邀請你登入天道 Tian Dao（開發者）\n\n` +
+        `Wallet: ${address}\n` +
+        `Nonce: ${nonce}\n` +
+        `Issued At: ${new Date().toISOString()}`;
       const messageBytes = new TextEncoder().encode(message);
 
       // Sign with Phantom
@@ -37,7 +47,7 @@ export default function DevPortalPage() {
       const res = await fetch("/api/auth/wallet-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature, message }),
+        body: JSON.stringify({ address, signature, message, nonce }),
       });
 
       if (!res.ok) {

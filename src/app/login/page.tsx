@@ -68,24 +68,38 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const address = publicKey.toBase58();
-      const message = `天道 Tian Dao 簽名\n錢包: ${address}\n時間: ${Date.now()}`;
-      const messageBytes = new TextEncoder().encode(message);
-      const signatureBytes = await signMessage(messageBytes);
-      const signature = bs58.encode(signatureBytes);
+      const buildMessage = async (address: string) => {
+        const nonceRes = await fetch("/api/auth/wallet-nonce");
+        if (!nonceRes.ok) throw new Error("nonce fetch failed");
+        const { nonce } = await nonceRes.json();
+        const domain = typeof window !== "undefined" ? window.location.host : "tiantao.vercel.app";
+        const issuedAt = new Date().toISOString();
+        const message =
+          `${domain} 邀請你登入天道 Tian Dao\n\n` +
+          `Wallet: ${address}\n` +
+          `Nonce: ${nonce}\n` +
+          `Issued At: ${issuedAt}`;
+        return { message, nonce };
+      };
 
-      // Try login first; if wallet not bound, signup
+      const address = publicKey.toBase58();
+      const first = await buildMessage(address);
+      const sig1 = bs58.encode(await signMessage(new TextEncoder().encode(first.message)));
+
+      // Try login first; if wallet not bound, fetch a fresh nonce and signup
       let res = await fetch("/api/auth/wallet-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature, message }),
+        body: JSON.stringify({ address, signature: sig1, message: first.message, nonce: first.nonce }),
       });
 
       if (res.status === 403) {
+        const second = await buildMessage(address);
+        const sig2 = bs58.encode(await signMessage(new TextEncoder().encode(second.message)));
         res = await fetch("/api/auth/wallet-signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, signature, message }),
+          body: JSON.stringify({ address, signature: sig2, message: second.message, nonce: second.nonce }),
         });
       }
 
