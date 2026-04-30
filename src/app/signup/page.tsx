@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import bs58 from "bs58";
 import { createClient } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { trackSignupStart, trackSignupComplete } from "@/lib/events";
@@ -23,6 +26,9 @@ export default function SignupPage() {
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [mounted, setMounted] = useState(false);
+
+  const { publicKey, signMessage, connect: walletConnect, connected: walletConnected } = useWallet();
+  const { setVisible: setWalletModalVisible } = useWalletModal();
 
   const { locale, t } = useI18n();
 
@@ -48,6 +54,73 @@ export default function SignupPage() {
       }
     } catch {
       setErrorMessage("Google 註冊失敗，請重新嘗試。");
+      setFormState("error");
+    }
+  };
+
+  const handlePhantomAuth = async () => {
+    setErrorMessage("");
+    // Step 1: ensure wallet connected
+    if (!walletConnected || !publicKey || !signMessage) {
+      try {
+        if (!walletConnected) await walletConnect();
+      } catch {
+        setWalletModalVisible(true);
+        return;
+      }
+      if (!publicKey || !signMessage) {
+        setWalletModalVisible(true);
+        return;
+      }
+    }
+    setFormState("submitting");
+    try {
+      const address = publicKey.toBase58();
+      const message = `天道 Tian Dao 簽名\n錢包: ${address}\n時間: ${Date.now()}`;
+      const messageBytes = new TextEncoder().encode(message);
+      const signatureBytes = await signMessage(messageBytes);
+      const signature = bs58.encode(signatureBytes);
+
+      // Try login first (existing wallet → existing account)
+      let res = await fetch("/api/auth/wallet-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, signature, message }),
+      });
+
+      // If wallet not bound, fall through to signup
+      if (res.status === 403) {
+        res = await fetch("/api/auth/wallet-signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, signature, message }),
+        });
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setErrorMessage(err.error ?? (locale === "zh" ? "錢包驗證失敗" : "Wallet verification failed"));
+        setFormState("error");
+        return;
+      }
+
+      const { tokenHash, type, isNewUser } = await res.json();
+      const supabase = createClient();
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: type as "magiclink",
+      });
+      if (otpError) {
+        setErrorMessage(otpError.message);
+        setFormState("error");
+        return;
+      }
+
+      if (isNewUser) trackSignupComplete({ method: "phantom" });
+      setFormState("success");
+      router.push("/characters");
+    } catch {
+      setErrorMessage(locale === "zh" ? "錢包簽章失敗，請重新嘗試" : "Wallet signature failed, please retry");
       setFormState("error");
     }
   };
@@ -192,6 +265,21 @@ export default function SignupPage() {
                 <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 3.58z" fill="#EA4335"/>
               </svg>
               {t("signup_google")}
+            </Button>
+
+            {/* Phantom wallet signup */}
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handlePhantomAuth}
+              disabled={formState === "submitting"}
+              className="mb-3 h-11 w-full gap-3 text-sm font-medium border-white/15 bg-white/5 text-white/90 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <svg width="16" height="16" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+                <path d="M110.584 64.9142H99.142C99.142 41.7651 80.173 23 56.7724 23C33.6612 23 14.8716 41.3057 14.4286 64.0583C13.9696 87.5806 35.6517 108 59.4288 108H62.4282C83.3849 108 111.4 91.6816 115.78 71.7585C116.585 68.0976 113.733 64.9142 110.584 64.9142ZM39.7689 65.9454C39.7689 69.0476 37.219 71.5836 34.1014 71.5836C30.9837 71.5836 28.4338 69.0405 28.4338 65.9454V56.8615C28.4338 53.7593 30.9837 51.2233 34.1014 51.2233C37.219 51.2233 39.7689 53.7664 39.7689 56.8615V65.9454ZM59.4571 65.9454C59.4571 69.0476 56.9072 71.5836 53.7895 71.5836C50.6719 71.5836 48.1219 69.0405 48.1219 65.9454V56.8615C48.1219 53.7593 50.679 51.2233 53.7895 51.2233C56.9 51.2233 59.4571 53.7664 59.4571 56.8615V65.9454Z" fill="#AB9FF2"/>
+              </svg>
+              {locale === "zh" ? "用 Phantom 錢包註冊" : "Sign up with Phantom"}
             </Button>
 
             <div className="relative mb-3">
