@@ -8,13 +8,14 @@ import { COMBAT_ZONES } from "@/lib/combat";
 import { z } from "zod";
 
 const schema = z.object({
-  type: z.enum(["mining", "meditate", "enlightenment", "combat"]),
+  type: z.enum(["mining", "meditate", "enlightenment", "combat", "smithing"]),
   requested_at: z.number(),
   mine_id: z.string().optional(),
   target: z.union([
     z.object({ kind: z.literal("book"), item_type: z.string() }),
     z.object({ kind: z.literal("technique"), technique_slug: z.string() }),
     z.object({ monster_id: z.string() }),
+    z.object({ recipe_id: z.string() }),
   ]).optional(),
 });
 
@@ -97,6 +98,24 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (type === "smithing") {
+    const target = body.target as { recipe_id?: string } | undefined;
+    if (!target?.recipe_id) {
+      return NextResponse.json({ error: "recipe_id required" }, { status: 400 });
+    }
+    const [{ data: recipe }, { data: skill }] = await Promise.all([
+      supabase.from("smithing_recipes").select("level_req").eq("id", target.recipe_id).maybeSingle(),
+      supabase.from("smithing_skills").select("level").eq("user_id", user.id).eq("slot", slot).maybeSingle(),
+    ]);
+    if (!recipe) {
+      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
+    }
+    const playerLevel = skill?.level ?? 1;
+    if (playerLevel < recipe.level_req) {
+      return NextResponse.json({ error: "Smithing level too low", required: recipe.level_req, current: playerLevel }, { status: 403 });
+    }
+  }
+
   // Validate combat monster exists
   if (type === "combat") {
     const target = body.target as { monster_id?: string } | undefined;
@@ -116,7 +135,7 @@ export async function POST(request: NextRequest) {
     p_type: type,
     p_started_at: new Date(requested_at).toISOString(),
     p_mine_id: type === "mining" ? body.mine_id : null,
-    p_payload: (type === "enlightenment" || type === "combat") ? body.target : null,
+    p_payload: (type === "enlightenment" || type === "combat" || type === "smithing") ? body.target : null,
   });
 
   if (rpcErr) {

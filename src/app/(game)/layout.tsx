@@ -15,7 +15,7 @@ export default async function GameGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
+  const isDemo = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
 
   let miningStatus = { isMining: false, mineId: null as string | null };
   let initialState: Record<string, unknown> = {};
@@ -23,11 +23,76 @@ export default async function GameGroupLayout({
   let isEnlighteningInit = false;
   let enlightenmentTargetInit: { kind: "book"; item_type: string } | { kind: "technique"; technique_slug: string } | null = null;
   let combatInit: { monsterId: string } | null = null;
+  let isSmithingInit = false;
+  let smithingRecipeIdInit: string | null = null;
   let offlineRewardsInit: OfflineRewardResult | null = null;
   let isAdmin = false;
   let authSlot: number | undefined;
 
-  if (!isDemo) {
+  if (isDemo) {
+    const demoUserId = "demo-user";
+    const demoInventory = [
+      ["coal", 500],
+      ["charcoal", 20],
+      ["spirit_stone_fragment", 120],
+      ["fire_crystal", 3],
+      ["copper_ore", 99],
+      ["tin_ore", 99],
+      ["iron_ore", 99],
+      ["silver_ore", 99],
+      ["copper_bar", 60],
+      ["tin_bar", 60],
+      ["iron_bar", 60],
+      ["silver_bar", 60],
+      ["copper_sword", 1],
+      ["copper_shield", 1],
+      ["copper_helmet", 1],
+      ["copper_chest", 1],
+    ].map(([item_type, quantity], idx) => ({
+      id: `demo-smithing-${idx}`,
+      user_id: demoUserId,
+      slot: 1,
+      item_type: item_type as string,
+      quantity: quantity as number,
+      created_at: "",
+    })) as InventoryItem[];
+
+    authSlot = 1;
+    initialState = {
+      miningLevel: 80,
+      miningXp: 0,
+      miningXpMax: miningXpForLevel(80),
+      masteryLevels: {},
+      masteryXps: {},
+      masteryXpMaxs: {},
+      bodyStage: 10,
+      bodyXp: 0,
+      bodyLevel: 10,
+      realm: "煉體",
+      isMeditating: false,
+      qiXp: 0,
+      qiArray: [null, null, null, null, null],
+      equipmentSets: { "1": {}, "2": {} },
+      activeEquipmentSet: 1,
+      equipment: {},
+      lootBox: [],
+      consumableSlots: [null, null, null],
+      userPreferences: {},
+      furnaceHeat: 1000,
+      isSmithing: false,
+      smithingRecipeId: null,
+      smithingLevel: 80,
+      smithingXp: 0,
+      combatMonsterId: null,
+      isEnlightening: false,
+      enlightenmentTarget: null,
+      offlineRewards: null,
+      inventory: demoInventory,
+      rockHpMap: {},
+      rockDepletedAtMap: {},
+      rockLastActiveMap: {},
+    };
+  } else {
     try {
       const supabase = await createServerSupabaseClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -38,7 +103,7 @@ export default async function GameGroupLayout({
         const slot = parseInt(cookieStore.get("x-slot")?.value ?? "1", 10);
         authSlot = slot;
 
-        const [latestSessionRes, profileRes, skillRes, masteryRes, inventoryRes, mineRes, rockStateRes] = await Promise.all([
+        const [latestSessionRes, profileRes, skillRes, masteryRes, inventoryRes, mineRes, rockStateRes, smithingSkillRes] = await Promise.all([
           supabase.from("idle_sessions").select("type,mine_id,started_at,ended_at,last_sync_at,payload").eq("user_id", user.id).eq("slot", slot).is("ended_at", null).maybeSingle(),
           supabase.from("profiles").select("*").eq("user_id", user.id).eq("slot", slot).single(),
           supabase.from("mining_skills").select("*").eq("user_id", user.id).eq("slot", slot).single(),
@@ -46,6 +111,7 @@ export default async function GameGroupLayout({
           supabase.from("inventory_items").select("*").eq("user_id", user.id).eq("slot", slot),
           supabase.from("mines").select("id, slug, xp_mining, xp_mastery, xp_body").limit(10),
           supabase.from("mine_rock_state").select("mine_id, current_hp, depleted_at, last_active_at").eq("user_id", user.id).eq("slot", slot),
+          supabase.from("smithing_skills").select("level, xp").eq("user_id", user.id).eq("slot", slot).maybeSingle(),
         ]);
 
         // Only resume an activity if the latest session has ended_at = NULL
@@ -69,6 +135,13 @@ export default async function GameGroupLayout({
         if (latestSession && !latestSession.ended_at && latestSession.type === "combat" && latestSession.payload) {
           const p = latestSession.payload as { monster_id?: string };
           if (p.monster_id) combatInit = { monsterId: p.monster_id };
+        }
+        if (latestSession && !latestSession.ended_at && latestSession.type === "smithing" && latestSession.payload) {
+          const p = latestSession.payload as { recipe_id?: string };
+          if (p.recipe_id) {
+            isSmithingInit = true;
+            smithingRecipeIdInit = p.recipe_id;
+          }
         }
 
         // SSR offline rewards — computed once per page load, optimistic lock prevents double-award
@@ -142,6 +215,10 @@ export default async function GameGroupLayout({
           consumableSlots: (profile?.consumable_slots as (string | null)[] | null) ?? [null, null, null],
           userPreferences: (profile as unknown as { user_preferences?: Record<string, unknown> })?.user_preferences ?? {},
           furnaceHeat: profile?.furnace_heat ?? 0,
+          isSmithing: isSmithingInit,
+          smithingRecipeId: smithingRecipeIdInit,
+          smithingLevel: smithingSkillRes.data?.level ?? 1,
+          smithingXp: (smithingSkillRes.data?.xp ?? 0) - totalMiningXpForLevel(smithingSkillRes.data?.level ?? 1),
           combatMonsterId: combatInit?.monsterId ?? null,
           isEnlightening: isEnlighteningInit,
           enlightenmentTarget: enlightenmentTargetInit,

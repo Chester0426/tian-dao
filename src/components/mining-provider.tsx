@@ -106,6 +106,13 @@ export interface GameState {
   combatLogs: { id: number; text: string; color: string }[];
   combatLootSlots: { item_type: string; quantity: number }[];
   furnaceHeat: number;
+  // Smithing
+  isSmithing: boolean;
+  smithingRecipeId: string | null;
+  smithingLevel: number;
+  smithingXp: number;
+  craftCount: number;
+  craftProgress: number;
   lastSyncAt: number; // timestamp of last successful sync
 }
 
@@ -125,6 +132,8 @@ interface GameContextValue extends GameState {
   stopMeditation: () => void;
   startCombat: (monster: Monster) => void;
   stopCombat: () => void;
+  startSmithing: (recipeId: string, targetCount?: number) => void;
+  stopSmithing: () => void;
   collectCombatLoot: () => Promise<{ ok: boolean; error?: string }>;
   setConsumableSlot: (idx: number, itemType: string | null) => void;
   setActiveConsumableIdx: (idx: number) => void;
@@ -195,6 +204,10 @@ interface ProviderProps {
     qiArray?: (string | null)[];
     consumableSlots?: (string | null)[];
     furnaceHeat?: number;
+    isSmithing?: boolean;
+    smithingRecipeId?: string | null;
+    smithingLevel?: number;
+    smithingXp?: number;
     userPreferences?: Record<string, unknown>;
     offlineRewards?: {
       minutes_away: number;
@@ -940,6 +953,185 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialState?.qiXp]);
 
+  // --- Smithing state (mutually exclusive with mining/meditation/enlightenment/combat) ---
+  const [isSmithing, setIsSmithing] = useState(initialState?.isSmithing ?? false);
+  const [smithingRecipeId, setSmithingRecipeId] = useState<string | null>(initialState?.smithingRecipeId ?? null);
+  const [smithingLevel, setSmithingLevel] = useState(initialState?.smithingLevel ?? 1);
+  const [smithingXp, setSmithingXp] = useState(initialState?.smithingXp ?? 0);
+  const [craftCount, setCraftCount] = useState(0);
+  const [craftProgress, setCraftProgress] = useState(0);
+  const isSmithingRef = useRef(isSmithing);
+  isSmithingRef.current = isSmithing;
+  const smithingRecipeIdRef = useRef(smithingRecipeId);
+  smithingRecipeIdRef.current = smithingRecipeId;
+  const smithingTimeSecondsRef = useRef<number>(5);
+  const smithingTickStartRef = useRef(0);
+  const smithingRafRef = useRef<number | null>(null);
+  const smithingTargetCountRef = useRef<number>(0); // 0 = unlimited; >0 = stop after N crafts
+
+  const doSmithingTick = useCallback(() => {
+    supabaseRef.current.rpc("smithing_tick", {
+      p_slot: slotRef.current,
+    }).then(({ data, error }: { data: unknown; error: unknown }) => {
+      if (error || !data) return;
+      const result = data as {
+        error?: string;
+        ok?: boolean;
+        crafts?: number;
+        xp_gained?: number;
+        heat_consumed?: number;
+        furnace_heat?: number;
+        output?: string;
+        output_total_qty?: number;
+        recipe_id?: string;
+        recipe_time_seconds?: number;
+        blocked_by_heat?: boolean;
+        blocked_by_material?: string | null;
+        level?: number;
+        xp?: number;
+        leveled_up?: boolean;
+        next_event_in_ms?: number;
+      };
+      if (result.error) return;
+      if (!isSmithingRef.current) return;
+
+      if (typeof result.recipe_time_seconds === "number") {
+        smithingTimeSecondsRef.current = result.recipe_time_seconds;
+      }
+
+      const crafts = result.crafts ?? 0;
+      const heat = result.furnace_heat ?? 0;
+      setFurnaceHeat(heat);
+
+      // Apply level + in-level XP from RPC (server-authoritative).
+      // RPC returns total xp; convert to in-level xp.
+      if (typeof result.level === "number") {
+        setSmithingLevel(result.level);
+      }
+      if (typeof result.xp === "number" && typeof result.level === "number") {
+        const inLevel = result.xp - totalMiningXpForLevel(result.level);
+        setSmithingXp(Math.max(0, inLevel));
+      }
+      if (result.leveled_up && typeof result.level === "number") {
+        const isZh = localeRef.current === "zh";
+        addNotification("🎉", isZh ? "煉器升級！" : "Smithing level up!", result.level, "text-spirit-gold");
+      }
+
+      let newCraftCount = 0;
+      if (crafts > 0 && result.output) {
+        setCraftCount((c) => { newCraftCount = c + crafts; return newCraftCount; });
+
+        const outputQty = result.output_total_qty ?? crafts;
+        setInventory((prev) => {
+          const idx = prev.findIndex((i) => i.item_type === result.output);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], quantity: next[idx].quantity + outputQty };
+            return next;
+          }
+          return [...prev, { id: crypto.randomUUID(), user_id: "local", slot: slotRef.current, item_type: result.output!, quantity: outputQty, created_at: "" }];
+        });
+
+        const isZh = localeRef.current === "zh";
+        const meta = ITEMS[result.output];
+        if (meta && !document.hidden) {
+          addNotification(meta.icon, isZh ? meta.nameZh : meta.nameEn, outputQty, meta.color, undefined, meta.image);
+        }
+      }
+
+      // Hit queue target → auto-stop with notification.
+      if (smithingTargetCountRef.current > 0 && newCraftCount >= smithingTargetCountRef.current) {
+        const isZh = localeRef.current === "zh";
+        addNotification("✓", isZh ? "佇列完成" : "Queue done", smithingTargetCountRef.current, "text-jade");
+        setIsSmithing(false);
+        setSmithingRecipeId(null);
+        smithingTargetCountRef.current = 0;
+        fetch("/api/game/stop-activity", { method: "POST", keepalive: true }).catch(() => {});
+        setLastSyncAt(Date.now());
+        return;
+      }
+
+      // Resources exhausted → auto-stop. Otherwise progress bar would keep
+      // animating without producing anything.
+      if (result.blocked_by_heat || result.blocked_by_material) {
+        const isZh = localeRef.current === "zh";
+        if (result.blocked_by_heat) {
+          addNotification("🔥", isZh ? "熱值不足，已停止" : "Out of heat", 0, "text-cinnabar");
+        } else if (result.blocked_by_material) {
+          const matMeta = ITEMS[result.blocked_by_material];
+          const matName = matMeta ? (isZh ? matMeta.nameZh : matMeta.nameEn) : result.blocked_by_material;
+          addNotification("⛔", isZh ? `${matName}不足，已停止` : `Out of ${matName}`, 0, "text-cinnabar");
+        }
+        setIsSmithing(false);
+        setSmithingRecipeId(null);
+        fetch("/api/game/stop-activity", { method: "POST", keepalive: true }).catch(() => {});
+      }
+
+      setLastSyncAt(Date.now());
+    }).catch(() => {});
+  }, [addNotification]);
+
+  // Smithing RAF tick loop — drives progress bar + invokes RPC each recipe.time_seconds
+  useEffect(() => {
+    if (!isSmithing) {
+      if (smithingRafRef.current) cancelAnimationFrame(smithingRafRef.current);
+      setCraftProgress(0);
+      return;
+    }
+    smithingTickStartRef.current = Date.now();
+    const loop = () => {
+      const tickMs = (smithingTimeSecondsRef.current || 5) * 1000;
+      const elapsed = Date.now() - smithingTickStartRef.current;
+      const p = Math.min(elapsed / tickMs, 1);
+      setCraftProgress(p);
+      if (p >= 1) {
+        doSmithingTick();
+        smithingTickStartRef.current = Date.now();
+      }
+      smithingRafRef.current = requestAnimationFrame(loop);
+    };
+    smithingRafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (smithingRafRef.current) cancelAnimationFrame(smithingRafRef.current);
+    };
+  }, [isSmithing, doSmithingTick]);
+
+  const _doStartSmithing = useCallback((recipeId: string, targetCount: number = 0) => {
+    if (isMiningRef.current) {
+      setIsMining(false);
+      setActiveMineId(null);
+      activeMineRef.current = null;
+      setActionProgress(0);
+    }
+    if (isMeditatingRef.current) { setIsMeditating(false); }
+    if (isCombatingRef.current) { setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
+    if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
+    setTimeout(() => {
+      setSmithingRecipeId(recipeId);
+      setCraftCount(0);
+      setCraftProgress(0);
+      smithingTargetCountRef.current = Math.max(0, Math.floor(targetCount));
+      setIsSmithing(true);
+      fetch("/api/game/start-activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "smithing", requested_at: Date.now(), target: { recipe_id: recipeId } }),
+        keepalive: true,
+      }).catch(() => {});
+    }, 50);
+  }, []);
+
+  const stopSmithing = useCallback(() => {
+    setIsSmithing(false);
+    setSmithingRecipeId(null);
+    setCraftProgress(0);
+    smithingTargetCountRef.current = 0;
+    fetch("/api/game/stop-activity", {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => {});
+  }, []);
+
   // --- Enlightenment state (tracked for mutual exclusion) ---
   const [isEnlightening, setIsEnlightening] = useState((initialState as { isEnlightening?: boolean })?.isEnlightening ?? false);
   const isEnlighteningRef = useRef(isEnlightening);
@@ -971,6 +1163,7 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
     if (isMeditatingRef.current) return locale === "zh" ? "冥想" : "Meditation";
     if (isEnlighteningRef.current) return locale === "zh" ? "參悟" : "Enlightenment";
     if (isCombatingRef.current) return locale === "zh" ? "戰鬥" : "Combat";
+    if (isSmithingRef.current) return locale === "zh" ? "煉器" : "Smithing";
     return null;
   }, [locale]);
 
@@ -979,6 +1172,7 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
     if (isMeditatingRef.current) { syncMeditation(); setIsMeditating(false); }
     if (isCombatingRef.current) { setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
     if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
+    if (isSmithingRef.current) { setIsSmithing(false); setSmithingRecipeId(null); }
     // Cancel respawn on OLD active mine (matches server-side switch_activity behavior)
     const oldMine = activeMineRef.current;
     if (oldMine && oldMine.id !== mine.id) {
@@ -1040,6 +1234,7 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
     }
     if (isCombatingRef.current) { setIsCombating(false); combatMonsterRef.current = null; setCombatMonster(null); }
     if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
+    if (isSmithingRef.current) { setIsSmithing(false); setSmithingRecipeId(null); }
     // Delay starting new activity to let cleanup useEffects run first
     setTimeout(() => {
       setIsMeditating(true);
@@ -1182,7 +1377,12 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
     if (!isCombatingRef.current) return;
     supabaseRef.current.rpc("combat_tick", { p_slot: slotRef.current })
       .then(({ data, error }: { data: unknown; error: unknown }) => {
-        if (error || !data) return;
+        if (error || !data) {
+          if (!isCombatingRef.current) return;
+          if (combatTickTimeoutRef.current) clearTimeout(combatTickTimeoutRef.current);
+          combatTickTimeoutRef.current = setTimeout(callCombatTick, 500);
+          return;
+        }
         const result = data as {
           error?: string;
           player_hp: number;
@@ -1203,7 +1403,16 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
           last_player_attack_at: string;
           last_monster_attack_at: string;
         };
-        if (result.error) return;
+        if (result.error) {
+          if (!isCombatingRef.current) return;
+          // Common race: start-activity hasn't created the session yet.
+          // Retry until the session exists, instead of freezing.
+          if (result.error === "not_combatting" || result.error === "no_monster") {
+            if (combatTickTimeoutRef.current) clearTimeout(combatTickTimeoutRef.current);
+            combatTickTimeoutRef.current = setTimeout(callCombatTick, 300);
+          }
+          return;
+        }
         if (!isCombatingRef.current) return;
         const isZh = localeRef.current === "zh";
         const monster = combatMonsterRef.current;
@@ -1346,6 +1555,7 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
     if (isMiningRef.current) { setIsMining(false); setActiveMineId(null); activeMineRef.current = null; setActionProgress(0); }
     if (isMeditatingRef.current) { syncMeditation(); setIsMeditating(false); }
     if (isEnlighteningRef.current) { syncEnlightenmentRef.current(); setIsEnlightening(false); }
+    if (isSmithingRef.current) { setIsSmithing(false); setSmithingRecipeId(null); }
 
     setTimeout(() => {
       setCombatMonster(monster);
@@ -1466,6 +1676,15 @@ export function MiningProvider({ children, slot: slotProp, initialStatus, initia
       } else { _doStartCombat(monster); }
     }, [getActiveActivityName, shouldAskSwitch, _doStartCombat, locale]),
     stopCombat, collectCombatLoot,
+    isSmithing, smithingRecipeId, smithingLevel, smithingXp, craftCount, craftProgress,
+    startSmithing: useCallback((recipeId: string, targetCount?: number) => {
+      const current = getActiveActivityName();
+      if (current && shouldAskSwitch()) {
+        const targetName = locale === "zh" ? "煉器" : "Smithing";
+        setActivitySwitchConfirm({ from: current, to: targetName, onConfirm: () => { setActivitySwitchConfirm(null); _doStartSmithing(recipeId, targetCount); } });
+      } else { _doStartSmithing(recipeId, targetCount); }
+    }, [getActiveActivityName, shouldAskSwitch, _doStartSmithing, locale]),
+    stopSmithing,
     setConsumableSlot, setActiveConsumableIdx, consumeItem,
     updateQiArray: (next: (string | null)[]) => { qiArrayRef.current = next; },
     addNotification,

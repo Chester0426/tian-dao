@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useGameState } from "@/components/mining-provider";
 import { useI18n } from "@/lib/i18n";
-import { ITEMS, getItem, hasTag } from "@/lib/items";
+import { getItem, hasTag } from "@/lib/items";
 import { miningXpForLevel } from "@/lib/types";
 import {
   SMELTING_RECIPES,
-  COPPER_FORGING,
   FORGING_RECIPES,
   MATERIAL_TIERS,
-  FUELS,
-  MAX_HEAT,
   ENHANCEMENT_TABLE,
   SLOT_DISPLAY,
   getEquipmentBarType,
@@ -26,20 +23,6 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function getItemName(itemType: string, locale: string): string {
-  const info = ITEMS[itemType];
-  if (!info) return itemType;
-  return locale === "en" ? info.nameEn : info.nameZh;
-}
-
-function getItemIcon(itemType: string): string {
-  return ITEMS[itemType]?.icon ?? "○";
-}
-
-function getItemColor(itemType: string): string {
-  return ITEMS[itemType]?.color ?? "text-foreground";
-}
 
 function getInvQty(inventory: { item_type: string; quantity: number }[], itemType: string): number {
   return inventory.find((i) => i.item_type === itemType)?.quantity ?? 0;
@@ -147,47 +130,6 @@ function XpBar({ xp, xpMax, label }: { xp: number; xpMax: number; label: string 
 }
 
 // ---------------------------------------------------------------------------
-// Heat Bar
-// ---------------------------------------------------------------------------
-
-function HeatBar({ heat, max }: { heat: number; max: number }) {
-  const pct = max > 0 ? Math.min((heat / max) * 100, 100) : 0;
-  return (
-    <div className="w-full">
-      <div
-        className="relative h-5 w-full overflow-hidden rounded-full"
-        style={{
-          background: "rgb(15,10,10)",
-          boxShadow: "inset 0 1px 4px rgba(0,0,0,0.6)",
-          border: "1px solid rgba(255,100,0,0.15)",
-        }}
-      >
-        <div
-          className="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.max(pct, 1)}%`,
-            background: "linear-gradient(90deg, #7f1d1d, #dc2626, #f97316)",
-            boxShadow: "0 0 8px rgba(249,115,22,0.5), 0 0 16px rgba(249,115,22,0.2)",
-          }}
-        >
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%)" }}
-          />
-        </div>
-        <div
-          className="absolute inset-0 flex items-center justify-center gap-1.5 text-xs tabular-nums font-bold"
-          style={{ textShadow: "0 0 2px #000, 0 0 6px #000", color: "#fff" }}
-        >
-          <span>🔥</span>
-          <span>{heat} / {max}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Crafting Progress Bar
 // ---------------------------------------------------------------------------
 
@@ -202,7 +144,7 @@ function CraftingProgressBar({ progress }: { progress: number }) {
       }}
     >
       <div
-        className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
+        className="absolute inset-y-0 left-0 rounded-full"
         style={{
           width: `${progress}%`,
           background: "linear-gradient(90deg, #1a4a3a, #3ecfa5, #6ee7b7)",
@@ -222,209 +164,76 @@ function CraftingProgressBar({ progress }: { progress: number }) {
 // Furnace Visual
 // ---------------------------------------------------------------------------
 
-function FurnaceVisual({ active, overlay, overlayLevel }: { active: boolean; overlay?: string; overlayLevel?: number }) {
+function FurnaceVisual({ active, itemType, overlayLevel }: { active: boolean; itemType?: string; overlayLevel?: number }) {
+  const item = itemType ? getItem(itemType) : null;
+  const itemLabel = item ? `${item.nameZh} / ${item.nameEn}` : undefined;
+
   return (
     <div className="flex flex-col items-center justify-center">
-      <div
-        className={`w-24 h-24 rounded-xl flex items-center justify-center select-none transition-all duration-300 ${active ? "animate-pulse" : "opacity-40"}`}
-        style={{
-          background: "rgba(0,0,0,0.3)",
-          border: "1px solid rgba(255,120,30,0.15)",
-          boxShadow: active
-            ? "0 0 20px rgba(249,115,22,0.4), 0 0 40px rgba(220,38,38,0.15), inset 0 0 15px rgba(249,115,22,0.15)"
-            : "inset 0 0 8px rgba(0,0,0,0.3)",
-          animation: active ? "furnace-shake 0.3s ease-in-out infinite" : "none",
-        }}
-      >
-        <div className="relative">
-          <span className="text-5xl" style={{ filter: active ? "drop-shadow(0 0 12px rgba(249,115,22,0.6))" : "none" }}>🔥</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Fuel Panel (bottom, shared)
-// ---------------------------------------------------------------------------
-
-function FuelPanel({
-  heat,
-  inventory,
-  locale,
-  onAddFuel,
-}: {
-  heat: number;
-  inventory: { item_type: string; quantity: number }[];
-  locale: string;
-  onAddFuel: (fuelItem: string, heat: number, quantity: number) => void;
-}) {
-  const isZh = locale === "zh";
-  const [pickedFuel, setPickedFuel] = useState<string | null>(null);
-  const [showFuelPicker, setShowFuelPicker] = useState(false);
-  const [fuelQty, setFuelQty] = useState(1);
-  const [fuelQtyInput, setFuelQtyInput] = useState("1");
-
-  // All fuel items the player owns
-  const fuelItems = inventory.filter((i) => {
-    const def = ITEMS[i.item_type];
-    return def?.tags.includes("fuel") && i.quantity > 0;
-  });
-
-  const pickedDef = pickedFuel ? getItem(pickedFuel) : null;
-  const pickedInv = pickedFuel ? fuelItems.find((i) => i.item_type === pickedFuel) : null;
-  const pickedFuelData = pickedFuel ? FUELS.find((f) => f.item === pickedFuel) : null;
-
-  const handlePickFuel = (itemType: string) => {
-    const next = itemType === pickedFuel ? null : itemType;
-    setPickedFuel(next);
-    setFuelQty(1);
-    setFuelQtyInput("1");
-  };
-
-  // Max fuel addable = min(owned, floor(remaining heat capacity / heat per unit))
-  const remainingHeat = MAX_HEAT - heat;
-  const maxFuelAdd = pickedFuel && pickedInv && pickedFuelData
-    ? Math.min(pickedInv.quantity, Math.max(0, Math.floor(remainingHeat / pickedFuelData.heat)))
-    : 0;
-  const fuelFull = remainingHeat <= 0 || maxFuelAdd <= 0;
-
-  const handleAddFuel = () => {
-    if (!pickedFuel || !pickedFuelData || fuelQty <= 0) return;
-    onAddFuel(pickedFuel, pickedFuelData.heat, fuelQty);
-    // pickedFuel stays selected — only clear if quantity reaches 0 (handled by parent via inventory update)
-  };
-
-  return (
-    <div className="space-y-3">
-      {/* Heat bar */}
-      <HeatBar heat={heat} max={MAX_HEAT} />
-
-      {/* Fuel: single slot + details */}
-      <div className="mt-3 flex gap-3 items-center">
-        {/* Single fuel slot */}
-        <div className="relative shrink-0">
-          <button
-            onClick={() => setShowFuelPicker(!showFuelPicker)}
-            className={`relative w-16 h-16 rounded-md transition-all cursor-pointer ${
-              pickedFuel ? "ring-2 ring-orange-500 shadow-[0_0_6px_rgba(255,120,30,0.3)]" : "hover:brightness-125"
-            }`}
-            style={{
-              background: "rgba(0,0,0,0.4)",
-              border: pickedFuel ? "1px solid rgba(255,120,30,0.6)" : "1px solid rgba(255,255,255,0.15)",
-            }}
-          >
-            {pickedDef ? (
-              <>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {pickedDef.image ? (
-                    <img src={pickedDef.image} alt="" className="w-10 h-10 object-contain" />
-                  ) : (
-                    <span className={`text-xl ${pickedDef.color}`}>{pickedDef.icon}</span>
-                  )}
-                </div>
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[10px] tabular-nums text-white bg-black/60 rounded px-1 leading-tight">
-                  {pickedInv?.quantity ?? 0}
-                </span>
-              </>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30 text-xl">+</div>
-            )}
-          </button>
-
-          {/* Fuel picker dropdown */}
-          {showFuelPicker && (
-            <div
-              className="absolute top-full left-0 mt-1 z-30 rounded-lg p-2 grid grid-cols-3 gap-1.5 min-w-[10rem]"
-              style={{ background: "rgb(20,15,15)", border: "1px solid rgba(255,100,0,0.2)", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}
-            >
-              <TooltipProvider>
-              {fuelItems.map((item) => {
-                const def = getItem(item.item_type);
-                const fuelData = FUELS.find((f) => f.item === item.item_type);
-                return (
-                  <Tooltip key={item.item_type}>
-                    <TooltipTrigger
-                      onClick={() => { handlePickFuel(item.item_type); setShowFuelPicker(false); }}
-                      className="relative w-12 h-12 rounded-md cursor-pointer hover:brightness-125"
-                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,100,0,0.12)" }}
-                    >
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        {def?.image ? (
-                          <img src={def.image} alt="" className="w-7 h-7 object-contain" />
-                        ) : (
-                          <span className={`text-sm ${def?.color ?? ""}`}>{def?.icon ?? "?"}</span>
-                        )}
-                        <span className="text-[7px] text-orange-400/70">+{fuelData?.heat ?? 0}</span>
-                      </div>
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[8px] tabular-nums text-white bg-black/60 rounded px-0.5">
-                        {item.quantity}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="p-2 min-w-[140px]">
-                      <p className="font-heading text-sm">{def ? (isZh ? def.nameZh : def.nameEn) : item.item_type}</p>
-                      {def?.hintZh && <p className="text-[10px] text-jade mt-0.5">{isZh ? def.hintZh : def.hintEn}</p>}
-                      <p className="text-[10px] text-orange-400 mt-1">🔥 +{fuelData?.heat ?? 0} {isZh ? "熱值" : "Heat"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-              </TooltipProvider>
-              {fuelItems.length === 0 && (
-                <p className="col-span-3 text-center text-[10px] text-muted-foreground/40 py-2">{isZh ? "無燃料" : "No fuel"}</p>
-              )}
+      <div className={`forge-tile ${active ? "forge-tile--active" : "forge-tile--idle"} ${item ? "forge-tile--loaded" : ""}`}>
+        <div className="forge-tile__aura" />
+        <div className="forge-tile__frame">
+          <div className="forge-tile__bevel" />
+          <div className="forge-tile__mouth">
+            <div className="forge-tile__heatwash" />
+            <div className="forge-tile__backwall" />
+            <div className="forge-tile__grate">
+              <span />
+              <span />
+              <span />
             </div>
-          )}
-        </div>
-
-        {/* Middle: name + slider */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
-          {pickedFuel && pickedInv && pickedFuelData ? (
-            <>
-              <div className="flex items-baseline justify-between gap-1 mb-1">
-                <span className="text-sm font-heading font-bold truncate text-white">{isZh ? pickedDef?.nameZh : pickedDef?.nameEn}</span>
-                <span className="text-xs text-orange-400 shrink-0 tabular-nums">+{pickedFuelData.heat}/{isZh ? "個" : "ea"}</span>
+            <div className="forge-tile__coalbed">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="forge-tile__flames" aria-hidden="true">
+              <i className="forge-tile__flame forge-tile__flame--left" />
+              <i className="forge-tile__flame forge-tile__flame--mid" />
+              <i className="forge-tile__flame forge-tile__flame--right" />
+              <i className="forge-tile__flame forge-tile__flame--core" />
+            </div>
+            {item && (
+              <div className="forge-tile__item" aria-label={itemLabel}>
+                <div className="forge-tile__item-glow" />
+                {item.image ? (
+                  <img src={item.image} alt="" />
+                ) : (
+                  <span className={item.color}>{item.icon}</span>
+                )}
+                {typeof overlayLevel === "number" && overlayLevel > 0 && <b>+{overlayLevel}</b>}
               </div>
-              <input
-                type="range"
-                min={1}
-                max={Math.max(1, maxFuelAdd)}
-                value={Math.min(fuelQty, Math.max(1, maxFuelAdd))}
-                disabled={fuelFull}
-                onChange={(e) => { const v = parseInt(e.target.value, 10); setFuelQty(v); setFuelQtyInput(String(v)); }}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-orange-500 mb-1 disabled:opacity-30"
-                style={{ background: `linear-gradient(to right, #c2410c ${((Math.min(fuelQty, maxFuelAdd) - 1) / Math.max(maxFuelAdd - 1, 1)) * 100}%, rgba(255,255,255,0.1) ${((Math.min(fuelQty, maxFuelAdd) - 1) / Math.max(maxFuelAdd - 1, 1)) * 100}%)` }}
-              />
-              <p className="text-xs tabular-nums text-orange-400">
-                {fuelQty}× → <span className="font-bold">+{pickedFuelData.heat * fuelQty}</span>
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground/40">{isZh ? "← 選擇燃料" : "← Select fuel"}</p>
-          )}
+            )}
+            <div className="forge-tile__impact" aria-hidden="true" />
+            <div className="forge-tile__spray" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="forge-tile__sparks" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+          <div className="forge-tile__rim forge-tile__rim--top" />
+          <div className="forge-tile__rim forge-tile__rim--bottom" />
         </div>
-
-        {/* Right: add button (same size as fuel slot) */}
-        <button
-          onClick={pickedFuel && !fuelFull ? handleAddFuel : undefined}
-          disabled={!pickedFuel || fuelFull}
-          className={`w-16 h-16 rounded-md shrink-0 flex flex-col items-center justify-center font-heading text-sm font-bold transition-all ${
-            pickedFuel && !fuelFull
-              ? "bg-orange-700 hover:bg-orange-600 text-white cursor-pointer shadow-[0_0_8px_rgba(249,115,22,0.3)]"
-              : "opacity-30 cursor-not-allowed text-muted-foreground"
-          }`}
-          style={{
-            border: pickedFuel && !fuelFull ? "1px solid rgba(255,120,30,0.4)" : "1px solid rgba(255,255,255,0.1)",
-            background: pickedFuel && !fuelFull ? undefined : "rgba(0,0,0,0.4)",
-          }}
-        >
-          {fuelFull && pickedFuel ? (isZh ? "已滿" : "Full") : (isZh ? "添加" : "Add")}
-        </button>
       </div>
-
     </div>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // Main Page Component
@@ -437,24 +246,21 @@ export default function SmithingPage() {
   const { inventory } = gameState;
 
   // Dummy smithing stats
-  const smithingLevel = 1;
-  const smithingXp = 0;
-  const smithingXpMax = miningXpForLevel(1);
+  const smithingLevel = gameState.smithingLevel;
+  const smithingXp = gameState.smithingXp;
+  const smithingXpMax = miningXpForLevel(smithingLevel);
 
   // Tab state: 2 tabs now
   const [activeTab, setActiveTab] = useState<SmithingTab>("craft");
 
   // Shared furnace state — persisted via DB
   const heat = gameState.furnaceHeat;
-  const [autoRefuel, setAutoRefuel] = useState(false);
-  const [selectedFuel, setSelectedFuel] = useState<string>(FUELS[0].item);
 
   // Craft tab state
   const [selectedRecipe, setSelectedRecipe] = useState<CraftRecipe | null>(null);
-  const [craftActive, setCraftActive] = useState(false);
-  const [craftProgress, setCraftProgress] = useState(0);
-  const [craftCount, setCraftCount] = useState(0);
-  const [craftQty, setCraftQty] = useState(1);
+  // Server-authoritative state (provider drives ticks)
+  const craftActive = gameState.isSmithing;
+  const craftProgress = gameState.craftProgress * 100;
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     // Unlocked groups default expanded, locked collapsed
@@ -480,7 +286,7 @@ export default function SmithingPage() {
         setSelectedRecipe(first.recipes[0]);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Compute max craftable quantity
   const maxCraftQty = useMemo(() => {
@@ -490,32 +296,23 @@ export default function SmithingPage() {
       const owned = getInvQty(inventory, mat.item);
       maxByMat = Math.min(maxByMat, Math.floor(owned / mat.qty));
     }
-    const maxByHeat = selectedRecipe.heat > 0 ? Math.floor(heat / selectedRecipe.heat) : Infinity;
-    const result = Math.min(maxByMat, maxByHeat);
+    const result = maxByMat;
     return result === Infinity ? 0 : result;
-  }, [selectedRecipe, inventory, heat]);
+  }, [selectedRecipe, inventory]);
 
-  // Crafting tick simulation
-  const craftTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Crafting is server-authoritative — provider runs the tick loop.
+  // When SSR resumes a smithing session, sync the selectedRecipe from provider.
   useEffect(() => {
-    if (craftActive && selectedRecipe) {
-      const tickMs = 100;
-      const totalTicks = (selectedRecipe.time * 1000) / tickMs;
-      let tick = 0;
-      craftTimerRef.current = setInterval(() => {
-        tick++;
-        setCraftProgress((tick / totalTicks) * 100);
-        if (tick >= totalTicks) {
-          setCraftCount((c) => c + 1);
-          tick = 0;
-          setCraftProgress(0);
+    if (craftActive && gameState.smithingRecipeId && (!selectedRecipe || selectedRecipe.id !== gameState.smithingRecipeId)) {
+      for (const group of RECIPE_GROUPS) {
+        const found = group.recipes.find((r) => r.id === gameState.smithingRecipeId);
+        if (found) {
+          setSelectedRecipe(found);
+          return;
         }
-      }, tickMs);
-      return () => { if (craftTimerRef.current) clearInterval(craftTimerRef.current); };
-    } else {
-      setCraftProgress(0);
+      }
     }
-  }, [craftActive, selectedRecipe]);
+  }, [craftActive, gameState.smithingRecipeId]);
 
   // Enhancement animation
   const enhanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -561,45 +358,6 @@ export default function SmithingPage() {
   }, []);
 
   // Add fuel handler — persists to DB
-  const handleAddFuel = useCallback(async (fuelItem: string, _heatPerUnit: number, quantity: number) => {
-    // Optimistic: compute expected result
-    const fuelDef = FUELS.find((f) => f.item === fuelItem);
-    if (!fuelDef) return;
-    const optimisticAdd = Math.min(quantity * fuelDef.heat, MAX_HEAT - heat);
-    const optimisticQty = Math.ceil(optimisticAdd / fuelDef.heat);
-    // Optimistic UI update
-    gameState.setFurnaceHeat(Math.min(heat + optimisticQty * fuelDef.heat, MAX_HEAT));
-    gameState.updateInventory((prev) =>
-      prev.map((item) =>
-        item.item_type === fuelItem
-          ? { ...item, quantity: item.quantity - optimisticQty }
-          : item
-      ).filter((item) => item.quantity > 0)
-    );
-    setSelectedFuel(fuelItem);
-
-    const res = await fetch("/api/game/smithing/add-fuel", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fuel_item: fuelItem, quantity }),
-    });
-    if (!res.ok) {
-      // Revert optimistic on failure
-      gameState.setFurnaceHeat(heat);
-      gameState.updateInventory((prev) => {
-        const existing = prev.find((i) => i.item_type === fuelItem);
-        if (existing) {
-          return prev.map((i) => i.item_type === fuelItem ? { ...i, quantity: i.quantity + optimisticQty } : i);
-        }
-        return [...prev, { item_type: fuelItem, quantity: optimisticQty } as typeof prev[number]];
-      });
-      return;
-    }
-    const data = await res.json();
-    // Reconcile with server truth
-    gameState.setFurnaceHeat(data.heat);
-  }, [gameState, heat]);
-
   // Toggle group expansion
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
@@ -764,10 +522,7 @@ export default function SmithingPage() {
                                   onClick={() => {
                                     if (!recipeLocked) {
                                       setSelectedRecipe(recipe);
-                                      setCraftActive(false);
-                                      setCraftCount(0);
-                                      setCraftProgress(0);
-                                      setCraftQty(1);
+                                      if (gameState.isSmithing) gameState.stopSmithing();
                                     }
                                   }}
                                   disabled={recipeLocked}
@@ -782,9 +537,13 @@ export default function SmithingPage() {
                                     borderLeft: isSelected ? "3px solid var(--jade, #3ecfa5)" : "3px solid transparent",
                                   }}
                                 >
-                                  <span className={`text-lg ${outputItem?.color ?? "text-foreground"}`}>
-                                    {outputItem?.icon ?? "○"}
-                                  </span>
+                                  {outputItem?.image ? (
+                                    <img src={outputItem.image} alt="" className="w-6 h-6 object-contain shrink-0" />
+                                  ) : (
+                                    <span className={`text-lg ${outputItem?.color ?? "text-foreground"}`}>
+                                      {outputItem?.icon ?? "○"}
+                                    </span>
+                                  )}
                                   <div className="flex-1 min-w-0">
                                     <p className="font-heading text-sm truncate">
                                       {recipeLocked ? "???" : isZh ? recipe.nameZh : recipe.nameEn}
@@ -823,16 +582,8 @@ export default function SmithingPage() {
                     border: "1px solid rgba(255,100,0,0.12)",
                   }}
                 >
-                  <div className="shrink-0">
-                    <FurnaceVisual active={craftActive} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <FuelPanel
-                      heat={heat}
-                      inventory={inventory}
-                      locale={locale}
-                      onAddFuel={handleAddFuel}
-                    />
+                  <div className="shrink-0 mx-auto">
+                    <FurnaceVisual active={craftActive} itemType={selectedRecipe?.output} />
                   </div>
                 </div>
 
@@ -937,7 +688,7 @@ export default function SmithingPage() {
                       {selectedRecipe.materials.map((mat) => {
                         const matItem = getItem(mat.item);
                         const owned = getInvQty(inventory, mat.item);
-                        const enough = owned >= mat.qty * craftQty;
+                        const enough = owned >= mat.qty;
                         return (
                           <div key={mat.item} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">
@@ -949,80 +700,31 @@ export default function SmithingPage() {
                                 )}
                               </div>
                               <span className="text-white/80">{isZh ? (matItem?.nameZh ?? mat.item) : (matItem?.nameEn ?? mat.item)}</span>
-                              <span className="text-muted-foreground tabular-nums">×{mat.qty * craftQty}</span>
+                              <span className="text-muted-foreground tabular-nums">×{mat.qty}</span>
                             </div>
                             <span className={`text-xs tabular-nums font-bold ${enough ? "text-jade" : "text-red-400"}`}>
+                              <span className="text-muted-foreground font-normal mr-1">{isZh ? "擁有" : "Have"}</span>
                               {owned}
                             </span>
                           </div>
                         );
                       })}
-                      {/* Heat cost */}
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                            <span className="text-sm text-orange-400">🔥</span>
-                          </div>
-                          <span className="text-white/80">{isZh ? "熱值" : "Heat"}</span>
-                          <span className="text-muted-foreground tabular-nums">×{selectedRecipe.heat * craftQty}</span>
-                        </div>
-                        <span className={`text-xs tabular-nums font-bold ${heat >= selectedRecipe.heat * craftQty ? "text-jade" : "text-red-400"}`}>
-                          {heat}
-                        </span>
-                      </div>
                     </div>
-                    </div>
-
-                    {/* Craft quantity + max */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground shrink-0">{isZh ? "數量" : "Qty"}</span>
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-border/40 hover:border-jade/40 text-sm"
-                        onClick={() => setCraftQty((q) => Math.max(1, q - 1))}
-                        disabled={craftQty <= 1 || craftActive}
-                      >-</Button>
-                      <input
-                        type="text" inputMode="numeric"
-                        value={craftQty}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value.replace(/\D/g, "")) || 1;
-                          setCraftQty(Math.max(1, Math.min(v, Math.max(1, maxCraftQty))));
-                        }}
-                        disabled={craftActive}
-                        className="w-12 h-8 text-center rounded-md text-sm tabular-nums font-bold focus:outline-none focus:border-jade/50"
-                        style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.12)" }}
-                      />
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-border/40 hover:border-jade/40 text-sm"
-                        onClick={() => setCraftQty((q) => Math.min(Math.max(1, maxCraftQty), q + 1))}
-                        disabled={craftQty >= maxCraftQty || craftActive}
-                      >+</Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs border-border/40 hover:border-jade/40 ml-auto"
-                        onClick={() => setCraftQty(Math.max(1, maxCraftQty))}
-                        disabled={craftActive}
-                      >
-                        {isZh ? "最大" : "Max"} {maxCraftQty}
-                      </Button>
                     </div>
 
                     {/* Crafting progress */}
                     <CraftingProgressBar progress={craftProgress} />
 
-                    {/* Completed counter */}
-                    {craftCount > 0 && (
-                      <p className="text-center text-sm font-heading text-jade tabular-nums">
-                        {isZh ? selectedRecipe.nameZh : selectedRecipe.nameEn} ×{craftCount} {isZh ? "已完成" : "done"}
-                      </p>
-                    )}
-
                     {/* Start / Stop button */}
                     <Button
                       onClick={() => {
                         if (craftActive) {
-                          setCraftActive(false);
-                        } else {
-                          setCraftCount(0);
-                          setCraftActive(true);
+                          gameState.stopSmithing();
+                        } else if (selectedRecipe) {
+                          gameState.startSmithing(selectedRecipe.id);
                         }
                       }}
+                      disabled={!selectedRecipe || (!craftActive && maxCraftQty <= 0)}
                       className={`w-full font-heading text-base h-11 ${
                         craftActive
                           ? "bg-red-900 hover:bg-red-800 text-red-200 border border-red-700/50"
@@ -1167,19 +869,11 @@ export default function SmithingPage() {
                       border: "1px solid rgba(255,100,0,0.12)",
                     }}
                   >
-                    <div className="shrink-0">
+                    <div className="shrink-0 mx-auto">
                       <FurnaceVisual
                         active={enhancePhase === "enhancing"}
-                        overlay={selectedEquipment ? selectedItemDef?.icon : undefined}
+                        itemType={selectedEquipment ?? undefined}
                         overlayLevel={selectedEquipment ? currentEnhLevel : undefined}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FuelPanel
-                        heat={heat}
-                        inventory={inventory}
-                        locale={locale}
-                        onAddFuel={handleAddFuel}
                       />
                     </div>
                   </div>
@@ -1367,10 +1061,846 @@ export default function SmithingPage() {
 
       {/* CSS for furnace animation */}
       <style jsx global>{`
-        @keyframes furnace-shake {
-          0%, 100% { transform: translateX(0) rotate(0deg); }
-          25% { transform: translateX(-2px) rotate(-1deg); }
-          75% { transform: translateX(2px) rotate(1deg); }
+        .forge-tile {
+          position: relative;
+          width: 8.25rem;
+          height: 8.25rem;
+          isolation: isolate;
+          user-select: none;
+          transform: translateZ(0);
+        }
+
+        .forge-tile__aura {
+          position: absolute;
+          inset: -0.35rem;
+          border-radius: 1.65rem;
+          background:
+            radial-gradient(circle at 50% 58%, rgba(255, 135, 34, 0.42), transparent 44%),
+            radial-gradient(circle at 50% 76%, rgba(127, 29, 29, 0.32), transparent 55%);
+          filter: blur(14px);
+          opacity: 0;
+          transform: scale(0.95);
+          transition: opacity 180ms ease, transform 180ms ease;
+          z-index: -1;
+        }
+
+        .forge-tile--active .forge-tile__aura {
+          opacity: 1;
+          transform: scale(1);
+          animation: forge-tile-aura 1.15s ease-in-out infinite;
+        }
+
+        .forge-tile__frame {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          border-radius: 1.45rem;
+          background:
+            linear-gradient(145deg, rgba(255, 201, 124, 0.16), transparent 22%),
+            radial-gradient(circle at 50% 113%, rgba(0, 0, 0, 0.85), transparent 31%),
+            linear-gradient(145deg, #4a2a1e 0%, #251917 42%, #090707 100%);
+          border: 1px solid rgba(255, 147, 72, 0.18);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 222, 170, 0.12),
+            inset 0 -18px 28px rgba(0, 0, 0, 0.56),
+            0 12px 24px rgba(0, 0, 0, 0.42);
+        }
+
+        .forge-tile--active .forge-tile__frame {
+          border-color: rgba(255, 151, 61, 0.44);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 228, 177, 0.2),
+            inset 0 -18px 28px rgba(0, 0, 0, 0.5),
+            0 0 18px rgba(249, 115, 22, 0.24),
+            0 12px 24px rgba(0, 0, 0, 0.44);
+        }
+
+        .forge-tile__bevel {
+          position: absolute;
+          inset: 0.52rem;
+          border-radius: 1.05rem;
+          background:
+            linear-gradient(135deg, rgba(246, 195, 95, 0.24), transparent 16%, transparent 82%, rgba(0, 0, 0, 0.45)),
+            linear-gradient(180deg, #3a231c, #110c0b);
+          border: 1px solid rgba(255, 194, 108, 0.14);
+          box-shadow:
+            inset 0 2px 0 rgba(255, 232, 178, 0.08),
+            inset 0 -10px 16px rgba(0, 0, 0, 0.42);
+        }
+
+        .forge-tile__mouth {
+          position: absolute;
+          inset: 1.48rem;
+          overflow: hidden;
+          border-radius: 0.82rem;
+          background:
+            radial-gradient(circle at 50% 104%, rgba(52, 18, 10, 0.8), transparent 38%),
+            linear-gradient(180deg, #030202 0%, #0a0504 65%, #1a0b07 100%);
+          border: 1px solid rgba(255, 176, 92, 0.13);
+          box-shadow:
+            inset 0 0 22px rgba(0, 0, 0, 0.9),
+            inset 0 -8px 16px rgba(80, 28, 13, 0.28),
+            0 0 0 0.42rem rgba(0, 0, 0, 0.18);
+        }
+
+        .forge-tile--active .forge-tile__mouth {
+          border-color: rgba(255, 177, 80, 0.42);
+          box-shadow:
+            inset 0 0 18px rgba(0, 0, 0, 0.72),
+            inset 0 -12px 24px rgba(255, 83, 18, 0.48),
+            0 0 0 0.42rem rgba(0, 0, 0, 0.18),
+            0 0 16px rgba(249, 115, 22, 0.34);
+        }
+
+        .forge-tile__backwall {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 20%, transparent 80%, rgba(255, 255, 255, 0.02)),
+            radial-gradient(circle at 50% 78%, rgba(255, 196, 91, 0.18), transparent 35%);
+          opacity: 0.45;
+        }
+
+        .forge-tile__heatwash {
+          position: absolute;
+          inset: -0.75rem;
+          z-index: 0;
+          background:
+            radial-gradient(circle at 50% 74%, rgba(255, 244, 177, 0.92), transparent 16%),
+            radial-gradient(circle at 50% 74%, rgba(255, 119, 18, 0.88), transparent 36%),
+            radial-gradient(circle at 50% 88%, rgba(127, 29, 29, 0.72), transparent 58%);
+          opacity: 0.08;
+          transition: opacity 200ms ease;
+        }
+
+        .forge-tile--active .forge-tile__heatwash {
+          opacity: 1;
+          animation: forge-tile-heat 780ms ease-in-out infinite;
+        }
+
+        .forge-tile__grate {
+          position: absolute;
+          left: 1rem;
+          right: 1rem;
+          bottom: 1.24rem;
+          z-index: 3;
+          height: 0.3rem;
+          display: flex;
+          justify-content: space-between;
+          opacity: 0.42;
+        }
+
+        .forge-tile__grate span {
+          width: 1.25rem;
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #7b6658, #19100d);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+        }
+
+        .forge-tile__coalbed {
+          position: absolute;
+          left: 0.95rem;
+          right: 0.95rem;
+          bottom: 0.52rem;
+          z-index: 3;
+          display: flex;
+          align-items: end;
+          justify-content: center;
+          gap: 0.18rem;
+        }
+
+        .forge-tile__coalbed span {
+          width: 0.88rem;
+          height: 0.42rem;
+          border-radius: 999px;
+          background: #25110c;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .forge-tile--active .forge-tile__coalbed span {
+          background: linear-gradient(180deg, #ffe68b, #f97316 48%, #66160b);
+          box-shadow: 0 0 9px rgba(249, 115, 22, 0.85);
+          animation: forge-tile-coal 620ms ease-in-out infinite alternate;
+        }
+
+        .forge-tile--active .forge-tile__coalbed span:nth-child(2),
+        .forge-tile--active .forge-tile__coalbed span:nth-child(4) {
+          animation-delay: 160ms;
+        }
+
+        .forge-tile__flames {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0.56rem;
+          z-index: 2;
+          height: 4.25rem;
+          opacity: 0;
+          transform: translateY(1rem) scale(0.7);
+          transform-origin: 50% 100%;
+          transition: opacity 170ms ease, transform 190ms ease;
+        }
+
+        .forge-tile--active .forge-tile__flames {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        .forge-tile__flame {
+          position: absolute;
+          left: 50%;
+          bottom: 0;
+          display: block;
+          border-radius: 58% 42% 56% 44% / 68% 42% 58% 32%;
+          transform-origin: 50% 100%;
+          mix-blend-mode: screen;
+          filter: drop-shadow(0 0 8px rgba(255, 111, 24, 0.74));
+        }
+
+        .forge-tile__flame--mid {
+          width: 1.55rem;
+          height: 3.45rem;
+          margin-left: -0.78rem;
+          background: linear-gradient(180deg, #ff2536 0%, #ff7a18 38%, #ffd447 74%, #fff3b4 100%);
+        }
+
+        .forge-tile__flame--left {
+          width: 1.16rem;
+          height: 2.7rem;
+          margin-left: -1.58rem;
+          background: linear-gradient(180deg, #ff3726 0%, #ff7a18 50%, #ffd166 100%);
+        }
+
+        .forge-tile__flame--right {
+          width: 1.12rem;
+          height: 2.9rem;
+          margin-left: 0.54rem;
+          background: linear-gradient(180deg, #ff1f2f 0%, #ff6418 54%, #ffc542 100%);
+        }
+
+        .forge-tile__flame--core {
+          width: 0.88rem;
+          height: 2rem;
+          margin-left: -0.44rem;
+          background: linear-gradient(180deg, #fff8d5 0%, #ffe45a 58%, #ff9f1a 100%);
+          filter: drop-shadow(0 0 9px rgba(255, 244, 170, 0.8));
+        }
+
+        .forge-tile--active .forge-tile__flame--mid { animation: forge-tile-flame-mid 520ms ease-in-out infinite alternate; }
+        .forge-tile--active .forge-tile__flame--left { animation: forge-tile-flame-left 460ms ease-in-out infinite alternate; }
+        .forge-tile--active .forge-tile__flame--right { animation: forge-tile-flame-right 580ms ease-in-out infinite alternate; }
+        .forge-tile--active .forge-tile__flame--core { animation: forge-tile-flame-core 380ms ease-in-out infinite alternate; }
+
+        .forge-tile__item {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          z-index: 5;
+          width: 3.35rem;
+          height: 3.35rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.72rem;
+          background:
+            radial-gradient(circle at 50% 48%, rgba(255, 232, 176, 0.12), transparent 58%),
+            rgba(5, 4, 4, 0.68);
+          border: 1px solid rgba(255, 214, 148, 0.2);
+          box-shadow:
+            0 8px 16px rgba(0, 0, 0, 0.48),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          transform: translate(-50%, -48%) rotate(-4deg);
+        }
+
+        .forge-tile__item-glow {
+          position: absolute;
+          inset: -0.5rem;
+          border-radius: 1rem;
+          background: radial-gradient(circle, rgba(255, 177, 72, 0.42), transparent 64%);
+          filter: blur(8px);
+          opacity: 0;
+          transition: opacity 180ms ease;
+        }
+
+        .forge-tile__item img,
+        .forge-tile__item > span {
+          position: relative;
+          z-index: 1;
+          width: 2.72rem;
+          height: 2.72rem;
+          object-fit: contain;
+          filter:
+            drop-shadow(0 3px 4px rgba(0, 0, 0, 0.66))
+            drop-shadow(0 0 5px rgba(255, 255, 255, 0.18));
+        }
+
+        .forge-tile__item > span {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2rem;
+          line-height: 1;
+        }
+
+        .forge-tile__item b {
+          position: absolute;
+          right: -0.26rem;
+          bottom: -0.24rem;
+          z-index: 2;
+          min-width: 1.08rem;
+          height: 1.08rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.82);
+          color: #f6c35f;
+          border: 1px solid rgba(246, 195, 95, 0.44);
+          font-size: 0.58rem;
+          line-height: 1;
+        }
+
+        .forge-tile--active .forge-tile__item {
+          border-color: rgba(255, 205, 112, 0.64);
+          box-shadow:
+            0 0 20px rgba(249, 115, 22, 0.52),
+            0 8px 16px rgba(0, 0, 0, 0.5),
+            inset 0 0 16px rgba(255, 106, 19, 0.26);
+          animation: forge-tile-item-hit 520ms ease-in-out infinite;
+        }
+
+        .forge-tile--active .forge-tile__item-glow {
+          opacity: 1;
+          animation: forge-tile-item-glow 520ms ease-in-out infinite;
+        }
+
+        .forge-tile--active .forge-tile__item img,
+        .forge-tile--active .forge-tile__item > span {
+          filter:
+            brightness(1.2)
+            saturate(1.12)
+            drop-shadow(0 3px 4px rgba(0, 0, 0, 0.66))
+            drop-shadow(0 0 9px rgba(255, 177, 72, 0.82));
+        }
+
+        .forge-tile__impact {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          z-index: 6;
+          width: 4.35rem;
+          height: 0.22rem;
+          border-radius: 999px;
+          background: linear-gradient(90deg, transparent, #fff1b8 30%, #ff8a1d 52%, transparent);
+          opacity: 0;
+          filter: drop-shadow(0 0 9px rgba(255, 194, 92, 0.88));
+          transform: translate(-50%, -50%) rotate(-16deg) scaleX(0.32);
+        }
+
+        .forge-tile--active .forge-tile__impact {
+          animation: forge-tile-impact 520ms ease-out infinite;
+        }
+
+        .forge-tile__spray {
+          position: absolute;
+          inset: 0;
+          z-index: 7;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .forge-tile--active .forge-tile__spray {
+          opacity: 1;
+        }
+
+        .forge-tile__spray span {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 0.6rem;
+          height: 0.12rem;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #fffbd1 0%, #ffc24f 48%, rgba(255, 116, 24, 0.3) 78%, transparent 100%);
+          box-shadow:
+            0 0 8px rgba(255, 238, 170, 0.95),
+            0 0 14px rgba(249, 115, 22, 0.72);
+          opacity: 0;
+          transform-origin: left center;
+          animation: forge-tile-spray 720ms cubic-bezier(0.2, 0.68, 0.38, 1) infinite;
+        }
+
+        .forge-tile__spray::before,
+        .forge-tile__spray::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 4.75rem;
+          height: 4.75rem;
+          border-radius: 999px;
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.7);
+          background:
+            radial-gradient(circle at 18% 42%, rgba(255, 247, 190, 0.98) 0 0.09rem, transparent 0.13rem),
+            radial-gradient(circle at 30% 22%, rgba(255, 179, 52, 0.95) 0 0.075rem, transparent 0.12rem),
+            radial-gradient(circle at 69% 18%, rgba(255, 247, 190, 0.96) 0 0.08rem, transparent 0.13rem),
+            radial-gradient(circle at 83% 44%, rgba(255, 179, 52, 0.95) 0 0.08rem, transparent 0.13rem),
+            radial-gradient(circle at 72% 76%, rgba(255, 247, 190, 0.9) 0 0.07rem, transparent 0.12rem),
+            radial-gradient(circle at 24% 72%, rgba(255, 179, 52, 0.9) 0 0.07rem, transparent 0.12rem);
+          filter: drop-shadow(0 0 7px rgba(255, 190, 70, 0.92));
+          animation: forge-tile-spark-burst 720ms ease-out infinite;
+        }
+
+        .forge-tile__spray::after {
+          width: 3.7rem;
+          height: 3.7rem;
+          transform: translate(-50%, -50%) rotate(24deg) scale(0.65);
+          animation-delay: 220ms;
+        }
+
+        .forge-tile__spray span:nth-child(1) { --sx: -2.75rem; --sy: -1.28rem; --sr: 198deg; animation-delay: 0ms; }
+        .forge-tile__spray span:nth-child(2) { --sx: -2.34rem; --sy: -0.52rem; --sr: 184deg; animation-delay: 42ms; }
+        .forge-tile__spray span:nth-child(3) { --sx: -1.7rem; --sy: 0.74rem; --sr: 154deg; animation-delay: 82ms; }
+        .forge-tile__spray span:nth-child(4) { --sx: -0.72rem; --sy: -2.2rem; --sr: 238deg; animation-delay: 124ms; }
+        .forge-tile__spray span:nth-child(5) { --sx: 0.58rem; --sy: -2.36rem; --sr: 300deg; animation-delay: 20ms; }
+        .forge-tile__spray span:nth-child(6) { --sx: 1.52rem; --sy: -1.45rem; --sr: 328deg; animation-delay: 62ms; }
+        .forge-tile__spray span:nth-child(7) { --sx: 2.58rem; --sy: -0.7rem; --sr: 350deg; animation-delay: 104ms; }
+        .forge-tile__spray span:nth-child(8) { --sx: 2.1rem; --sy: 0.52rem; --sr: 24deg; animation-delay: 146ms; }
+        .forge-tile__spray span:nth-child(9) { --sx: 0.92rem; --sy: 1.34rem; --sr: 54deg; animation-delay: 186ms; }
+        .forge-tile__spray span:nth-child(10) { --sx: -0.9rem; --sy: 1.2rem; --sr: 126deg; animation-delay: 226ms; }
+
+        .forge-tile__sparks {
+          position: absolute;
+          inset: 0.5rem 0.55rem 1rem;
+          z-index: 7;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .forge-tile--active .forge-tile__sparks {
+          opacity: 1;
+        }
+
+        .forge-tile__sparks span {
+          position: absolute;
+          bottom: 0.7rem;
+          width: 0.16rem;
+          height: 0.16rem;
+          border-radius: 999px;
+          background: #ffd166;
+          box-shadow: 0 0 7px rgba(255, 209, 102, 0.9);
+          animation: forge-tile-spark 1.2s linear infinite;
+        }
+
+        .forge-tile__sparks span:nth-child(1) { left: 27%; animation-delay: 0ms; }
+        .forge-tile__sparks span:nth-child(2) { left: 42%; animation-delay: 190ms; }
+        .forge-tile__sparks span:nth-child(3) { left: 56%; animation-delay: 390ms; }
+        .forge-tile__sparks span:nth-child(4) { left: 68%; animation-delay: 610ms; }
+        .forge-tile__sparks span:nth-child(5) { left: 36%; animation-delay: 850ms; }
+
+        .forge-tile__rim {
+          position: absolute;
+          left: 1rem;
+          right: 1rem;
+          height: 0.34rem;
+          border-radius: 999px;
+          background: linear-gradient(90deg, transparent, rgba(255, 218, 150, 0.28), transparent);
+          opacity: 0.65;
+        }
+
+        .forge-tile__rim--top {
+          top: 1.07rem;
+        }
+
+        .forge-tile__rim--bottom {
+          bottom: 1.08rem;
+          opacity: 0.36;
+        }
+
+        .forge-tile__workpiece {
+          position: absolute;
+          right: 0.58rem;
+          top: 0.58rem;
+          z-index: 3;
+          min-width: 1.72rem;
+          height: 1.72rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.52rem;
+          background: rgba(4, 3, 3, 0.78);
+          border: 1px solid rgba(255, 207, 135, 0.22);
+          box-shadow: 0 7px 14px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          font-size: 0.98rem;
+        }
+
+        .forge-tile--active .forge-tile__workpiece {
+          border-color: rgba(255, 190, 90, 0.58);
+          box-shadow: 0 0 14px rgba(249, 115, 22, 0.34), 0 7px 14px rgba(0, 0, 0, 0.46);
+        }
+
+        .forge-tile__workpiece b {
+          position: absolute;
+          right: -0.2rem;
+          bottom: -0.2rem;
+          min-width: 1rem;
+          height: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.78);
+          color: #f6c35f;
+          border: 1px solid rgba(246, 195, 95, 0.38);
+          font-size: 0.58rem;
+          line-height: 1;
+        }
+
+        @keyframes forge-tile-aura {
+          0%, 100% { opacity: 0.65; transform: scale(0.96); }
+          50% { opacity: 1; transform: scale(1.04); }
+        }
+
+        @keyframes forge-tile-heat {
+          0%, 100% { opacity: 0.82; transform: scale(0.98); }
+          50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        @keyframes forge-tile-coal {
+          0% { filter: brightness(0.82); transform: translateY(0); }
+          100% { filter: brightness(1.35); transform: translateY(-1px); }
+        }
+
+        @keyframes forge-tile-flame-mid {
+          0% { transform: translateX(-1px) scaleX(0.94) scaleY(0.94) rotate(-3deg); }
+          100% { transform: translateX(1px) scaleX(1.06) scaleY(1.08) rotate(3deg); }
+        }
+
+        @keyframes forge-tile-flame-left {
+          0% { transform: translateX(1px) scaleX(0.9) scaleY(0.95) rotate(5deg); }
+          100% { transform: translateX(-2px) scaleX(1.08) scaleY(1.06) rotate(-4deg); }
+        }
+
+        @keyframes forge-tile-flame-right {
+          0% { transform: translateX(-2px) scaleX(0.92) scaleY(0.95) rotate(-5deg); }
+          100% { transform: translateX(2px) scaleX(1.08) scaleY(1.06) rotate(5deg); }
+        }
+
+        @keyframes forge-tile-flame-core {
+          0% { transform: translateY(1px) scaleX(0.88) scaleY(0.9); opacity: 0.88; }
+          100% { transform: translateY(-2px) scaleX(1.08) scaleY(1.12); opacity: 1; }
+        }
+
+        @keyframes forge-tile-item-hit {
+          0%, 100% { transform: translate(-50%, -48%) rotate(-4deg) scale(1); }
+          16% { transform: translate(calc(-50% + 1px), calc(-48% + 1px)) rotate(-5deg) scale(0.98); }
+          28% { transform: translate(calc(-50% - 1px), calc(-48% - 1px)) rotate(-3deg) scale(1.04); }
+          52% { transform: translate(-50%, -48%) rotate(-4deg) scale(1); }
+        }
+
+        @keyframes forge-tile-item-glow {
+          0%, 100% { opacity: 0.48; transform: scale(0.92); }
+          26% { opacity: 1; transform: scale(1.12); }
+          58% { opacity: 0.62; transform: scale(0.98); }
+        }
+
+        @keyframes forge-tile-impact {
+          0%, 10%, 100% { opacity: 0; transform: translate(-50%, -50%) rotate(-16deg) scaleX(0.24); }
+          16% { opacity: 1; transform: translate(-50%, -50%) rotate(-16deg) scaleX(1); }
+          30% { opacity: 0.34; transform: translate(-50%, -50%) rotate(-16deg) scaleX(0.72); }
+        }
+
+        @keyframes forge-tile-spray {
+          0%, 9%, 100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(var(--sr)) scaleX(0.18);
+          }
+          14% {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(var(--sr)) scaleX(1.1);
+          }
+          68% {
+            opacity: 0.92;
+            transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) rotate(var(--sr)) scaleX(0.78);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) rotate(var(--sr)) scaleX(0.24);
+          }
+        }
+
+        @keyframes forge-tile-spark-burst {
+          0%, 11%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.62); }
+          18% { opacity: 1; transform: translate(-50%, -50%) scale(0.9); }
+          58% { opacity: 0.64; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.12); }
+        }
+
+        @keyframes forge-tile-spark {
+          0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.55); }
+          12% { opacity: 1; }
+          78% { opacity: 0.7; }
+          100% { opacity: 0; transform: translateY(-3.3rem) translateX(0.42rem) scale(0.14); }
+        }
+
+        .forge-visual {
+          position: relative;
+          width: 8.25rem;
+          height: 8.25rem;
+          isolation: isolate;
+          user-select: none;
+          border-radius: 1.35rem;
+          transform: translateZ(0);
+        }
+
+        .forge-visual__halo {
+          position: absolute;
+          inset: 0.05rem;
+          border-radius: 1.5rem;
+          background:
+            radial-gradient(circle at 50% 62%, rgba(255, 111, 28, 0.5), transparent 42%),
+            radial-gradient(circle at 50% 72%, rgba(255, 214, 118, 0.28), transparent 30%);
+          opacity: 0;
+          filter: blur(18px);
+          z-index: -1;
+          transition: opacity 220ms ease;
+        }
+
+        .forge-visual--active .forge-visual__halo {
+          opacity: 1;
+          animation: forge-halo 1.18s ease-in-out infinite;
+        }
+
+        .forge-visual__svg {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          display: block;
+          overflow: visible;
+          filter: drop-shadow(0 13px 16px rgba(0, 0, 0, 0.48));
+          transition: filter 240ms ease;
+        }
+
+        .forge-visual--active .forge-visual__svg {
+          filter:
+            drop-shadow(0 13px 16px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 12px rgba(255, 116, 26, 0.42));
+          animation: forge-breathe 1.05s ease-in-out infinite;
+        }
+
+        .forge-mouth-glow,
+        .forge-outer-glow,
+        .forge-fire,
+        .forge-sparks {
+          transition: opacity 220ms ease, transform 220ms ease;
+        }
+
+        .forge-mouth-glow {
+          opacity: 0.12;
+        }
+
+        .forge-heat {
+          opacity: 0.2;
+          transform-origin: 50% 88%;
+          transform-box: fill-box;
+        }
+
+        .forge-fire {
+          opacity: 0;
+          transform: translateY(13px) scale(0.58);
+          transform-origin: 50% 100%;
+          transform-box: fill-box;
+        }
+
+        .forge-sparks {
+          opacity: 0;
+          fill: #ffd166;
+        }
+
+        .forge-visual--active .forge-mouth-glow {
+          opacity: 0.95;
+          animation: forge-mouth-pulse 780ms ease-in-out infinite;
+        }
+
+        .forge-visual--active .forge-outer-glow {
+          opacity: 0.28;
+          animation: forge-shell-heat 1.2s ease-in-out infinite;
+        }
+
+        .forge-visual--active .forge-heat {
+          opacity: 1;
+          animation: forge-heat-roll 880ms ease-in-out infinite;
+        }
+
+        .forge-visual--active .forge-fire {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        .forge-flame {
+          transform-origin: 50% 100%;
+          transform-box: fill-box;
+          will-change: transform;
+          mix-blend-mode: screen;
+        }
+
+        .forge-visual--active .forge-flame--back {
+          animation: forge-flame-tall 560ms ease-in-out infinite alternate;
+        }
+
+        .forge-visual--active .forge-flame--left {
+          animation: forge-flame-left 430ms ease-in-out infinite alternate;
+        }
+
+        .forge-visual--active .forge-flame--right {
+          animation: forge-flame-right 510ms ease-in-out infinite alternate;
+        }
+
+        .forge-visual--active .forge-flame--core {
+          animation: forge-flame-core 360ms ease-in-out infinite alternate;
+        }
+
+        .forge-embers {
+          opacity: 0.38;
+        }
+
+        .forge-visual--active .forge-embers {
+          opacity: 1;
+          animation: forge-ember-glow 720ms ease-in-out infinite alternate;
+        }
+
+        .forge-visual--active .forge-sparks {
+          opacity: 1;
+        }
+
+        .forge-sparks circle {
+          transform-origin: center;
+          transform-box: fill-box;
+          opacity: 0;
+        }
+
+        .forge-visual--active .forge-sparks circle:nth-child(1) { animation: forge-spark 1.15s linear infinite; }
+        .forge-visual--active .forge-sparks circle:nth-child(2) { animation: forge-spark 1.15s 180ms linear infinite; }
+        .forge-visual--active .forge-sparks circle:nth-child(3) { animation: forge-spark 1.15s 360ms linear infinite; }
+        .forge-visual--active .forge-sparks circle:nth-child(4) { animation: forge-spark 1.15s 540ms linear infinite; }
+        .forge-visual--active .forge-sparks circle:nth-child(5) { animation: forge-spark 1.15s 720ms linear infinite; }
+
+        .forge-rivets circle {
+          fill: #100a08;
+          stroke: rgba(255, 205, 132, 0.35);
+          stroke-width: 1;
+        }
+
+        .forge-visual--active .forge-rivets circle {
+          fill: #331308;
+          stroke: rgba(255, 178, 82, 0.72);
+        }
+
+        .forge-workpiece {
+          position: absolute;
+          right: 0.42rem;
+          top: 0.42rem;
+          z-index: 2;
+          min-width: 1.95rem;
+          height: 1.95rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.62rem;
+          background:
+            radial-gradient(circle at 35% 20%, rgba(255, 220, 135, 0.16), transparent 42%),
+            rgba(5, 4, 4, 0.76);
+          border: 1px solid rgba(255, 204, 130, 0.22);
+          box-shadow: 0 7px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          font-size: 1.04rem;
+        }
+
+        .forge-visual--active .forge-workpiece {
+          border-color: rgba(255, 189, 88, 0.62);
+          box-shadow: 0 0 14px rgba(249, 115, 22, 0.36), 0 7px 16px rgba(0, 0, 0, 0.45);
+          animation: forge-workpiece-pop 850ms ease-in-out infinite;
+        }
+
+        .forge-workpiece b {
+          position: absolute;
+          right: -0.2rem;
+          bottom: -0.2rem;
+          min-width: 1rem;
+          height: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.78);
+          color: #f6c35f;
+          border: 1px solid rgba(246, 195, 95, 0.38);
+          font-size: 0.58rem;
+          line-height: 1;
+        }
+
+        @keyframes forge-breathe {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-1px) scale(1.015); }
+        }
+
+        @keyframes forge-halo {
+          0%, 100% { transform: scale(0.94); opacity: 0.62; }
+          50% { transform: scale(1.06); opacity: 1; }
+        }
+
+        @keyframes forge-mouth-pulse {
+          0%, 100% { opacity: 0.78; }
+          50% { opacity: 1; }
+        }
+
+        @keyframes forge-shell-heat {
+          0%, 100% { transform: scale(0.98); opacity: 0.18; }
+          50% { transform: scale(1.03); opacity: 0.34; }
+        }
+
+        @keyframes forge-heat-roll {
+          0%, 100% { transform: scaleX(0.96) scaleY(0.92); opacity: 0.8; }
+          50% { transform: scaleX(1.08) scaleY(1.05); opacity: 1; }
+        }
+
+        @keyframes forge-flame-tall {
+          0% { transform: translateX(-1px) scaleX(0.94) scaleY(0.92) rotate(-2deg); }
+          100% { transform: translateX(2px) scaleX(1.07) scaleY(1.08) rotate(3deg); }
+        }
+
+        @keyframes forge-flame-left {
+          0% { transform: translateX(1px) scaleX(0.9) scaleY(0.96) rotate(5deg); }
+          100% { transform: translateX(-2px) scaleX(1.08) scaleY(1.05) rotate(-4deg); }
+        }
+
+        @keyframes forge-flame-right {
+          0% { transform: translateX(-2px) scaleX(0.92) scaleY(0.95) rotate(-5deg); }
+          100% { transform: translateX(2px) scaleX(1.08) scaleY(1.06) rotate(5deg); }
+        }
+
+        @keyframes forge-flame-core {
+          0% { transform: translateY(1px) scaleX(0.88) scaleY(0.9); opacity: 0.88; }
+          100% { transform: translateY(-2px) scaleX(1.08) scaleY(1.1); opacity: 1; }
+        }
+
+        @keyframes forge-ember-glow {
+          0% { filter: brightness(0.75); transform: translateY(0); }
+          100% { filter: brightness(1.35); transform: translateY(-1px); }
+        }
+
+        @keyframes forge-spark {
+          0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.55); }
+          12% { opacity: 1; }
+          75% { opacity: 0.75; }
+          100% { opacity: 0; transform: translateY(-29px) translateX(7px) scale(0.16); }
+        }
+
+        @keyframes forge-workpiece-pop {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-1px); }
         }
       `}</style>
     </div>

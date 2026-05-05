@@ -86,7 +86,7 @@ export function GameLayout({
       sessionStorage.removeItem("skip-splash");
       gameState.setHasEntered(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Preload all background images + mount all tabs
   useEffect(() => {
@@ -123,7 +123,7 @@ export function GameLayout({
       gameState.setHasEntered(true);
     }, 600);
     return () => clearTimeout(timer);
-  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   // Resolve tab from URL on client only — avoids hydration mismatch
   useEffect(() => {
@@ -189,7 +189,11 @@ export function GameLayout({
             <svg className="absolute" width="280" height="280" viewBox="0 0 280 280" style={{ animation: "dao-ring-rotate 20s linear infinite" }}>
               {Array.from({ length: 8 }).map((_, i) => {
                 const a = (i * 45 * Math.PI) / 180;
-                return <line key={i} x1={140 + 126 * Math.cos(a)} y1={140 + 126 * Math.sin(a)} x2={140 + 136 * Math.cos(a)} y2={140 + 136 * Math.sin(a)} stroke="#d4a643" strokeWidth="3" opacity="0.3" />;
+                const x1 = Number((140 + 126 * Math.cos(a)).toFixed(3));
+                const y1 = Number((140 + 126 * Math.sin(a)).toFixed(3));
+                const x2 = Number((140 + 136 * Math.cos(a)).toFixed(3));
+                const y2 = Number((140 + 136 * Math.sin(a)).toFixed(3));
+                return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#d4a643" strokeWidth="3" opacity="0.3" />;
               })}
               <circle cx="140" cy="140" r="132" fill="none" stroke="#d4a643" strokeWidth="1" opacity="0.2" strokeDasharray="4 10" />
             </svg>
@@ -198,7 +202,9 @@ export function GameLayout({
               <circle cx="140" cy="140" r="122" fill="none" stroke="#d4a643" strokeWidth="0.6" opacity="0.15" strokeDasharray="2 14" />
               {Array.from({ length: 12 }).map((_, i) => {
                 const a = (i * 30 * Math.PI) / 180;
-                return <circle key={i} cx={140 + 122 * Math.cos(a)} cy={140 + 122 * Math.sin(a)} r="1.5" fill="#d4a643" opacity="0.25" />;
+                const cx = Number((140 + 122 * Math.cos(a)).toFixed(3));
+                const cy = Number((140 + 122 * Math.sin(a)).toFixed(3));
+                return <circle key={i} cx={cx} cy={cy} r="1.5" fill="#d4a643" opacity="0.25" />;
               })}
             </svg>
             {/* Pulsing qi aura */}

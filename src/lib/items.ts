@@ -125,21 +125,25 @@ export const ITEMS: Record<string, ItemDef> = {
   // === Bars (smelting output) ===
   copper_bar: {
     nameZh: "銅錠", nameEn: "Copper Bar", icon: "🟫", color: "text-amber-600",
+    image: "/images/items/copper_bar.png",
     hintZh: "製作材料", hintEn: "Crafting Reagent",
     tags: ["reagent"],
   },
-  bronze_bar: {
-    nameZh: "青銅錠", nameEn: "Bronze Bar", icon: "🟤", color: "text-amber-700",
+  tin_bar: {
+    nameZh: "錫錠", nameEn: "Tin Bar", icon: "⬜", color: "text-zinc-300",
+    image: "/images/items/tin_bar.png",
     hintZh: "製作材料", hintEn: "Crafting Reagent",
     tags: ["reagent"],
   },
   iron_bar: {
     nameZh: "鐵錠", nameEn: "Iron Bar", icon: "⬛", color: "text-slate-400",
+    image: "/images/items/iron_bar.png",
     hintZh: "製作材料", hintEn: "Crafting Reagent",
     tags: ["reagent"],
   },
   silver_bar: {
     nameZh: "銀錠", nameEn: "Silver Bar", icon: "⬜", color: "text-gray-200",
+    image: "/images/items/silver_bar.png",
     hintZh: "製作材料", hintEn: "Crafting Reagent",
     tags: ["reagent"],
   },

@@ -26,10 +26,10 @@ export interface SmeltingRecipe {
 }
 
 export const SMELTING_RECIPES: SmeltingRecipe[] = [
-  { id: "copper_bar", output: "copper_bar", nameZh: "銅錠", nameEn: "Copper Bar", level: 1, materials: [{ item: "copper_ore", qty: 1 }], heat: 50, time: 5, xp: 10 },
-  { id: "bronze_bar", output: "bronze_bar", nameZh: "青銅錠", nameEn: "Bronze Bar", level: 25, materials: [{ item: "copper_ore", qty: 1 }, { item: "tin_ore", qty: 1 }], heat: 80, time: 8, xp: 25 },
-  { id: "iron_bar", output: "iron_bar", nameZh: "鐵錠", nameEn: "Iron Bar", level: 50, materials: [{ item: "iron_ore", qty: 1 }], heat: 150, time: 10, xp: 50 },
-  { id: "silver_bar", output: "silver_bar", nameZh: "銀錠", nameEn: "Silver Bar", level: 75, materials: [{ item: "silver_ore", qty: 1 }], heat: 250, time: 12, xp: 85 },
+  { id: "copper_bar", output: "copper_bar", nameZh: "銅錠", nameEn: "Copper Bar", level: 1, materials: [{ item: "copper_ore", qty: 1 }, { item: "coal", qty: 1 }], heat: 0, time: 5, xp: 10 },
+  { id: "tin_bar", output: "tin_bar", nameZh: "錫錠", nameEn: "Tin Bar", level: 25, materials: [{ item: "tin_ore", qty: 1 }, { item: "coal", qty: 2 }], heat: 0, time: 8, xp: 25 },
+  { id: "iron_bar", output: "iron_bar", nameZh: "鐵錠", nameEn: "Iron Bar", level: 50, materials: [{ item: "iron_ore", qty: 1 }, { item: "coal", qty: 4 }], heat: 0, time: 10, xp: 50 },
+  { id: "silver_bar", output: "silver_bar", nameZh: "銀錠", nameEn: "Silver Bar", level: 75, materials: [{ item: "silver_ore", qty: 1 }, { item: "coal", qty: 8 }], heat: 0, time: 12, xp: 85 },
 ];
 
 // === Forging Recipes ===
@@ -47,11 +47,11 @@ export interface ForgingRecipe {
   stats: { atk?: number; def?: number; hp?: number };
 }
 
-export type MaterialTier = "copper" | "bronze" | "iron" | "silver";
+export type MaterialTier = "copper" | "tin" | "iron" | "silver";
 
 export const MATERIAL_TIERS: { key: MaterialTier; nameZh: string; nameEn: string; minLevel: number; bar: string }[] = [
   { key: "copper", nameZh: "銅裝", nameEn: "Copper", minLevel: 1, bar: "copper_bar" },
-  { key: "bronze", nameZh: "青銅裝", nameEn: "Bronze", minLevel: 25, bar: "bronze_bar" },
+  { key: "tin", nameZh: "錫裝", nameEn: "Tin", minLevel: 25, bar: "tin_bar" },
   { key: "iron", nameZh: "鐵裝", nameEn: "Iron", minLevel: 50, bar: "iron_bar" },
   { key: "silver", nameZh: "銀裝", nameEn: "Silver", minLevel: 75, bar: "silver_bar" },
 ];
@@ -75,7 +75,7 @@ export const COPPER_FORGING: ForgingRecipe[] = [
 // All forging recipes by tier
 export const FORGING_RECIPES: Record<MaterialTier, ForgingRecipe[]> = {
   copper: COPPER_FORGING,
-  bronze: [], // TODO: add when ready
+  tin: [], // TODO: add when ready
   iron: [],
   silver: [],
 };
@@ -112,7 +112,7 @@ export const ENHANCEMENT_TABLE: EnhancementLevel[] = [
 // Get the bar type for an equipment item
 export function getEquipmentBarType(itemType: string): string | null {
   if (itemType.startsWith("copper_")) return "copper_bar";
-  if (itemType.startsWith("bronze_")) return "bronze_bar";
+  if (itemType.startsWith("tin_")) return "tin_bar";
   if (itemType.startsWith("iron_")) return "iron_bar";
   if (itemType.startsWith("silver_")) return "silver_bar";
   // Legacy items (poor_*)
